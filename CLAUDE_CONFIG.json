@@ -1,0 +1,169 @@
+
+{
+    "claude_code_setup": {
+      "project_name": "Fleet Manager",
+      "tech_stack": {
+        "framework": "Next.js",
+        "database": "Firebase (Firestore)",
+        "storage": "Firebase Storage",
+        "auth": "Firebase Auth",
+        "language": "JavaScript",
+        "styling": "Tailwind CSS",
+        "state": "React Context + Zustand (recomendado)",
+        "cache": "React Query / SWR"
+      },
+      
+      "structure": {
+        "pages": "Next.js pages directory",
+        "components": "/components",
+        "lib": "/lib (Firebase config, utils)",
+        "hooks": "/hooks (custom hooks)",
+        "context": "/context (state management)",
+        "api": "/pages/api (API routes)",
+        "public": "/public (static assets)"
+      },
+      
+      "critical_rules": [
+        "NUNCA modificar fórmulas de cálculo existentes",
+        "SIEMPRE respetar estructura de Firestore actual",
+        "SIEMPRE mantener consistencia de código",
+        "Usar TypeScript si el proyecto lo usa",
+        "Seguir convenciones de nombres existentes",
+        "NO crear dependencias circulares",
+        "SIEMPRE agregar manejo de errores",
+        "Loading states en TODAS las operaciones async"
+      ],
+      
+      "firestore_structure": {
+        "usuarios": {
+          "path": "/usuarios/{userId}",
+          "fields": ["email", "nombre", "rol", "createdAt"],
+          "subcollections": ["notificaciones", "dashboard_config"]
+        },
+        "vehiculos": {
+          "path": "/vehiculos/{vehiculoId}",
+          "fields": ["placa", "marca", "modelo", "año", "socioId", "clienteId"],
+          "subcollections": ["historial", "mantenimientos", "consultas_icvnl", "kilometrajes"]
+        },
+        "transacciones": {
+          "path": "/transacciones/{transaccionId}",
+          "fields": ["tipo", "monto", "fecha", "vehiculoId", "concepto"]
+        },
+        "notificaciones": {
+          "path": "/notificaciones/{notificacionId}",
+          "fields": ["userId", "titulo", "mensaje", "leida", "tipo", "createdAt"]
+        }
+      },
+      
+      "optimization_priorities": [
+        "Reducir consultas a Firestore (usar cache)",
+        "Implementar paginación en listas",
+        "Lazy loading de componentes pesados",
+        "Memoización de cálculos complejos",
+        "Índices compuestos en Firestore",
+        "Service Worker para PWA"
+      ]
+    },
+    
+    "phase_by_phase_prompts": {
+      
+      "FASE_0_SETUP": {
+        "command": "cd tu-proyecto && claude-code",
+        "prompt": "Hola! Analiza este proyecto de Fleet Manager y dame:\n1. Estructura de archivos completa\n2. Configuración actual de Firebase\n3. Componentes de dashboard existentes\n4. APIs implementadas\n5. Hooks y contexts actuales\n6. Sistema de autenticación\n7. Roles de usuario implementados\n\nGenera un archivo ANALYSIS.md con todo el análisis."
+      },
+      
+      "FASE_1_ICVNL": {
+        "priority": "HIGH",
+        "estimated_time": "1 hora",
+        "prompt": "Implementa la integración completa con ICVNL:\n\n1. API Route: /pages/api/consultar-vehiculo-icvnl.js\n   - Recibe: { placa, numeroSerie, userId }\n   - Ejecuta script Python del scraper\n   - Guarda resultado en Firestore\n   - Retorna status en tiempo real\n\n2. Componente: /components/ConsultaICVNL.jsx\n   - Form con placa y número de serie\n   - Validación: solo placas de Nuevo León\n   - Disclaimer visible: 'Solo aplica para vehículos de Nuevo León'\n   - Loading state durante consulta\n   - Mostrar resultados en modal\n\n3. Integrar en dashboard de Admin\n   - Agregar al botón flotante\n   - Guardar historial en: /vehiculos/{placa}/consultas_icvnl\n\n4. Notificación push cuando complete\n\nUsa mi configuración actual de Firebase en /lib/firebase.js"
+      },
+      
+      "FASE_2_DASHBOARD_ADMIN": {
+        "priority": "HIGH",
+        "estimated_time": "3-4 horas",
+        "files_to_create": [
+          "/components/dashboards/AdminDashboard.jsx",
+          "/components/widgets/WidgetContainer.jsx",
+          "/hooks/useDashboardConfig.js",
+          "/hooks/useFilteredData.js",
+          "/context/FilterContext.jsx",
+          "/components/FloatingActionButton.jsx"
+        ],
+        "prompt": "Crea el dashboard principal para roles Admin/Editor/SuperAdmin:\n\nCARACTERÍSTICAS:\n1. Layout con react-grid-layout o dnd-kit\n   - Drag & drop de widgets\n   - Resize de widgets\n   - Guardar config en: /usuarios/{userId}/dashboard_config\n   - Cargar config al montar\n\n2. Widgets disponibles:\n   - KPIs Financieros (4 cards: Ingresos, Gastos, Utilidad, ROI)\n   - Gráfica Ingresos/Gastos (recharts)\n   - Lista Vehículos Activos (tabla)\n   - Alertas Pendientes (lista con badges)\n   - Transacciones Recientes (últimas 5)\n   - Widget ICVNL (nuevo)\n\n3. Sistema de filtros global:\n   - Selector: Esta semana | Este mes | Este año | Personalizado\n   - Context API para compartir filtro\n   - Aplicar automáticamente a TODOS los widgets\n   - Guardar filtro seleccionado en localStorage\n\n4. Botón flotante (Material-UI Fab):\n   - Nueva Transacción\n   - Nuevo Vehículo  \n   - Nuevo Gasto\n   - Nueva Alerta\n   - Consultar ICVNL\n   - Generar Reporte\n\n5. OPTIMIZACIÓN:\n   - React Query para cache (5 min para estáticos)\n   - useQuery con staleTime\n   - Prefetch de datos al hover\n   - Loading skeletons\n   - Error boundaries\n\n6. Tiempo real:\n   - onSnapshot solo para alertas y notificaciones\n   - Resto usa polling inteligente\n\nRespeta mis hooks de cálculo existentes en /hooks/useAnalytics"
+      },
+      
+      "FASE_3_DASHBOARD_SOCIO": {
+        "priority": "MEDIUM",
+        "estimated_time": "2 horas",
+        "prompt": "Crea dashboard específico para rol SOCIO:\n\nRESTRICCIONES:\n- Solo 2 widgets (no más)\n- NO botón flotante\n- Sidebar lateral\n\nWIDGETS:\n1. Saldo del Socio\n   - Query: aggregate de transacciones where socioId == userId\n   - onClick: navigate to /transacciones\n   - Mostrar: Saldo actual, cambio vs mes anterior\n   \n2. Gastos e Ingresos\n   - 2 columnas\n   - Ingresos: sum de ingresos de sus vehículos\n   - Gastos: sum de gastos de sus vehículos\n   - Query: where('socioId', '==', userId)\n\nFEATURES:\n- Drag & drop entre los 2 widgets\n- Guardar posición en: /usuarios/{userId}/dashboard_config\n- Filtros de fecha arriba (semana/mes/año)\n- Aplicar filtro a ambos widgets\n\nSIDEBAR:\n- Gastos → /gastos\n- Ingresos → /ingresos  \n- Configuración → /configuracion\n- Cerrar sesión → logout\n\nOPTIMIZACIÓN:\n- Cache de 5 minutos\n- Usar aggregate queries\n- No onSnapshot (solo refetch manual)\n\nRespeta hooks de cálculo existentes"
+      },
+      
+      "FASE_4_DASHBOARD_CLIENTE": {
+        "priority": "MEDIUM",
+        "estimated_time": "2 horas",
+        "prompt": "Crea dashboard para rol CLIENTE:\n\nWIDGETS:\n1. Saldo del Cliente\n   - onClick: /mis-transacciones\n   - Query: where('clienteId', '==', userId)\n   \n2. Notificaciones Mantenimiento\n   - Query: alertas del vehículo asignado\n   - Badges de prioridad (alta/media/baja)\n   - onSnapshot para tiempo real\n\nBOTÓN FLOTANTE (2 acciones):\n\n1. Registro de Kilometraje:\n   - Modal con form\n   - Input: kilometraje (number)\n   - Validar: > último registrado\n   - Guardar en: /vehiculos/{vehiculoId}/kilometrajes\n   - Toast de éxito\n   \n2. Módulo de Seguimiento (IMPORTANTE):\n   - Abrir cámara directamente\n   - NO permitir galería\n   - Usar: navigator.mediaDevices.getUserMedia()\n   - Preview de foto antes de enviar\n   - Comprimir imagen (max 1MB)\n   - Upload a Storage: /seguimientos/{vehiculoId}/{timestamp}.jpg\n   - Guardar metadata en Firestore\n   - Integrar con API existente en /api/seguimiento\n   \nTARE AS:\n1. Revisar y probar /api/seguimiento existente\n2. Si no existe, crearla\n3. Validar que foto sea nueva (timestamp)\n4. No permitir capturas de pantalla\n\nQuery: Solo vehículo asignado\nwhere('clienteId', '==', userId)"
+      },
+      
+      "FASE_5_APIS": {
+        "priority": "HIGH",
+        "estimated_time": "2-3 horas",
+        "prompt": "Revisa y corrige TODAS las APIs:\n\n1. /api/archivos (upload/download)\n   - Test: subir PDF, Excel, imagen\n   - Validar tipos permitidos\n   - Storage path: /archivos/{userId}/{filename}\n   - Progress tracking\n   - Error handling\n   - Crear: /api/archivos/upload y /api/archivos/download\n   \n2. /api/notifications (Push)\n   - Verificar FCM setup\n   - Test envío por rol:\n     * Admin: todas\n     * Socio: solo sus vehículos  \n     * Cliente: solo su vehículo\n   - Guardar tokens: /usuarios/{userId}/fcmTokens\n   - Retry logic (3 intentos)\n   - Batch notifications\n   \n3. /api/seguimiento (fotos)\n   - Endpoint: POST /api/seguimiento/upload\n   - Recibir: imagen base64, vehiculoId\n   - Validar: timestamp reciente (< 5 min)\n   - Comprimir con sharp\n   - Thumbnail: 300x300\n   - Storage: /seguimientos/{vehiculoId}/{timestamp}\n   - Metadata: Firestore\n   \nCREAR:\n- /tests/api.test.js con tests de cada API\n- /docs/API.md documentando endpoints\n- Postman collection para testing\n\nProbar en desarrollo antes de confirmar"
+      },
+      
+      "FASE_6_GOOGLE_MAPS": {
+        "priority": "MEDIUM",
+        "estimated_time": "1 hora",
+        "dependencies": ["@react-google-maps/api"],
+        "prompt": "Integra Google Maps en formularios:\n\n1. Instalar: npm install @react-google-maps/api\n\n2. Crear: /components/AddressAutocomplete.jsx\n   - Input con Places Autocomplete\n   - Al seleccionar, obtener:\n     * formatted_address\n     * lat, lng\n     * address_components\n   - Preview de mapa (300x200)\n   - Guardar objeto completo\n   \n3. Integrar en forms:\n   - /pages/vehiculos/nuevo → campo 'direccion'\n   - /pages/socios/nuevo → campo 'direccion'\n   - /pages/clientes/nuevo → campo 'direccion'\n   \n4. Formato de datos:\n   {\n     formatted: string,\n     coordinates: { lat: number, lng: number },\n     components: {\n       street: string,\n       neighborhood: string,\n       city: string,\n       state: string,\n       zipCode: string\n     },\n     placeId: string\n   }\n   \n5. Funciones adicionales:\n   - Búsqueda cercana (vehículos cerca de una ubicación)\n   - Ruta entre dos puntos\n   - Calcular distancia\n\nAPI Key: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en .env.local"
+      },
+      
+      "FASE_7_NOTIFICATIONS_VALIDATION": {
+        "priority": "HIGH", 
+        "estimated_time": "1-2 horas",
+        "prompt": "Valida sistema completo de notificaciones:\n\n1. Registro de tokens:\n   - Al login, registrar FCM token\n   - Guardar en: /usuarios/{userId}/fcmTokens (array)\n   - Limpiar tokens expirados\n   \n2. Panel de pruebas:\n   - Crear: /pages/admin/test-notifications\n   - Form para enviar notificación test\n   - Selector de usuario destino\n   - Ver historial de enviadas\n   \n3. Validar entrega por ROL:\n   \n   ADMIN/SUPER_ADMIN recibe:\n   - Nueva transacción (todas)\n   - Nuevo vehículo\n   - Alertas de mantenimiento (todas)\n   - Gastos > presupuesto\n   - Nuevos usuarios registrados\n   \n   SOCIO recibe:\n   - Transacciones de sus vehículos\n   - Alertas de sus vehículos  \n   - Gastos de sus vehículos\n   - Mensajes de admin\n   \n   CLIENTE recibe:\n   - Mantenimiento de SU vehículo\n   - Cambios en su saldo\n   - Mensajes de admin\n   \n4. Features:\n   - Badge counter en icono notificaciones\n   - Marcar como leída\n   - Ver historial: /usuarios/{userId}/notificaciones\n   - Borrar notificaciones antiguas (> 30 días)\n   \n5. Testing:\n   - Web: Service Workers\n   - Simulador iOS: APNs\n   - Android real: FCM\n   \nDocumentar en: /docs/NOTIFICATIONS.md"
+      },
+      
+      "FASE_8_VALIDAR_CALCULOS": {
+        "priority": "CRITICAL",
+        "estimated_time": "2 horas",
+        "prompt": "IMPORTANTE: SOLO VALIDAR, NO MODIFICAR FÓRMULAS\n\nRevisa y documenta todos los cálculos:\n\n1. Data Provider (buscar en /lib o /context):\n   - Listar todas las funciones de cálculo\n   - Documentar cada una\n   - Validar que usen datos correctos\n   - Probar con datos de ejemplo\n   \n2. Hooks de Analytics (buscar en /hooks):\n   - useFinancialStats\n   - useVehicleStats  \n   - useKPIs\n   - useReports\n   - Cualquier otro hook de cálculos\n   \n3. Fórmulas a validar (NO CAMBIAR):\n   ✓ Saldo = Ingresos - Gastos\n   ✓ ROI = ((Ingresos - Gastos) / Gastos) * 100\n   ✓ Promedio km/día = km_total / días\n   ✓ Costo por km = gastos_total / km_total\n   ✓ Utilidad por vehículo = ingresos - gastos por vehículo\n   ✓ Margen de ganancia = (utilidad / ingresos) * 100\n   \n4. Testing:\n   - Crear: /tests/calculations.test.js\n   - Test para cada fórmula\n   - Usar datos conocidos\n   - Validar resultados\n   \n5. Documentación:\n   - Crear: /docs/FORMULAS.md\n   - Explicar cada fórmula\n   - Ejemplos de cálculo\n   - Edge cases\n   \n6. Report:\n   - Genera archivo: VALIDATION_REPORT.md\n   - Lista qué funciona ✓\n   - Lista qué tiene errores ✗\n   - Sugerencias de corrección (sin cambiar fórmulas)\n\nSI encuentras errores, REPORTAR, NO ARREGLAR automáticamente"
+      },
+      
+      "FASE_9_OPTIMIZATION": {
+        "priority": "HIGH",
+        "estimated_time": "2-3 horas",
+        "prompt": "Optimiza rendimiento completo:\n\n1. REACT QUERY:\n   - npm install @tanstack/react-query\n   - Setup en _app.js\n   - Migrar fetches a useQuery\n   - Cache: 5 min estáticos, 30 seg dinámicos\n   - Prefetch en hover\n   \n2. FIRESTORE OPTIMIZATION:\n   - Identificar queries frecuentes\n   - Crear índices compuestos\n   - Paginación: limit(20) + startAfter\n   - Batch reads cuando sea posible\n   - Evitar onSnapshot innecesarios\n   \n3. CODE SPLITTING:\n   - Dynamic imports para dashboards\n   - Lazy load de modales\n   - Route-based splitting\n   - Separar vendor bundle\n   \n4. PERFORMANCE:\n   - React.memo en componentes pesados\n   - useMemo para cálculos complejos\n   - useCallback para funciones en props\n   - React-window para listas largas (>50 items)\n   \n5. IMAGES:\n   - Usar next/image everywhere\n   - Optimizar tamaños\n   - WebP con fallback\n   - Lazy loading\n   \n6. MONITORING:\n   - Firebase Performance\n   - Error boundaries en cada dashboard\n   - Sentry para error tracking (opcional)\n   - Console.log cleanup en producción\n   \n7. BUNDLE ANALYSIS:\n   - npm install @next/bundle-analyzer\n   - Analizar y reportar\n   - Remover dependencias no usadas\n   \nOBJETIVO: \n- Carga inicial < 3 segundos\n- Time to Interactive < 5 segundos\n- Lighthouse score > 90\n\nGenerar: OPTIMIZATION_REPORT.md con métricas antes/después"
+      },
+      
+      "FASE_FINAL_CHECKLIST": {
+        "prompt": "Ejecuta checklist final completo:\n\n✓ FUNCIONALIDAD\n  □ ICVNL con nota de Nuevo León\n  □ Dashboard Admin drag & drop\n  □ Dashboard Socio (2 widgets)\n  □ Dashboard Cliente con cámara\n  □ Filtros globales funcionando\n  □ APIs probadas y documentadas\n  □ Google Maps integrado\n  □ Notificaciones por rol validadas\n  □ Cálculos verificados\n  \n✓ OPTIMIZACIÓN  \n  □ React Query implementado\n  □ Índices Firestore creados\n  □ Code splitting configurado\n  □ Images optimizadas\n  □ Performance monitoring activo\n  \n✓ DOCUMENTACIÓN\n  □ README.md actualizado\n  □ API.md creado\n  □ FORMULAS.md creado\n  □ NOTIFICATIONS.md creado\n  □ Tests escritos y pasando\n  \n✓ TESTING\n  □ Probar cada dashboard en cada rol\n  □ Probar en móvil (responsive)\n  □ Probar notificaciones push\n  □ Probar cámara en cliente\n  □ Probar ICVNL con placa real\n  \nGenera: FINAL_REPORT.md con:\n- Todo lo implementado\n- Todo lo probado  \n- Problemas encontrados\n- Próximos pasos sugeridos"
+      }
+    },
+    
+    "quick_commands": {
+      "analyze": "Analiza mi proyecto y genera ANALYSIS.md",
+      "implement_all": "Ejecuta todas las fases del roadmap (pregunta antes de cada una)",
+      "fix_bugs": "Revisa todo el código y lista bugs encontrados",
+      "optimize": "Ejecuta solo optimizaciones de rendimiento",
+      "test_all": "Crea y ejecuta tests para toda la aplicación",
+      "document": "Genera documentación completa del proyecto"
+    },
+    
+    "safety_rules": {
+      "before_starting": [
+        "git add .",
+        "git commit -m 'Antes de Claude Code'",
+        "git checkout -b feature/claude-improvements"
+      ],
+      "after_each_phase": [
+        "Revisar cambios con git diff",
+        "Probar funcionamiento",
+        "Hacer commit si funciona"
+      ],
+      "if_something_breaks": [
+        "git reset --hard HEAD",
+        "Reportar el error",
+        "Intentar fase de nuevo con más contexto"
+      ]
+    }
+  }

@@ -1,0 +1,60 @@
+diff --git a/node_modules/@radix-ui/react-slot/dist/index.mjs b/node_modules/@radix-ui/react-slot/dist/index.mjs
+index 4b953d5a23f37b77f98501e5649c11874b94f6f3..585f675c9424c585c571775e5f583e7a331168f8 100644
+--- a/node_modules/@radix-ui/react-slot/dist/index.mjs
++++ b/node_modules/@radix-ui/react-slot/dist/index.mjs
+@@ -4,8 +4,7 @@ import $6UIVc$react, {
+   forwardRef
+ } from "react";
+ 
+-const $c403321356886b51$var$NODES = [
+-    "a",
++const $c403321356886b51$var$NODES = [ "a",
+     "button",
+     "div",
+     "form",
+@@ -14,14 +13,11 @@ const $c403321356886b51$var$NODES = [
+     "p",
+     "span"
+ ];
+-// This is the previous DOM node used in the component tree.
+-// It is used to check if we are in a composed `.rightSlot` by comparing the DOM node.
+-let $c403321356886b51$var$previousNode;
+ const $c403321356886b51$var$Slottable = /*#__PURE__*/ (0, $6UIVc$react.forwardRef)((props, forwardedRef)=>{
+     const { children, ...slotProps } = props;
+     const childrenArray = (0, $6UIVc$react.Children).toArray(children);
+-    const slottable = childrenArray.find($c403321356886b51$var$isSlottable);
+-    if (slottable) {
++    const slottable = childrenArray.find($c403321356886b51$var$isSlottable); // TODO: check if this is correct
++    if (false) {
+         // The new child has its own Slottable children, so we only render that part of the tree
+         const newSlottable = slottable.props.children;
+         const newChildren = childrenArray.map((child)=>{
+@@ -82,14 +78,6 @@ function $c403321356886b51$var$isSlottable(child) {
+     return (0, $6UIVc$react.isValidElement)(child) && child.type === $c403321356886b51$var$Slottable;
+ }
+ const $c403321356886b51$export$b22576e7ea55b414 = (0, $6UIVc$react.forwardRef)((props, forwardedRef)=>{
+-    const { asChild, ...primitiveProps } = props;
+-    const children = (0, $6UIVc$react.Children).toArray(primitiveProps.children);
+-    const slottable = children.find($c403321356886b51$var$isSlottable);
+-    if (slottable) {
+-        // TODO: find a better way to check if we are inside a .rightSlot
+-        // https://github.com/radix-ui/primitives/issues/928
+-        const isInsideRightSlot = slottable.props.children.type === 'div';
+-        if (isInsideRightSlot) $c403321356886b51$var$previousNode = slottable.props.children;
+-    }
+     const Comp = asChild ? $c403321356886b51$var$Slottable : "div";
+     (0, $6UIVc$react.useEffect)(()=>{
+         // TODO: find a better way to check if we are inside a .rightSlot
+@@ -99,10 +87,8 @@ const $c403321356886b51$export$b22576e7ea55b414 = (0, $6UIVc$react.forwardRef)((p
+         if (node.type === "button" && node.getAttribute("type") === "button") $c403321356886b51$var$previousNode = undefined;
+     }, []);
+-    return /*#__PURE__*/ (0, $6UIVc$react.createElement)(Comp, (0, $17f8a7a708a3f851$export$be92b6f5f03c0fe9)({}, primitiveProps, {
++    return /*#__PURE__*/ (0, $6UIVc$react.createElement)(Comp, (0, $17f8a7a708a3f851$export$be92b6f5f03c0fe9)({}, props, {
+         ref: forwardedRef
+     }));
+ });
+-$c403321356886b51$export$b22576e7ea55b414.displayName = "Slot";
+ 
+ export {$c403321356886b51$export$b22576e7ea55b414 as Slot};
+\ No newline at end of file
+

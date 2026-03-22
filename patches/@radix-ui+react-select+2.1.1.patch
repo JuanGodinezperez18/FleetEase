@@ -1,0 +1,20 @@
+diff --git a/node_modules/@radix-ui/react-select/dist/index.mjs b/node_modules/@radix-ui/react-select/dist/index.mjs
+index 9f54f39e31d4e12e1a396e95c479e0dd3577d612..81ca740c0fa57f58ae70155b9a4c0fd2c5053be4 100644
+--- a/node_modules/@radix-ui/react-select/dist/index.mjs
++++ b/node_modules/@radix-ui/react-select/dist/index.mjs
+@@ -480,10 +480,8 @@ const SelectContent = React.forwardRef((props, forwardedRef) => {
+   const { __scopeSelect, ...contentProps } = props;
+   const context = useSelectContext(CONTENT_NAME, __scopeSelect);
+-  return /* @__PURE__ */ React.createElement(Presence, {
+-    present: context.open
+-  }, /* @__PURE__ */ React.createElement(SelectContentImpl, {
+-    ...contentProps,
+-    ref: forwardedRef
+-  }));
++  return context.open ? /* @__PURE__ */ React.createElement(Presence, {
++    present: true
++  }, /* @__PURE__ */ React.createElement(SelectContentImpl, { ...contentProps, ref: forwardedRef })) : null;
+ });
+ SelectContent.displayName = CONTENT_NAME;
+ 
+

@@ -1,0 +1,13 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+headers:
+  - headers:
+      - key: Permissions-Policy
+        value: "clipboard-write=*, web-share=*"
+runConfig:
+  # Increase this value if you'd like to automatically spin up
+  # more instances in response to increased traffic.
+  maxInstances: 1
+  cpu: 3
+  memoryMiB: 2048
+  ephemeralStorageGiB: 96

@@ -1,0 +1,16 @@
+# Excluir todo lo innecesario del build
+node_modules
+.next
+npm-debug.log*
+.git
+README.md
+*.log
+.cache
+.tmp
+@types/*
+eslint*
+prettier*
+.env.local
+.DS_Store
+Dockerfile
+.dockerignore

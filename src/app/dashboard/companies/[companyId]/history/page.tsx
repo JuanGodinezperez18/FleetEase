@@ -1,0 +1,126 @@
+"use client";
+
+import { useParams, useRouter } from 'next/navigation';
+import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Clock, User, FileText, ArrowLeft } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import type { CompanyChangeLog } from '@/types';
+import { Button } from '@/components/ui/button';
+import { useData } from '@/hooks/use-data';
+import { useQuery } from '@tanstack/react-query';
+
+export default function CompanyHistoryPage() {
+  const params = useParams();
+  const router = useRouter();
+  const companyId = params.companyId as string;
+  const { companies } = useData();
+
+  const company = companies.find(c => c.id === companyId);
+
+  // ✅ OPTIMIZACIÓN: Usar React Query con getDocs en lugar de onSnapshot
+  const { data: changes = [], isLoading: loading } = useQuery({
+    queryKey: ['companyChanges', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+
+      const q = query(
+        collection(db, 'companyChangeLogs'),
+        where('companyId', '==', companyId),
+        orderBy('changedAt', 'desc'),
+        limit(50) // ✅ LÍMITE: Solo los últimos 50 cambios
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as CompanyChangeLog[];
+    },
+    enabled: !!companyId,
+    staleTime: 2 * 60 * 1000, // ✅ CACHÉ: 2 minutos
+  });
+
+  const getChangeTypeColor = (type: CompanyChangeLog['changeType']) => {
+    const colors: Record<CompanyChangeLog['changeType'], string> = {
+      created: 'bg-green-100 text-green-800',
+      updated: 'bg-blue-100 text-blue-800',
+      deleted: 'bg-red-100 text-red-800',
+      limit_changed: 'bg-yellow-100 text-yellow-800',
+      contract_uploaded: 'bg-blue-100 text-blue-800',
+      contract_deleted: 'bg-orange-100 text-orange-800',
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') return 'vacío';
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (value instanceof Date) return format(value, "P p", { locale: es });
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  if (loading) {
+    return <div>Cargando historial...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+       <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+            </Button>
+        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de Cambios de la Empresa</CardTitle>
+          <CardDescription>
+            Mostrando los últimos 50 cambios para {company ? company.name : 'empresa desconocida'}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {changes.map((change) => (
+              <div key={change.id} className="relative flex gap-4 pl-6 after:absolute after:left-3 after:top-12 after:bottom-0 after:w-px after:bg-border">
+                <div className="absolute left-0 top-2 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background border">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <Badge className={getChangeTypeColor(change.changeType)}>
+                      {change.changeType.replace(/_/g, ' ')}
+                    </Badge>
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      {change.changedByName}
+                    </span>
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {format(new Date(change.changedAt), "dd MMM yyyy, HH:mm", { locale: es })}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium">{change.description}</p>
+                  {(change.previousValue !== undefined || change.newValue !== undefined) && (
+                    <div className="mt-2 text-xs text-muted-foreground bg-muted p-2 rounded-md">
+                      <span className="font-semibold">Valor Anterior:</span> {formatValue(change.previousValue)}
+                      <br/>
+                      <span className="font-semibold">Valor Nuevo:</span> {formatValue(change.newValue)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {changes.length === 0 && (
+              <p className="text-center text-gray-500 py-8">No hay cambios registrados</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

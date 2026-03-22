@@ -1,0 +1,30 @@
+diff --git a/node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs b/node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs
+index ac96489311e695d735e589ba5791334c9c455855..5688536dd9a341e3305c490a7862f9281a8b301a 100644
+--- a/node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs
++++ b/node_modules/@radix-ui/react-dropdown-menu/dist/index.mjs
+@@ -370,12 +370,14 @@ const DropdownMenuContent = React.forwardRef((props, forwardedRef) => {
+   const { __scopeDropdownMenu, ...contentProps } = props;
+   const context = useDropdownMenuContext(CONTENT_NAME, __scopeDropdownMenu);
+   const [rightSlot, setRightSlot] = React.useState(null);
+-  return /* @__PURE__ */ React.createElement(Presence, {
+-    present: context.open
+-  }, /* @__PURE__ */ React.createElement(DropdownMenuContentProvider, {
+-    scope: __scopeDropdownMenu,
+-    rightSlot,
+-    setRightSlot
+-  }, /* @__PURE__ */ React.createElement(DropdownMenuContentImpl, {
+-    ...contentProps,
+-    ref: forwardedRef
+-  })));
++  return context.open ? /* @__PURE__ */ React.createElement(Presence, {
++    present: true
++  }, /* @__PURE__ */ React.createElement(DropdownMenuContentProvider, {
++    scope: __scopeDropdownMenu,
++    rightSlot,
++    setRightSlot,
++    forceMount: true
++  }, /* @__PURE__ */ React.createElement(DropdownMenuContentImpl, { ...contentProps, ref: forwardedRef }))) : null;
+ });
+ DropdownMenuContent.displayName = CONTENT_NAME;
+ 
+

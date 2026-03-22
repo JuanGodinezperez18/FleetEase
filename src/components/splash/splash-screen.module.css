@@ -1,0 +1,465 @@
+/* components/splash/splash-screen.module.css */
+
+/* ========== CONTENEDOR PRINCIPAL ========== */
+.splashContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+  animation: fadeInScale 0.5s ease-out;
+}
+
+.splashContainer.fadeOut {
+  animation: fadeOutScale 0.5s ease-in forwards;
+}
+
+/* ========== PARTÍCULAS DE FONDO ========== */
+.particlesContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  animation: floatUp 10s linear infinite;
+  will-change: transform, opacity;
+}
+
+/* ========== CONTENIDO PRINCIPAL ========== */
+.content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+}
+
+/* ========== LOGO ========== */
+.logoContainer {
+  position: relative;
+  margin-bottom: 2rem;
+  animation: fadeInScale 0.8s ease-out 0.2s backwards;
+}
+
+.logoGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: glowPulse 3s ease-in-out infinite;
+  filter: blur(20px);
+}
+
+.logoWrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.logo {
+  width: 90px !important;
+  height: 90px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+/* ========== TEXTOS ========== */
+.appName {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 0.5rem 0;
+  text-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 255, 255, 0.2);
+  letter-spacing: -0.5px;
+  animation: fadeIn 1s ease-out 0.4s backwards;
+}
+
+.tagline {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 3rem 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 1s ease-out 0.6s backwards;
+}
+
+/* ========== BARRA DE PROGRESO ========== */
+.progressBarContainer {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 2rem;
+  animation: fadeIn 1s ease-out 0.8s backwards;
+}
+
+.progressBarBackground {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease-out;
+  animation: shimmer 2s linear infinite;
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.progressText {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== DOTS DE CARGA ========== */
+.loadingDots {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  animation: fadeIn 1s ease-out 1s backwards;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  animation: dotBounce 1.4s ease-in-out infinite;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.loadingText {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 1s ease-out 1s backwards;
+}
+
+/* ========== FOOTER ========== */
+.footer {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  animation: fadeIn 1s ease-out 1.2s backwards;
+}
+
+.copyright {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== ANIMACIONES ========== */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOutScale {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      inset 0 0 30px rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.2) translateY(-10px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) translateX(0) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-100px) translateX(50px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .content {
+    padding: 1.5rem;
+  }
+
+  .logoWrapper {
+    width: 100px;
+    height: 100px;
+    border-radius: 25px;
+  }
+
+  .logo {
+    width: 65px !important;
+    height: 65px !important;
+  }
+
+  .logoGlow {
+    width: 150px;
+    height: 150px;
+  }
+
+  .appName {
+    font-size: 2rem;
+  }
+
+  .tagline {
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .progressBarContainer {
+    max-width: 300px;
+  }
+
+  .footer {
+    bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .logoWrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+  }
+
+  .logo {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .logoGlow {
+    width: 120px;
+    height: 120px;
+  }
+
+  .appName {
+    font-size: 1.75rem;
+  }
+
+  .tagline {
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+  }
+
+  .progressBarContainer {
+    max-width: 250px;
+    margin-bottom: 1.5rem;
+  }
+
+  .progressBarBackground {
+    height: 5px;
+  }
+
+  .progressText {
+    font-size: 0.75rem;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .loadingText {
+    font-size: 0.75rem;
+  }
+
+  .footer {
+    bottom: 1rem;
+  }
+
+  .copyright {
+    font-size: 0.625rem;
+  }
+}
+
+/* ========== MODO OSCURO / LIGHT (opcional) ========== */
+@media (prefers-reduced-motion: reduce) {
+  .splashContainer,
+  .logoContainer,
+  .logoWrapper,
+  .logoGlow,
+  .appName,
+  .tagline,
+  .progressBarContainer,
+  .loadingDots,
+  .loadingText,
+  .footer,
+  .particle,
+  .progressBar,
+  .dot {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .particle {
+    display: none;
+  }
+}
+
+/* ========== ACCESIBILIDAD ========== */
+@media (prefers-contrast: high) {
+  .splashContainer {
+    background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+  }
+
+  .appName,
+  .tagline {
+    text-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.8),
+      0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .progressBar {
+    background: white;
+  }
+}

@@ -1,0 +1,10 @@
+
+type User @table(name: "users") {
+  id: String! @pk
+  name: String
+  email: String
+}
+
+type Query {
+  listUsers: [User]! @auth(level: ADMIN)
+}

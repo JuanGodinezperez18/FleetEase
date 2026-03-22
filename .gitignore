@@ -1,0 +1,140 @@
+ See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ======================
+# DEPENDENCIES
+# ======================
+/node_modules
+/.pnp
+.pnp.js
+/.yarn
+/yarn.lock
+/package-lock.json
+
+# ======================
+# TESTING
+# ======================
+/coverage
+*.lcov
+.nyc_output
+
+# ======================
+# NEXT.JS
+# ======================
+/.next/
+/out/
+/export
+
+# ======================
+# PRODUCTION BUILD
+# ======================
+/build
+/dist
+
+# ======================
+# MISC
+# ======================
+.DS_Store
+*.pem
+*.log
+Thumbs.db
+
+# ======================
+# DEBUG
+# ======================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ======================
+# ENV FILES (local & production)
+# ======================
+.env*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# ======================
+# VERCEL
+# ======================
+.vercel
+
+# ======================
+# TYPESCRIPT
+# ======================
+*.tsbuildinfo
+next-env.d.ts
+
+# ======================
+# FIREBASE & SECURITY (CRITICAL)
+# ======================
+/serviceAccountKey.json
+.serviceAccount.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase-debug.*.log
+firestore-debug.*.log
+
+# ======================
+# API KEYS & CREDENTIALS
+# ======================
+**/*.key
+**/credentials.json
+**/service-account.json
+**/secrets.json
+
+# ======================
+# IDE & EDITORS
+# ======================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ======================
+# TESTING & E2E
+# ======================
+/playwright-report/
+/test-results/
+*.test-results
+*.snapshot
+
+# ======================
+# CACHE & TEMP FILES
+# ======================
+.cache/
+.tmp/
+.temp/
+tmp/
+temp/
+
+# ======================
+# DATABASE BACKUPS (if generated locally)
+# ======================
+*.sql
+*.sqlite
+*.db
+/backups/
+
+# ======================
+# UPLOADS & USER GENERATED (local)
+# ======================
+/uploads/
+/downloads/
+*.zip
+*.rar
+
+# ======================
+# DOCUMENTATION BUILD
+# ======================
+/docs/_build/
+/docs/build/
+

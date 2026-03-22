@@ -1,0 +1,26 @@
+diff --git a/node_modules/@radix-ui/react-dialog/dist/index.mjs b/node_modules/@radix-ui/react-dialog/dist/index.mjs
+index 993139366d795b92473a5a73954a93863486c96e..b3859664f331d1676f7c320d1838848d825c898b 100644
+--- a/node_modules/@radix-ui/react-dialog/dist/index.mjs
++++ b/node_modules/@radix-ui/react-dialog/dist/index.mjs
+@@ -370,7 +370,7 @@ const DialogContent = React.forwardRef((props, forwardedRef) => {
+   const { __scopeDialog, ...contentProps } = props;
+   const context = useDialogContext(CONTENT_NAME, __scopeDialog);
+   return /* @__PURE__ */ React.createElement(DialogContentProvider, {
+-    scope: __scopeDialog,
++    scope: __scopeDialog
+   }, /* @__PURE__ */ React.createElement(Presence, {
+     present: context.open
+   }, /* @__PURE__ */ React.createElement(DialogContentImpl, {
+diff --git a/node_modules/@radix-ui/react-dialog/dist/index.d.ts b/node_modules/@radix-ui/react-dialog/dist/index.d.ts
+index c12cc2f5e3e2a0505a766c5a31dd58c281358a96..a296e6a1005a75b281f62c2f7b88496e5d233e56 100644
+--- a/node_modules/@radix-ui/react-dialog/dist/index.d.ts
++++ b/node_modules/@radix-ui/react-dialog/dist/index.d.ts
+@@ -82,6 +82,7 @@ interface DialogContentProps extends DialogContentTypeProps {
+ }
+ declare const DialogContent: React.ForwardRefExoticComponent<DialogContentProps & React.RefAttributes<HTMLDivElement>>;
+ type DialogTitleProps = Primitive.TextProps;
++declare const DialogTitle: React.ForwardRefExoticComponent<DialogTitleProps & React.RefAttributes<HTMLHeadingElement>>;
+ type DialogDescriptionProps = Primitive.TextProps;
+ declare const DialogDescription: React.ForwardRefExoticComponent<DialogDescriptionProps & React.RefAttributes<HTMLParagraphElement>>;
+ type DialogCloseProps = Primitive.ButtonProps;
+
