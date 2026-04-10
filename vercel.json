@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/inspection-cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/maintenance-check",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/insurance-check",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/license-check",
+      "schedule": "0 10 * * *"
+    }
+  ]
+}

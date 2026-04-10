@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/server/firebase-admin';
 import { admin } from '@/lib/server/firebase-admin';
+import { checkRateLimit, notificationLimiter } from '@/lib/rate-limit';
 
 function chunkArray<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -11,6 +12,10 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting estricto para broadcasts (solo 2 por minuto)
+  const rateLimitResponse = await checkRateLimit(request, notificationLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // 🔐 AUTENTICACIÓN: Verificar que el usuario esté autenticado
     const sessionCookie = request.cookies.get('session')?.value;

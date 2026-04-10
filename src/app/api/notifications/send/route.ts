@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/server/firebase-admin';
 import { admin } from '@/lib/server/firebase-admin';
+import { checkRateLimit, notificationLimiter } from '@/lib/rate-limit';
+import { z } from 'zod';
+
+const SendNotificationSchema = z.object({
+  userId: z.string().min(1, 'userId es requerido'),
+  title: z.string().min(1, 'title es requerido').max(200),
+  body: z.string().min(1, 'body es requerido').max(1000),
+  type: z.string().optional().default('general'),
+  priority: z.enum(['low', 'normal', 'high']).optional().default('normal'),
+  url: z.string().url().nullable().optional(),
+  data: z.record(z.string()).optional(),
+  companyId: z.string().optional().nullable(),
+});
 
 export async function POST(request: NextRequest) {
+  // Rate limiting para envío de notificaciones
+  const rateLimitResponse = await checkRateLimit(request, notificationLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // 🔐 AUTENTICACIÓN: Verificar que el usuario esté autenticado
     const sessionCookie = request.cookies.get('session')?.value;
@@ -24,27 +41,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
     }
 
+    const body = await request.json();
+
+    const parsed = SendNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parsed.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ') },
+        { status: 400 }
+      );
+    }
+
     const {
       userId,
       title,
-      body,
+      body: messageBody,
       type,
       priority,
       url,
       data,
       companyId,
-    } = await request.json();
-
-    if (!userId || !title || !body) {
-      return NextResponse.json({ error: 'userId, title y body son requeridos' }, { status: 400 });
-    }
+    } = parsed.data;
 
     const timestamp = new Date();
     const notificationRef = adminDb.collection('notifications').doc();
     await notificationRef.set({
       userId,
       title,
-      message: body,
+      message: messageBody,
       type: type || 'general',
       priority: priority || 'normal',
       url: url || null,
@@ -78,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const messaging = admin.messaging();
     const fcmPayload = {
-      notification: { title, body },
+      notification: { title, body: messageBody },
       data: {
         type: type || 'general',
         priority: priority || 'normal',

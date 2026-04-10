@@ -1,16 +1,18 @@
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, healthLimiter } from '@/lib/rate-limit';
 
 /**
- * API Health Check para FleetEase Manager
- * 
+ * API Health Check para FleetEase Manager (Supabase)
+ *
  * Verifica el estado de:
- * - Firebase Firestore
- * - Firebase Auth (indirectamente)
- * - Firebase Storage
- * 
+ * - Supabase Database (PostgreSQL)
+ * - Supabase Auth
+ * - Supabase Storage
+ * - Variables de entorno
+ *
  * @endpoint GET /api/health
  * @returns {Object} Estado de los servicios
  */
@@ -31,82 +33,161 @@ interface HealthResponse {
   uptime?: number;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Rate limiting para health check
+  const rateLimitResponse = await checkRateLimit(request, healthLimiter);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
   const checks: Record<string, HealthCheck> = {};
   let overallStatus: 'healthy' | 'unhealthy' | 'degraded' = 'healthy';
 
+  // Verificar autenticación básica para acceso a detalles completos
+  const authHeader = request.headers.get('authorization');
+  const isAuthenticated = authHeader?.startsWith('Bearer ') &&
+    authHeader.slice(7) === process.env.HEALTH_CHECK_SECRET;
+
+  // Helper para crear cliente de Supabase (cookies es async en Next.js 15+)
+  const createClient = async () => {
+    const cookieStore = await cookies();
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options });
+          },
+        },
+      }
+    );
+  };
+
   // ======================
-  // CHECK 1: Firestore
+  // CHECK 1: Supabase Database
   // ======================
   try {
-    const firestoreStart = Date.now();
-    await getDoc(doc(db, '_health', 'check'));
-    const firestoreLatency = Date.now() - firestoreStart;
-    
-    checks.firestore = {
-      name: 'Firebase Firestore',
+    const supabase = await createClient();
+
+    const dbStart = Date.now();
+    // Hacer una consulta simple a la tabla companies
+    const { error } = await supabase
+      .from('companies')
+      .select('id')
+      .limit(1);
+
+    const dbLatency = Date.now() - dbStart;
+
+    if (error) {
+      throw error;
+    }
+
+    checks.database = {
+      name: 'Supabase Database (PostgreSQL)',
       status: 'ok',
-      latency: firestoreLatency,
+      latency: dbLatency,
     };
 
-    if (firestoreLatency > 1000) {
-      checks.firestore.status = 'degraded';
+    if (dbLatency > 1000) {
+      checks.database.status = 'degraded';
       overallStatus = 'degraded';
-      logger.warn('Firestore latency high', { latency: firestoreLatency });
+      logger.warn('Database latency high', { latency: dbLatency });
     }
   } catch (error) {
-    checks.firestore = {
-      name: 'Firebase Firestore',
+    checks.database = {
+      name: 'Supabase Database (PostgreSQL)',
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',
     };
     overallStatus = 'unhealthy';
-    logger.error('Firestore health check failed', error);
+    logger.error('Database health check failed', error);
   }
 
   // ======================
-  // CHECK 2: Firebase Admin (si está disponible)
+  // CHECK 2: Supabase Auth
   // ======================
   try {
-    // Verificamos si las variables de admin están configuradas
-    const hasAdminConfig = !!(
-      process.env.FIREBASE_ADMIN_PROJECT_ID &&
-      process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
-      process.env.FIREBASE_ADMIN_PRIVATE_KEY
-    );
+    const supabase = await createClient();
 
-    checks.firebaseAdmin = {
-      name: 'Firebase Admin SDK',
-      status: hasAdminConfig ? 'ok' : 'degraded',
+    const authStart = Date.now();
+    // Verificar que la API de auth responde
+    const { error } = await supabase.auth.getSession();
+    const authLatency = Date.now() - authStart;
+
+    checks.auth = {
+      name: 'Supabase Auth',
+      status: error ? 'error' : 'ok',
+      latency: authLatency,
     };
 
-    if (!hasAdminConfig) {
-      checks.firebaseAdmin.error = 'Admin credentials not configured';
+    if (error) {
+      checks.auth.error = error.message;
       if (overallStatus === 'healthy') {
         overallStatus = 'degraded';
       }
-      logger.warn('Firebase Admin SDK not configured');
+      logger.error('Auth health check failed', error);
     }
   } catch (error) {
-    checks.firebaseAdmin = {
-      name: 'Firebase Admin SDK',
+    checks.auth = {
+      name: 'Supabase Auth',
       status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',
     };
     if (overallStatus === 'healthy') {
       overallStatus = 'degraded';
     }
+    logger.error('Auth health check failed', error);
   }
 
   // ======================
-  // CHECK 3: Variables de Entorno Críticas
+  // CHECK 3: Supabase Storage
+  // ======================
+  try {
+    const supabase = await createClient();
+
+    const storageStart = Date.now();
+    // Listar buckets para verificar que storage funciona
+    const { error } = await supabase.storage.listBuckets();
+    const storageLatency = Date.now() - storageStart;
+
+    checks.storage = {
+      name: 'Supabase Storage',
+      status: error ? 'error' : 'ok',
+      latency: storageLatency,
+    };
+
+    if (error) {
+      checks.storage.error = error.message;
+      if (overallStatus === 'healthy') {
+        overallStatus = 'degraded';
+      }
+      logger.error('Storage health check failed', error);
+    }
+  } catch (error) {
+    checks.storage = {
+      name: 'Supabase Storage',
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+    if (overallStatus === 'healthy') {
+      overallStatus = 'degraded';
+    }
+    logger.error('Storage health check failed', error);
+  }
+
+  // ======================
+  // CHECK 4: Variables de Entorno Críticas (solo nombres, no valores)
   // ======================
   try {
     const requiredVars = [
-      'NEXT_PUBLIC_FIREBASE_API_KEY',
-      'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-      'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     ];
 
     const missingVars = requiredVars.filter(
@@ -119,7 +200,7 @@ export async function GET() {
     };
 
     if (missingVars.length > 0) {
-      checks.environment.error = `Missing: ${missingVars.join(', ')}`;
+      checks.environment.error = `Missing: ${missingVars.length} required variables`;
       overallStatus = 'unhealthy';
       logger.error('Missing required environment variables', { missingVars });
     }
@@ -133,36 +214,53 @@ export async function GET() {
   }
 
   // ======================
-  // CHECK 4: Memoria del Servidor (si está disponible)
+  // CHECK 5: Memoria del Servidor (solo para usuarios autenticados)
   // ======================
-  try {
-    if (typeof process !== 'undefined' && process.memoryUsage) {
-      const memoryUsage = process.memoryUsage();
-      const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
-      const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
-      const usagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+  if (isAuthenticated) {
+    try {
+      if (typeof process !== 'undefined' && process.memoryUsage) {
+        const memoryUsage = process.memoryUsage();
+        const usagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
 
-      checks.memory = {
-        name: 'Server Memory',
-        status: usagePercent < 80 ? 'ok' : 'degraded',
-        latency: 0,
-      };
+        checks.memory = {
+          name: 'Server Memory',
+          status: usagePercent < 80 ? 'ok' : 'degraded',
+          latency: 0,
+        };
 
-      if (usagePercent >= 80) {
-        logger.warn('High memory usage', { heapUsedMB, heapTotalMB, usagePercent });
-        if (overallStatus === 'healthy') {
-          overallStatus = 'degraded';
+        if (usagePercent >= 80) {
+          logger.warn('High memory usage detected');
+          if (overallStatus === 'healthy') {
+            overallStatus = 'degraded';
+          }
         }
       }
+    } catch (error) {
+      // Memory check is optional, no need to fail if unavailable
     }
-  } catch (error) {
-    // Memory check is optional, no need to fail if unavailable
   }
 
   // ======================
   // BUILD RESPONSE
   // ======================
   const totalLatency = Date.now() - startTime;
+
+  // Para solicitudes no autenticadas, solo devolver estado básico
+  if (!isAuthenticated) {
+    logger.info('Health check completed (unauthenticated)', {
+      status: overallStatus,
+    });
+
+    return NextResponse.json(
+      { status: overallStatus, timestamp: new Date().toISOString() },
+      {
+        status: overallStatus === 'unhealthy' ? 503 : 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
+    );
+  }
 
   const response: HealthResponse = {
     status: overallStatus,
@@ -185,11 +283,11 @@ export async function GET() {
   // ======================
   // RETURN RESPONSE
   // ======================
-  const statusCode = 
+  const statusCode =
     overallStatus === 'healthy' ? 200 :
     overallStatus === 'degraded' ? 200 : 503;
 
-  return NextResponse.json(response, { 
+  return NextResponse.json(response, {
     status: statusCode,
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

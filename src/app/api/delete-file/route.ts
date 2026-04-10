@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/server/firebase-admin';
 import { adminDb, adminStorage } from '@/lib/server/firebase-admin';
+import { z } from 'zod';
 
 interface DeleteSuccessResponse {
   success: true;
@@ -67,9 +68,13 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
   }
 }
 
+const DeleteFileSchema = z.object({
+  fileUrl: z.string().url('URL de archivo inválida'),
+});
+
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -78,13 +83,18 @@ export async function POST(request: NextRequest) {
     const token = authHeader.substring(7);
     const decodedToken = await admin.auth().verifyIdToken(token);
     const user = { uid: decodedToken.uid };
-    
+
     const body = await request.json();
-    const { fileUrl } = body;
-    
-    if (!fileUrl || typeof fileUrl !== 'string') {
-      return NextResponse.json({ error: 'URL de archivo inválida o faltante' }, { status: 400 });
+
+    // Validación con Zod
+    const parsed = DeleteFileSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parsed.error.errors.map(e => e.message).join(', ') },
+        { status: 400 }
+      );
     }
+    const { fileUrl } = parsed.data;
     
     if (!fileUrl.startsWith('https://storage.googleapis.com/') && !fileUrl.startsWith('https://firebasestorage.googleapis.com/')) {
       return NextResponse.json({ success: true, deleted: false, message: 'URL ignorada, no es de Firebase Storage.' });

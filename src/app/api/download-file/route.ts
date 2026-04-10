@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/server/firebase-admin';
 import { adminStorage } from '@/lib/server/firebase-admin';
+import { z } from 'zod';
 
 interface FirebaseError extends Error {
   code?: number | string;
 }
+
+const DownloadFileSchema = z.object({
+  fileUrl: z.string().url('URL de archivo inválida'),
+});
 
 function getPathFromUrl(fileUrl: string): string {
     const bucketName = adminStorage.bucket().name;
@@ -59,11 +64,15 @@ export async function POST(request: NextRequest) {
     const user = { uid: decodedToken.uid };
     
     const body = await request.json();
-    const { fileUrl } = body;
-    
-    if (!fileUrl || typeof fileUrl !== 'string') {
-      return NextResponse.json({ error: 'URL de archivo inválida o faltante' }, { status: 400 });
+
+    const parsed = DownloadFileSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parsed.error.errors.map(e => e.message).join(', ') },
+        { status: 400 }
+      );
     }
+    const { fileUrl } = parsed.data;
 
     const filePath = getPathFromUrl(fileUrl);
     

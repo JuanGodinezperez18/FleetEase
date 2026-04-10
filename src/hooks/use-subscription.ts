@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { toast } from 'sonner';
 import type { PlanType } from '@/config/plans';
 
@@ -16,6 +15,12 @@ export interface SubscriptionStatus {
   } | null;
 }
 
+/**
+ * Hook de suscripción y pagos con Stripe.
+ *
+ * Usa las rutas de Next.js API (/api/stripe/*) en lugar de Firebase Functions.
+ * Las rutas se comunican directamente con Stripe usando la clave secreta del servidor.
+ */
 export function useSubscription() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -24,12 +29,14 @@ export function useSubscription() {
   const fetchSubscriptionStatus = useCallback(async () => {
     try {
       setLoading(true);
-      const functions = getFunctions();
-      const getSubscriptionStatus = httpsCallable(functions, 'getSubscriptionStatus');
-      
-      const result = await getSubscriptionStatus();
-      const data = result.data as any;
-      
+      const res = await fetch('/api/stripe/status');
+
+      if (!res.ok) {
+        throw new Error(`Error ${res.status} obteniendo estado`);
+      }
+
+      const data = await res.json();
+
       if (data.success) {
         setSubscription(data);
       }
@@ -51,12 +58,19 @@ export function useSubscription() {
   const upgradePlan = useCallback(async (planId: PlanType, companyId: string) => {
     try {
       setProcessing(true);
-      const functions = getFunctions();
-      const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
-      
-      const result = await createCheckoutSession({ planId, companyId });
-      const data = result.data as any;
-      
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, companyId }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al crear sesión de pago');
+      }
+
+      const data = await res.json();
+
       if (data.success && data.url) {
         // Redirigir a Stripe Checkout
         window.location.href = data.url;
@@ -77,12 +91,19 @@ export function useSubscription() {
   const openPortal = useCallback(async (companyId?: string) => {
     try {
       setProcessing(true);
-      const functions = getFunctions();
-      const createPortalSession = httpsCallable(functions, 'createPortalSession');
-      
-      const result = await createPortalSession({ companyId });
-      const data = result.data as any;
-      
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId: companyId || undefined }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error al crear portal');
+      }
+
+      const data = await res.json();
+
       if (data.success && data.url) {
         // Redirigir al portal de Stripe
         window.location.href = data.url;
@@ -102,20 +123,15 @@ export function useSubscription() {
 
   const verifyUpgrade = useCallback(async (sessionId: string) => {
     try {
-      const functions = getFunctions();
-      const handleStripeWebhook = httpsCallable(functions, 'handleStripeWebhook');
-      
-      const result = await handleStripeWebhook({ sessionId });
-      const data = result.data as any;
-      
-      if (data.success) {
-        toast.success('¡Plan actualizado exitosamente!', {
-          description: 'Tu suscripción ha sido activada.',
-        });
-        await fetchSubscriptionStatus();
-        return true;
-      }
-      return false;
+      // El webhook de Stripe ya se encargó de actualizar la base de datos.
+      // Solo refrescamos el estado local.
+      await fetchSubscriptionStatus();
+
+      toast.success('¡Plan actualizado exitosamente!', {
+        description: 'Tu suscripción ha sido activada.',
+      });
+
+      return true;
     } catch (error: any) {
       console.error('Error verifying upgrade:', error);
       toast.error('Error al verificar upgrade', {
