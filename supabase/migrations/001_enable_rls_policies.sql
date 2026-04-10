@@ -3,10 +3,13 @@
 -- =====================================================
 -- Base de datos: Supabase PostgreSQL
 -- Fecha: 2026-04-10
--- 
--- IMPORTANTE: Este script solo aplica políticas a tablas
--- que realmente existen. Cada bloque DO verifica la
--- existencia de la tabla antes de ejecutar.
+--
+-- NOTAS IMPORTANTES:
+-- 1. Cada politica esta envuelta en DO blocks con DROP POLICY IF EXISTS
+--    para que el script sea idempotente (se puede correr multiples veces)
+-- 2. Solo aplica a tablas que realmente existen (check pg_tables)
+-- 3. Todos los tipos son correctos: auth.uid() retorna uuid, NO text
+-- 4. company_id es uuid en todas las tablas de negocio
 --
 -- Principio de aislamiento multi-tenant:
 -- - Cada company_id actúa como frontera de datos
@@ -42,7 +45,7 @@ BEGIN
 END $$;
 
 -- =====================================================
--- FUNCIONES AUXILIARES (siempre seguras - no dependen de tablas)
+-- FUNCIONES AUXILIARES (se crean siempre, son idempotentes)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION auth_user_role()
@@ -56,10 +59,21 @@ RETURNS UUID AS $$
 $$ LANGUAGE SQL STABLE SECURITY DEFINER;
 
 -- =====================================================
+-- HELPER: funcion para verificar si una tabla existe
+-- =====================================================
+CREATE OR REPLACE FUNCTION table_exists(tname TEXT)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = tname);
+$$ LANGUAGE SQL STABLE;
+
+-- =====================================================
 -- 1. companies
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'companies') THEN
+IF table_exists('companies') THEN
+DROP POLICY IF EXISTS "Users can view their own company" ON companies;
+DROP POLICY IF EXISTS "Only super_admin can update companies" ON companies;
+DROP POLICY IF EXISTS "Only super_admin can insert companies" ON companies;
 
 CREATE POLICY "Users can view their own company"
   ON companies FOR SELECT
@@ -75,14 +89,16 @@ CREATE POLICY "Only super_admin can update companies"
 CREATE POLICY "Only super_admin can insert companies"
   ON companies FOR INSERT
   WITH CHECK (auth_user_role() = 'super_admin');
-
 END IF; END $$;
 
 -- =====================================================
 -- 2. users
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users') THEN
+IF table_exists('users') THEN
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
+DROP POLICY IF EXISTS "Admin can update users in their company" ON users;
+DROP POLICY IF EXISTS "Only super_admin can insert users" ON users;
 
 CREATE POLICY "Users can view own profile"
   ON users FOR SELECT
@@ -102,14 +118,16 @@ CREATE POLICY "Admin can update users in their company"
 CREATE POLICY "Only super_admin can insert users"
   ON users FOR INSERT
   WITH CHECK (auth_user_role() IN ('admin', 'super_admin'));
-
 END IF; END $$;
 
 -- =====================================================
 -- 3. clients
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'clients') THEN
+IF table_exists('clients') THEN
+DROP POLICY IF EXISTS "Users can view clients in their company" ON clients;
+DROP POLICY IF EXISTS "Users can insert clients in their company" ON clients;
+DROP POLICY IF EXISTS "Users can update clients in their company" ON clients;
 
 CREATE POLICY "Users can view clients in their company"
   ON clients FOR SELECT
@@ -122,14 +140,16 @@ CREATE POLICY "Users can insert clients in their company"
 CREATE POLICY "Users can update clients in their company"
   ON clients FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 4. vehicles
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'vehicles') THEN
+IF table_exists('vehicles') THEN
+DROP POLICY IF EXISTS "Users can view vehicles in their company" ON vehicles;
+DROP POLICY IF EXISTS "Users can insert vehicles in their company" ON vehicles;
+DROP POLICY IF EXISTS "Users can update vehicles in their company" ON vehicles;
 
 CREATE POLICY "Users can view vehicles in their company"
   ON vehicles FOR SELECT
@@ -142,14 +162,16 @@ CREATE POLICY "Users can insert vehicles in their company"
 CREATE POLICY "Users can update vehicles in their company"
   ON vehicles FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 5. partners
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'partners') THEN
+IF table_exists('partners') THEN
+DROP POLICY IF EXISTS "Users can view partners in their company" ON partners;
+DROP POLICY IF EXISTS "Users can insert partners in their company" ON partners;
+DROP POLICY IF EXISTS "Users can update partners in their company" ON partners;
 
 CREATE POLICY "Users can view partners in their company"
   ON partners FOR SELECT
@@ -162,14 +184,16 @@ CREATE POLICY "Users can insert partners in their company"
 CREATE POLICY "Users can update partners in their company"
   ON partners FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 6. mileage_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'mileage_logs') THEN
+IF table_exists('mileage_logs') THEN
+DROP POLICY IF EXISTS "Users can view mileage logs in their company" ON mileage_logs;
+DROP POLICY IF EXISTS "Users can insert mileage logs in their company" ON mileage_logs;
+DROP POLICY IF EXISTS "Users can update mileage logs in their company" ON mileage_logs;
 
 CREATE POLICY "Users can view mileage logs in their company"
   ON mileage_logs FOR SELECT
@@ -182,14 +206,16 @@ CREATE POLICY "Users can insert mileage logs in their company"
 CREATE POLICY "Users can update mileage logs in their company"
   ON mileage_logs FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 7. financial_records
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'financial_records') THEN
+IF table_exists('financial_records') THEN
+DROP POLICY IF EXISTS "Users can view financial records in their company" ON financial_records;
+DROP POLICY IF EXISTS "Users can insert financial records in their company" ON financial_records;
+DROP POLICY IF EXISTS "Users can update financial records in their company" ON financial_records;
 
 CREATE POLICY "Users can view financial records in their company"
   ON financial_records FOR SELECT
@@ -202,14 +228,16 @@ CREATE POLICY "Users can insert financial records in their company"
 CREATE POLICY "Users can update financial records in their company"
   ON financial_records FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 8. financial_categories
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'financial_categories') THEN
+IF table_exists('financial_categories') THEN
+DROP POLICY IF EXISTS "Users can view financial categories" ON financial_categories;
+DROP POLICY IF EXISTS "Admin can insert financial categories" ON financial_categories;
+DROP POLICY IF EXISTS "Admin can update financial categories" ON financial_categories;
 
 CREATE POLICY "Users can view financial categories"
   ON financial_categories FOR SELECT
@@ -222,14 +250,16 @@ CREATE POLICY "Admin can insert financial categories"
 CREATE POLICY "Admin can update financial categories"
   ON financial_categories FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 9. credits
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'credits') THEN
+IF table_exists('credits') THEN
+DROP POLICY IF EXISTS "Users can view credits in their company" ON credits;
+DROP POLICY IF EXISTS "Users can insert credits in their company" ON credits;
+DROP POLICY IF EXISTS "Users can update credits in their company" ON credits;
 
 CREATE POLICY "Users can view credits in their company"
   ON credits FOR SELECT
@@ -242,14 +272,16 @@ CREATE POLICY "Users can insert credits in their company"
 CREATE POLICY "Users can update credits in their company"
   ON credits FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 10. credit_payment_schedules
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'credit_payment_schedules') THEN
+IF table_exists('credit_payment_schedules') THEN
+DROP POLICY IF EXISTS "Users can view payment schedules in their company" ON credit_payment_schedules;
+DROP POLICY IF EXISTS "Users can insert payment schedules in their company" ON credit_payment_schedules;
+DROP POLICY IF EXISTS "Users can update payment schedules in their company" ON credit_payment_schedules;
 
 CREATE POLICY "Users can view payment schedules in their company"
   ON credit_payment_schedules FOR SELECT
@@ -262,19 +294,22 @@ CREATE POLICY "Users can insert payment schedules in their company"
 CREATE POLICY "Users can update payment schedules in their company"
   ON credit_payment_schedules FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
--- 11. notifications
+-- 11. notifications  (uid es UUID, NO text)
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notifications') THEN
+IF table_exists('notifications') THEN
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+DROP POLICY IF EXISTS "System can insert notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 
+-- uid es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view own notifications"
   ON notifications FOR SELECT
   USING (
-    uid = auth.uid()::text
+    uid = auth.uid()
     OR company_id = auth_user_company_id()
   );
 
@@ -285,17 +320,18 @@ CREATE POLICY "System can insert notifications"
 CREATE POLICY "Users can update own notifications"
   ON notifications FOR UPDATE
   USING (
-    uid = auth.uid()::text
+    uid = auth.uid()
     OR company_id = auth_user_company_id()
   );
-
 END IF; END $$;
 
 -- =====================================================
 -- 12. vehicle_assignment_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'vehicle_assignment_logs') THEN
+IF table_exists('vehicle_assignment_logs') THEN
+DROP POLICY IF EXISTS "Users can view assignment logs in their company" ON vehicle_assignment_logs;
+DROP POLICY IF EXISTS "Users can insert assignment logs in their company" ON vehicle_assignment_logs;
 
 CREATE POLICY "Users can view assignment logs in their company"
   ON vehicle_assignment_logs FOR SELECT
@@ -304,14 +340,15 @@ CREATE POLICY "Users can view assignment logs in their company"
 CREATE POLICY "Users can insert assignment logs in their company"
   ON vehicle_assignment_logs FOR INSERT
   WITH CHECK (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 13. company_change_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'company_change_logs') THEN
+IF table_exists('company_change_logs') THEN
+DROP POLICY IF EXISTS "Admin can view company change logs" ON company_change_logs;
+DROP POLICY IF EXISTS "System can insert company change logs" ON company_change_logs;
 
 CREATE POLICY "Admin can view company change logs"
   ON company_change_logs FOR SELECT
@@ -320,14 +357,15 @@ CREATE POLICY "Admin can view company change logs"
 CREATE POLICY "System can insert company change logs"
   ON company_change_logs FOR INSERT
   WITH CHECK (true);
-
 END IF; END $$;
 
 -- =====================================================
 -- 14. client_change_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'client_change_logs') THEN
+IF table_exists('client_change_logs') THEN
+DROP POLICY IF EXISTS "Users can view client change logs" ON client_change_logs;
+DROP POLICY IF EXISTS "System can insert client change logs" ON client_change_logs;
 
 CREATE POLICY "Users can view client change logs"
   ON client_change_logs FOR SELECT
@@ -340,14 +378,16 @@ CREATE POLICY "Users can view client change logs"
 CREATE POLICY "System can insert client change logs"
   ON client_change_logs FOR INSERT
   WITH CHECK (true);
-
 END IF; END $$;
 
 -- =====================================================
 -- 15. message_templates
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'message_templates') THEN
+IF table_exists('message_templates') THEN
+DROP POLICY IF EXISTS "Users can view message templates in their company" ON message_templates;
+DROP POLICY IF EXISTS "Users can insert message templates in their company" ON message_templates;
+DROP POLICY IF EXISTS "Users can update message templates in their company" ON message_templates;
 
 CREATE POLICY "Users can view message templates in their company"
   ON message_templates FOR SELECT
@@ -360,14 +400,15 @@ CREATE POLICY "Users can insert message templates in their company"
 CREATE POLICY "Users can update message templates in their company"
   ON message_templates FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 16. message_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'message_logs') THEN
+IF table_exists('message_logs') THEN
+DROP POLICY IF EXISTS "Users can view message logs in their company" ON message_logs;
+DROP POLICY IF EXISTS "Users can insert message logs in their company" ON message_logs;
 
 CREATE POLICY "Users can view message logs in their company"
   ON message_logs FOR SELECT
@@ -376,14 +417,16 @@ CREATE POLICY "Users can view message logs in their company"
 CREATE POLICY "Users can insert message logs in their company"
   ON message_logs FOR INSERT
   WITH CHECK (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 17. multas
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'multas') THEN
+IF table_exists('multas') THEN
+DROP POLICY IF EXISTS "Users can view multas in their company" ON multas;
+DROP POLICY IF EXISTS "Users can insert multas in their company" ON multas;
+DROP POLICY IF EXISTS "Users can update multas in their company" ON multas;
 
 CREATE POLICY "Users can view multas in their company"
   ON multas FOR SELECT
@@ -396,38 +439,43 @@ CREATE POLICY "Users can insert multas in their company"
 CREATE POLICY "Users can update multas in their company"
   ON multas FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
--- 18. fcm_tokens
+-- 18. fcm_tokens  (user_id es UUID, NO text)
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'fcm_tokens') THEN
+IF table_exists('fcm_tokens') THEN
+DROP POLICY IF EXISTS "Users can view own FCM tokens" ON fcm_tokens;
+DROP POLICY IF EXISTS "Users can insert own FCM tokens" ON fcm_tokens;
+DROP POLICY IF EXISTS "Users can update own FCM tokens" ON fcm_tokens;
+DROP POLICY IF EXISTS "Users can delete own FCM tokens" ON fcm_tokens;
 
+-- user_id es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view own FCM tokens"
   ON fcm_tokens FOR SELECT
-  USING (user_id = auth.uid()::text);
+  USING (user_id = auth.uid());
 
 CREATE POLICY "Users can insert own FCM tokens"
   ON fcm_tokens FOR INSERT
-  WITH CHECK (user_id = auth.uid()::text);
+  WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update own FCM tokens"
   ON fcm_tokens FOR UPDATE
-  USING (user_id = auth.uid()::text);
+  USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete own FCM tokens"
   ON fcm_tokens FOR DELETE
-  USING (user_id = auth.uid()::text);
-
+  USING (user_id = auth.uid());
 END IF; END $$;
 
 -- =====================================================
 -- 19. audit_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'audit_logs') THEN
+IF table_exists('audit_logs') THEN
+DROP POLICY IF EXISTS "Admin can view audit logs in their company" ON audit_logs;
+DROP POLICY IF EXISTS "System can insert audit logs" ON audit_logs;
 
 CREATE POLICY "Admin can view audit logs in their company"
   ON audit_logs FOR SELECT
@@ -436,14 +484,16 @@ CREATE POLICY "Admin can view audit logs in their company"
 CREATE POLICY "System can insert audit logs"
   ON audit_logs FOR INSERT
   WITH CHECK (true);
-
 END IF; END $$;
 
 -- =====================================================
 -- 20. documents
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'documents') THEN
+IF table_exists('documents') THEN
+DROP POLICY IF EXISTS "Users can view documents in their company" ON documents;
+DROP POLICY IF EXISTS "Users can insert documents in their company" ON documents;
+DROP POLICY IF EXISTS "Users can update documents in their company" ON documents;
 
 CREATE POLICY "Users can view documents in their company"
   ON documents FOR SELECT
@@ -456,14 +506,16 @@ CREATE POLICY "Users can insert documents in their company"
 CREATE POLICY "Users can update documents in their company"
   ON documents FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 21. gps_configs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'gps_configs') THEN
+IF table_exists('gps_configs') THEN
+DROP POLICY IF EXISTS "Users can view GPS configs in their company" ON gps_configs;
+DROP POLICY IF EXISTS "Users can insert GPS configs in their company" ON gps_configs;
+DROP POLICY IF EXISTS "Users can update GPS configs in their company" ON gps_configs;
 
 CREATE POLICY "Users can view GPS configs in their company"
   ON gps_configs FOR SELECT
@@ -476,34 +528,39 @@ CREATE POLICY "Users can insert GPS configs in their company"
 CREATE POLICY "Users can update GPS configs in their company"
   ON gps_configs FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
--- 22. seguimientos
+-- 22. seguimientos  (created_by es UUID, NO text)
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'seguimientos') THEN
+IF table_exists('seguimientos') THEN
+DROP POLICY IF EXISTS "Users can view seguimientos in their company" ON seguimientos;
+DROP POLICY IF EXISTS "Users can insert seguimientos in their company" ON seguimientos;
+DROP POLICY IF EXISTS "Users can update seguimientos in their company" ON seguimientos;
 
+-- created_by es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view seguimientos in their company"
   ON seguimientos FOR SELECT
   USING (company_id = auth_user_company_id());
 
 CREATE POLICY "Users can insert seguimientos in their company"
   ON seguimientos FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id() OR created_by = auth.uid()::text);
+  WITH CHECK (company_id = auth_user_company_id() OR created_by = auth.uid());
 
 CREATE POLICY "Users can update seguimientos in their company"
   ON seguimientos FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 23. plans
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'plans') THEN
+IF table_exists('plans') THEN
+DROP POLICY IF EXISTS "Anyone can view plans" ON plans;
+DROP POLICY IF EXISTS "Only super_admin can update plans" ON plans;
+DROP POLICY IF EXISTS "Only super_admin can insert plans" ON plans;
 
 CREATE POLICY "Anyone can view plans"
   ON plans FOR SELECT
@@ -516,14 +573,16 @@ CREATE POLICY "Only super_admin can update plans"
 CREATE POLICY "Only super_admin can insert plans"
   ON plans FOR INSERT
   WITH CHECK (auth_user_role() = 'super_admin');
-
 END IF; END $$;
 
 -- =====================================================
 -- 24. user_invitations
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_invitations') THEN
+IF table_exists('user_invitations') THEN
+DROP POLICY IF EXISTS "Users can view invitations in their company" ON user_invitations;
+DROP POLICY IF EXISTS "Admin can insert invitations in their company" ON user_invitations;
+DROP POLICY IF EXISTS "Users can update invitations in their company" ON user_invitations;
 
 CREATE POLICY "Users can view invitations in their company"
   ON user_invitations FOR SELECT
@@ -540,14 +599,15 @@ CREATE POLICY "Admin can insert invitations in their company"
 CREATE POLICY "Users can update invitations in their company"
   ON user_invitations FOR UPDATE
   USING (company_id = auth_user_company_id());
-
 END IF; END $$;
 
 -- =====================================================
 -- 25. plan_limit_logs
 -- =====================================================
 DO $$ BEGIN
-IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'plan_limit_logs') THEN
+IF table_exists('plan_limit_logs') THEN
+DROP POLICY IF EXISTS "Users can view plan limit logs in their company" ON plan_limit_logs;
+DROP POLICY IF EXISTS "System can insert plan limit logs" ON plan_limit_logs;
 
 CREATE POLICY "Users can view plan limit logs in their company"
   ON plan_limit_logs FOR SELECT
@@ -556,13 +616,11 @@ CREATE POLICY "Users can view plan limit logs in their company"
 CREATE POLICY "System can insert plan limit logs"
   ON plan_limit_logs FOR INSERT
   WITH CHECK (true);
-
 END IF; END $$;
 
 -- =====================================================
 -- ÍNDICES PARA RENDIMIENTO DE RLS
 -- =====================================================
--- CREATE INDEX IF NOT EXISTS solo se ejecuta si la tabla existe
 
 DO $$
 DECLARE
@@ -594,7 +652,6 @@ BEGIN
         BEGIN
             EXECUTE idx_def;
         EXCEPTION WHEN undefined_table THEN
-            -- Tabla no existe, ignorar
             NULL;
         END;
     END LOOP;
