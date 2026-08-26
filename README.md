@@ -605,7 +605,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](./LICENSE) pa
 
 **FleetEase / Tu Empresa**
 - Website: [Fleetease.com.mx](https://tu-website.com)
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
+- GitHub: [@JuanGodinezperez18](https://github.com/tu-usuario)
 - LinkedIn: [tu-linkedin](https://linkedin.com/in/tu-usuario)
 
 ---
