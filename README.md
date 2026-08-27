@@ -60,10 +60,10 @@ Es la plataforma que te dice **exactamente qué vehículo gana dinero y cuál pi
 
 ### Backend & Base de Datos
 - **Supabase** (PostgreSQL, Auth, Storage) — backend principal
-- **Firebase Cloud Messaging** — notificaciones push (residual, ver nota abajo)
+- **Vercel Cron Jobs** — tareas programadas (`/api/cron/*`: mantenimiento, seguros, licencias, limpieza de inspecciones)
 - **Stripe** — suscripciones y pagos
 
-> ⚠️ **Nota de arquitectura**: El proyecto migró de Firebase/Firestore a Supabase/PostgreSQL. Persisten algunos restos de la etapa anterior: una carpeta `functions/` con Firebase Cloud Functions que no se referencian desde `src/`, `dataconnect/` (Firebase Data Connect, sin uso aparente) y variables `FIREBASE_ADMIN_*` en el template de entorno. Ver la sección de Auditoría en la conversación de referencia del equipo.
+> El proyecto migró por completo de Firebase/Google Cloud a Supabase + Vercel. Se removieron las Firebase Cloud Functions, Firebase Data Connect, la configuración de Firebase App Hosting y el CORS de Firebase Storage. El único resto es soporte de lectura para documentos antiguos que aún viven en `firebasestorage.googleapis.com` (no se suben archivos nuevos ahí).
 
 ### Testing & Calidad
 - **Jest** + React Testing Library
@@ -112,9 +112,7 @@ FleetEase/
 │   ├── types/              # Definiciones TypeScript
 │   └── __tests__/          # Tests unitarios
 ├── supabase/migrations/    # Migraciones SQL de Supabase
-├── functions/               # Firebase Cloud Functions (legacy, sin referencias activas)
-├── dataconnect/              # Firebase Data Connect (legacy, sin uso aparente)
-├── docs/                      # Documentación de módulos específicos
+├── docs/                    # Documentación de módulos específicos
 ├── scripts/                   # Scripts de utilidad (bundle analysis, setup)
 └── package.json
 ```

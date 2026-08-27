@@ -34,11 +34,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebaseio.com https://*.googleapis.com https://js.stripe.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googleapis.com https://js.stripe.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob: https://firebasestorage.googleapis.com https://storage.googleapis.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://*.stripe.com wss://*.firebaseio.com https://*.cloudfunctions.net",
+              "connect-src 'self' https://*.googleapis.com https://api.stripe.com https://*.stripe.com",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
               "object-src 'none'",
               "base-uri 'self'",
