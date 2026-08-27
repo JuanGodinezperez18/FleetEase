@@ -272,12 +272,12 @@ describe('financial-metrics', () => {
       expect(calculateProfitMargin(1000, 400)).toBe(60);
     });
 
-    it('devuelve 0 cuando el ingreso es 0 (evita división entre cero)', () => {
-      // NOTA: comportamiento actual documentado. Con income=0 y gastos>0,
-      // la pérdida real no queda reflejada en el margen (queda en 0% en vez
-      // de negativo). Ver conversación con el equipo sobre si esto debe
-      // cambiar antes de modificar esta función.
-      expect(calculateProfitMargin(0, 500)).toBe(0);
+    it('devuelve -100% cuando no hay ingreso pero sí hay gastos (pérdida total)', () => {
+      expect(calculateProfitMargin(0, 500)).toBe(-100);
+    });
+
+    it('devuelve 0% cuando no hay ingreso ni gastos (neutro)', () => {
+      expect(calculateProfitMargin(0, 0)).toBe(0);
     });
 
     it('puede devolver margen negativo cuando el ingreso es positivo pero los gastos lo superan', () => {

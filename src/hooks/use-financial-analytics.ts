@@ -10,10 +10,11 @@ import {
   calculateNetProfit,
   calculateProfitMargin,
   calculateAvgTransactionValue,
-  sumIncome,
+  sumRentalIncome,
   sumExpense,
   sumPayment,
   daysBetweenInclusive,
+  SECURITY_DEPOSIT_CATEGORY,
 } from '@/lib/financial-metrics';
 
 type ProfitabilityLevel = 'high' | 'medium' | 'low' | 'negative';
@@ -99,10 +100,10 @@ export const useFinancialAnalytics = (
     const todayEnd = endOfDay(now);
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: todayStart, to: todayEnd });
     
-    const todayIncome = sumIncome(todayRecords);
+    const todayIncome = sumRentalIncome(todayRecords);
     const todayExpenses = sumExpense(todayRecords);
 
-    const totalIncome = sumIncome(filteredRecords);
+    const totalIncome = sumRentalIncome(filteredRecords);
 
     const totalExpenses = sumExpense(filteredRecords);
 
@@ -121,8 +122,9 @@ export const useFinancialAnalytics = (
     const clientsWithRevenueInPeriod = new Set<string>();
 
     filteredRecords.forEach(record => {
-      if (record.type === 'income') {
+      if (record.type === 'income' && record.category !== SECURITY_DEPOSIT_CATEGORY) {
         // Usar categoryId para obtener el nombre actualizado de la categoría
+        // (los depósitos en garantía se excluyen: no son ingreso real, ver sumRentalIncome)
         const categoryName = record.categoryId && categoryMap.has(record.categoryId)
           ? categoryMap.get(record.categoryId)!
           : (record.category || 'Sin Categoría');
@@ -164,10 +166,12 @@ export const useFinancialAnalytics = (
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
         const clientRecords = filteredRecords.filter(r => r.clientId === client.id);
         
-        const revenue = clientRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
+        const revenue = clientRecords
+          .filter(r => r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)
+          .reduce((sum, r) => sum + r.amount, 0);
         const expenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
         const netProfit = revenue - expenses;
-        const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+        const profitMargin = calculateProfitMargin(revenue, expenses);
         
         let level: ProfitabilityLevel;
         if (netProfit <= 0) {
@@ -190,7 +194,7 @@ export const useFinancialAnalytics = (
       
       const monthRecords = filterRecordsByDateRange(financialRecords, { from: monthStart, to: monthEnd });
       
-      const income = sumIncome(monthRecords);
+      const income = sumRentalIncome(monthRecords);
       const expenses = sumExpense(monthRecords);
       const payments = sumPayment(monthRecords);
       
@@ -218,7 +222,7 @@ export const useFinancialAnalytics = (
     
     const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
     
-    const prevMonthIncome = sumIncome(prevMonthRecords);
+    const prevMonthIncome = sumRentalIncome(prevMonthRecords);
     const prevMonthExpenses = sumExpense(prevMonthRecords);
     const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
 

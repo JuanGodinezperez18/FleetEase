@@ -118,9 +118,17 @@ export const sumRentalIncome = (records: FinancialRecord[]): number =>
 export const calculateNetProfit = (records: FinancialRecord[]): number =>
   sumIncome(records) - sumExpense(records);
 
+/**
+ * Margen de rentabilidad como % del ingreso.
+ * Si no hay ingreso (income <= 0):
+ *   - Si tampoco hay pérdida neta (net === 0, ej. ambos en 0), el margen es 0%.
+ *   - Si hay gastos sin ningún ingreso que los respalde, es pérdida total: -100%.
+ * Esto evita ocultar vehículos/clientes que generan puro gasto sin ingreso.
+ */
 export const calculateProfitMargin = (income: number, expenses: number): number => {
   const net = income - expenses;
-  return income > 0 ? (net / income) * 100 : 0;
+  if (income > 0) return (net / income) * 100;
+  return net === 0 ? 0 : -100;
 };
 
 /**
