@@ -23,16 +23,23 @@ module.exports = {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
   collectCoverageFrom: [
-    'src/lib/utils.ts',
-    'src/lib/validators.ts',
+    'src/**/*.{js,jsx,ts,tsx}',
     'middleware.ts',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.{js,jsx,ts,tsx}',
+    '!src/__tests__/**',
+    '!src/**/*.stories.{js,jsx,ts,tsx}',
+    '!src/types/**',
   ],
+  // Cobertura real medida sobre TODO src/ (antes solo se medía sobre 3 archivos).
+  // Baseline actual ~2% al ampliar el alcance (27-08-2026). Ir subiendo este
+  // umbral a medida que se agreguen tests, en vez de bajarlo si falla.
   coverageThreshold: {
     global: {
-      branches: 60,
-      functions: 60,
-      lines: 60,
-      statements: 60,
+      branches: 1,
+      functions: 1,
+      lines: 1,
+      statements: 1,
     },
   },
   testMatch: [
