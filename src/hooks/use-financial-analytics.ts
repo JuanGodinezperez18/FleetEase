@@ -118,8 +118,7 @@ export const useFinancialAnalytics = (
     const incomeCategoriesMap: Record<string, number> = {};
     const clientValueMap: Record<string, number> = {};
     const vehicleValueMap: Record<string, number> = {};
-
-    const activeClientsCount = clients ? clients.filter(c => c.status === 'active' && !c.isDeleted).length : 0;
+    const clientsWithRevenueInPeriod = new Set<string>();
 
     filteredRecords.forEach(record => {
       if (record.type === 'income') {
@@ -131,6 +130,7 @@ export const useFinancialAnalytics = (
 
         if (record.clientId) {
           clientValueMap[record.clientId] = (clientValueMap[record.clientId] || 0) + record.amount;
+          clientsWithRevenueInPeriod.add(record.clientId);
         }
         if (record.vehicleId) {
           vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + record.amount;
@@ -232,7 +232,7 @@ export const useFinancialAnalytics = (
     const netProfit = calculateNetProfit(filteredRecords);
     const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
     const avgTransactionValue = calculateAvgTransactionValue(filteredRecords);
-    const avgRevenuePerClient = activeClientsCount > 0 ? totalIncome / activeClientsCount : 0;
+    const avgRevenuePerClient = clientsWithRevenueInPeriod.size > 0 ? totalIncome / clientsWithRevenueInPeriod.size : 0;
 
     const expenseCategories = Object.entries(expenseCategoriesMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
     const incomeCategories = Object.entries(incomeCategoriesMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
