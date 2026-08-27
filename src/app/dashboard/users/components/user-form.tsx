@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useMemo, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
-import { useForm } from 'react-hook_form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';

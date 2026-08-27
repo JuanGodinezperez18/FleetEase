@@ -44,6 +44,7 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
           cleanedCount++;
         }
       }
+    }
 
     // Limpiar referencias en clients
     const { data: clients, error: clientsError } = await supabaseAdmin
@@ -64,6 +65,7 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
           cleanedCount++;
         }
       }
+    }
 
     // Limpiar referencias en documents
     const { error: docsError } = await supabaseAdmin

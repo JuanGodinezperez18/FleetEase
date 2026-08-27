@@ -140,7 +140,7 @@ export class DashboardService {
           if (key.startsWith('dashboard_')) {
             localStorage.removeItem(key);
           }
-        }
+        });
       }
       console.log('Cache completo limpiado');
     }

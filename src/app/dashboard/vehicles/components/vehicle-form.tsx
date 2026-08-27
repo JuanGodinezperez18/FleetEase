@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm, Controller } from "react-hook_form";
+import { useForm, Controller } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react";
