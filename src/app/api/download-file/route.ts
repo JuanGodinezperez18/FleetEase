@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { admin } from '@/lib/server/firebase-admin';
-import { adminStorage } from '@/lib/server/firebase-admin';
+import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 interface FirebaseError extends Error {
   code?: number | string;
@@ -12,41 +18,19 @@ const DownloadFileSchema = z.object({
 });
 
 function getPathFromUrl(fileUrl: string): string {
-    const bucketName = adminStorage.bucket().name;
-    
-    if (fileUrl.includes('firebasestorage.googleapis.com')) {
-      const match = fileUrl.match(new RegExp(`/o/(.+?)(?=\\?|$)`));
-      if (match && match[1]) return decodeURIComponent(match[1]);
-    }
-    
-    if (fileUrl.startsWith(`https://storage.googleapis.com/${bucketName}/`)) {
-        const prefix = `https://storage.googleapis.com/${bucketName}/`;
-        return decodeURIComponent(fileUrl.substring(prefix.length));
-    }
-    
-    throw new Error('URL de Firebase Storage no válida o no reconocida.');
+  // Extraer path de URL de Supabase Storage
+  // Formato: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+  const match = fileUrl.match(/\/object\/public\/[^\/]+\/(.+)/);
+  if (!match) throw new Error('URL de Supabase Storage no válida o no reconocida.');
+  return decodeURIComponent(match[1]);
 }
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
   try {
-    const file = adminStorage.bucket().file(filePath);
-    const [metadata] = await file.getMetadata();
-    const uploadedBy = metadata.metadata?.uploadedBy;
-    
-    if (uploadedBy) return uploadedBy === userId;
-
-    if (filePath.includes(userId)) {
-      return true;
-    }
-
-    return false;
+    const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId);
+    return filePath.includes(userId);
   } catch (error) {
-    const firebaseError = error as FirebaseError;
-    if (firebaseError.code === 404) {
-      console.warn(`[API Download] Intento de acceso a archivo no existente: ${filePath}`);
-    } else {
-      console.error('⚠️ [API Download] Error verificando propiedad:', error);
-    }
+    console.error('⚠️ [API Download] Error verificando propiedad:', error);
     return false;
   }
 }
@@ -60,8 +44,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
     }
     const token = authHeader.substring(7);
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const user = { uid: decodedToken.uid };
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
+    }
     
     const body = await request.json();
 
@@ -76,18 +63,22 @@ export async function POST(request: NextRequest) {
 
     const filePath = getPathFromUrl(fileUrl);
     
-    const isOwner = await verifyFileOwnership(filePath, user.uid);
+    const isOwner = await verifyFileOwnership(filePath, user.id);
     if (!isOwner) {
        return NextResponse.json({ error: 'No tienes permisos para acceder a este archivo.' }, { status: 403 });
     }
 
-    const file = adminStorage.bucket().file(filePath);
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutos
-    });
+    // Generar URL firmada en Supabase Storage
+    const { data, error } = await supabaseAdmin.storage
+      .from('documents')
+      .createSignedUrl(filePath, 15 * 60); // 15 minutos
     
-    return NextResponse.json({ success: true, signedUrl });
+    if (error) {
+      console.error('❌ [API Download] Error generando URL firmada:', error);
+      throw error;
+    }
+
+    return NextResponse.json({ success: true, signedUrl: data.signedUrl });
 
   } catch (error: unknown) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) {
@@ -98,7 +89,7 @@ export async function POST(request: NextRequest) {
     console.error('❌ [API Download] Error:', error);
     
     if (errorMessage.includes('No tienes permisos')) return NextResponse.json({ error: errorMessage }, { status: 403 });
-    if (errorMessage.includes('URL de Firebase Storage no válida')) return NextResponse.json({ error: errorMessage }, { status: 400 });
+    if (errorMessage.includes('URL de Supabase Storage no válida')) return NextResponse.json({ error: errorMessage }, { status: 400 });
     
     return NextResponse.json({ error: 'Error al procesar la solicitud.', details: isDev ? errorMessage : undefined }, { status: 500 });
   }

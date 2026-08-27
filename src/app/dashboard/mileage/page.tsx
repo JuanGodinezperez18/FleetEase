@@ -147,7 +147,7 @@ export default function MileageTrackingPage() {
     return activeVehicles.map(v => ({
       ...v,
       ...metricsMap.get(v.id)
-    }));
+    })) as VehicleWithMileageAndMetrics[];
   }, [activeVehicles, vehicleMetrics]);
 
   const {

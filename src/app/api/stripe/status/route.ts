@@ -4,11 +4,11 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
+  apiVersion: '2025-10-29.clover',
 });
 
-function createClient() {
-  const cookieStore = cookies();
+async function createClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,7 +24,7 @@ function createClient() {
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Verify Supabase Auth session
     const {
@@ -110,8 +110,8 @@ export async function GET() {
 
         subscriptionDetails = {
           status: subscription.status,
-          currentPeriodEnd: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
+          currentPeriodEnd: subscription.items.data[0]?.current_period_end
+            ? new Date(subscription.items.data[0]!.current_period_end * 1000).toISOString()
             : null,
           cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
         };

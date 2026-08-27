@@ -3,9 +3,18 @@
 
 import { useMemo } from 'react';
 import type { FinancialRecord, Client, Vehicle, Partner } from '@/types';
-import { startOfMonth, endOfMonth, subMonths, isWithinInterval, format, differenceInDays, subDays, startOfDay, endOfDay } from 'date-fns';
-import { infallibleNormalizeDate } from '@/lib/date-utils';
+import { startOfMonth, endOfMonth, subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  filterRecordsByDateRange,
+  calculateNetProfit,
+  calculateProfitMargin,
+  calculateAvgTransactionValue,
+  sumIncome,
+  sumExpense,
+  sumPayment,
+  daysBetweenInclusive,
+} from '@/lib/financial-metrics';
 
 type ProfitabilityLevel = 'high' | 'medium' | 'low' | 'negative';
 
@@ -83,34 +92,19 @@ export const useFinancialAnalytics = (
     }
     
     const filteredRecords = financialRecords
-      ? financialRecords.filter(r => {
-          if (r.isDeleted) return false;
-          const recordDate = infallibleNormalizeDate(r.date);
-          if (!recordDate) return false;
-          return isWithinInterval(recordDate, {
-            start: dateRange.from!,
-            end: dateRange.to!
-          });
-        })
+      ? filterRecordsByDateRange(financialRecords, { from: dateRange.from!, to: dateRange.to! })
       : [];
       
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
-    const todayRecords = filteredRecords.filter(r => {
-        const recordDate = infallibleNormalizeDate(r.date);
-        return recordDate && isWithinInterval(recordDate, { start: todayStart, end: todayEnd });
-    });
+    const todayRecords = filterRecordsByDateRange(filteredRecords, { from: todayStart, to: todayEnd });
     
-    const todayIncome = todayRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
-    const todayExpenses = todayRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
+    const todayIncome = sumIncome(todayRecords);
+    const todayExpenses = sumExpense(todayRecords);
 
-    const totalIncome = filteredRecords
-      .filter(r => r.type === 'income')
-      .reduce((sum, r) => sum + r.amount, 0);
+    const totalIncome = sumIncome(filteredRecords);
 
-    const totalExpenses = filteredRecords
-      .filter(r => r.type === 'expense')
-      .reduce((sum, r) => sum + r.amount, 0);
+    const totalExpenses = sumExpense(filteredRecords);
 
     // Crear mapa de categorías para búsqueda rápida
     const categoryMap = new Map<string, string>();
@@ -194,14 +188,11 @@ export const useFinancialAnalytics = (
       const monthStart = startOfMonth(date);
       const monthEnd = endOfMonth(date);
       
-      const monthRecords = financialRecords.filter(r => {
-        const recordDate = infallibleNormalizeDate(r.date);
-        return recordDate && isWithinInterval(recordDate, { start: monthStart, end: monthEnd });
-      });
+      const monthRecords = filterRecordsByDateRange(financialRecords, { from: monthStart, to: monthEnd });
       
-      const income = monthRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
-      const expenses = monthRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
-      const payments = monthRecords.filter(r => r.type === 'payment').reduce((sum, r) => sum + r.amount, 0);
+      const income = sumIncome(monthRecords);
+      const expenses = sumExpense(monthRecords);
+      const payments = sumPayment(monthRecords);
       
       return {
         period: format(date, 'MMM yy', { locale: es }),
@@ -221,17 +212,14 @@ export const useFinancialAnalytics = (
         return ((current - previous) / Math.abs(previous)) * 100;
     };
     
-    const daysInPeriod = differenceInDays(dateRange.to, dateRange.from) + 1;
+    const daysInPeriod = daysBetweenInclusive(dateRange.from, dateRange.to);
     const prevPeriodStart = subDays(dateRange.from, daysInPeriod);
     const prevPeriodEnd = subDays(dateRange.from, 1);
     
-    const prevMonthRecords = financialRecords.filter(r => {
-        const recordDate = infallibleNormalizeDate(r.date);
-        return recordDate ? isWithinInterval(recordDate, {start: prevPeriodStart, end: prevPeriodEnd}) : false;
-    });
+    const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
     
-    const prevMonthIncome = prevMonthRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
-    const prevMonthExpenses = prevMonthRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
+    const prevMonthIncome = sumIncome(prevMonthRecords);
+    const prevMonthExpenses = sumExpense(prevMonthRecords);
     const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
 
     const monthlyGrowth = {
@@ -241,9 +229,9 @@ export const useFinancialAnalytics = (
     };
 
 
-    const netProfit = totalIncome - totalExpenses;
-    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
-    const avgTransactionValue = financialRecords.length > 0 ? (totalIncome + totalExpenses) / financialRecords.length : 0;
+    const netProfit = calculateNetProfit(filteredRecords);
+    const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
+    const avgTransactionValue = calculateAvgTransactionValue(filteredRecords);
     const avgRevenuePerClient = activeClientsCount > 0 ? totalIncome / activeClientsCount : 0;
 
     const expenseCategories = Object.entries(expenseCategoriesMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);

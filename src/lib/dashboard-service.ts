@@ -1,41 +1,41 @@
-
 // lib/dashboard-service.ts
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import type { UserDashboardConfig, DashboardWidget } from '@/types/dashboard';
 import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
 
-// ✅ Caché en memoria
+// Cache en memoria
 const dashboardCache = new Map<string, { data: UserDashboardConfig; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 export class DashboardService {
   /**
-   * Obtener configuración del dashboard del usuario con caché
+   * Obtener configuracion del dashboard del usuario con cache
    */
   static async getUserDashboard(userId: string): Promise<UserDashboardConfig | null> {
     try {
-      // ✅ Verificar caché primero
+      // Verificar cache primero
       const cached = dashboardCache.get(userId);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        console.log('📦 Dashboard cargado desde caché');
+        console.log('Dashboard cargado desde cache');
         return cached.data;
       }
 
-      console.log('🔄 Cargando dashboard desde Firestore...');
-      const docRef = doc(db, 'userDashboards', userId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data() as UserDashboardConfig;
-        
-        // ✅ Guardar en caché
-        dashboardCache.set(userId, { data, timestamp: Date.now() });
-        
-        return data;
+      console.log('Cargando dashboard desde Supabase...');
+      // Usar localStorage como fallback ya que no hay tabla user_dashboards
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(`dashboard_${userId}`);
+        if (stored) {
+          try {
+            const data = JSON.parse(stored) as UserDashboardConfig;
+            dashboardCache.set(userId, { data, timestamp: Date.now() });
+            return data;
+          } catch {
+            // Ignorar error de parseo
+          }
+        }
       }
 
-      // Si no existe, crear configuración por defecto
+      // Si no existe, crear configuracion por defecto
       const defaultConfig: UserDashboardConfig = {
         userId,
         ...DEFAULT_DASHBOARD_CONFIG,
@@ -43,23 +43,22 @@ export class DashboardService {
         updatedAt: new Date().toISOString(),
       };
 
-      await setDoc(docRef, {
-        ...defaultConfig,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      // Guardar en localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`dashboard_${userId}`, JSON.stringify(defaultConfig));
+      }
 
-      // ✅ Guardar en caché
+      // Guardar en cache
       dashboardCache.set(userId, { data: defaultConfig, timestamp: Date.now() });
 
       return defaultConfig;
     } catch (error) {
       console.error('Error obteniendo dashboard config:', error);
       
-      // ✅ Intentar retornar desde caché si falla la red
+      // Intentar retornar desde cache si falla la red
       const cached = dashboardCache.get(userId);
       if (cached) {
-        console.warn('⚠️ Usando dashboard desde caché por error de red');
+        console.warn('Usando dashboard desde cache por error de red');
         return cached.data;
       }
       
@@ -68,24 +67,27 @@ export class DashboardService {
   }
 
   /**
-   * Actualizar configuración del dashboard con invalidación de caché
+   * Actualizar configuracion del dashboard con invalidacion de cache
    */
   static async updateDashboard(
     userId: string,
     config: Partial<Omit<UserDashboardConfig, 'userId'>>
   ): Promise<void> {
     try {
-      const docRef = doc(db, 'userDashboards', userId);
+      // Guardar en localStorage
+      const current = await this.getUserDashboard(userId);
+      if (!current) throw new Error('Dashboard no encontrado');
       
-      await updateDoc(docRef, {
-        ...config,
-        updatedAt: serverTimestamp(),
-      });
+      const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`dashboard_${userId}`, JSON.stringify(updated));
+      }
 
-      // ✅ Invalidar caché
+      // Invalidar cache
       dashboardCache.delete(userId);
       
-      console.log('✅ Dashboard actualizado y caché invalidado');
+      console.log('Dashboard actualizado y cache invalidado');
     } catch (error) {
       console.error('Error actualizando dashboard config:', error);
       throw error;
@@ -96,7 +98,7 @@ export class DashboardService {
    * Guardar orden de widgets con optimistic update
    */
   static async saveWidgetOrder(userId: string, widgets: DashboardWidget[]): Promise<void> {
-    // ✅ Actualizar caché optimistamente
+    // Actualizar cache optimistamente
     const cached = dashboardCache.get(userId);
     if (cached) {
       cached.data.widgets = widgets;
@@ -121,25 +123,36 @@ export class DashboardService {
   }
 
   /**
-   * Limpiar caché manualmente (útil para desarrollo)
+   * Limpiar cache manualmente (util para desarrollo)
    */
   static clearCache(userId?: string): void {
     if (userId) {
       dashboardCache.delete(userId);
-      console.log(`🗑️ Caché limpiado para usuario: ${userId}`);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`dashboard_${userId}`);
+      }
+      console.log(`Cache limpiado para usuario: ${userId}`);
     } else {
       dashboardCache.clear();
-      console.log('🗑️ Caché completo limpiado');
+      if (typeof window !== 'undefined') {
+        // Limpiar todos los dashboards
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('dashboard_')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+      console.log('Cache completo limpiado');
     }
   }
 
   /**
-   * Prefetch dashboard config (útil para optimización)
+   * Prefetch dashboard config (util para optimizacion)
    */
   static async prefetchDashboard(userId: string): Promise<void> {
     try {
       await this.getUserDashboard(userId);
-      console.log('✅ Dashboard prefetched');
+      console.log('Dashboard prefetched');
     } catch (error) {
       console.error('Error prefetching dashboard:', error);
     }

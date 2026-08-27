@@ -1,6 +1,5 @@
 
 import { isValid, parse, parseISO } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 
 /**
  * A more robust date normalization function that handles multiple formats,
@@ -18,7 +17,7 @@ export const normalizeDate = (date: unknown): Date | null => {
   if (typeof date === 'object' && date !== null && 'seconds' in date && 'nanoseconds' in date) {
     const ts = date as { seconds: number; nanoseconds: number };
     if (typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
-      return new Timestamp(ts.seconds, ts.nanoseconds).toDate();
+      return new Date(ts.seconds * 1000 + Math.floor(ts.nanoseconds / 1_000_000));
     }
   }
 

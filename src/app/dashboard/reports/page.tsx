@@ -61,8 +61,7 @@ import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
 import { generateExcelReport, downloadExcel } from '@/lib/reports/excel-generator';
 import type { ReportData } from '@/lib/reports/pdf-generator';
 import { useAuth } from '@/contexts/auth-provider';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 type ReportType = 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
 
@@ -262,26 +261,26 @@ export default function ReportsPageImproved() {
     }
   };
 
-  // Guardar reporte en Firestore
-  const saveReportToFirestore = async (type: 'pdf' | 'excel', filename: string) => {
+  // Guardar reporte en Supabase
+  const saveReportToSupabase = async (type: 'pdf' | 'excel', filename: string) => {
     if (!selectedCompanyId || !currentUser) return;
 
     try {
-      await addDoc(collection(db, 'generatedReports'), {
-        companyId: selectedCompanyId,
+      await supabase.from('generated_reports').insert({
+        company_id: selectedCompanyId,
         type: reportType,
         format: type,
         filename,
-        dateRange: dateRange ? {
+        date_range: dateRange ? {
           from: dateRange.from?.toISOString(),
           to: dateRange.to?.toISOString(),
         } : null,
-        createdBy: currentUser.uid,
-        createdByName: currentUser.name,
-        createdAt: serverTimestamp(),
+        created_by: currentUser.uid,
+        created_by_name: currentUser.name,
+        created_at: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Error saving report to Firestore:', error);
+      console.error('Error saving report to Supabase:', error);
     }
   };
 
@@ -300,7 +299,7 @@ export default function ReportsPageImproved() {
       const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`;
       downloadPDF(pdfBlob, filename);
 
-      await saveReportToFirestore('pdf', filename);
+      await saveReportToSupabase('pdf', filename);
 
       toast.success('Reporte PDF generado exitosamente');
     } catch (error) {
@@ -326,7 +325,7 @@ export default function ReportsPageImproved() {
       const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
       downloadExcel(excelBlob, filename);
 
-      await saveReportToFirestore('excel', filename);
+      await saveReportToSupabase('excel', filename);
 
       toast.success('Reporte Excel generado exitosamente');
     } catch (error) {

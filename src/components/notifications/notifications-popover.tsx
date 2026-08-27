@@ -15,8 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useMemo, useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,9 +42,10 @@ export function NotificationsPopover({ children }: NotificationsPopoverProps) {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
-        isRead: true,
-      });
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
     } catch (error) {
       console.error('Error marcando notificación como leída:', error);
     }
@@ -56,7 +56,10 @@ export function NotificationsPopover({ children }: NotificationsPopoverProps) {
       const unreadNotifications = userNotifications.filter(n => !n.isRead);
       await Promise.all(
         unreadNotifications.map(n =>
-          updateDoc(doc(db, 'notifications', n.id), { isRead: true })
+          supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', n.id)
         )
       );
       toast.success('Todas las notificaciones marcadas como leídas');

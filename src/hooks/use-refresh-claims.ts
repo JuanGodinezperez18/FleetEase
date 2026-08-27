@@ -1,17 +1,16 @@
 /**
- * Hook para refrescar custom claims del usuario actual
- * Útil cuando hay errores de permisos en Firebase
+ * Hook para refrescar sesión en Supabase
+ * En Supabase no hay custom claims - los roles se leen de la tabla users directamente
  */
 
 import { useCallback, useState } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '@/contexts/auth-provider';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/lib/supabase';
 
 interface RefreshClaimsResult {
   success: boolean;
   message?: string;
-  claims?: Record<string, any>;
 }
 
 export function useRefreshClaims() {
@@ -29,27 +28,22 @@ export function useRefreshClaims() {
     setError(null);
 
     try {
-      logger.info('[RefreshClaims] Solicitando refresco de claims...');
+      logger.info('[RefreshClaims] Refrescando sesión Supabase...');
       
-      const functions = getFunctions();
-      const refreshMyClaimsFn = httpsCallable<Record<string, never>, RefreshClaimsResult>(
-        functions,
-        'refreshMyClaims'
-      );
+      // Refrescar sesión en Supabase
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        throw error;
+      }
 
-      const result = await refreshMyClaimsFn({});
-
-      logger.info('[RefreshClaims] Claims refrescados', { data: result.data });
-
-      // Forzar refresco del token
-      const auth = (await import('@/lib/firebase')).auth;
-      await auth.currentUser?.getIdToken(true);
-
-      return result.data;
+      logger.info('[RefreshClaims] Sesión refrescada exitosamente');
+      
+      return { success: true, message: 'Sesión actualizada correctamente' };
     } catch (err: any) {
-      logger.error('[RefreshClaims] Error refrescando claims:', err);
+      logger.error('[RefreshClaims] Error refrescando sesión:', err);
       setError(err instanceof Error ? err : new Error(err.message || 'Error desconocido'));
-      return { success: false, message: err.message || 'Error al refrescar claims' };
+      return { success: false, message: err.message || 'Error al refrescar sesión' };
     } finally {
       setIsLoading(false);
     }

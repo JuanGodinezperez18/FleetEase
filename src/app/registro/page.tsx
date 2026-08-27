@@ -11,11 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { motion } from 'framer-motion';
 import { Loader2, ArrowLeft, Mail, Lock, User, Phone, Building, CheckCircle, AlertCircle, Zap, TrendingUp, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { type PlanType, plans } from '@/config/plans';
 
 interface RegisterData {
@@ -70,61 +65,52 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Crear usuario en Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-
-      // 2. Actualizar perfil con el nombre
-      await updateProfile(user, {
-        displayName: data.name,
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          phone: data.phone,
+          companyName: data.companyName,
+          plan: data.selectedPlan,
+        }),
       });
 
-      // 3. Llamar a la función cloud para crear empresa y asignar usuario
-      const functions = getFunctions();
-      const createCompanyAndUser = httpsCallable(functions, 'createCompanyAndUser');
+      const result = await response.json();
 
-      const result = await createCompanyAndUser({
-        email: data.email,
-        name: data.name,
-        phone: data.phone,
-        companyName: data.companyName,
-        plan: data.selectedPlan,
-      });
+      if (!response.ok) {
+        throw new Error(result.message || 'Error al crear la cuenta');
+      }
 
-      const responseData = result.data as any;
-
-      if (responseData.success) {
+      if (result.success) {
         toast.success('¡Cuenta creada exitosamente!');
         toast.info('Redirigiendo al dashboard...');
         
-        // 4. Redirigir al dashboard
+        // Redirigir al login para que inicien sesión
         setTimeout(() => {
-          router.replace('/dashboard');
+          router.replace('/login');
         }, 2000);
       } else {
-        throw new Error(responseData.message || 'Error al crear la cuenta');
+        throw new Error(result.message || 'Error al crear la cuenta');
       }
     } catch (error: any) {
       console.error('Error en registro:', error);
       
       let errorMessage = 'Error al crear la cuenta. Intenta de nuevo.';
       
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
         errorMessage = 'Este correo ya está registrado. Inicia sesión o usa otro correo.';
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.message.includes('weak password') || error.message.includes('Weak password')) {
         errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.message.includes('invalid email') || error.message.includes('Invalid email')) {
         errorMessage = 'El correo electrónico no es válido.';
       } else if (error.message) {
         errorMessage = error.message;
       }
 
       toast.error(errorMessage);
-      
-      // Si falla, intentar limpiar
-      try {
-        await auth.currentUser?.delete();
-      } catch {}
     } finally {
       setIsSubmitting(false);
     }

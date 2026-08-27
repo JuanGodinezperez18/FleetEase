@@ -58,6 +58,7 @@ import {
 } from 'recharts';
 import { ReportAnalyticsService } from '@/lib/reports/analytics-service';
 import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
+import type { ReportData } from '@/lib/reports/pdf-generator';
 import { generateExcelReport, downloadExcel } from '@/lib/reports/excel-generator';
 
 type ReportType = 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
@@ -109,12 +110,59 @@ export default function ReportsPageVisual() {
     );
   }, [financialRecords, dateRange]);
 
+  const getReportTitle = (): string => {
+    switch (reportType) {
+      case 'financial':
+        return 'Reporte Financiero';
+      case 'vehicle':
+        return 'Reporte de Rentabilidad por Vehículo';
+      case 'client':
+        return 'Reporte de Análisis de Clientes';
+      case 'partner':
+        return 'Reporte de Análisis de Socios';
+      case 'executive':
+        return 'Reporte Ejecutivo Integral';
+      default:
+        return 'Reporte';
+    }
+  };
+
+  const buildReportData = (): ReportData | null => {
+    if (!financialData || !dateRange?.from || !dateRange.to) return null;
+
+    const filteredRecords = ReportAnalyticsService.filterRecordsByDateRange(
+      financialRecords,
+      { from: dateRange.from, to: dateRange.to }
+    );
+
+    return {
+      type: reportType,
+      title: getReportTitle(),
+      dateRange: { from: dateRange.from, to: dateRange.to },
+      companyName: 'FleetEase Manager',
+      income: financialData.income,
+      expenses: financialData.expenses,
+      netProfit: financialData.netProfit,
+      profitMargin: financialData.profitMargin,
+      transactionsCount: financialData.transactionsCount,
+      expensesByCategory: financialData.expensesByCategory,
+      incomeByCategory: financialData.incomeByCategory,
+      records: filteredRecords,
+    };
+  };
+
   // Generar reporte PDF
   const handleGeneratePDF = async () => {
     setIsLoading(true);
     try {
-      const data = generatePDFReport(financialData);
-      await downloadPDF(data);
+      const reportData = buildReportData();
+      if (!reportData) {
+        toast.error('No hay datos para generar el reporte');
+        return;
+      }
+      const data = await generatePDFReport(reportData);
+      const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`;
+      downloadPDF(data, filename);
       toast.success('Reporte PDF generado exitosamente');
     } catch (error) {
       toast.error('Error generando reporte PDF');
@@ -127,7 +175,14 @@ export default function ReportsPageVisual() {
   const handleGenerateExcel = async () => {
     setIsLoading(true);
     try {
-      await generateExcelReport(financialRecords, dateRange);
+      const reportData = buildReportData();
+      if (!reportData) {
+        toast.error('No hay datos para generar el reporte');
+        return;
+      }
+      const excelBlob = await generateExcelReport(reportData);
+      const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
+      downloadExcel(excelBlob, filename);
       toast.success('Reporte Excel generado exitosamente');
     } catch (error) {
       toast.error('Error generando reporte Excel');

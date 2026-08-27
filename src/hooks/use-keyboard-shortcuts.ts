@@ -33,13 +33,14 @@ export function useKeyboardShortcuts(
 
     // Ignorar si estamos en un input field y está configurado
     if (ignoreInputFields) {
-      const target = event.target as HTMLElement;
-      const tagName = target.tagName.toLowerCase();
+      const target = event.target;
+      const element = target instanceof HTMLElement ? target : null;
+      const tagName = element?.tagName.toLowerCase();
       const isInputField = 
         tagName === 'input' || 
         tagName === 'textarea' || 
         tagName === 'select' ||
-        target.isContentEditable;
+        element?.isContentEditable;
 
       // Permitir Escape siempre
       if (isInputField && event.key !== 'Escape') {

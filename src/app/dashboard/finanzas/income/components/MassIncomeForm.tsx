@@ -23,8 +23,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DialogFooter } from '@/components/ui/dialog';
-import { writeBatch, doc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';

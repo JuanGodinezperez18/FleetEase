@@ -1,127 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { z } from 'zod';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY!;
 
-const requestSchema = z.object({
-  companyId: z.string().uuid().optional(),
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const ALLOWED_ROLES = ['admin', 'editor', 'super_admin'] as const;
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2024-04-10',
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      },
-    );
-
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 },
-      );
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
+    }
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const parseResult = requestSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid request body', details: parseResult.error.errors },
-        { status: 400 },
-      );
-    }
-
-    const { companyId: requestedCompanyId } = parseResult.data;
-
-    const { data: user, error: userError } = await supabase
+    // Verificar que sea admin o super_admin
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
       .select('role, company_id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 },
-      );
+    
+    if (profileError || !userProfile || !['admin', 'super_admin'].includes(userProfile.role)) {
+      return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
     }
 
-    if (!ALLOWED_ROLES.includes(user.role as (typeof ALLOWED_ROLES)[number])) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 },
-      );
-    }
-
-    const targetCompanyId = requestedCompanyId || user.company_id;
-
-    if (!targetCompanyId) {
-      return NextResponse.json(
-        { error: 'No company associated with user' },
-        { status: 400 },
-      );
-    }
-
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
+    // Obtener customer de Stripe
+    const { data: stripeCustomer, error: customerError } = await supabaseAdmin
+      .from('stripe_customers')
       .select('stripe_customer_id')
-      .eq('id', targetCompanyId)
+      .eq('company_id', userProfile.company_id)
       .single();
 
-    if (companyError || !company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 },
-      );
+    if (customerError || !stripeCustomer?.stripe_customer_id) {
+      return NextResponse.json({ error: 'No hay suscripción activa' }, { status: 404 });
     }
 
-    if (!company.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'Company does not have a Stripe customer ID' },
-        { status: 400 },
-      );
-    }
-
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: company.stripe_customer_id,
-      return_url: process.env.STRIPE_PORTAL_RETURN_URL || `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/settings/billing`,
+    // Crear sesión del portal de facturación
+    const session = await stripe.billingPortal.sessions.create({
+      customer: stripeCustomer.stripe_customer_id,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/subscription`,
     });
 
-    return NextResponse.json({
-      success: true,
-      url: portalSession.url,
-    });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe portal session error:', error);
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: 'Stripe error', message: error.message },
-        { status: error.statusCode || 500 },
-      );
-    }
-
+    console.error('Error creating portal session:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 },
+      { error: 'Error al abrir portal de facturación' },
+      { status: 500 }
     );
   }
 }

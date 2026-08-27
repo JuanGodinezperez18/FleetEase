@@ -244,7 +244,7 @@ export function GPSConfigWizard({ onComplete, onCancel }: GPSConfigWizardProps) 
           config={config}
           onConfirm={handleComplete}
           onBack={() => setStep(3)}
-          onCancel={onCancel}
+          onCancel={onCancel ?? (() => {})}
         />
       )}
     </div>

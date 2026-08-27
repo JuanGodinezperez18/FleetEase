@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { admin } from '@/lib/server/firebase-admin';
-import { adminDb, adminStorage } from '@/lib/server/firebase-admin';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 type AllowedFolder = 
   | 'vehicle_images'
@@ -36,9 +42,20 @@ function isValidFolder(folder: unknown): folder is AllowedFolder {
 function sanitizeFileName(fileName: string): string {
   return fileName
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9._-]/g, '_')
     .toLowerCase();
+}
+
+function getBucketName(folder: AllowedFolder): string {
+  switch (folder) {
+    case 'vehicle_images': return 'vehicle-images';
+    case 'driver_documents': return 'driver-documents';
+    case 'financial_receipts': return 'financial-receipts';
+    case 'general_documents': return 'general-documents';
+    case 'contract_templates': return 'contract-templates';
+    default: return 'general-documents';
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -52,8 +69,21 @@ export async function POST(request: NextRequest) {
     }
     const token = authHeader.substring(7);
     
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const user = { uid: decodedToken.uid, companyId: decodedToken.companyId, role: decodedToken.role };
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
+    }
+
+    // Obtener perfil del usuario para company_id y role
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('company_id, role')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !userProfile) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -78,16 +108,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Archivo demasiado grande. Límite: ${MAX_SIZE_MB}MB` }, { status: 413 });
     }
 
-    let companyId = user.companyId;
-    if (user.role === 'superAdmin' && entityId && entityId !== 'unassigned') {
-        const docRef = adminDb.collection('vehicles').doc(entityId); 
-        try {
-            const docSnap = await docRef.get();
-            if (docSnap.exists) {
-                companyId = docSnap.data()?.companyId;
-            }
-        } catch (e) {
-            if(isDev) console.log('[API Upload] No se encontró entidad para determinar compañía, usando la del usuario.');
+    let companyId = userProfile.company_id;
+    if (userProfile.role === 'super_admin' && entityId && entityId !== 'unassigned') {
+        const { data: vehicle, error: vehicleError } = await supabaseAdmin
+          .from('vehicles')
+          .select('company_id')
+          .eq('id', entityId)
+          .single();
+        
+        if (!vehicleError && vehicle) {
+            companyId = vehicle.company_id;
         }
     }
     if (!companyId) {
@@ -95,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     const fileExtension = originalName.split('.').pop()?.toLowerCase() || 'bin';
-    const uniqueFileName = `${user.uid}-${uuidv4()}.${fileExtension}`;
+    const uniqueFileName = `${user.id}-${uuidv4()}.${fileExtension}`;
     
     const now = new Date();
     const year = now.getFullYear();
@@ -113,28 +143,31 @@ export async function POST(request: NextRequest) {
     }
     
     const fullPath = `${pathPrefix}/${uniqueFileName}`;
-    const fileRef = adminStorage.bucket().file(fullPath);
-
-    const metadata = {
-      contentType: file.type,
-      metadata: {
-        originalName: sanitizeFileName(originalName),
-        uploadedBy: user.uid,
-        uploadedAt: now.toISOString(),
-        companyId,
-      }
-    };
-    
+    const bucketName = getBucketName(folder);
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+    if(isDev) console.log(`[API Upload] Subiendo a Storage bucket: ${bucketName}, path: ${fullPath}`);
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(fullPath, fileBuffer, {
+        contentType: file.type,
+        upsert: false,
+      });
     
-    if(isDev) console.log(`[API Upload] Subiendo a Storage en path: ${fullPath}`);
-    await fileRef.save(fileBuffer, { metadata });
+    if (uploadError) {
+      console.error('❌ [API Upload] Error subiendo a Storage:', uploadError);
+      throw uploadError;
+    }
+    
     if(isDev) console.log('[API Upload] Archivo guardado en Storage.');
 
-    const bucketName = adminStorage.bucket().name;
-    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(fullPath)}?alt=media`;
+    // Generar URL pública
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(fullPath);
 
-    return NextResponse.json({ success: true, downloadUrl, fullPath });
+    return NextResponse.json({ success: true, downloadUrl: publicUrl, fullPath });
     
   } catch (error: unknown) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) {

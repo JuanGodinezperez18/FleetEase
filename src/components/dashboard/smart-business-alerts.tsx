@@ -130,19 +130,23 @@ export function SmartBusinessAlerts({
       : 0;
 
     expenseRecords.forEach(record => {
-      if (record.amount && record.amount > avgExpense * 2 && record.amount > 5000) {
+      const otherExpenses = expenseRecords.filter(r => r.id !== record.id);
+      const avgOtherExpense = otherExpenses.length > 0
+        ? otherExpenses.reduce((sum, r) => sum + (r.amount || 0), 0) / otherExpenses.length
+        : 0;
+      if (record.amount && avgOtherExpense > 0 && record.amount > avgOtherExpense * 2 && record.amount > 5000) {
         generatedAlerts.push({
           id: `expense-spike-${record.id}`,
           type: 'warning',
           category: 'finance',
           title: `Gasto atípico detectado: $${record.amount.toLocaleString('es-MX')}`,
-          description: `Este gasto es ${Math.round((record.amount / avgExpense) * 100)}% mayor al promedio`,
+          description: `Este gasto es ${Math.round((record.amount / avgOtherExpense) * 100)}% mayor al promedio`,
           impact: 'Puede afectar la rentabilidad del vehículo.',
           action: {
             label: 'Ver gasto',
             href: `/dashboard/finanzas?transaction=${record.id}`,
           },
-          data: { recordId: record.id, amount: record.amount, avgExpense },
+          data: { recordId: record.id, amount: record.amount, avgExpense: avgOtherExpense },
         });
       }
     });
@@ -188,7 +192,7 @@ export function SmartBusinessAlerts({
     vehicles
       .filter(v => !v.isDeleted && v.status !== 'sold' && v.currentMileage)
       .forEach(vehicle => {
-        const nextMaintenance = (vehicle.lastMaintenanceMileage || 0) + (vehicle.maintenanceInterval || 5000);
+        const nextMaintenance = (vehicle.lastMaintenanceMileage || 0) + (vehicle.maintenanceInterval || 10000);
         const kmToMaintenance = nextMaintenance - vehicle.currentMileage;
 
         if (kmToMaintenance < 500 && kmToMaintenance > 0) {

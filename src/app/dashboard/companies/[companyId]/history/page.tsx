@@ -1,8 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, User, FileText, ArrowLeft } from 'lucide-react';
@@ -21,24 +20,21 @@ export default function CompanyHistoryPage() {
 
   const company = companies.find(c => c.id === companyId);
 
-  // ✅ OPTIMIZACIÓN: Usar React Query con getDocs en lugar de onSnapshot
+  // ✅ OPTIMIZACIÓN: Usar React Query con Supabase en lugar de onSnapshot
   const { data: changes = [], isLoading: loading } = useQuery({
     queryKey: ['companyChanges', companyId],
     queryFn: async () => {
       if (!companyId) return [];
 
-      const q = query(
-        collection(db, 'companyChangeLogs'),
-        where('companyId', '==', companyId),
-        orderBy('changedAt', 'desc'),
-        limit(50) // ✅ LÍMITE: Solo los últimos 50 cambios
-      );
+      const { data, error } = await supabase
+        .from('company_change_logs')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('changed_at', { ascending: false })
+        .limit(50);
 
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as CompanyChangeLog[];
+      if (error) throw error;
+      return (data || []) as CompanyChangeLog[];
     },
     enabled: !!companyId,
     staleTime: 2 * 60 * 1000, // ✅ CACHÉ: 2 minutos
@@ -92,16 +88,16 @@ export default function CompanyHistoryPage() {
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Badge className={getChangeTypeColor(change.changeType)}>
-                      {change.changeType.replace(/_/g, ' ')}
+                    <Badge className={getChangeTypeColor(change.change_type)}>
+                      {change.change_type.replace(/_/g, ' ')}
                     </Badge>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      {change.changedByName}
+                      {change.changed_by_name}
                     </span>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {format(new Date(change.changedAt), "dd MMM yyyy, HH:mm", { locale: es })}
+                      {format(new Date(change.changed_at), "dd MMM yyyy, HH:mm", { locale: es })}
                     </span>
                   </div>
                   <p className="text-sm font-medium">{change.description}</p>

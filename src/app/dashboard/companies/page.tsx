@@ -20,8 +20,7 @@ import { useCompanySearch } from '@/hooks/use-company-search';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { sanitizeAndFormatData } from '@/lib/utils';
-import { collection, query, where, getDocs, runTransaction } from 'firebase/firestore';
-import { db } from '@/lib/firestore-services';
+import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 
@@ -150,10 +149,15 @@ export default function CompaniesPage() {
     const toastId = toast.loading(editingCompany ? "Actualizando empresa..." : "Agregando empresa...");
     
     try {
-      // Check for duplicate name before submitting
-      const q = query(collection(db, 'companies'), where('name', '==', data.name));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty && snapshot.docs.some(doc => doc.id !== editingCompany?.id)) {
+      // Check for duplicate name before submitting using Supabase
+      let supabaseQuery = supabase.from('companies').select('id').eq('name', data.name).eq('is_deleted', false);
+      if (editingCompany) {
+        supabaseQuery = supabaseQuery.neq('id', editingCompany.id);
+      }
+      const { data: existingCompanies, error: queryError } = await supabaseQuery;
+      
+      if (queryError) throw queryError;
+      if (existingCompanies && existingCompanies.length > 0) {
         throw new Error("Ya existe una empresa con este nombre.");
       }
 
@@ -182,7 +186,7 @@ export default function CompaniesPage() {
       const { contractTemplateUrl, ...restOfData } = data;
       const companyPayload = { ...sanitizeAndFormatData(restOfData), contractTemplateUrl: newContractUrl };
       
-      // 2. Save data to Firestore (handled by companyService which now includes audit)
+      // 2. Save data to Supabase (handled by companyService which now includes audit)
       if (editingCompany) {
         await updateCompany(editingCompany.id, companyPayload);
       } else {

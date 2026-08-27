@@ -85,6 +85,7 @@ export default function ProfitabilityPage() {
           vehicles={vehicles}
           financialRecords={financialRecords}
           periodDays={periodDays}
+          dateRange={dateRange}
         />
       ) : (
         <Card>

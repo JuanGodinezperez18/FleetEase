@@ -3,9 +3,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
-import { useData } from '@/contexts/data-provider';
-import { collection, query, where, orderBy, getDocs, limit, startAfter, Query, DocumentData } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useData } from '@/hooks/use-data';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,18 +20,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 interface Seguimiento {
   id: string;
-  vehicleId: string;
-  clientId: string;
-  userId: string;
-  clientName: string;
-  vehicleAlias: string;
-  photoUrl: string;
-  description: string;
-  latitude: number | null;
-  longitude: number | null;
-  createdAt: string;
-  createdBy: string;
-  companyId: string;
+  vehicle_id: string;
+  client_id: string | null;
+  user_id: string | null;
+  client_name?: string;
+  vehicle_alias?: string;
+  photo_url: string;
+  description?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  timestamp: string;
+  created_by: string;
+  company_id: string;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -54,20 +53,16 @@ export default function SeguimientosPage() {
     try {
       setLoading(true);
 
-      let q: Query<DocumentData> = query(
-        collection(db, 'seguimientos'),
-        where('companyId', '==', currentUser.companyId),
-        orderBy('createdAt', 'desc'),
-        limit(100)
-      );
+      const { data, error } = await supabase
+        .from('seguimientos')
+        .select('*')
+        .eq('company_id', currentUser.companyId)
+        .order('timestamp', { ascending: false })
+        .limit(100);
 
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Seguimiento[];
+      if (error) throw error;
 
-      setSeguimientos(data);
+      setSeguimientos((data || []) as Seguimiento[]);
     } catch (error) {
       console.error('Error cargando seguimientos:', error);
       toast.error('Error al cargar seguimientos');
@@ -84,16 +79,21 @@ export default function SeguimientosPage() {
 
   const filteredSeguimientos = useMemo(() => {
     return seguimientos.filter(seg => {
+      const vehicle = vehicles?.find(v => v.id === seg.vehicle_id);
+      const client = clients?.find(c => c.id === seg.client_id);
+      const vehicleAlias = vehicle?.alias || vehicle?.plate || 'Desconocido';
+      const clientName = client ? `${client.firstname} ${client.lastname}` : 'Desconocido';
+
       const matchesSearch =
-        seg.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seg.vehicleAlias?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicleAlias.toLowerCase().includes(searchTerm.toLowerCase()) ||
         seg.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesVehicle = selectedVehicle === 'all' || seg.vehicleId === selectedVehicle;
+      const matchesVehicle = selectedVehicle === 'all' || seg.vehicle_id === selectedVehicle;
 
       return matchesSearch && matchesVehicle;
     });
-  }, [seguimientos, searchTerm, selectedVehicle]);
+  }, [seguimientos, searchTerm, selectedVehicle, vehicles, clients]);
 
   const paginatedSeguimientos = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
@@ -202,62 +202,68 @@ export default function SeguimientosPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {paginatedSeguimientos.map((seg) => (
-              <Card key={seg.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                <div
-                  className="relative h-48 bg-gray-100 group"
-                  onClick={() => setSelectedImage(seg)}
-                >
-                  <Image
-                    src={seg.photoUrl}
-                    alt={`Seguimiento de ${seg.vehicleAlias}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            {paginatedSeguimientos.map((seg) => {
+              const vehicle = vehicles?.find(v => v.id === seg.vehicle_id);
+              const client = clients?.find(c => c.id === seg.client_id);
+              const vehicleAlias = vehicle?.alias || vehicle?.plate || 'Desconocido';
+              const clientName = client ? `${client.firstname} ${client.lastname}` : 'Desconocido';
+              return (
+                <Card key={seg.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                  <div
+                    className="relative h-48 bg-gray-100 group"
+                    onClick={() => setSelectedImage({ ...seg, vehicleAlias, clientName })}
+                  >
+                    <Image
+                      src={seg.photo_url}
+                      alt={`Seguimiento de ${vehicleAlias}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
-                </div>
-                <CardContent className="pt-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      <Car className="h-3 w-3 mr-1" />
-                      {seg.vehicleAlias}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(seg.createdAt), 'dd MMM', { locale: es })}
-                    </span>
-                  </div>
+                  <CardContent className="pt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-xs">
+                        <Car className="h-3 w-3 mr-1" />
+                        {vehicleAlias}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(seg.timestamp), 'dd MMM', { locale: es })}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span className="truncate">{seg.clientName}</span>
-                  </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span className="truncate">{clientName}</span>
+                    </div>
 
-                  {seg.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {seg.description}
-                    </p>
-                  )}
+                    {seg.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {seg.description}
+                      </p>
+                    )}
 
-                  {seg.latitude && seg.longitude && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openGoogleMaps(seg.latitude!, seg.longitude!);
-                      }}
-                    >
-                      <MapPin className="h-3 w-3 mr-2" />
-                      Ver ubicación
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    {seg.latitude && seg.longitude && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openGoogleMaps(seg.latitude!, seg.longitude!);
+                        }}
+                      >
+                        <MapPin className="h-3 w-3 mr-2" />
+                        Ver ubicación
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Paginación */}
@@ -297,7 +303,7 @@ export default function SeguimientosPage() {
             <div className="space-y-4">
               <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
                 <Image
-                  src={selectedImage.photoUrl}
+                  src={selectedImage.photo_url}
                   alt="Seguimiento"
                   fill
                   className="object-contain"
@@ -317,7 +323,7 @@ export default function SeguimientosPage() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Fecha</p>
                   <p className="text-lg font-semibold">
-                    {format(new Date(selectedImage.createdAt), "dd 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                    {format(new Date(selectedImage.timestamp), "dd 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
                   </p>
                 </div>
                 {selectedImage.latitude && selectedImage.longitude && (
@@ -345,8 +351,8 @@ export default function SeguimientosPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => downloadImage(
-                    selectedImage.photoUrl,
-                    `seguimiento_${selectedImage.vehicleAlias}_${format(new Date(selectedImage.createdAt), 'yyyyMMdd')}.jpg`
+                    selectedImage.photo_url,
+                    `seguimiento_${selectedImage.vehicleAlias}_${format(new Date(selectedImage.timestamp), 'yyyyMMdd')}.jpg`
                   )}
                   className="flex-1"
                 >

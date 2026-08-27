@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find src:*)",
+      "Bash(ls:*)",
+      "Bash(find src/app/api -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -n \"client_email\\\\|private_key\" scripts/*.ts scripts/*.js)",
+      "Bash(find . -name README* -type f)",
+      "Bash(cat .github/workflows/*.yml)",
+      "Bash(npx tsx:*)",
+      "Bash(node scripts/migrate-batch.js)",
+      "Bash(node:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(findstr :3002)",
+      "Bash(taskkill:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell:*)",
+      "Bash(npx skills:*)",
+      "Bash(git rm:*)"
+    ]
+  }
+}

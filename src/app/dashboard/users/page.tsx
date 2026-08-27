@@ -14,22 +14,16 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/auth-provider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { auth } from '@/lib/firebase';
 import { DataTableColumnHeader } from '@/components/common/data-table-column-header';
 import { useUserAnalytics, type UserMetric } from '@/hooks/use-user-analytics';
 import { UserAdminDashboard } from './components/user-admin-dashboard';
 import { UserAdvancedFilters } from './components/user-advanced-filters';
 import { useUserSearch } from './components/user-search';
 import { toast as sonnerToast } from 'sonner';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Mail, KeyRound, Download, Eye } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
 import { getColumns } from './columns';
 import type { ColumnDef } from '@tanstack/react-table';
 import { canAddUser, getUserLimitMessage, type PlanType } from '@/config/plans';
+import { supabase } from '@/lib/supabase';
 
 
 export type UserWithMetrics = UserProfile & Partial<UserMetric>;
@@ -123,66 +117,74 @@ export default function UsersPage() {
   const handleSubmit = async (data: UserFormValues) => {
     setIsSubmitting(true);
     const toastId = sonnerToast.loading(editingUser ? 'Actualizando usuario...' : 'Creando usuario...');
-    const functions = getFunctions(auth.app, 'us-central1');
     
     try {
       if (editingUser) {
-          const setAdminClaims = httpsCallable(functions, 'setAdminClaims');
-          await setAdminClaims({
+        const response = await fetch('/api/admin/users/update-claims', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             userId: editingUser.uid,
             role: data.role,
             companyId: data.role === 'superAdmin' ? null : (data.companyId || authCurrentUser?.companyId),
             partnerAccess: data.role === 'viewer' ? data.partnerAccess || [] : [],
-          });
-          sonnerToast.success('Usuario Actualizado', { id: toastId, description: `${data.name} ha sido actualizado.` });
+          }),
+        });
+        
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Error al actualizar');
+        
+        sonnerToast.success('Usuario Actualizado', { id: toastId, description: `${data.name} ha sido actualizado.` });
       } else {
-          const emailExists = users.some(
-            u => u.email.toLowerCase() === data.email.toLowerCase() && !u.isDeleted
-          );
-          
-          if (emailExists) {
-            throw new Error('Ya existe un usuario con este correo electrónico.');
-          }
+        const emailExists = users.some(
+          u => u.email.toLowerCase() === data.email.toLowerCase() && !u.isDeleted
+        );
+        
+        if (emailExists) {
+          throw new Error('Ya existe un usuario con este correo electrónico.');
+        }
 
-          if (authCurrentUser?.role !== 'superAdmin' && data.role === 'superAdmin') {
-            throw new Error('No tienes permisos para crear usuarios SuperAdmin.');
-          }
-          
-          if (authCurrentUser?.role === 'editor' && ['admin', 'superAdmin'].includes(data.role)) {
-            throw new Error('No tienes permisos para crear usuarios con este rol.');
-          }
+        if (authCurrentUser?.role !== 'superAdmin' && data.role === 'superAdmin') {
+          throw new Error('No tienes permisos para crear usuarios SuperAdmin.');
+        }
+        
+        if (authCurrentUser?.role === 'editor' && ['admin', 'superAdmin'].includes(data.role)) {
+          throw new Error('No tienes permisos para crear usuarios con este rol.');
+        }
 
-          // Validar límite de usuarios según el plan
-          if (companies && companies.length > 0) {
-              const company = companies[0];
-              const plan = (company.plan as PlanType) || 'starter';
-              const currentUsersCount = users.filter(u => !u.isDeleted && u.role !== 'superAdmin').length;
-              
-              if (!canAddUser(plan, currentUsersCount)) {
-                  const limitMessage = getUserLimitMessage(plan, currentUsersCount);
-                  throw new Error(limitMessage);
-              }
-          }
+        // Validar límite de usuarios según el plan
+        if (companies && companies.length > 0) {
+            const company = companies[0];
+            const plan = (company.plan as PlanType) || 'starter';
+            const currentUsersCount = users.filter(u => !u.isDeleted && u.role !== 'superAdmin').length;
+            
+            if (!canAddUser(plan, currentUsersCount)) {
+                const limitMessage = getUserLimitMessage(plan, currentUsersCount);
+                throw new Error(limitMessage);
+            }
+        }
 
-          const createUser = httpsCallable(functions, 'createUser');
-          const result = await createUser({
+        const response = await fetch('/api/admin/users/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             email: data.email,
+            password: data.password,
             name: data.name,
             phone: data.phone,
             role: data.role,
             companyId: data.role === 'superAdmin' ? null : (data.companyId || authCurrentUser?.companyId),
             partnerAccess: data.role === 'viewer' ? data.partnerAccess || [] : [],
-          });
+          }),
+        });
 
-          const resultData = result.data as { success: boolean, message: string, error?: string };
-          if (!resultData.success) {
-            throw new Error(resultData.error || resultData.message || 'Falló la creación del usuario.');
-          }
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Falló la creación del usuario.');
 
-          sonnerToast.success('Usuario Creado', {
-              id: toastId,
-              description: resultData.message || `${data.name} ha sido creado.`,
-          });
+        sonnerToast.success('Usuario Creado', {
+            id: toastId,
+            description: result.message || `${data.name} ha sido creado.`,
+        });
       }
       
       handleCloseModal();
@@ -217,9 +219,15 @@ export default function UsersPage() {
       setIsSubmitting(true);
       const toastId = sonnerToast.loading("Desactivando usuario...");
       try {
-        const functions = getFunctions(auth.app, 'us-central1');
-        const deleteUserFn = httpsCallable(functions, 'deleteUser');
-        await deleteUserFn({ uid: userToDelete.uid });
+        const response = await fetch('/api/admin/users/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: userToDelete.uid }),
+        });
+        
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Error al desactivar');
+        
         toast({ title: "Usuario Desactivado", description: `${userToDelete.name} ha sido marcado como eliminado y su acceso ha sido bloqueado.` });
         handleCloseDeleteDialog();
       } catch (error: any) {
@@ -234,9 +242,15 @@ export default function UsersPage() {
   const handleResendInvitation = async (user: UserProfile) => {
     const toastId = sonnerToast.loading('Enviando email de bienvenida...');
     try {
-      const functions = getFunctions(auth.app, 'us-central1');
-      const resendWelcomeEmail = httpsCallable(functions, 'resendWelcomeEmail');
-      await resendWelcomeEmail({ uid: user.uid });
+      const response = await fetch('/api/admin/users/resend-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid }),
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Error al enviar email');
+      
       sonnerToast.success('Email enviado', {
         id: toastId,
         description: `Se envió un email de bienvenida a ${user.email}`
@@ -256,9 +270,15 @@ export default function UsersPage() {
 
     const toastId = sonnerToast.loading('Enviando link...');
     try {
-      const functions = getFunctions(auth.app, 'us-central1');
-      const sendPasswordReset = httpsCallable(functions, 'sendPasswordResetEmail');
-      await sendPasswordReset({ email: user.email });
+      const response = await fetch('/api/admin/users/send-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Error al enviar link');
+      
       sonnerToast.success('Link enviado', {
         id: toastId,
         description: `Se envió un link de restablecimiento a ${user.email}`

@@ -45,11 +45,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebaseio.com https://*.googleapis.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.googleapis.com https://*.supabase.co",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://*.stripe.com wss://*.firebaseio.com https://*.cloudfunctions.net",
+      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com wss://*.supabase.co",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -110,7 +110,7 @@ const nextConfig: NextConfig = {
   // Configuración de imágenes seguras
   images: {
     domains: [
-      'firebasestorage.googleapis.com',
+      '*.supabase.co',
       'lh3.googleusercontent.com',
       'avatars.githubusercontent.com',
     ],
@@ -118,7 +118,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.firebasestorage.googleapis.com',
+        hostname: '**.supabase.co',
       },
     ],
     // Deshabilitar SVGs por seguridad (pueden contener scripts)

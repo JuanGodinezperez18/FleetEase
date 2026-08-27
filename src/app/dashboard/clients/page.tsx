@@ -21,8 +21,7 @@ import { useExportData, type ExportOptions } from '@/hooks/use-export-data';
 import { ClientListModal } from '@/components/dashboard/components/client-list-modal';
 import { sanitizeAndFormatData, formatCurrency } from '@/lib/utils';
 import { useDOMSafeModal } from '@/components/common/dom-safe-wrapper';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -143,29 +142,34 @@ export default function ClientsPage() {
     const toastId = toast.loading(editingClient ? "Actualizando cliente..." : "Agregando cliente...");
   
     try {
-        const clientsRef = collection(db, 'clients');
         const companyId = data.companyId || currentUser?.companyId;
         if (!companyId) throw new Error("La empresa del cliente no pudo ser determinada.");
   
-        // Uniqueness validations
+        // Uniqueness validations using Supabase
         if (data.email) {
-          const q = query(clientsRef, where('email', '==', data.email), where('companyId', '==', companyId));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty && snapshot.docs.some(doc => doc.id !== editingClient?.id)) {
+          let q = supabase.from('clients').select('id').eq('email', data.email).eq('company_id', companyId).eq('is_deleted', false);
+          if (editingClient) q = q.neq('id', editingClient.id);
+          const { data: existing, error } = await q;
+          if (error) throw error;
+          if (existing && existing.length > 0) {
             throw new Error("Ya existe un cliente con este correo electrónico en esta empresa.");
           }
         }
         if (data.phone) {
-          const q = query(clientsRef, where('phone', '==', data.phone), where('companyId', '==', companyId));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty && snapshot.docs.some(doc => doc.id !== editingClient?.id)) {
+          let q = supabase.from('clients').select('id').eq('phone', data.phone).eq('company_id', companyId).eq('is_deleted', false);
+          if (editingClient) q = q.neq('id', editingClient.id);
+          const { data: existing, error } = await q;
+          if (error) throw error;
+          if (existing && existing.length > 0) {
             throw new Error("Ya existe un cliente con este número de teléfono en esta empresa.");
           }
         }
         if (data.licenseNumber) {
-          const q = query(clientsRef, where('licenseNumber', '==', data.licenseNumber), where('companyId', '==', companyId));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty && snapshot.docs.some(doc => doc.id !== editingClient?.id)) {
+          let q = supabase.from('clients').select('id').eq('license_number', data.licenseNumber).eq('company_id', companyId).eq('is_deleted', false);
+          if (editingClient) q = q.neq('id', editingClient.id);
+          const { data: existing, error } = await q;
+          if (error) throw error;
+          if (existing && existing.length > 0) {
             throw new Error("Ya existe un cliente con este número de licencia en esta empresa.");
           }
         }

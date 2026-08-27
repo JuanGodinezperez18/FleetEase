@@ -1,193 +1,130 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { z } from 'zod';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY!;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const priceIds: Record<string, string | undefined> = {
-  starter: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_STARTER,
-  pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
-  enterprise: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE,
-};
-
-const requestSchema = z.object({
-  planId: z.enum(['starter', 'pro', 'enterprise'], {
-    errorMap: () => ({ message: 'Plan debe ser starter, pro o enterprise' }),
-  }),
-  companyId: z.string().uuid('Company ID debe ser un UUID valido'),
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2024-04-10',
 });
 
-function createClient() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-
-    // 1. Verify Supabase Auth session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
+    }
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-
-    // 2. Parse and validate request body
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { success: false, error: 'Cuerpo de la peticion invalido' },
-        { status: 400 }
-      );
+    // Verificar que sea admin o super_admin
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('role, company_id')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !userProfile || !['admin', 'super_admin'].includes(userProfile.role)) {
+      return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
     }
 
-    const parsed = requestSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const { planId, billingCycle = 'monthly' } = body;
+
+    const plans: Record<string, { monthly: number; yearly: number }> = {
+      starter: { monthly: 29900, yearly: 299900 },
+      pro: { monthly: 59900, yearly: 599900 },
+      enterprise: { monthly: 99900, yearly: 999900 },
+    };
+
+    const plan = plans[planId];
+    if (!plan) {
+      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
-    const { planId, companyId } = parsed.data;
+    const amount = billingCycle === 'yearly' ? plan.yearly : plan.monthly;
 
-    // 3. Look up user and company from Supabase
-    const [{ data: userRecord, error: userError }, { data: companyRecord, error: companyError }] =
-      await Promise.all([
-        supabase.from('users').select('*').eq('id', userId).single(),
-        supabase.from('companies').select('*').eq('id', companyId).single(),
-      ]);
+    // Obtener o crear customer de Stripe
+    let { data: stripeCustomer, error: customerError } = await supabaseAdmin
+      .from('stripe_customers')
+      .select('stripe_customer_id')
+      .eq('company_id', userProfile.company_id)
+      .single();
 
-    if (userError || !userRecord) {
-      console.error('Error fetching user:', userError);
-      return NextResponse.json(
-        { success: false, error: 'Usuario no encontrado' },
-        { status: 404 }
-      );
-    }
+    let stripeCustomerId: string;
 
-    if (companyError || !companyRecord) {
-      console.error('Error fetching company:', companyError);
-      return NextResponse.json(
-        { success: false, error: 'Compania no encontrada' },
-        { status: 404 }
-      );
-    }
+    if (customerError || !stripeCustomer?.stripe_customer_id) {
+      // Crear customer en Stripe
+      const { data: company } = await supabaseAdmin
+        .from('companies')
+        .select('name, email')
+        .eq('id', userProfile.company_id)
+        .single();
 
-    const userEmail = userRecord.email ?? session.user.email ?? '';
-    const userName = userRecord.name ?? session.user.user_metadata?.full_name ?? '';
-
-    // 4. Get or create Stripe customer
-    let customerId = companyRecord.stripe_customer_id;
-
-    if (!customerId) {
       const customer = await stripe.customers.create({
-        email: userEmail,
-        name: userName,
+        email: company?.email || user.email,
+        name: company?.name,
         metadata: {
-          companyId,
-          userId,
+          company_id: userProfile.company_id,
         },
       });
 
-      customerId = customer.id;
+      stripeCustomerId = customer.id;
 
-      const { error: updateError } = await supabase
-        .from('companies')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', companyId);
-
-      if (updateError) {
-        console.error('Error saving stripe_customer_id:', updateError);
-        // Non-fatal: customer was created, just failed to store ID
-      }
+      // Guardar en BD
+      await supabaseAdmin.from('stripe_customers').insert({
+        company_id: userProfile.company_id,
+        stripe_customer_id: stripeCustomerId,
+      });
+    } else {
+      stripeCustomerId = stripeCustomer.stripe_customer_id;
     }
 
-    // 5. Validate price ID exists
-    const priceId = priceIds[planId];
-    if (!priceId) {
-      return NextResponse.json(
-        { success: false, error: 'Plan no valido' },
-        { status: 400 }
-      );
-    }
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    // 6. Create Stripe Checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: 'subscription',
+    // Crear sesión de checkout
+    const session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: 'mxn',
+            product_data: {
+              name: `Plan ${planId.charAt(0).toUpperCase() + planId.slice(1)}`,
+              description: `Suscripción ${billingCycle === 'yearly' ? 'anual' : 'mensual'}`,
+            },
+            unit_amount: amount,
+            recurring: {
+              interval: billingCycle === 'yearly' ? 'year' : 'month',
+            },
+          },
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/dashboard/settings/subscription?success=true&sessionId={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/dashboard/settings/subscription?canceled=true`,
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
+      mode: 'subscription',
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/subscription?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/subscription?canceled=true`,
       metadata: {
-        companyId,
-        planId,
-        userId,
+        company_id: userProfile.company_id,
+        plan_id: planId,
+        billing_cycle: billingCycle,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      sessionId: checkoutSession.id,
-      url: checkoutSession.url,
-    });
+    return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
-
-    // Log internally but return safe message to client
-    if (error instanceof Stripe.errors.StripeError) {
-      console.error('Stripe API error:', {
-        type: error.type,
-        code: error.code,
-        requestId: error.requestId,
-      });
-    }
-
+    console.error('Error creating checkout session:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Error al procesar la solicitud. Intente de nuevo mas tarde.',
-      },
+      { error: 'Error al crear sesión de pago' },
       { status: 500 }
     );
   }

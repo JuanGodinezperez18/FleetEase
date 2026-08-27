@@ -1,201 +1,137 @@
-// app/api/upload-inspection/route.ts
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '@/lib/logger';
-import { checkRateLimit, uploadLimiter } from '@/lib/rate-limit';
+import { createClient } from '@supabase/supabase-js';
 
-export const runtime = 'nodejs';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-/**
- * API para subir imágenes de inspección
- *
- * Comprime la imagen con sharp y la sube a Supabase Storage.
- * Requiere autenticación.
- *
- * @endpoint POST /api/upload-inspection
- */
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+const MAX_SIZE_MB = 10;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
+
+function sanitizeFileName(fileName: string): string {
+  return fileName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .toLowerCase();
+}
+
+function getBucketName(folder: string): string {
+  switch (folder) {
+    case 'vehicle_images': return 'vehicle-images';
+    case 'driver_documents': return 'driver-documents';
+    case 'financial_receipts': return 'financial-receipts';
+    case 'general_documents': return 'general-documents';
+    case 'contract_templates': return 'contract-templates';
+    case 'inspection_images': return 'inspection-images';
+    default: return 'general-documents';
+  }
+}
+
 export async function POST(request: NextRequest) {
-  // Rate limiting para uploads
-  const rateLimitResponse = await checkRateLimit(request, uploadLimiter);
-  if (rateLimitResponse) return rateLimitResponse;
-
   const isDev = process.env.NODE_ENV === 'development';
+  if(isDev) console.log('[API Upload Inspection] Recibida solicitud de subida.');
 
   try {
-    logger.info('[API Upload Inspection] Recibiendo solicitud...');
-
-    // Verificar autenticación con Supabase (cookies es async en Next.js 15+)
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      logger.error('[API Upload] No autenticado', sessionError);
-      return NextResponse.json({ error: 'No autenticado.' }, { status: 401 });
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
+    }
+    const token = authHeader.substring(7);
+    
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-
-    // Obtener perfil del usuario para verificar rol y compañía
-    const { data: userProfile, error: profileError } = await supabase
+    // Obtener perfil del usuario para company_id
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('role, company_id')
-      .eq('id', userId)
+      .select('company_id, role')
+      .eq('id', user.id)
       .single();
-
+    
     if (profileError || !userProfile) {
-      logger.error('[API Upload] Error obteniendo perfil', profileError);
-      return NextResponse.json({ error: 'Error obteniendo perfil' }, { status: 500 });
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    const userRole = userProfile.role;
-    const userCompanyId = userProfile.company_id;
-
-    logger.info(`[API Upload] Usuario autenticado: ${userId} (${userRole})`);
-
-    // Procesar FormData
     const formData = await request.formData();
+    const file = formData.get('file') as File | null;
     const view = formData.get('view') as string;
     const vehicleId = formData.get('vehicleId') as string;
-    const file = formData.get('file') as File;
 
-    logger.info(`[API Upload] Datos recibidos - View: ${view}, VehicleId: ${vehicleId}`);
-
-    // VALIDACIÓN: Datos requeridos
-    if (!view || !vehicleId || !file) {
-      return NextResponse.json(
-        { error: 'Faltan datos requeridos (view, vehicleId, file).' },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: 'No se encontró archivo en la solicitud.' }, { status: 400 });
+    }
+    
+    if (!view || !vehicleId) {
+      return NextResponse.json({ error: 'Faltan parámetros requeridos: view, vehicleId' }, { status: 400 });
+    }
+    
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return NextResponse.json({ error: `Tipo de archivo no permitido. Permitidos: ${ALLOWED_MIME_TYPES.join(', ')}` }, { status: 415 });
+    }
+    
+    if (file.size > MAX_SIZE_BYTES) {
+        return NextResponse.json({ error: `Archivo demasiado grande. Límite: ${MAX_SIZE_MB}MB` }, { status: 413 });
     }
 
-    // VALIDACIÓN: View permitidas
-    const validViews = ['front', 'left', 'right', 'rear'];
-    if (!validViews.includes(view)) {
-      return NextResponse.json(
-        { error: 'Vista inválida. Valores permitidos: front, left, right, rear.' },
-        { status: 400 }
-      );
-    }
-
-    // VALIDACIÓN: Formato de archivo
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json(
-        { error: 'El archivo debe ser una imagen.' },
-        { status: 400 }
-      );
-    }
-
-    // VALIDACIÓN: Tamaño de archivo (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'El archivo es demasiado grande. Máximo 10MB.' },
-        { status: 400 }
-      );
-    }
-
-    // Validar que el vehículo pertenezca a la compañía del usuario
-    const { data: vehicle, error: vehicleError } = await supabase
+    // Verificar que el vehículo pertenece a la compañía del usuario
+    const { data: vehicle, error: vehicleError } = await supabaseAdmin
       .from('vehicles')
-      .select('company_id, client_id')
+      .select('id, company_id')
       .eq('id', vehicleId)
       .single();
-
+    
     if (vehicleError || !vehicle) {
-      return NextResponse.json(
-        { error: 'Vehículo no encontrado.' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 });
     }
 
-    // SuperAdmin puede acceder a cualquier vehículo
-    if (userRole !== 'super_admin' && vehicle.company_id !== userCompanyId) {
-      return NextResponse.json(
-        { error: 'No tienes permisos para acceder a este vehículo.' },
-        { status: 403 }
-      );
+    if (vehicle.company_id !== userProfile.company_id && userProfile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'No tienes permisos para este vehículo' }, { status: 403 });
     }
 
-    logger.info('[API Upload] Procesando imagen...');
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const uniqueFileName = `${user.id}-${view}-${Date.now()}.${fileExtension}`;
+    
+    const bucketName = 'inspection-images';
+    const fullPath = `${vehicleId}/${uniqueFileName}`;
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Procesar imagen con sharp
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    if(isDev) console.log(`[API Upload Inspection] Subiendo a Storage bucket: ${bucketName}, path: ${fullPath}`);
 
-    logger.info(`[API Upload] Tamaño original: ${(buffer.length / 1024).toFixed(2)} KB`);
-
-    const compressedBuffer = await sharp(buffer)
-      .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85, progressive: true, mozjpeg: true })
-      .toBuffer();
-
-    logger.info(`[API Upload] Tamaño comprimido: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
-
-    // Generar nombre único
-    const fileName = `${view}-${Date.now()}-${uuidv4()}.jpg`;
-    const filePath = `companies/${vehicle.company_id}/vehicles/${vehicleId}/inspections/${fileName}`;
-
-    // Subir a Supabase Storage
-    logger.info(`[API Upload] Subiendo a Storage: ${filePath}`);
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('inspection-images')
-      .upload(filePath, compressedBuffer, {
-        contentType: 'image/jpeg',
-        cacheControl: '3600',
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(fullPath, fileBuffer, {
+        contentType: file.type,
         upsert: false,
       });
-
+    
     if (uploadError) {
-      throw new Error(`Error al subir: ${uploadError.message}`);
+      console.error('Error subiendo a Storage:', uploadError);
+      throw uploadError;
     }
+    
+    if(isDev) console.log('[API Upload Inspection] Archivo guardado en Storage.');
 
-    // Generar URL firmada (válida por 7 días)
-    const { data: signedUrlData } = await supabase.storage
-      .from('inspection-images')
-      .createSignedUrl(filePath, 7 * 24 * 60 * 60);
+    // Generar URL pública
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(fullPath);
 
-    if (!signedUrlData) {
-      throw new Error('Error generando URL firmada');
-    }
-
-    logger.info('[API Upload] Archivo subido exitosamente');
-
-    return NextResponse.json({
-      success: true,
-      url: signedUrlData.signedUrl,
-      path: filePath,
-      size: compressedBuffer.length,
-      originalSize: buffer.length,
-      reduction: Math.round((1 - compressedBuffer.length / buffer.length) * 100),
-    });
-
+    return NextResponse.json({ success: true, url: publicUrl, fullPath });
+    
   } catch (error: unknown) {
-    logger.error('[API Upload] Error:', error);
-
-    return NextResponse.json({
-      error: 'Error al subir imagen',
-    }, { status: 500 });
+    if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) {
+        return NextResponse.json({ error: 'No autenticado. Token inválido o faltante.' }, { status: 401 });
+    }
+    if (isDev) console.error('Error CRÍTICO en la ruta:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el servidor.';
+    return NextResponse.json({ error: 'Error al procesar la subida', details: isDev ? errorMessage : undefined }, { status: 500 });
   }
 }

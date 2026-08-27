@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getAuth } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 
 type FileValue = File | string;
 
@@ -87,7 +87,17 @@ const getFileNameFromUrl = (url: string, defaultName: string = 'documento'): str
       return `${defaultName.replace(/\s+/g, '_').toLowerCase()}.${ext}`;
     }
     
-    // Caso 2: Firebase Storage URL
+    // Caso 2: Supabase Storage URL
+    if (url.includes('.supabase.co/storage/v1/object/public/')) {
+      const match = url.match(/\/object\/public\/[^\/]+\/(.+?)(\?|$)/);
+      if (match && match[1]) {
+        const decodedPath = decodeURIComponent(match[1]);
+        const filename = decodedPath.split('/').pop();
+        return filename || defaultName;
+      }
+    }
+    
+    // Caso 3: Firebase Storage URL (legacy)
     if (url.includes('firebasestorage.googleapis.com')) {
       const match = url.match(/\/o\/(.+?)\?/);
       if (match && match[1]) {
@@ -97,7 +107,7 @@ const getFileNameFromUrl = (url: string, defaultName: string = 'documento'): str
       }
     }
     
-    // Caso 3: URL normal
+    // Caso 4: URL normal
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
     const filename = pathname.split('/').pop();
@@ -259,8 +269,12 @@ export default function VehicleDocumentsPage() {
     const toastId = toast.loading("Preparando descarga...");
 
     try {
-        const auth = getAuth();
-        const token = await auth.currentUser?.getIdToken();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+            throw new Error('No hay sesión activa');
+        }
 
         const response = await fetch('/api/download-file', {
             method: 'POST',

@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { useStorage } from '@/hooks/use-storage';
 import { MultipleFileInput } from '@/components/common/multiple-file-input';
 import { getFileNameFromUrl, dataURItoFile } from '@/lib/file-utils';
-import { getAuth } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 
 type FileValue = File | string;
 
@@ -98,8 +98,10 @@ export default function ClientDocumentsPage() {
     const toastId = toast.loading("Preparando descarga...");
 
     try {
-        const auth = getAuth();
-        const token = await auth.currentUser?.getIdToken();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) throw new Error('No autenticado');
 
         const response = await fetch('/api/download-file', {
             method: 'POST',

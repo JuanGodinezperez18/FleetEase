@@ -1,38 +1,94 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { 
-  ArrowRight, 
-  CheckCircle, 
-  TrendingUp, 
-  Shield, 
-  Zap, 
-  Users, 
-  DollarSign,
-  AlertTriangle,
-  BarChart3,
-  Smartphone,
-  Building,
+import { motion, useScroll, useTransform, AnimatePresence, useSpring } from 'framer-motion';
+import {
+  ArrowRight,
+  CheckCircle,
+  TrendingUp,
+  Users,
+  Activity,
+  Target,
+  PieChart,
+  Sparkles,
   Menu,
-  X
+  X,
+  Star,
+  Car,
+  Building,
+  ChevronRight,
+  Zap,
+  Shield,
+  Clock,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-provider';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+const floatVariants = {
+  animate: {
+    y: [0, -10, 0],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
 
 export default function LandingPage() {
   const router = useRouter();
   const { currentUser, loading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { scrollY } = useScroll();
-  
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.7]);
-  const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
+
+  // Smooth parallax with spring physics
+  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const heroScale = useTransform(scrollY, [0, 400], [1, 0.95]);
+
+  const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 };
+  const smoothHeroY = useSpring(heroY, springConfig);
+  const smoothHeroOpacity = useSpring(heroOpacity, springConfig);
+  const smoothHeroScale = useSpring(heroScale, springConfig);
 
   useEffect(() => {
     if (!loading && currentUser) {
@@ -44,558 +100,975 @@ export default function LandingPage() {
     return <GlobalLoader />;
   }
 
-  const features = [
-    {
-      icon: TrendingUp,
-      title: "Rentabilidad en Tiempo Real",
-      description: "Sabe exactamente qué vehículo gana dinero y cuál pierde. Toma decisiones basadas en datos, no en intuición.",
-      color: "text-green-600"
-    },
-    {
-      icon: AlertTriangle,
-      title: "Alertas Inteligentes",
-      description: "El sistema te avisa antes de que pierdas dinero: clientes morosos, vehículos sin renta, mantenimientos vencidos.",
-      color: "text-amber-600"
-    },
-    {
-      icon: BarChart3,
-      title: "Client Score",
-      description: "Calificación automática de clientes (0-100) basada en historial de pagos, saldo y comportamiento.",
-      color: "text-blue-600"
-    },
-    {
-      icon: Shield,
-      title: "Listo para México",
-      description: "Control de efectivo vs transferencia, reportes de corte de caja, integración con SAT (próximamente).",
-      color: "text-purple-600"
-    },
-    {
-      icon: Users,
-      title: "Multi-Usuario",
-      description: "Acceso para administradores, editores, partners y clientes. Cada uno con su nivel de permisos.",
-      color: "text-orange-600"
-    },
-    {
-      icon: Smartphone,
-      title: "100% Online",
-      description: "Accede desde cualquier dispositivo. App progresiva instalable. Funciona incluso sin conexión.",
-      color: "text-pink-600"
-    }
+  const navLinks = [
+    { name: "Características", href: "#features" },
+    { name: "Precios", href: "#pricing" },
+    { name: "FAQ", href: "#faq" }
   ];
 
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "$299",
-      period: "/mes",
-      description: "Para flotillas pequeñas que comienzan",
-      features: [
-        "Hasta 5 vehículos",
-        "1 usuario admin",
-        "Gestión de clientes y vehículos",
-        "Registro de ingresos y gastos",
-        "Dashboard básico",
-        "Soporte por email"
-      ],
-      cta: "Comenzar Gratis",
-      popular: false
-    },
-    {
-      name: "Pro",
-      price: "$599",
-      period: "/mes",
-      description: "El más popular para renta de apps",
-      features: [
-        "Hasta 15 vehículos",
-        "3 usuarios",
-        "Rentabilidad por vehículo",
-        "Alertas de mantenimiento",
-        "Client Score",
-        "Reportes en Excel",
-        "Soporte prioritario"
-      ],
-      cta: "Prueba 14 Días Gratis",
-      popular: true
-    },
-    {
-      name: "Enterprise",
-      price: "$999",
-      period: "/mes",
-      description: "Para empresas que escalan",
-      features: [
-        "Vehículos ilimitados",
-        "Usuarios ilimitados",
-        "Todas las features Pro",
-        "Multi-empresa",
-        "API de integración",
-        "Soporte 24/7",
-        "Personalización de marca"
-      ],
-      cta: "Contactar Ventas",
-      popular: false
-    }
+  const features = [
+    { title: "Profitability Tracking", desc: "Live ROI metrics per vehicle with predictive analytics.", icon: TrendingUp, color: "from-emerald-500 to-teal-600" },
+    { title: "Fleet Health", desc: "AI-powered predictive maintenance alerts.", icon: Activity, color: "from-blue-500 to-cyan-600" },
+    { title: "Real-time Telemetry", desc: "GPS & engine status sync with live monitoring.", icon: Target, color: "from-violet-500 to-purple-600" },
+    { title: "Operational Reports", desc: "Deep financial analysis with automated insights.", icon: PieChart, color: "from-orange-500 to-amber-600" },
   ];
 
   const stats = [
-    { value: "23%", label: "Reducción de costos promedio" },
-    { value: "15%", label: "Aumento en ocupación" },
-    { value: "30%", label: "Menos morosidad" },
-    { value: "10h", label: "Ahorradas por semana" }
+    { value: "10K+", label: "Active Vehicles", icon: Car },
+    { value: "$2.5M", label: "Revenue Managed", icon: TrendingUp },
+    { value: "99.9%", label: "Uptime", icon: Activity },
+    { value: "500+", label: "Companies", icon: Building },
   ];
 
-  const faqs = [
+  const testimonials = [
     {
-      question: "¿Necesito tarjeta de crédito para comenzar?",
-      answer: "No. El plan Starter es 100% gratuito y no requiere tarjeta. Puedes upgrade cuando lo necesites."
+      quote: "FleetEase transformed how we manage our fleet. The ROI tracking is game-changing.",
+      author: "Maria Rodriguez",
+      role: "Fleet Manager, TransportCorp",
+      rating: 5,
     },
     {
-      question: "¿Puedo cambiar de plan después?",
-      answer: "Sí, puedes upgrade o downgrade en cualquier momento. Los cambios se aplican inmediatamente."
+      quote: "Best investment we made. Predictive maintenance saved us thousands.",
+      author: "Carlos Mendez",
+      role: "Operations Director, Logistics Plus",
+      rating: 5,
     },
     {
-      question: "¿Qué pasa si supero el límite de vehículos?",
-      answer: "Te notificamos cuando estás por llegar al límite. Solo necesitas hacer upgrade al siguiente plan."
+      quote: "The real-time telemetry gives us unprecedented visibility into our operations.",
+      author: "Ana Garcia",
+      role: "CEO, Swift Transport",
+      rating: 5,
     },
-    {
-      question: "¿Incluye facturación SAT?",
-      answer: "El plan Pro incluye integración con SAT para generación de CFDI 4.0. El plan Starter no incluye esta feature."
-    },
-    {
-      question: "¿Puedo cancelar cuando quiera?",
-      answer: "Sí, sin preguntas ni letras chiquitas. Tu cuenta permanece activa hasta el final del período pagado."
-    }
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-[#060e20] text-[#dae2fd] font-sans overflow-hidden selection:bg-[#2e5bff] selection:text-white">
+      {/* Animated Background Orbs */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#2e5bff] rounded-full blur-[200px]"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.1, 0.15, 0.1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#8342f4] rounded-full blur-[200px]"
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.08, 0.12, 0.08],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        />
+        <motion.div
+          className="absolute top-[40%] left-[30%] w-[40%] h-[40%] bg-[#00d4ff] rounded-full blur-[150px]"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.05, 0.08, 0.05],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4,
+          }}
+        />
+      </div>
+
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                <Image
-                  src="/logo.png"
-                  alt="FleetEase"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8"
-                />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-                FleetEase
-              </span>
-            </div>
-
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="#features" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                Características
-              </Link>
-              <Link href="#pricing" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                Precios
-              </Link>
-              <Link href="#faq" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                FAQ
-              </Link>
-              <Link href="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-                Iniciar Sesión
-              </Link>
-              <Link href="/registro" className="inline-block">
-                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
-                  Comenzar Gratis
-                </Button>
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-slate-600 dark:text-slate-400"
+      <motion.nav
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed top-0 w-full z-50 bg-[#060e20]/60 backdrop-blur-[20px] border-b border-white/5"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+          {/* Logo */}
+          <motion.div
+            className="flex items-center gap-4"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <motion.div
+              className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#b8c3ff] to-[#2e5bff] flex items-center justify-center"
+              whileHover={{ rotate: 5 }}
+              animate={{
+                boxShadow: [
+                  "0 0 20px rgba(46,91,255,0.3)",
+                  "0 0 30px rgba(46,91,255,0.5)",
+                  "0 0 20px rgba(46,91,255,0.3)",
+                ],
+              }}
+              transition={{
+                boxShadow: {
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
+              }}
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+              <span className="font-heading font-extrabold text-[#060e20] text-xl">F</span>
+            </motion.div>
+            <span className="font-heading font-bold text-2xl tracking-tight text-white">FleetEase</span>
+          </motion.div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-10">
+            {navLinks.map((link, index) => (
+              <motion.div
+                key={link.name}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index + 0.3 }}
+              >
+                <Link
+                  href={link.href}
+                  className="text-[#c4c5d9] hover:text-white transition-colors text-sm font-medium tracking-wide relative group"
+                >
+                  {link.name}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff] group-hover:w-full transition-all duration-300" />
+                </Link>
+              </motion.div>
+            ))}
+            <div className="flex items-center gap-4 border-l border-[#2d3449] pl-10">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Link href="/login" className="text-[#c4c5d9] hover:text-white transition-colors text-sm font-medium">
+                  Sign In
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Link href="/registro">
+                  <motion.button
+                    className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff] text-[#001356] font-semibold text-sm relative overflow-hidden group"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="relative z-10">Get Started</span>
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-[#2e5bff] to-[#b8c3ff]"
+                      initial={{ x: "100%" }}
+                      whileHover={{ x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </motion.button>
+                </Link>
+              </motion.div>
+            </div>
           </div>
+
+          {/* Mobile Menu Button */}
+          <motion.button
+            className="md:hidden text-[#dae2fd] p-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            whileTap={{ scale: 0.9 }}
+          >
+            <AnimatePresence mode="wait">
+              {isMenuOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="menu"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Menu />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
 
         {/* Mobile Menu */}
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
-          >
-            <div className="px-4 py-4 space-y-4">
-              <Link href="#features" className="block text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-                Características
-              </Link>
-              <Link href="#pricing" className="block text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-                Precios
-              </Link>
-              <Link href="#faq" className="block text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-                FAQ
-              </Link>
-              <Link href="/login" className="block text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-                Iniciar Sesión
-              </Link>
-              <Link href="/registro" className="inline-block w-full">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700">
-                  Comenzar Gratis
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </nav>
-
-      {/* Hero Section */}
-      <motion.section
-        style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-20 lg:py-32"
-      >
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            className="absolute -top-1/2 -right-1/2 w-full h-full bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-            transition={{ duration: 20, repeat: Infinity }}
-          />
-          <motion.div
-            className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-slate-500/5 dark:bg-slate-500/10 rounded-full blur-3xl"
-            animate={{ scale: [1.2, 1, 1.2], rotate: [0, -90, 0] }}
-            transition={{ duration: 25, repeat: Infinity }}
-          />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
+        <AnimatePresence>
+          {isMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="md:hidden bg-[#0b1326] border-b border-[#2d3449] overflow-hidden"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-sm font-medium mb-6">
-                <Zap className="h-4 w-4" />
-                Prueba gratis 14 días • Sin tarjeta de crédito
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-6">
-                Control de Rentabilidad para{' '}
-                <span className="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                  Flotas de Vehículos
-                </span>
-              </h1>
-
-              <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto">
-                FleetEase te dice exactamente <strong className="text-slate-900 dark:text-slate-100">qué vehículo gana dinero y cuál pierde</strong>. 
-                En 30 días, identificas y eliminas las unidades que te hacen perder dinero.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-                <Link href="/registro" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-lg"
-                  >
-                    Comenzar Gratis
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="#features" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto h-12 px-8 text-lg"
-                  >
-                    Ver Características
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
+              <div className="p-6 flex flex-col gap-6">
+                {navLinks.map((link, index) => (
                   <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.5 }}
-                    className="text-center"
+                    key={link.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
                   >
-                    <div className="text-3xl lg:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">
-                      {stat.label}
-                    </div>
+                    <Link
+                      href={link.href}
+                      className="text-lg font-medium text-[#c4c5d9] hover:text-white block"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {link.name}
+                    </Link>
                   </motion.div>
                 ))}
+                <div className="h-px bg-[#2d3449]" />
+                <Link href="/login" className="text-lg font-medium text-[#c4c5d9]" onClick={() => setIsMenuOpen(false)}>
+                  Sign In
+                </Link>
+                <Link href="/registro" onClick={() => setIsMenuOpen(false)}>
+                  <motion.button
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff] text-[#001356] font-bold text-lg"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Get Started
+                  </motion.button>
+                </Link>
               </div>
             </motion.div>
-          </div>
-        </div>
-      </motion.section>
+          )}
+        </AnimatePresence>
+      </motion.nav>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="relative z-10 pt-32 lg:pt-48 pb-20">
+        {/* Hero Section */}
+        <section className="px-6 lg:px-12 max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            {/* Hero Content */}
+            <motion.div
+              className="flex-1 text-center lg:text-left"
+              style={{ opacity: smoothHeroOpacity, y: smoothHeroY, scale: smoothHeroScale }}
+            >
+              <motion.div variants={containerVariants} initial="hidden" animate="visible">
+                {/* Badge */}
+                <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#131b2e] border border-[#2d3449] mb-8 group cursor-pointer hover:border-[#4edea3]/50 transition-colors">
+                  <motion.span
+                    className="flex h-2 w-2 rounded-full bg-[#4edea3]"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px #4edea3",
+                        "0 0 10px #4edea3",
+                        "0 0 0px #4edea3",
+                      ],
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-sm font-medium text-[#c4c5d9]">FleetEase 2.0 is Live</span>
+                  <Sparkles className="w-4 h-4 text-[#4edea3]" />
+                </motion.div>
+
+                {/* Heading */}
+                <motion.h1
+                  variants={itemVariants}
+                  className="font-heading text-5xl lg:text-7xl leading-[1.1] font-extrabold tracking-[-0.03em] mb-8 text-white"
+                >
+                  The Future of{" "}
+                  <span className="relative">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff]">
+                      Fleet Management
+                    </span>
+                    <motion.svg
+                      className="absolute -bottom-2 left-0 w-full"
+                      viewBox="0 0 300 12"
+                      fill="none"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 1, delay: 1 }}
+                    >
+                      <motion.path
+                        d="M2 10C50 2 100 2 298 10"
+                        stroke="url(#gradient)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        fill="none"
+                      />
+                      <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#b8c3ff" />
+                          <stop offset="100%" stopColor="#2e5bff" />
+                        </linearGradient>
+                      </defs>
+                    </motion.svg>
+                  </span>
+                </motion.h1>
+
+                {/* Description */}
+                <motion.p
+                  variants={itemVariants}
+                  className="text-xl text-[#c4c5d9] leading-relaxed max-w-2xl mx-auto lg:mx-0 mb-12 font-light"
+                >
+                  Turn your fleet operations into a living, responsive ecosystem.
+                  Identify exactly which vehicles generate profit and which bleed capital with unparalleled clarity.
+                </motion.p>
+
+                {/* CTA Buttons */}
+                <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                  <Link href="/registro">
+                    <motion.button
+                      className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff] text-[#001356] font-bold text-lg relative overflow-hidden group"
+                      whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(46,91,255,0.4)" }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        Start Free Trial
+                        <motion.span
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                        </motion.span>
+                      </span>
+                    </motion.button>
+                  </Link>
+                  <Link href="#features">
+                    <motion.button
+                      className="w-full sm:w-auto px-8 py-4 rounded-full bg-[#131b2e] text-white font-semibold text-lg border border-[#2d3449] relative overflow-hidden group"
+                      whileHover={{ scale: 1.05, backgroundColor: "#171f33" }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        <motion.span
+                          animate={{ rotate: [0, 360] }}
+                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        >
+                          <Zap className="w-5 h-5 text-[#4edea3]" />
+                        </motion.span>
+                        Explore Features
+                      </span>
+                    </motion.button>
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+
+            {/* Hero Visual */}
+            <motion.div
+              className="flex-1 w-full max-w-lg relative"
+              initial={{ opacity: 0, x: 100, rotateY: 10 }}
+              animate={{ opacity: 1, x: 0, rotateY: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <motion.div
+                className="aspect-square rounded-[2rem] bg-gradient-to-br from-[#131b2e] to-[#0b1326] border border-[#2d3449]/50 overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                variants={floatVariants}
+                animate="animate"
+                whileHover={{ scale: 1.02, rotateY: 5 }}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {/* Dashboard Preview */}
+                <div className="absolute inset-4 rounded-xl bg-[#0b1326] border border-[#2d3449]/50 overflow-hidden">
+                  {/* Header */}
+                  <div className="p-4 border-b border-[#2d3449]/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                    </div>
+                    <div className="h-2 w-20 bg-[#2d3449] rounded-full" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-4 space-y-4">
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {[1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="p-3 rounded-lg bg-[#131b2e] border border-[#2d3449]/30"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5 + i * 0.1 }}
+                        >
+                          <div className="h-2 w-12 bg-[#2d3449] rounded-full mb-2" />
+                          <div className="h-6 w-20 bg-gradient-to-r from-[#2e5bff]/50 to-transparent rounded" />
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Chart Area */}
+                    <motion.div
+                      className="h-24 rounded-lg bg-[#131b2e] border border-[#2d3449]/30 p-3 relative overflow-hidden"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <div className="absolute bottom-0 left-0 right-0 h-16 flex items-end gap-1 px-2">
+                        {[40, 60, 45, 80, 55, 90, 70, 85, 60, 75, 50, 95].map((height, i) => (
+                          <motion.div
+                            key={i}
+                            className="flex-1 bg-gradient-to-t from-[#2e5bff] to-[#2e5bff]/50 rounded-t"
+                            initial={{ height: 0 }}
+                            animate={{ height: `${height}%` }}
+                            transition={{ delay: 0.8 + i * 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Floating Elements */}
+                <motion.div
+                  className="absolute -right-4 top-1/4 p-3 rounded-xl bg-[#131b2e] border border-[#2d3449]/50 shadow-xl"
+                  animate={{
+                    y: [0, -10, 0],
+                    rotate: [0, 5, 0],
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <TrendingUp className="w-6 h-6 text-emerald-400" />
+                </motion.div>
+
+                <motion.div
+                  className="absolute -left-4 bottom-1/3 p-3 rounded-xl bg-[#131b2e] border border-[#2d3449]/50 shadow-xl"
+                  animate={{
+                    y: [0, 10, 0],
+                    rotate: [0, -5, 0],
+                  }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                >
+                  <Activity className="w-6 h-6 text-blue-400" />
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <motion.section
+          className="py-20 px-6 lg:px-12 max-w-7xl mx-auto"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                className="text-center p-6 rounded-2xl bg-[#131b2e]/50 border border-[#2d3449]/30 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ scale: 1.05, borderColor: "rgba(46, 91, 255, 0.3)" }}
+              >
+                <motion.div
+                  className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br from-[#2e5bff]/20 to-[#8342f4]/20 flex items-center justify-center"
+                  whileHover={{ rotate: 10, scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <stat.icon className="w-6 h-6 text-[#b8c3ff]" />
+                </motion.div>
+                <motion.p
+                  className="text-3xl lg:text-4xl font-bold text-white mb-2"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 + 0.2, type: "spring", stiffness: 200 }}
+                >
+                  {stat.value}
+                </motion.p>
+                <p className="text-sm text-[#c4c5d9]">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Features Section */}
+        <section id="features" className="py-32 px-6 lg:px-12 max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            className="text-center mb-20"
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-              Características que Marcan la Diferencia
+            <motion.span
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#131b2e] border border-[#2d3449] text-sm font-medium text-[#c4c5d9] mb-6"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Sparkles className="w-4 h-4 text-[#4edea3]" />
+              Features
+            </motion.span>
+            <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
+              Intelligence Ecosystem
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              No somos otro sistema de gestión. Somos tu herramienta de decisiones de negocio.
+            <p className="text-[#c4c5d9] text-xl max-w-2xl mx-auto">
+              Beyond static tables. The anti-template strategy for modern fleet management.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {features.map((feature, index) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
+                key={feature.title}
+                className={`group relative overflow-hidden rounded-2xl bg-[#0b1326] p-8 border border-[#2d3449]/50 ${
+                  index === 0 ? "md:col-span-2" : ""
+                }`}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
+                transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ scale: 1.02, borderColor: "rgba(67, 70, 86, 0.8)" }}
               >
-                <Card className="h-full border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors duration-300">
-                  <CardContent className="pt-6">
-                    <feature.icon className={`h-12 w-12 ${feature.color} mb-4`} />
-                    <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+                {/* Gradient background on hover */}
+                <motion.div
+                  className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
+                />
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-slate-50 dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-              Planes Simples y Transparentes
-            </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              Comienza gratis. Crece cuando lo necesites. Sin contratos forzosos.
-            </p>
-          </motion.div>
+                {/* Glow effect */}
+                <motion.div
+                  className="absolute -right-20 -top-20 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"
+                  style={{
+                    background: `linear-gradient(135deg, ${feature.color.includes("emerald") ? "#10b981" : feature.color.includes("blue") ? "#3b82f6" : feature.color.includes("violet") ? "#8b5cf6" : "#f59e0b"}, transparent)`,
+                  }}
+                />
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {pricingPlans.map((plan, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-              >
-                <Card className={`relative h-full ${
-                  plan.popular 
-                    ? 'border-2 border-blue-600 shadow-xl shadow-blue-500/20' 
-                    : 'border-slate-200 dark:border-slate-800'
-                }`}>
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-sm font-medium rounded-full">
-                      Más Popular
+                <div className="relative z-10">
+                  <motion.div
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} p-0.5 mb-6`}
+                    whileHover={{ rotate: 10, scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <div className="w-full h-full rounded-2xl bg-[#0b1326] flex items-center justify-center">
+                      <feature.icon className="w-7 h-7 text-white" />
+                    </div>
+                  </motion.div>
+
+                  <h3 className="font-heading text-2xl lg:text-3xl font-bold text-white mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-[#c4c5d9] text-lg max-w-lg">{feature.desc}</p>
+
+                  {index === 0 && (
+                    <div className="mt-8 flex gap-4">
+                      <motion.div
+                        className="flex-1 h-32 bg-[#131b2e] rounded-xl relative overflow-hidden border border-[#2d3449]"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <motion.div
+                          className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-emerald-500/30 to-transparent border-t-2 border-emerald-500/50"
+                          initial={{ height: 0 }}
+                          whileInView={{ height: "60%" }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        />
+                      </motion.div>
+                      <motion.div
+                        className="flex-1 h-32 bg-[#131b2e] rounded-xl relative overflow-hidden border border-[#2d3449]"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <motion.div
+                          className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-rose-500/30 to-transparent border-t-2 border-rose-500/50"
+                          initial={{ height: 0 }}
+                          whileInView={{ height: "30%" }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.7, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        />
+                      </motion.div>
                     </div>
                   )}
-                  <CardContent className="pt-8 pb-6 px-6">
-                    <div className="text-center mb-6">
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                        {plan.name}
-                      </h3>
-                      <div className="flex items-baseline justify-center gap-1 mb-2">
-                        <span className="text-5xl font-bold text-slate-900 dark:text-slate-100">
-                          {plan.price}
-                        </span>
-                        <span className="text-slate-600 dark:text-slate-400">
-                          {plan.period}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {plan.description}
-                      </p>
-                    </div>
+                </div>
 
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-start gap-3">
-                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-slate-600 dark:text-slate-400">
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Link href="/registro" className="block">
-                      <Button
-                        className={`w-full h-12 ${
-                          plan.popular
-                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-                            : 'bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200'
-                        }`}
-                      >
-                        {plan.cta}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                {/* Arrow indicator */}
+                <motion.div
+                  className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  initial={{ x: -10 }}
+                  whileHover={{ x: 0 }}
+                >
+                  <ChevronRight className="w-6 h-6 text-[#b8c3ff]" />
+                </motion.div>
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className="py-20 bg-white dark:bg-slate-950">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Testimonials Section */}
+        <section className="py-32 px-6 lg:px-12 bg-[#0b1326]/50">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
+                Trusted by Industry Leaders
+              </h2>
+              <p className="text-[#c4c5d9] text-xl">
+                See what our customers have to say about FleetEase.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial, index) => (
+                <motion.div
+                  key={testimonial.author}
+                  className="relative p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449]/50"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ y: -5, borderColor: "rgba(67, 70, 86, 0.8)" }}
+                >
+                  {/* Quote icon */}
+                  <motion.div
+                    className="absolute -top-4 -left-2 w-8 h-8 rounded-full bg-gradient-to-br from-[#2e5bff] to-[#8342f4] flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 + 0.3, type: "spring", stiffness: 400 }}
+                  >
+                    <span className="text-white text-lg font-serif">"</span>
+                  </motion.div>
+
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-4">
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 + 0.2 + i * 0.05, type: "spring" }}
+                      >
+                        <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <p className="text-[#c4c5d9] mb-6 leading-relaxed">{testimonial.quote}</p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2e5bff] to-[#8342f4] flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        {testimonial.author.split(" ").map((n) => n[0]).join("")}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">{testimonial.author}</p>
+                      <p className="text-[#c4c5d9] text-xs">{testimonial.role}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-32 px-6 lg:px-12">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
+                Simple, Transparent Pricing
+              </h2>
+              <p className="text-[#c4c5d9] text-xl">Choose the plan that fits your fleet.</p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Starter */}
+              <motion.div
+                className="p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449] flex flex-col"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -8, borderColor: "rgba(67, 70, 86, 0.8)" }}
+              >
+                <h3 className="text-xl font-bold text-white mb-2">Starter</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-4xl font-heading font-extrabold text-white">$299</span>
+                  <span className="text-[#c4c5d9]">/mo</span>
+                </div>
+                <p className="text-[#c4c5d9] text-sm mb-8">Essential tools for emerging fleets.</p>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {["Up to 5 Vehicles", "1 Admin User", "Basic Income Tracking", "Standard Dashboard"].map((feature, i) => (
+                    <motion.li
+                      key={i}
+                      className="flex gap-3 text-sm text-[#c4c5d9]"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      {feature}
+                    </motion.li>
+                  ))}
+                </ul>
+                <motion.button
+                  className="w-full py-3 rounded-xl border border-[#434656] text-white font-medium hover:bg-[#171f33] transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Get Started
+                </motion.button>
+              </motion.div>
+
+              {/* Pro */}
+              <motion.div
+                className="p-8 rounded-2xl bg-gradient-to-b from-[#171f33] to-[#131b2e] border-2 border-[#2e5bff] relative flex flex-col md:-translate-y-4 shadow-[0_20px_50px_rgba(46,91,255,0.2)]"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -12, boxShadow: "0_30px_60px_rgba(46,91,255,0.3)" }}
+              >
+                <motion.div
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white text-xs font-bold tracking-wider uppercase rounded-full"
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 400 }}
+                >
+                  Most Popular
+                </motion.div>
+                <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-4xl font-heading font-extrabold text-white">$599</span>
+                  <span className="text-[#c4c5d9]">/mo</span>
+                </div>
+                <p className="text-[#c4c5d9] text-sm mb-8">Advanced terminal for optimization.</p>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {["Up to 15 Vehicles", "3 Editor Users", "Profitability Heatmaps", "Client Behavior Score", "Priority Integration"].map((feature, i) => (
+                    <motion.li
+                      key={i}
+                      className="flex gap-3 text-sm text-[#c4c5d9]"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.1 + i * 0.05 }}
+                    >
+                      <CheckCircle className="w-5 h-5 text-[#b8c3ff] flex-shrink-0" />
+                      {feature}
+                    </motion.li>
+                  ))}
+                </ul>
+                <motion.button
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white font-bold hover:shadow-[0_0_30px_rgba(46,91,255,0.4)] transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Start 14-Day Trial
+                </motion.button>
+              </motion.div>
+
+              {/* Enterprise */}
+              <motion.div
+                className="p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449] flex flex-col"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -8, borderColor: "rgba(67, 70, 86, 0.8)" }}
+              >
+                <h3 className="text-xl font-bold text-white mb-2">Enterprise</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-4xl font-heading font-extrabold text-white">Custom</span>
+                </div>
+                <p className="text-[#c4c5d9] text-sm mb-8">For mass-scale operations.</p>
+                <ul className="space-y-4 mb-8 flex-1">
+                  {["Unlimited Vehicles", "Custom Logic Rules", "API Access Mapping", "White-labeled Node", "24/7 Dedicated Support"].map((feature, i) => (
+                    <motion.li
+                      key={i}
+                      className="flex gap-3 text-sm text-[#c4c5d9]"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + i * 0.05 }}
+                    >
+                      <CheckCircle className="w-5 h-5 text-violet-400 flex-shrink-0" />
+                      {feature}
+                    </motion.li>
+                  ))}
+                </ul>
+                <motion.button
+                  className="w-full py-3 rounded-xl border border-[#434656] text-white font-medium hover:bg-[#171f33] transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Contact Sales
+                </motion.button>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faq" className="py-32 px-6 lg:px-12 max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-              Preguntas Frecuentes
+            <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
+              Frequently Asked Questions
             </h2>
+            <p className="text-[#c4c5d9] text-xl">Everything you need to know about FleetEase.</p>
           </motion.div>
 
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <motion.div
-                key={index}
+          <div className="space-y-4">
+            {[
+              { q: "Is a credit card required for the trial?", a: "No. Protocol activation is instant without financial commitment." },
+              { q: "How fast is the integration?", a: "Most fleets complete the telemetry mapping in under 48 hours." },
+              { q: "Can I extract data?", a: "All data nodes can be exported via CSV or directly connected via API." },
+              { q: "What happens if I exceed limits?", a: "The system dynamically alerts you. Service is never interrupted." },
+            ].map((faq, i) => (
+              <motion.details
+                key={i}
+                className="group bg-[#131b2e] rounded-2xl border border-[#2d3449] overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                whileHover={{ borderColor: "rgba(67, 70, 86, 0.8)" }}
               >
-                <Card className="border-slate-200 dark:border-slate-800">
-                  <CardContent className="pt-6">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                      {faq.question}
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      {faq.answer}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                <summary className="cursor-pointer p-6 flex justify-between items-center text-lg font-medium text-white list-none">
+                  {faq.q}
+                  <motion.span
+                    className="text-[#434656] group-open:rotate-45 transition-transform duration-300"
+                    whileHover={{ scale: 1.2 }}
+                  >
+                    +
+                  </motion.span>
+                </summary>
+                <motion.div
+                  className="px-6 pb-6 text-[#c4c5d9] leading-relaxed"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                >
+                  {faq.a}
+                </motion.div>
+              </motion.details>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* CTA Section */}
+        <section className="py-32 px-6 lg:px-12">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto text-center p-12 rounded-3xl bg-gradient-to-br from-[#131b2e] to-[#0b1326] border border-[#2d3449] relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-              Comienza a Optimizar tu Flota Hoy
-            </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Únete a empresas que ya redujeron sus costos operativos en 23% promedio.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/registro" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto h-12 px-8 bg-white text-blue-600 hover:bg-blue-50 text-lg"
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#2e5bff]/10 via-transparent to-[#8342f4]/10" />
+
+            <motion.div
+              className="relative z-10"
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <motion.h2
+                variants={itemVariants}
+                className="font-heading text-4xl lg:text-5xl font-bold text-white mb-6"
+              >
+                Ready to Transform Your Fleet?
+              </motion.h2>
+              <motion.p variants={itemVariants} className="text-[#c4c5d9] text-xl mb-8 max-w-2xl mx-auto">
+                Join thousands of companies already using FleetEase to optimize their operations.
+              </motion.p>
+              <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/registro">
+                  <motion.button
+                    className="px-8 py-4 rounded-full bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff] text-[#001356] font-bold text-lg relative overflow-hidden group"
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(46,91,255,0.4)" }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      Start Free Trial
+                      <ArrowRight className="w-5 h-5" />
+                    </span>
+                  </motion.button>
+                </Link>
+                <motion.button
+                  className="px-8 py-4 rounded-full border border-[#434656] text-white font-semibold text-lg hover:bg-[#171f33] transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  Comenzar Prueba Gratis
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/contacto" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto h-12 px-8 border-2 border-white text-white hover:bg-white/10 text-lg"
-                >
-                  Agendar Demo
-                </Button>
-              </Link>
-            </div>
+                  Schedule Demo
+                </motion.button>
+              </motion.div>
+            </motion.div>
           </motion.div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 dark:bg-slate-950 text-slate-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center">
-                  <Image
-                    src="/logo.png"
-                    alt="FleetEase"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8"
-                  />
-                </div>
-                <span className="text-xl font-bold text-white">FleetEase</span>
+      <footer className="bg-[#060e20] border-t border-[#131b2e] py-12 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <motion.div
+              className="flex items-center gap-4"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#b8c3ff] to-[#2e5bff] flex items-center justify-center">
+                <span className="font-heading font-bold text-[#060e20] text-sm">F</span>
               </div>
-              <p className="text-sm">
-                Control de rentabilidad para flotas de vehículos en México.
-              </p>
+              <span className="font-heading font-bold text-white tracking-wide">FleetEase</span>
+            </motion.div>
+            <div className="flex items-center gap-8">
+              {["Privacy", "Terms", "Contact"].map((link, i) => (
+                <motion.a
+                  key={link}
+                  href="#"
+                  className="text-[#8e90a2] text-sm hover:text-white transition-colors"
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  {link}
+                </motion.a>
+              ))}
             </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Producto</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#features" className="hover:text-white transition-colors">Características</Link></li>
-                <li><Link href="#pricing" className="hover:text-white transition-colors">Precios</Link></li>
-                <li><Link href="/registro" className="hover:text-white transition-colors">Comenzar Gratis</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/contacto" className="hover:text-white transition-colors">Contacto</Link></li>
-                <li><Link href="/terminos" className="hover:text-white transition-colors">Términos</Link></li>
-                <li><Link href="/privacidad" className="hover:text-white transition-colors">Privacidad</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Soporte</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
-                <li><Link href="/docs" className="hover:text-white transition-colors">Documentación</Link></li>
-                <li><Link href="/soporte" className="hover:text-white transition-colors">Contactar Soporte</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800 pt-8 text-center text-sm">
-            <p>© 2026 FleetEase. Todos los derechos reservados.</p>
+            <motion.p
+              className="text-[#8e90a2] text-sm"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              © 2026 FleetEase. All operational rights reserved.
+            </motion.p>
           </div>
         </div>
       </footer>

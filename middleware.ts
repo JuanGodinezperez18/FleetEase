@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { admin } from '@/lib/server/firebase-admin';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { logger } from '@/lib/logger';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // 🚧 MODO DESARROLLO: Bypass temporal del middleware
-  const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_SESSION_COOKIE === 'true';
-
-  if (bypassAuth) {
-    if (isDev) logger.warn('[Middleware] MODO DESARROLLO: Bypass activado');
-    return NextResponse.next();
-  }
 
   // 1. Permitir APIs y archivos estáticos
   if (
@@ -25,62 +16,84 @@ export async function middleware(req: NextRequest) {
   }
 
   // 2. Páginas públicas
-  const publicPaths = ['/login', '/register', '/forgot-password'];
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  const publicPaths = ['/login', '/register', '/forgot-password', '/registro', '/'];
+  const isPublicPath = publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
 
-  // 3. Obtener session cookie
-  const sessionCookie = req.cookies.get('session')?.value;
+  // 3. Crear cliente de Supabase para el servidor
+  const res = NextResponse.next();
 
-  // 4. Si es ruta pública, permitir el paso
-  if (isPublicPath) {
-    // Si ya tiene sesión, redirigir al dashboard para evitar ver el login de nuevo
-    if (sessionCookie) {
-      try {
-        const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
-        if (decodedToken) {
-          return NextResponse.redirect(new URL('/dashboard', req.url));
-        }
-      } catch (error) {
-        // La cookie es inválida, limpiarla y dejar que continúe a la página pública
-        const response = NextResponse.next();
-        response.cookies.delete('session');
-        return response;
-      }
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set({ name, value: '', ...options });
+        },
+      },
     }
-    return NextResponse.next();
+  );
+
+  // 4. Verificar sesión
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  // 5. Si es ruta pública
+  if (isPublicPath) {
+    // Si ya tiene sesión válida y está en login/register, redirigir al dashboard
+    if (session?.user && (pathname === '/login' || pathname === '/register' || pathname === '/registro')) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+    return res;
   }
 
-  // 5. Es ruta protegida, verificar cookie
-  if (!sessionCookie) {
+  // 6. Es ruta protegida, verificar sesión
+  if (!session?.user) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  try {
-    // Verificar sesión directamente con Firebase Admin
-    const decodedToken = await admin.auth().verifySessionCookie(sessionCookie, true);
-    const userRole = decodedToken.role as string;
+  // 7. Obtener perfil del usuario para verificar roles
+  const { data: userProfile, error: profileError } = await supabase
+    .from('users')
+    .select('role, company_id')
+    .eq('id', session.user.id)
+    .eq('is_deleted', false)
+    .single();
 
-    // Protección por rol
-    if (pathname.startsWith('/dashboard') && !['admin', 'editor', 'superAdmin'].includes(userRole)) {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
-    if (pathname.startsWith('/partner') && userRole !== 'partner') {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
-    if (pathname.startsWith('/client') && userRole !== 'client') {
-      return NextResponse.redirect(new URL('/login', req.url));
-    }
-
-  } catch (error) {
-    logger.error('[Middleware] Error en verificación', error as Error);
+  if (profileError || !userProfile) {
+    logger.error('[Middleware] Error obteniendo perfil:', profileError);
     const response = NextResponse.redirect(new URL('/login', req.url));
-    response.cookies.delete('session');
+    response.cookies.delete('sb-access-token');
+    response.cookies.delete('sb-refresh-token');
     return response;
   }
 
-  return NextResponse.next();
+  const userRole = userProfile.role;
+
+  // 8. Protección por rol
+  if (pathname.startsWith('/dashboard') && !['admin', 'editor', 'super_admin'].includes(userRole)) {
+    logger.warn('[Middleware] Acceso denegado a dashboard', { role: userRole });
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  if (pathname.startsWith('/partner') && userRole !== 'partner') {
+    logger.warn('[Middleware] Acceso denegado a partner', { role: userRole });
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  if (pathname.startsWith('/client') && userRole !== 'client') {
+    logger.warn('[Middleware] Acceso denegado a client', { role: userRole });
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  return res;
 }
 
 export const config = {

@@ -37,7 +37,7 @@ export function LiveRegion({
     }
   }, [message, clearAfter]);
 
-  if (!message) return null;
+  if (!displayMessage) return null;
 
   return (
     <div

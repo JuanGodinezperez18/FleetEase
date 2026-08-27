@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Download, History, Loader2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -17,35 +16,32 @@ import { useQuery } from '@tanstack/react-query';
 // Placeholder type - you should define this based on your actual data structure
 interface GeneratedReport {
   id: string;
-  createdAt: string;
-  dateRange: string;
+  created_at: string;
+  date_range: string;
   type: 'Semanal' | 'Mensual' | 'Personalizado';
-  createdBy: string;
-  downloadUrl?: string; // URL to the generated report file
+  created_by: string;
+  download_url?: string; // URL to the generated report file
 }
 
 export default function ReportHistoryPage() {
   const router = useRouter();
   const { selectedCompanyId, loadingData } = useData();
 
-  // ✅ OPTIMIZACIÓN: Usar React Query con getDocs en lugar de onSnapshot
+  // ✅ OPTIMIZACIÓN: Usar React Query con Supabase en lugar de onSnapshot
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ['generatedReports', selectedCompanyId],
     queryFn: async () => {
       if (!selectedCompanyId) return [];
 
-      const q = query(
-        collection(db, 'generatedReports'),
-        where('companyId', '==', selectedCompanyId),
-        orderBy('createdAt', 'desc'),
-        limit(50) // ✅ LÍMITE: Solo los últimos 50 reportes
-      );
+      const { data, error } = await supabase
+        .from('generated_reports')
+        .select('*')
+        .eq('company_id', selectedCompanyId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as GeneratedReport[];
+      if (error) throw error;
+      return (data || []) as GeneratedReport[];
     },
     enabled: !loadingData && !!selectedCompanyId,
     staleTime: 5 * 60 * 1000, // ✅ CACHÉ: 5 minutos
@@ -86,12 +82,12 @@ export default function ReportHistoryPage() {
           <TableBody>
             {reports.map(report => (
               <TableRow key={report.id}>
-                <TableCell>{format(new Date(report.createdAt), 'PPP p', { locale: es })}</TableCell>
-                <TableCell>{report.dateRange}</TableCell>
+                <TableCell>{format(new Date(report.created_at), 'PPP p', { locale: es })}</TableCell>
+                <TableCell>{report.date_range}</TableCell>
                 <TableCell>{report.type}</TableCell>
-                <TableCell>{report.createdBy}</TableCell>
+                <TableCell>{report.created_by}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm" onClick={() => downloadReport(report.id, report.downloadUrl)} disabled={!report.downloadUrl}>
+                  <Button size="sm" onClick={() => downloadReport(report.id, report.download_url)} disabled={!report.download_url}>
                     <Download className="w-4 h-4" />
                   </Button>
                 </TableCell>

@@ -2,8 +2,8 @@
 
 import React from "react";
 import { ThemeProvider } from "@/contexts/theme-provider";
-import { AuthProvider } from "@/contexts/auth-provider";
-import { DataProvider } from "@/contexts/data-provider";
+import { SupabaseAuthProvider } from "@/contexts/auth-provider-supabase";
+import { DataProvider } from "@/contexts/data-provider-supabase";
 import { SplashProvider } from "@/contexts/splash-provider";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster as SonnerToaster } from "sonner";
@@ -31,13 +31,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
           disableTransitionOnChange
         >
           <ToastProvider>
-            <AuthProvider>
+            <SupabaseAuthProvider>
               <DataProvider>
                 <SplashScreenWrapper>
                   {children}
                 </SplashScreenWrapper>
               </DataProvider>
-            </AuthProvider>
+            </SupabaseAuthProvider>
             <SonnerToaster position="top-right" richColors />
           </ToastProvider>
         </ThemeProvider>

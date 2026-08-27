@@ -11,6 +11,14 @@ import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle } from
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { Vehicle, FinancialRecord } from '@/types';
+import {
+  filterRecordsSince,
+  filterRecordsByVehicle,
+  sumRentalIncome,
+  sumExpense,
+  calculateProfitMargin,
+  daysBetweenInclusive,
+} from '@/lib/financial-metrics';
 
 interface VehicleProfitability {
   vehicle: Vehicle;
@@ -26,51 +34,57 @@ interface VehicleProfitabilityDashboardProps {
   vehicles: Vehicle[];
   financialRecords: FinancialRecord[];
   periodDays?: number;
+  dateRange?: { from?: Date; to?: Date };
 }
 
 export function VehicleProfitabilityDashboard({
   vehicles,
   financialRecords,
   periodDays = 30,
+  dateRange,
 }: VehicleProfitabilityDashboardProps) {
   
   // Calcular rentabilidad por vehículo
   const profitabilityData: VehicleProfitability[] = useMemo(() => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - periodDays);
+    const effectiveDays =
+      dateRange?.from && dateRange?.to
+        ? daysBetweenInclusive(dateRange.from, dateRange.to)
+        : periodDays;
+    const cutoffDate = dateRange?.from
+      ? dateRange.from
+      : (() => {
+          const d = new Date();
+          d.setDate(d.getDate() - periodDays);
+          return d;
+        })();
 
     return vehicles
       .filter(v => !v.isDeleted && v.status !== 'sold')
       .map(vehicle => {
         // Filtrar registros del período
-        const vehicleRecords = financialRecords.filter(record => {
-          if (record.vehicleId !== vehicle.id) return false;
-          const recordDate = new Date(record.date);
-          return recordDate >= cutoffDate;
-        });
+        const vehicleRecords = filterRecordsSince(
+          filterRecordsByVehicle(financialRecords, vehicle.id),
+          cutoffDate
+        );
 
         // Calcular ingresos (rentas)
-        const totalIncome = vehicleRecords
-          .filter(r => r.type === 'income' && r.category !== 'Deposito en Garantia')
-          .reduce((sum, r) => sum + (r.amount || 0), 0);
+        const totalIncome = sumRentalIncome(vehicleRecords);
 
         // Calcular gastos (mantenimiento, seguros, multas, operativos)
-        const totalExpenses = vehicleRecords
-          .filter(r => r.type === 'expense')
-          .reduce((sum, r) => sum + (r.amount || 0), 0);
+        const totalExpenses = sumExpense(vehicleRecords);
 
         // Calcular utilidad neta
         const netProfit = totalIncome - totalExpenses;
 
         // Calcular margen de utilidad
-        const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+        const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
 
         // Calcular tasa de ocupación (días rentado / 30 días)
         const rentalDays = vehicleRecords
           .filter(r => r.type === 'income')
           .reduce((days, r) => days + 1, 0); // Simplificado: 1 registro = 1 día
         
-        const occupancyRate = (rentalDays / periodDays) * 100;
+        const occupancyRate = (rentalDays / effectiveDays) * 100;
 
         // Determinar estado
         let status: 'profitable' | 'breaking-even' | 'loss';
@@ -93,7 +107,7 @@ export function VehicleProfitabilityDashboard({
         };
       })
       .sort((a, b) => b.netProfit - a.netProfit); // Ordenar por rentabilidad
-  }, [vehicles, financialRecords, periodDays]);
+  }, [vehicles, financialRecords, periodDays, dateRange]);
 
   // Métricas generales
   const metrics = useMemo(() => {

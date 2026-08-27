@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Inter, Manrope } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 
 export const metadata: Metadata = {
   title: "Sistema de Gestión",
@@ -27,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
-      <body>
+      <body className={`${inter.variable} ${manrope.variable} font-sans`}>
         <GlobalErrorBoundary>
             <Providers>
               {children}

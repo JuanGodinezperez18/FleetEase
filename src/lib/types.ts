@@ -1,7 +1,5 @@
 
 
-import type { Timestamp } from 'firebase/firestore';
-
 export interface Vehicle {
   id: string;
   alias: string;
@@ -138,6 +136,8 @@ export interface MileageLog {
   date: string;
   notes?: string;
   source?: 'expense' | 'manual'; // ✅ Origen del registro
+  kind?: 'odometer' | 'maintenance';
+  financialRecordId?: string;
   createdAt: string;
   updatedAt?: string;
   companyId?: string | null;
@@ -169,6 +169,7 @@ export interface FinancialRecord {
   evidenceUrls?: (string | File)[];
   creditPaymentScheduleId?: string;
   mileageAtExpense?: number;
+  multaId?: string;
   notes?: string;
 }
 
@@ -275,6 +276,7 @@ export interface Company {
   whatsappNotifications?: boolean;
   contractTemplateUrl?: string | null;
   vehicleLimit?: number | null;
+  plan?: string | null;
 }
 
 export interface FinancialCategory {

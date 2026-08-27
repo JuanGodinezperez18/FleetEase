@@ -15,8 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, Lock, ArrowRight, ArrowLeft, User, Shield, Building } from 'lucide-react';
 import { toast } from 'sonner';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

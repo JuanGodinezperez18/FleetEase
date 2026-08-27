@@ -115,13 +115,16 @@ describe('useAnnounce', () => {
   });
 
   it('debería actualizar message cuando se llama announce', () => {
+    jest.useFakeTimers();
     const { result } = renderHook(() => useAnnounce());
 
     act(() => {
       result.current.announce('Test announcement');
+      jest.advanceTimersByTime(100);
     });
 
     expect(result.current.message).toBe('Test announcement');
+    jest.useRealTimers();
   });
 });
 
@@ -161,7 +164,7 @@ describe('FocusTrap', () => {
     );
 
     const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-    window.dispatchEvent(event);
+    document.dispatchEvent(event);
 
     expect(onEscape).toHaveBeenCalled();
   });

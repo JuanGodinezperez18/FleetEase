@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook_form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react";
@@ -18,8 +18,6 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { doc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { CirculationCardScanner } from '@/components/vehicles/circulation-card-scanner';
 
 const statusOptions = [

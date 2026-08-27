@@ -1,0 +1,121 @@
+/**
+ * @fileoverview Mapeadores entre la capa de persistencia (Supabase, snake_case)
+ * y el modelo de dominio usado por la UI (camelCase).
+ *
+ * La UI consume tipos de @/types (dominio) y el provider adapta las filas
+ * snake_case que devuelve Supabase. Estos helpers concentran esa conversión.
+ */
+
+import type {
+  Client as SbClient,
+  Vehicle as SbVehicle,
+  Partner as SbPartner,
+  Credit as SbCredit,
+  FinancialRecord as SbFinancialRecord,
+  MileageLog as SbMileageLog,
+  Notification as SbNotification,
+  VehicleAssignmentLog as SbVehicleAssignmentLog,
+  Company as SbCompany,
+  FinancialCategory as SbFinancialCategory,
+  MessageTemplate as SbMessageTemplate,
+  MessageLog as SbMessageLog,
+  CreditPaymentSchedule as SbCreditPaymentSchedule,
+  Multa as SbMulta,
+} from '@/types/supabase';
+import type {
+  Client,
+  Vehicle,
+  Partner,
+  Credit,
+  FinancialRecord,
+  MileageLog,
+  Notification,
+  VehicleAssignmentLog,
+  Company,
+  FinancialCategory,
+  MessageTemplate,
+  MessageLog,
+  CreditPaymentSchedule,
+  Multa,
+} from '@/types';
+
+function snakeToCamelKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function camelToSnakeKey(key: string): string {
+  return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+}
+
+function mapKeys<T>(obj: Record<string, unknown>, mapper: (k: string) => string): T {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    out[mapper(key)] = value === null ? undefined : value;
+  }
+  return out as T;
+}
+
+// =====================================================
+// PERSISTENCIA → DOMINIO
+// =====================================================
+
+export const toDomainClient = (row: SbClient): Client => mapKeys<Client>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainVehicle = (row: SbVehicle): Vehicle => mapKeys<Vehicle>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainPartner = (row: SbPartner): Partner => mapKeys<Partner>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainCredit = (row: SbCredit): Credit => mapKeys<Credit>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainFinancialRecord = (row: SbFinancialRecord): FinancialRecord => mapKeys<FinancialRecord>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainMileageLog = (row: SbMileageLog): MileageLog => mapKeys<MileageLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainNotification = (row: SbNotification): Notification => mapKeys<Notification>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainVehicleAssignmentLog = (row: SbVehicleAssignmentLog): VehicleAssignmentLog => mapKeys<VehicleAssignmentLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainCompany = (row: SbCompany): Company => mapKeys<Company>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainFinancialCategory = (row: SbFinancialCategory): FinancialCategory => mapKeys<FinancialCategory>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainMessageTemplate = (row: SbMessageTemplate): MessageTemplate => mapKeys<MessageTemplate>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainMessageLog = (row: SbMessageLog): MessageLog => mapKeys<MessageLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainCreditPaymentSchedule = (row: SbCreditPaymentSchedule): CreditPaymentSchedule => mapKeys<CreditPaymentSchedule>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+export const toDomainMulta = (row: SbMulta): Multa => mapKeys<Multa>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+
+// =====================================================
+// DOMINIO → PERSISTENCIA
+// =====================================================
+
+export const toSbClient = (data: Partial<Client>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbVehicle = (data: Partial<Vehicle>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbCredit = (data: Partial<Credit>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbMileageLog = (data: Partial<MileageLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbNotification = (data: Partial<Notification>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbVehicleAssignmentLog = (data: Partial<VehicleAssignmentLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbCompany = (data: Partial<Company>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbFinancialCategory = (data: Partial<FinancialCategory>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbMessageTemplate = (data: Partial<MessageTemplate>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbMessageLog = (data: Partial<MessageLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbCreditPaymentSchedule = (data: Partial<CreditPaymentSchedule>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+export const toSbMulta = (data: Partial<Multa>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);

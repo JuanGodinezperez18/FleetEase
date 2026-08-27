@@ -50,7 +50,7 @@ export default function PartnerDetailsPage() {
   // 📈 RESUMEN
   const summary = useMemo(() => {
     const income = partnerRecords.filter(r => r.type === 'income' && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
-    const expenses = partnerRecords.filter(r => r.type === 'expense' && !r.isDeleted && r.paymentMethod !== 'partnerpays').reduce((sum, r) => sum + r.amount, 0);
+    const expenses = partnerRecords.filter(r => r.type === 'expense' && !r.isDeleted && r.paymentMethod !== 'partner_pays').reduce((sum, r) => sum + r.amount, 0);
     return {
       totalIncome: income,
       totalExpenses: expenses,

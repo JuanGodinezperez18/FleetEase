@@ -2,19 +2,27 @@
 -- FleetEase Manager - Row Level Security (RLS) Policies
 -- =====================================================
 -- Base de datos: Supabase PostgreSQL
--- Fecha: 2026-04-10
+-- Fecha: 2026-08-08
 --
--- NOTAS IMPORTANTES:
--- 1. Cada politica esta envuelta en DO blocks con DROP POLICY IF EXISTS
---    para que el script sea idempotente (se puede correr multiples veces)
--- 2. Solo aplica a tablas que realmente existen (check pg_tables)
--- 3. Todos los tipos son correctos: auth.uid() retorna uuid, NO text
--- 4. company_id es uuid en todas las tablas de negocio
+-- VERSIÓN CORREGIDA (auditoría de seguridad):
+-- ----------------------------------------------------
+-- 1. TODOS los UPDATE llevan WITH CHECK (la fila nueva también se valida),
+--    bloqueando el cambio de company_id (desvío entre tenants).
+-- 2. Un admin NO puede:
+--      - auto-elevarse a super_admin (UPDATE de su propia fila)
+--      - crear usuarios super_admin
+--      - editar empresas de otro tenant
+--    (políticas "users" y "companies").
+-- 3. INSERT de logs/auditoría/notificaciones restringidos a la propia empresa
+--    (WITH CHECK ya no es `true`): no se pueden falsificar logs ni spamear
+--    el inbox de otros tenants.
+-- 4. super_admin tiene acceso global en todas las tablas.
+-- 5. FIX recursión RLS (42P17): ninguna policy subconsulta `users` directamente;
+--    se usan funciones SECURITY DEFINER (auth_user_staff_company_id,
+--    auth_user_admin_company_id, auth_user_company_id, auth_user_role).
 --
--- Principio de aislamiento multi-tenant:
--- - Cada company_id actúa como frontera de datos
--- - Los usuarios solo ven datos de su company_id
--- - super_admin tiene acceso global
+-- Idempotente: se puede ejecutar múltiples veces (DO blocks + DROP POLICY IF EXISTS).
+-- Ejecutar DESPUÉS de supabase-schema.sql y 002_create_missing_tables.sql.
 -- =====================================================
 
 -- =====================================================
@@ -45,7 +53,7 @@ BEGIN
 END $$;
 
 -- =====================================================
--- FUNCIONES AUXILIARES (se crean siempre, son idempotentes)
+-- FUNCIONES AUXILIARES (idempotentes)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION auth_user_role()
@@ -56,6 +64,20 @@ $$ LANGUAGE SQL STABLE SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION auth_user_company_id()
 RETURNS UUID AS $$
   SELECT company_id FROM users WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
+
+-- FIX (recursión RLS): company_id del usuario SOLO si es staff (admin/editor/super_admin)
+CREATE OR REPLACE FUNCTION auth_user_staff_company_id()
+RETURNS UUID AS $$
+  SELECT CASE WHEN role IN ('admin', 'editor', 'super_admin') THEN company_id ELSE NULL END
+  FROM users WHERE id = auth.uid() LIMIT 1;
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
+
+-- FIX (recursión RLS): company_id del usuario SOLO si es admin/super_admin
+CREATE OR REPLACE FUNCTION auth_user_admin_company_id()
+RETURNS UUID AS $$
+  SELECT CASE WHEN role IN ('admin', 'super_admin') THEN company_id ELSE NULL END
+  FROM users WHERE id = auth.uid() LIMIT 1;
 $$ LANGUAGE SQL STABLE SECURITY DEFINER;
 
 -- =====================================================
@@ -75,16 +97,25 @@ DROP POLICY IF EXISTS "Users can view their own company" ON companies;
 DROP POLICY IF EXISTS "Only super_admin can update companies" ON companies;
 DROP POLICY IF EXISTS "Only super_admin can insert companies" ON companies;
 
+-- FIX: sin subconsulta autorreferencial (evita recursión RLS 42P17)
 CREATE POLICY "Users can view their own company"
   ON companies FOR SELECT
   USING (
-    id IN (SELECT company_id FROM users WHERE id = auth.uid())
+    id = auth_user_company_id()
     OR auth_user_role() = 'super_admin'
   );
 
+-- FIX: admin SOLO puede actualizar SU empresa (id = auth_user_company_id())
 CREATE POLICY "Only super_admin can update companies"
   ON companies FOR UPDATE
-  USING (auth_user_role() IN ('super_admin', 'admin'));
+  USING (
+    auth_user_role() = 'super_admin'
+    OR (id = auth_user_company_id() AND auth_user_role() = 'admin')
+  )
+  WITH CHECK (
+    auth_user_role() = 'super_admin'
+    OR (id = auth_user_company_id() AND auth_user_role() = 'admin')
+  );
 
 CREATE POLICY "Only super_admin can insert companies"
   ON companies FOR INSERT
@@ -100,24 +131,46 @@ DROP POLICY IF EXISTS "Users can view own profile" ON users;
 DROP POLICY IF EXISTS "Admin can update users in their company" ON users;
 DROP POLICY IF EXISTS "Only super_admin can insert users" ON users;
 
+-- FIX: sin subconsulta autorreferencial (evita recursión RLS 42P17)
 CREATE POLICY "Users can view own profile"
   ON users FOR SELECT
   USING (
     id = auth.uid()
-    OR company_id IN (SELECT company_id FROM users WHERE id = auth.uid() AND role IN ('admin', 'editor', 'super_admin'))
+    OR company_id = auth_user_staff_company_id()
     OR auth_user_role() = 'super_admin'
   );
 
+-- FIX: WITH CHECK — un admin NO puede escalar a super_admin, no puede cambiar
+-- su propia fila de rol, ni mover usuarios a otra empresa.
 CREATE POLICY "Admin can update users in their company"
   ON users FOR UPDATE
   USING (
-    company_id IN (SELECT company_id FROM users WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+    company_id = auth_user_admin_company_id()
     OR auth_user_role() = 'super_admin'
+  )
+  WITH CHECK (
+    auth_user_role() = 'super_admin'
+    OR (
+      company_id = auth_user_company_id()
+      AND role <> 'super_admin'
+      AND (
+        id <> auth.uid()
+        OR role = auth_user_role()
+      )
+    )
   );
 
+-- FIX: admin solo inserta en SU empresa y sin rol super_admin
 CREATE POLICY "Only super_admin can insert users"
   ON users FOR INSERT
-  WITH CHECK (auth_user_role() IN ('admin', 'super_admin'));
+  WITH CHECK (
+    auth_user_role() = 'super_admin'
+    OR (
+      auth_user_role() = 'admin'
+      AND company_id = auth_user_company_id()
+      AND role <> 'super_admin'
+    )
+  );
 END IF; END $$;
 
 -- =====================================================
@@ -131,15 +184,16 @@ DROP POLICY IF EXISTS "Users can update clients in their company" ON clients;
 
 CREATE POLICY "Users can view clients in their company"
   ON clients FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert clients in their company"
   ON clients FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update clients in their company"
   ON clients FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -153,15 +207,16 @@ DROP POLICY IF EXISTS "Users can update vehicles in their company" ON vehicles;
 
 CREATE POLICY "Users can view vehicles in their company"
   ON vehicles FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert vehicles in their company"
   ON vehicles FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update vehicles in their company"
   ON vehicles FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -175,15 +230,16 @@ DROP POLICY IF EXISTS "Users can update partners in their company" ON partners;
 
 CREATE POLICY "Users can view partners in their company"
   ON partners FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert partners in their company"
   ON partners FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update partners in their company"
   ON partners FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -197,15 +253,16 @@ DROP POLICY IF EXISTS "Users can update mileage logs in their company" ON mileag
 
 CREATE POLICY "Users can view mileage logs in their company"
   ON mileage_logs FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert mileage logs in their company"
   ON mileage_logs FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update mileage logs in their company"
   ON mileage_logs FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -219,15 +276,16 @@ DROP POLICY IF EXISTS "Users can update financial records in their company" ON f
 
 CREATE POLICY "Users can view financial records in their company"
   ON financial_records FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert financial records in their company"
   ON financial_records FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update financial records in their company"
   ON financial_records FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -241,15 +299,16 @@ DROP POLICY IF EXISTS "Admin can update financial categories" ON financial_categ
 
 CREATE POLICY "Users can view financial categories"
   ON financial_categories FOR SELECT
-  USING (company_id IS NULL OR company_id = auth_user_company_id());
+  USING (company_id IS NULL OR company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Admin can insert financial categories"
   ON financial_categories FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Admin can update financial categories"
   ON financial_categories FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -263,15 +322,16 @@ DROP POLICY IF EXISTS "Users can update credits in their company" ON credits;
 
 CREATE POLICY "Users can view credits in their company"
   ON credits FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert credits in their company"
   ON credits FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update credits in their company"
   ON credits FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -285,15 +345,16 @@ DROP POLICY IF EXISTS "Users can update payment schedules in their company" ON c
 
 CREATE POLICY "Users can view payment schedules in their company"
   ON credit_payment_schedules FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert payment schedules in their company"
   ON credit_payment_schedules FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update payment schedules in their company"
   ON credit_payment_schedules FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -305,23 +366,34 @@ DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
 DROP POLICY IF EXISTS "System can insert notifications" ON notifications;
 DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 
--- uid es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view own notifications"
   ON notifications FOR SELECT
   USING (
     uid = auth.uid()
     OR company_id = auth_user_company_id()
+    OR auth_user_role() = 'super_admin'
   );
 
+-- FIX: no más WITH CHECK (true) — no se puede insertar en inbox ajeno/otro tenant
 CREATE POLICY "System can insert notifications"
   ON notifications FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (
+    uid = auth.uid()
+    OR company_id = auth_user_company_id()
+    OR auth_user_role() = 'super_admin'
+  );
 
 CREATE POLICY "Users can update own notifications"
   ON notifications FOR UPDATE
   USING (
     uid = auth.uid()
     OR company_id = auth_user_company_id()
+    OR auth_user_role() = 'super_admin'
+  )
+  WITH CHECK (
+    uid = auth.uid()
+    OR company_id = auth_user_company_id()
+    OR auth_user_role() = 'super_admin'
   );
 END IF; END $$;
 
@@ -335,11 +407,11 @@ DROP POLICY IF EXISTS "Users can insert assignment logs in their company" ON veh
 
 CREATE POLICY "Users can view assignment logs in their company"
   ON vehicle_assignment_logs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert assignment logs in their company"
   ON vehicle_assignment_logs FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -352,11 +424,12 @@ DROP POLICY IF EXISTS "System can insert company change logs" ON company_change_
 
 CREATE POLICY "Admin can view company change logs"
   ON company_change_logs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
+-- FIX: solo la propia empresa puede insertar (el server usa service role, que bypassa RLS)
 CREATE POLICY "System can insert company change logs"
   ON company_change_logs FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -373,11 +446,18 @@ CREATE POLICY "Users can view client change logs"
     client_id IN (
       SELECT id FROM clients WHERE company_id = auth_user_company_id()
     )
+    OR auth_user_role() = 'super_admin'
   );
 
+-- FIX: solo registros de clientes de la propia empresa
 CREATE POLICY "System can insert client change logs"
   ON client_change_logs FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (
+    client_id IN (
+      SELECT id FROM clients WHERE company_id = auth_user_company_id()
+    )
+    OR auth_user_role() = 'super_admin'
+  );
 END IF; END $$;
 
 -- =====================================================
@@ -391,15 +471,16 @@ DROP POLICY IF EXISTS "Users can update message templates in their company" ON m
 
 CREATE POLICY "Users can view message templates in their company"
   ON message_templates FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert message templates in their company"
   ON message_templates FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update message templates in their company"
   ON message_templates FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -412,11 +493,11 @@ DROP POLICY IF EXISTS "Users can insert message logs in their company" ON messag
 
 CREATE POLICY "Users can view message logs in their company"
   ON message_logs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert message logs in their company"
   ON message_logs FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -430,15 +511,16 @@ DROP POLICY IF EXISTS "Users can update multas in their company" ON multas;
 
 CREATE POLICY "Users can view multas in their company"
   ON multas FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert multas in their company"
   ON multas FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update multas in their company"
   ON multas FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -451,22 +533,22 @@ DROP POLICY IF EXISTS "Users can insert own FCM tokens" ON fcm_tokens;
 DROP POLICY IF EXISTS "Users can update own FCM tokens" ON fcm_tokens;
 DROP POLICY IF EXISTS "Users can delete own FCM tokens" ON fcm_tokens;
 
--- user_id es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view own FCM tokens"
   ON fcm_tokens FOR SELECT
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert own FCM tokens"
   ON fcm_tokens FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = auth.uid() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update own FCM tokens"
   ON fcm_tokens FOR UPDATE
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid() OR auth_user_role() = 'super_admin')
+  WITH CHECK (user_id = auth.uid() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can delete own FCM tokens"
   ON fcm_tokens FOR DELETE
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -479,11 +561,12 @@ DROP POLICY IF EXISTS "System can insert audit logs" ON audit_logs;
 
 CREATE POLICY "Admin can view audit logs in their company"
   ON audit_logs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
+-- FIX: no más WITH CHECK (true)
 CREATE POLICY "System can insert audit logs"
   ON audit_logs FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -497,15 +580,16 @@ DROP POLICY IF EXISTS "Users can update documents in their company" ON documents
 
 CREATE POLICY "Users can view documents in their company"
   ON documents FOR SELECT
-  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL));
+  USING (company_id = auth_user_company_id() AND (is_deleted = false OR is_deleted IS NULL) OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert documents in their company"
   ON documents FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update documents in their company"
   ON documents FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -519,15 +603,16 @@ DROP POLICY IF EXISTS "Users can update GPS configs in their company" ON gps_con
 
 CREATE POLICY "Users can view GPS configs in their company"
   ON gps_configs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can insert GPS configs in their company"
   ON gps_configs FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update GPS configs in their company"
   ON gps_configs FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -539,18 +624,19 @@ DROP POLICY IF EXISTS "Users can view seguimientos in their company" ON seguimie
 DROP POLICY IF EXISTS "Users can insert seguimientos in their company" ON seguimientos;
 DROP POLICY IF EXISTS "Users can update seguimientos in their company" ON seguimientos;
 
--- created_by es UUID, auth.uid() tambien retorna UUID → NO necesita cast
 CREATE POLICY "Users can view seguimientos in their company"
   ON seguimientos FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
+-- FIX: se eliminó el OR created_by = auth.uid() que permitía escribir en cualquier empresa
 CREATE POLICY "Users can insert seguimientos in their company"
   ON seguimientos FOR INSERT
-  WITH CHECK (company_id = auth_user_company_id() OR created_by = auth.uid());
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
 CREATE POLICY "Users can update seguimientos in their company"
   ON seguimientos FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -568,7 +654,8 @@ CREATE POLICY "Anyone can view plans"
 
 CREATE POLICY "Only super_admin can update plans"
   ON plans FOR UPDATE
-  USING (auth_user_role() = 'super_admin');
+  USING (auth_user_role() = 'super_admin')
+  WITH CHECK (auth_user_role() = 'super_admin');
 
 CREATE POLICY "Only super_admin can insert plans"
   ON plans FOR INSERT
@@ -586,19 +673,21 @@ DROP POLICY IF EXISTS "Users can update invitations in their company" ON user_in
 
 CREATE POLICY "Users can view invitations in their company"
   ON user_invitations FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
+-- FIX: sin subconsulta autorreferencial (evita recursión RLS 42P17)
 CREATE POLICY "Admin can insert invitations in their company"
   ON user_invitations FOR INSERT
   WITH CHECK (
-    company_id IN (
-      SELECT company_id FROM users WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
-    )
+    company_id = auth_user_admin_company_id()
+    OR auth_user_role() = 'super_admin'
   );
 
+-- FIX: WITH CHECK — la invitación no puede moverse a otra empresa
 CREATE POLICY "Users can update invitations in their company"
   ON user_invitations FOR UPDATE
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin')
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================
@@ -611,11 +700,12 @@ DROP POLICY IF EXISTS "System can insert plan limit logs" ON plan_limit_logs;
 
 CREATE POLICY "Users can view plan limit logs in their company"
   ON plan_limit_logs FOR SELECT
-  USING (company_id = auth_user_company_id());
+  USING (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 
+-- FIX: no más WITH CHECK (true)
 CREATE POLICY "System can insert plan limit logs"
   ON plan_limit_logs FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (company_id = auth_user_company_id() OR auth_user_role() = 'super_admin');
 END IF; END $$;
 
 -- =====================================================

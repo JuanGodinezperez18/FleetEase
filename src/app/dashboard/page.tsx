@@ -12,7 +12,6 @@ import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardConfigurator } from '@/components/dashboard/dashboard-configurator';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LiveRegion, useAnnounce } from '@/components/accessibility/live-region';
-import { FirebasePermissionErrorAlert } from './components/firebase-permission-error-alert';
 import type { QuickActionModal } from './hooks/use-dashboard-page';
 
 // Bundle de modales (todos en un solo import dinámico)
@@ -86,9 +85,9 @@ export default function DashboardPage() {
 
       // Prefetch de datos críticos en background
       const prefetchPromises = [
-        import('@/lib/firestore-services').then(({ financialRecordService }) => financialRecordService.getAll()),
-        import('@/lib/firestore-services').then(({ vehicleService }) => vehicleService.getAll()),
-        import('@/lib/firestore-services').then(({ clientService }) => clientService.getAll()),
+        import('@/lib/supabase-services').then(({ financialRecordService }) => financialRecordService.getAll({})),
+        import('@/lib/supabase-services').then(({ vehicleService }) => vehicleService.getAll({})),
+        import('@/lib/supabase-services').then(({ clientService }) => clientService.getAll({})),
       ];
 
       Promise.all(prefetchPromises).catch((error) => {
@@ -135,16 +134,6 @@ export default function DashboardPage() {
       <LiveRegion message={announcementMessage} politeness="polite" clearAfter={5000} />
 
       <div className="space-y-6" id="main-content">
-        {/* Alerta de error de permisos de Firebase */}
-        {configError && (
-          <FirebasePermissionErrorAlert
-            error={configError}
-            onDismiss={() => {
-              // Opcional: permitir descartar la alerta
-              console.log('[Dashboard] Descartando alerta de permisos');
-            }}
-          />
-        )}
 
         <DashboardHeader
           userName={currentUser?.name}

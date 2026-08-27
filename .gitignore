@@ -61,6 +61,7 @@ lerna-debug.log*
 # VERCEL
 # ======================
 .vercel
+.mcp.json
 
 # ======================
 # TYPESCRIPT
@@ -86,6 +87,17 @@ firestore-debug.*.log
 **/credentials.json
 **/service-account.json
 **/secrets.json
+**/temp-passwords.json
+temp-passwords.json
+id-mapping*.json
+
+# ======================
+# MIGRATION & TEMP FILES
+# ======================
+scripts/migrate*.js
+scripts/migrate*.ts
+/migration-backup/
+/scripts/temp-*.json
 
 # ======================
 # IDE & EDITORS

@@ -12,11 +12,10 @@ import { CameraCapture } from './camera-capture';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-provider';
 import { useData } from '@/hooks/use-data';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { getAuth } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 import { Car, User } from 'lucide-react';
 import { cleanupRadixUIArtifacts } from '@/lib/cleanup-radix';
+import { compressImageIfNeeded } from '@/lib/image-compression';
 
 type InspectionView = 'front' | 'left' | 'right' | 'rear';
 
@@ -113,14 +112,14 @@ export function VehicleInspectionModal({ isOpen, onClose, vehicleId, onSuccess }
     const toastId = toast.loading('Subiendo inspección...');
 
     try {
-      const auth = getAuth();
-      const currentAuthUser = auth.currentUser;
-      if (!currentAuthUser) {
+      // Obtener sesión de Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         throw new Error('Usuario no autenticado');
       }
 
       console.log('🔐 Obteniendo token de autenticación...');
-      const token = await currentAuthUser.getIdToken();
+      const token = session.access_token;
       const uploadedUrls: Record<string, string> = {};
 
       // Subir cada foto al servidor
@@ -134,8 +133,12 @@ export function VehicleInspectionModal({ isOpen, onClose, vehicleId, onSuccess }
         console.log(`📤 Subiendo foto ${view} - Tamaño: ${(photo.size / 1024).toFixed(2)} KB`);
         toast.loading(`Subiendo foto ${view}...`, { id: toastId });
 
+        // Pre-comprimir en cliente: reduce tráfico y evita el límite de 10MB del servidor
+        const photoFile = new File([photo], `${view}.jpg`, { type: photo.type || 'image/jpeg' });
+        const photoToUpload = (await compressImageIfNeeded(photoFile)) ?? photoFile;
+
         const formData = new FormData();
-        formData.append('file', photo, `${view}.jpg`);
+        formData.append('file', photoToUpload, `${view}.jpg`);
         formData.append('view', view);
         formData.append('vehicleId', targetVehicle.id);
 
@@ -158,19 +161,26 @@ export function VehicleInspectionModal({ isOpen, onClose, vehicleId, onSuccess }
         uploadedUrls[view] = result.url;
       }
 
-      // Crear el documento de inspección en Firestore
-      console.log('📝 Creando documento de inspección en Firestore...');
-      const inspectionData = {
-        vehicleId: targetVehicle.id,
-        clientId: targetVehicle.clientId,
-        companyId: targetVehicle.companyId, // ✅ IMPORTANTE: Necesario para las reglas de seguridad
-        photos: uploadedUrls,
-        timestamp: serverTimestamp(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
-        createdBy: currentAuthUser.uid,
-      };
+      // Crear el documento de inspección en Supabase
+      console.log('📝 Creando documento de inspección en Supabase...');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
 
-      await addDoc(collection(db, 'vehicleInspections'), inspectionData);
+      const { error: inspectionError } = await supabase
+        .from('vehicle_inspections')
+        .insert({
+          vehicle_id: targetVehicle.id,
+          client_id: targetVehicle.clientId,
+          company_id: targetVehicle.companyId,
+          photos: uploadedUrls,
+          timestamp: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          created_by: session.user.id,
+        });
+
+      if (inspectionError) {
+        console.error('❌ Error al crear inspección:', inspectionError);
+        throw new Error(inspectionError.message);
+      }
 
       console.log('✅ Inspección registrada exitosamente');
       toast.success('Inspección registrada exitosamente', { id: toastId });

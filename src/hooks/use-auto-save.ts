@@ -67,7 +67,7 @@ export function useAutoSave<T extends Record<string, any>>({
 
       // Guardar en servidor si hay callback
       if (onSave) {
-        onSave(data).catch(console.error);
+        void Promise.resolve(onSave(data)).catch(console.error);
       }
 
       previousDataRef.current = data;

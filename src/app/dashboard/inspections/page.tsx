@@ -4,8 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/hooks/use-data';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,17 +19,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface Inspection {
   id: string;
-  vehicleId: string;
-  clientId: string;
+  vehicle_id: string;
+  client_id: string;
+  company_id: string;
   photos: {
     front?: string;
     left?: string;
     right?: string;
     rear?: string;
   };
-  timestamp: any;
-  expiresAt: any;
-  createdBy: string;
+  timestamp: string;
+  expires_at: string;
+  created_by: string;
 }
 
 export default function InspectionsPage() {
@@ -46,19 +46,15 @@ export default function InspectionsPage() {
   useEffect(() => {
     async function loadInspections() {
       try {
-        const q = query(
-          collection(db, 'vehicleInspections'),
-          orderBy('timestamp', 'desc'),
-          limit(100)
-        );
+        const { data, error } = await supabase
+          .from('vehicle_inspections')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
         
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Inspection[];
-        
-        setInspections(data);
+        setInspections((data || []) as Inspection[]);
       } catch (error) {
         console.error('Error cargando inspecciones:', error);
       } finally {
@@ -72,10 +68,10 @@ export default function InspectionsPage() {
   // Enriquecer inspecciones con datos de vehículos y clientes
   const enrichedInspections = useMemo(() => {
     return inspections.map(inspection => {
-      const vehicle = rawVehicles.find(v => v.id === inspection.vehicleId);
-      const client = clients.find(c => c.id === inspection.clientId);
-      const timestamp = inspection.timestamp?.toDate();
-      const expiresAt = inspection.expiresAt?.toDate();
+      const vehicle = rawVehicles.find(v => v.id === inspection.vehicle_id);
+      const client = clients.find(c => c.id === inspection.client_id);
+      const timestamp = inspection.timestamp ? new Date(inspection.timestamp) : null;
+      const expiresAt = inspection.expires_at ? new Date(inspection.expires_at) : null;
       const isExpired = expiresAt && expiresAt < new Date();
       const daysRemaining = expiresAt ? differenceInDays(expiresAt, new Date()) : 0;
       

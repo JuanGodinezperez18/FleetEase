@@ -3,9 +3,8 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import imageCompression from 'browser-image-compression';
-import { getAuth } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
+import { compressImageIfNeeded } from '@/lib/image-compression';
 
 export type StorageFolderPath =
   | "vehicle_images"
@@ -28,16 +27,12 @@ export function useStorage() {
       let fileToUpload = file;
       if (compress && file.type.startsWith('image/')) {
         if (isDev) console.log(`[useStorage] Comprimiendo imagen...`);
-        fileToUpload = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-        });
+        fileToUpload = (await compressImageIfNeeded(file)) ?? file;
         if (isDev) console.log(`[useStorage] Compresión finalizada.`);
       }
 
-      const auth = getAuth(app);
-      const token = await auth.currentUser?.getIdToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       if (!token) throw new Error('No autenticado para subir archivo.');
 
       const formData = new FormData();
@@ -82,8 +77,8 @@ export function useStorage() {
   const deleteFileByUrl = async (fileUrl: string) => {
     if (!fileUrl) return;
     try {
-      const auth = getAuth(app);
-      const token = await auth.currentUser?.getIdToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       if (!token) throw new Error('No autenticado para eliminar archivo.');
 
       const response = await fetch('/api/delete-file', {
@@ -107,8 +102,8 @@ export function useStorage() {
   // ✅ NUEVA: Generar URL temporal para compartir (15 minutos)
   const getShareableUrl = async (fileUrl: string): Promise<string> => {
     try {
-      const auth = getAuth(app);
-      const token = await auth.currentUser?.getIdToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       if (!token) throw new Error('No autenticado');
 
       const response = await fetch('/api/get-signed-url', {
@@ -135,8 +130,8 @@ export function useStorage() {
   // ✅ NUEVA: Descargar archivo directamente
   const downloadFile = async (fileUrl: string, fileName?: string) => {
     try {
-      const auth = getAuth(app);
-      const token = await auth.currentUser?.getIdToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       if (!token) throw new Error('No autenticado');
 
       // Obtener URL firmada temporal

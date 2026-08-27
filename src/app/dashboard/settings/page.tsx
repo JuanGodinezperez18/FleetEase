@@ -22,12 +22,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useSystemSettingsAnalytics } from '@/hooks/use-system-settings-analytics';
 import { SystemAdminDashboard } from './components/system-admin-dashboard';
 import { useData } from '@/hooks/use-data';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { auth } from '@/lib/firebase';
 import { toast as sonnerToast } from 'sonner';
-import { updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from 'firebase/auth';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
@@ -68,10 +64,14 @@ const SystemMaintenanceCard = () => {
         setIsSyncing(true);
         const toastId = sonnerToast.loading("Sincronizando permisos de usuario...");
         try {
-            const functions = getFunctions(auth.app, 'us-central1');
-            const syncUserClaims = httpsCallable(functions, 'syncUserClaims');
-            const result = await syncUserClaims();
-            const data = result.data as { success: boolean; message: string };
+            const response = await fetch('/api/admin/sync-claims', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Error en sincronización');
+            
             if (data.success) {
                 sonnerToast.success("Sincronización Exitosa", { id: toastId, description: data.message + " Por favor, cierra sesión y vuelve a iniciarla para aplicar los cambios." });
             } else {
@@ -115,7 +115,7 @@ const SystemMaintenanceCard = () => {
 };
 
 // VAPID public key
-const VAPID_PUBLIC_KEY = "YOUR_VAPID_PUBLIC_KEY_HERE"; // Reemplazar con tu clave pública VAPID
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "YOUR_VAPID_PUBLIC_KEY_HERE";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -229,15 +229,31 @@ export default function SettingsPage() {
     const toastId = sonnerToast.loading('Actualizando contraseña...');
     
     try {
-      const user = auth.currentUser;
+      // Obtener usuario actual de Supabase
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user || !user.email) {
         throw new Error('No hay un usuario autenticado para realizar esta operación.');
       }
       
-      const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
-      await reauthenticateWithCredential(user, credential);
+      // Verificar contraseña actual intentando hacer login
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: data.currentPassword,
+      });
       
-      await updatePassword(user, data.newPassword);
+      if (signInError) {
+        throw new Error('La contraseña actual es incorrecta.');
+      }
+      
+      // Actualizar contraseña via API admin
+      const response = await fetch('/api/admin/users/update-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, newPassword: data.newPassword }),
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Error al actualizar contraseña');
       
       sonnerToast.success('Contraseña actualizada', {
         id: toastId,
@@ -247,14 +263,16 @@ export default function SettingsPage() {
 
     } catch (error: any) {
         let errorMessage = "No se pudo cambiar la contraseña. Intenta de nuevo.";
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        if (error.message.includes('incorrecta') || error.message.includes('Invalid login credentials')) {
             errorMessage = "La contraseña actual que ingresaste es incorrecta.";
             passwordForm.setError("currentPassword", { type: "manual", message: errorMessage });
-        } else if (error.code === 'auth/weak-password') {
+        } else if (error.message.includes('weak') || error.message.includes('Weak password')) {
             errorMessage = "La nueva contraseña es muy débil. Debe tener al menos 8 caracteres.";
             passwordForm.setError("newPassword", { type: "manual", message: errorMessage });
-        } else if (error.code === 'auth/requires-recent-login') {
+        } else if (error.message.includes('recent login') || error.message.includes('requires-recent-login')) {
             errorMessage = "Por seguridad, debes iniciar sesión de nuevo para cambiar tu contraseña.";
+        } else {
+            errorMessage = error.message;
         }
         sonnerToast.error('Error al cambiar contraseña', {
           id: toastId,
@@ -285,14 +303,23 @@ export default function SettingsPage() {
     try {
       const registration = await navigator.serviceWorker.ready;
       const existingSubscription = await registration.pushManager.getSubscription();
-      const userRef = doc(db, 'users', currentUser!.uid);
 
       if (isSubscribed && existingSubscription) {
         // Unsubscribe
         await existingSubscription.unsubscribe();
-        await updateDoc(userRef, {
-          pushSubscriptions: arrayRemove(existingSubscription.toJSON())
+        
+        const response = await fetch('/api/admin/push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userId: currentUser!.uid, 
+            subscription: existingSubscription.toJSON(),
+            action: 'unsubscribe' 
+          }),
         });
+        
+        if (!response.ok) throw new Error('Error al cancelar suscripción');
+        
         setIsSubscribed(false);
         sonnerToast.success("Suscripción cancelada", { id: toastId });
       } else {
@@ -307,9 +334,17 @@ export default function SettingsPage() {
           applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
         });
 
-        await updateDoc(userRef, {
-          pushSubscriptions: arrayUnion(subscription.toJSON())
+        const response = await fetch('/api/admin/push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userId: currentUser!.uid, 
+            subscription: subscription.toJSON(),
+            action: 'subscribe' 
+          }),
         });
+        
+        if (!response.ok) throw new Error('Error al activar suscripción');
 
         setIsSubscribed(true);
         sonnerToast.success("Notificaciones activadas", { id: toastId });
