@@ -301,7 +301,7 @@ export interface Database {
           id: string;
           name: string;
           type: 'income' | 'expense' | 'payment';
-          affects: 'client_balance' | 'partner_balance' | 'none';
+          affects: 'client_balance' | 'partner_balance' | 'none' | 'security_deposit' | 'credit_payment' | 'credit_granted' | 'driver_payment';
           description?: string | null;
           is_default?: boolean | null;
           company_id?: string | null;

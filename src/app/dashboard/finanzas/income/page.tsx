@@ -17,7 +17,7 @@ import type { DateRange } from 'react-day-picker';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast as sonnerToast } from 'sonner';
-import { PARTNER_PAYMENT_CATEGORY_ID, CREDIT_PAYMENT_CATEGORY } from '@/contexts/finance-constants';
+import { PARTNER_PAYMENT_CATEGORY_ID } from '@/contexts/finance-constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, FileText, MoreHorizontal, Edit, Trash2, Users } from 'lucide-react';
@@ -77,7 +77,7 @@ const IncomeMobileCard = ({ record, onEdit, onDelete }: { record: IncomeData, on
 };
 
 export default function IncomesPage() {
-  const { financialRecords, financialCategories, deleteFinancialRecord, addIncome, loading: loadingFinances, processCreditPayment } = useFinances();
+  const { financialRecords, financialCategories, deleteFinancialRecord, addIncome, loading: loadingFinances } = useFinances();
   const { clients, credits, loading: loadingClients } = useClients();
   const { vehicles, vehiclesLoading } = useVehicles();
   const { companies, selectedCompanyId, partners } = useData();

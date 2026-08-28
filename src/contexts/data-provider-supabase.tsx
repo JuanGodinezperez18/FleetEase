@@ -1296,6 +1296,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (creditError || !credit) throw new Error('Crédito no encontrado');
       if (credit.status !== 'active') throw new Error('El crédito no está activo');
+      if (!(amount > 0)) throw new Error('El monto del pago debe ser mayor a 0');
+      if (amount > credit.remaining_balance) {
+        throw new Error(
+          `El pago ($${amount.toFixed(2)}) excede el saldo restante ($${credit.remaining_balance.toFixed(2)}). Registra como máximo el saldo restante.`
+        );
+      }
 
       const newPaidAmount = credit.paid_amount + amount;
       const newRemainingBalance = Math.max(0, credit.remaining_balance - amount);
@@ -1345,11 +1351,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
           .eq('id', clientId);
       }
 
+      // category_id es NOT NULL (uuid) en Postgres: si no se provee uno
+      // explícito, resolvemos el id real de la categoría marcada con
+      // affects='credit_payment' en vez de usar un id fijo hardcodeado
+      // (la constante CREDIT_PAYMENT_CATEGORY es un id heredado de
+      // Firestore, ya no es un uuid válido en Supabase).
+      let resolvedCategoryId = categoryId;
+      if (!resolvedCategoryId) {
+        const { data: paymentCategory, error: categoryError } = await supabase
+          .from('financial_categories')
+          .select('id')
+          .eq('affects', 'credit_payment')
+          .limit(1)
+          .maybeSingle();
+        if (categoryError || !paymentCategory) {
+          throw new Error('No existe una categoría de "Pago de Crédito" configurada (affects=credit_payment). Créala en Configuración > Categorías Financieras.');
+        }
+        resolvedCategoryId = paymentCategory.id;
+      }
+
       await addFinancialRecordMutation.mutateAsync({
         companyId: companyId || credit.company_id,
         clientId,
         vehicleId: credit.vehicle_id,
-        categoryId: categoryId || CREDIT_PAYMENT_CATEGORY,
+        categoryId: resolvedCategoryId,
         category: 'Pago de Crédito',
         type: 'payment',
         amount,

@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import type { Credit, Client, Vehicle, FinancialRecord } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { differenceInWeeks, addWeeks } from 'date-fns';
-import { CREDIT_PAYMENT_CATEGORY } from '@/contexts/data-provider';
 
 
 export type CreditMetric = {
