@@ -24,7 +24,7 @@ export type LicenseStatus = 'active' | 'expired';
 export type FinancialRecordType = 'income' | 'expense' | 'payment';
 
 // Tipos de afectación de balance
-export type BalanceAffects = 'client_balance' | 'partner_balance' | 'none';
+export type BalanceAffects = 'client_balance' | 'partner_balance' | 'none' | 'security_deposit' | 'credit_payment' | 'credit_granted' | 'driver_payment';
 
 // Estados de crédito
 export type CreditStatus = 'active' | 'completed' | 'defaulted' | 'inactive' | 'cancelled';

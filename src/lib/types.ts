@@ -283,7 +283,7 @@ export interface FinancialCategory {
   id: string;
   name: string;
   type: 'income' | 'expense' | 'payment';
-  affects: 'client_balance' | 'partner_balance' | 'none';
+  affects: 'client_balance' | 'partner_balance' | 'none' | 'security_deposit' | 'credit_payment' | 'credit_granted' | 'driver_payment';
   description?: string;
   isDefault?: boolean;
   companyId?: string | null;

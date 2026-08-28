@@ -31,8 +31,9 @@ import {
   daysBetweenInclusive,
   DEFAULT_MAINTENANCE_INTERVAL_KM,
   SECURITY_DEPOSIT_CATEGORY,
+  categoryIdsByAffects,
 } from '@/lib/financial-metrics';
-import type { FinancialRecord, Vehicle } from '@/types';
+import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
 
 // --- Fixtures ---
 
@@ -223,7 +224,7 @@ describe('financial-metrics', () => {
   });
 
   describe('sumRentalIncome', () => {
-    it('excluye la categoría de depósito en garantía', () => {
+    it('excluye la categoría de depósito en garantía (legado, por nombre)', () => {
       const records = [
         makeRecord({ id: '1', type: 'income', amount: 1000, category: 'Renta' }),
         makeRecord({ id: '2', type: 'income', amount: 5000, category: SECURITY_DEPOSIT_CATEGORY }),
@@ -238,6 +239,54 @@ describe('financial-metrics', () => {
         makeRecord({ id: '3', type: 'expense', amount: 999, category: 'Renta' }),
       ];
       expect(sumRentalIncome(records)).toBe(1000);
+    });
+
+    it('excluye por categoryId cuando se provee el set de depositCategoryIds (mecanismo robusto)', () => {
+      const records = [
+        makeRecord({ id: '1', type: 'income', amount: 1000, categoryId: 'cat-renta', category: 'Renta Semanal' }),
+        // Nombre de categoría distinto al legado, pero su ID sí está marcado como depósito real:
+        makeRecord({ id: '2', type: 'income', amount: 5000, categoryId: 'cat-deposito', category: 'Depósito en Garantía' }),
+      ];
+      const depositCategoryIds = new Set(['cat-deposito']);
+      expect(sumRentalIncome(records, depositCategoryIds)).toBe(1000);
+    });
+
+    it('sin depositCategoryIds no excluye una categoría con nombre distinto al legado', () => {
+      // Documenta el comportamiento de fallback: sin el set, solo se filtra por
+      // el nombre legado exacto (SECURITY_DEPOSIT_CATEGORY), no por cualquier
+      // categoría que "suene" a depósito.
+      const records = [
+        makeRecord({ id: '1', type: 'income', amount: 1000, categoryId: 'cat-deposito', category: 'Depósito en Garantía' }),
+      ];
+      expect(sumRentalIncome(records)).toBe(1000);
+    });
+  });
+
+  describe('categoryIdsByAffects', () => {
+    const categories: FinancialCategory[] = [
+      { id: 'cat-1', name: 'Renta Semanal', type: 'income', affects: 'client_balance' },
+      { id: 'cat-2', name: 'Depósito en Garantía', type: 'income', affects: 'security_deposit' },
+      { id: 'cat-3', name: 'Pago de Crédito', type: 'income', affects: 'credit_payment' },
+      { id: 'cat-4', name: 'Otro Depósito Regional', type: 'income', affects: 'security_deposit' },
+    ];
+
+    it('devuelve todos los categoryId que coinciden con el affects pedido', () => {
+      const ids = categoryIdsByAffects(categories, 'security_deposit');
+      expect(ids.has('cat-2')).toBe(true);
+      expect(ids.has('cat-4')).toBe(true);
+      expect(ids.size).toBe(2);
+    });
+
+    it('no incluye categorías con otro affects', () => {
+      const ids = categoryIdsByAffects(categories, 'security_deposit');
+      expect(ids.has('cat-1')).toBe(false);
+      expect(ids.has('cat-3')).toBe(false);
+    });
+
+    it('devuelve un Set vacío si no hay categorías o es undefined/null', () => {
+      expect(categoryIdsByAffects(undefined, 'security_deposit').size).toBe(0);
+      expect(categoryIdsByAffects(null, 'security_deposit').size).toBe(0);
+      expect(categoryIdsByAffects([], 'security_deposit').size).toBe(0);
     });
   });
 

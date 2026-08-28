@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { FinancialRecord, Client, Vehicle, Partner } from '@/types';
+import type { FinancialRecord, Client, Vehicle, Partner, FinancialCategory } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -14,7 +14,7 @@ import {
   sumExpense,
   sumPayment,
   daysBetweenInclusive,
-  SECURITY_DEPOSIT_CATEGORY,
+  categoryIdsByAffects,
 } from '@/lib/financial-metrics';
 
 type ProfitabilityLevel = 'high' | 'medium' | 'low' | 'negative';
@@ -74,7 +74,7 @@ export const useFinancialAnalytics = (
   vehicles: Vehicle[],
   partners: Partner[],
   dateRange?: { from?: Date; to?: Date },
-  financialCategories?: any[]
+  financialCategories?: FinancialCategory[]
 ): FinancialAnalytics => {
 
   const analytics = useMemo(() => {
@@ -100,10 +100,12 @@ export const useFinancialAnalytics = (
     const todayEnd = endOfDay(now);
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: todayStart, to: todayEnd });
     
-    const todayIncome = sumRentalIncome(todayRecords);
+    const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
+
+    const todayIncome = sumRentalIncome(todayRecords, depositCategoryIds);
     const todayExpenses = sumExpense(todayRecords);
 
-    const totalIncome = sumRentalIncome(filteredRecords);
+    const totalIncome = sumRentalIncome(filteredRecords, depositCategoryIds);
 
     const totalExpenses = sumExpense(filteredRecords);
 
@@ -122,7 +124,7 @@ export const useFinancialAnalytics = (
     const clientsWithRevenueInPeriod = new Set<string>();
 
     filteredRecords.forEach(record => {
-      if (record.type === 'income' && record.category !== SECURITY_DEPOSIT_CATEGORY) {
+      if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '')) {
         // Usar categoryId para obtener el nombre actualizado de la categoría
         // (los depósitos en garantía se excluyen: no son ingreso real, ver sumRentalIncome)
         const categoryName = record.categoryId && categoryMap.has(record.categoryId)
@@ -167,7 +169,7 @@ export const useFinancialAnalytics = (
         const clientRecords = filteredRecords.filter(r => r.clientId === client.id);
         
         const revenue = clientRecords
-          .filter(r => r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)
+          .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || ''))
           .reduce((sum, r) => sum + r.amount, 0);
         const expenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
         const netProfit = revenue - expenses;
@@ -194,7 +196,7 @@ export const useFinancialAnalytics = (
       
       const monthRecords = filterRecordsByDateRange(financialRecords, { from: monthStart, to: monthEnd });
       
-      const income = sumRentalIncome(monthRecords);
+      const income = sumRentalIncome(monthRecords, depositCategoryIds);
       const expenses = sumExpense(monthRecords);
       const payments = sumPayment(monthRecords);
       
@@ -222,7 +224,7 @@ export const useFinancialAnalytics = (
     
     const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
     
-    const prevMonthIncome = sumRentalIncome(prevMonthRecords);
+    const prevMonthIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
     const prevMonthExpenses = sumExpense(prevMonthRecords);
     const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
 

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import type { Vehicle, FinancialRecord } from '@/types';
+import type { Vehicle, FinancialRecord, FinancialCategory } from '@/types';
 import {
   filterRecordsSince,
   filterRecordsByVehicle,
@@ -18,6 +18,7 @@ import {
   sumExpense,
   calculateProfitMargin,
   daysBetweenInclusive,
+  categoryIdsByAffects,
 } from '@/lib/financial-metrics';
 
 interface VehicleProfitability {
@@ -33,6 +34,7 @@ interface VehicleProfitability {
 interface VehicleProfitabilityDashboardProps {
   vehicles: Vehicle[];
   financialRecords: FinancialRecord[];
+  financialCategories?: FinancialCategory[];
   periodDays?: number;
   dateRange?: { from?: Date; to?: Date };
 }
@@ -40,12 +42,14 @@ interface VehicleProfitabilityDashboardProps {
 export function VehicleProfitabilityDashboard({
   vehicles,
   financialRecords,
+  financialCategories,
   periodDays = 30,
   dateRange,
 }: VehicleProfitabilityDashboardProps) {
   
   // Calcular rentabilidad por vehículo
   const profitabilityData: VehicleProfitability[] = useMemo(() => {
+    const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
     const effectiveDays =
       dateRange?.from && dateRange?.to
         ? daysBetweenInclusive(dateRange.from, dateRange.to)
@@ -68,7 +72,7 @@ export function VehicleProfitabilityDashboard({
         );
 
         // Calcular ingresos (rentas)
-        const totalIncome = sumRentalIncome(vehicleRecords);
+        const totalIncome = sumRentalIncome(vehicleRecords, depositCategoryIds);
 
         // Calcular gastos (mantenimiento, seguros, multas, operativos)
         const totalExpenses = sumExpense(vehicleRecords);

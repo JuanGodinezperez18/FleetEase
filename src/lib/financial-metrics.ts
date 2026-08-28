@@ -9,13 +9,24 @@
  * - Nunca modificar las fórmulas de negocio (margen, ROI, ocupación) sin aprobación explícita.
  * - Los helpers que devuelven montos siempre suman `r.amount || 0` para ser defensivos.
  */
-import type { FinancialRecord, Vehicle } from '@/types';
+import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
 import { differenceInDays, isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
 export type DateRange = { from: Date; to: Date };
 
 export const DEFAULT_MAINTENANCE_INTERVAL_KM = 10000;
+
+/**
+ * Devuelve el conjunto de categoryId cuya categoría tiene el `affects` indicado.
+ * Mecanismo robusto para identificar categorías especiales (depósito, pago de
+ * crédito, etc.) sin depender de coincidencia de nombre de texto libre, que
+ * varía por empresa. Ver columna `affects` en financial_categories (Supabase).
+ */
+export const categoryIdsByAffects = (
+  categories: FinancialCategory[] | undefined | null,
+  affects: FinancialCategory['affects']
+): Set<string> => new Set((categories ?? []).filter(c => c.affects === affects).map(c => c.id));
 
 /** Categoría de ingresos que NO se contabiliza como renta (depósito en garantía). */
 export const SECURITY_DEPOSIT_CATEGORY = 'Deposito en Garantia';
@@ -110,8 +121,20 @@ export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filt
  * Suma de ingresos por rentas (excluye depósitos en garantía).
  * Se usa en dashboards de rentabilidad por vehículo.
  */
-export const sumRentalIncome = (records: FinancialRecord[]): number =>
-  sumAmount(records.filter(r => isActiveRecord(r) && isIncome(r) && r.category !== SECURITY_DEPOSIT_CATEGORY));
+/**
+ * Suma el ingreso real de renta, excluyendo depósitos en garantía.
+ * `depositCategoryIds` debe venir de `categoryIdsByAffects(categories, 'security_deposit')`;
+ * si no se provee, cae de forma defensiva a la comparación por nombre legado.
+ */
+export const sumRentalIncome = (
+  records: FinancialRecord[],
+  depositCategoryIds?: Set<string>
+): number =>
+  sumAmount(records.filter(r =>
+    isActiveRecord(r) && isIncome(r) &&
+    r.category !== SECURITY_DEPOSIT_CATEGORY &&
+    !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
+  ));
 
 // --- Métricas ---
 
