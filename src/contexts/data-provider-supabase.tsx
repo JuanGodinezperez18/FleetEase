@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { addWeeks } from 'date-fns';
 import { logger } from '@/lib/logger';
+import { validateCreditPayment, computeCreditPaymentUpdate } from '@/lib/credit-payments';
 import type {
   Client,
   Vehicle,
@@ -1295,18 +1296,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (creditError || !credit) throw new Error('Crédito no encontrado');
-      if (credit.status !== 'active') throw new Error('El crédito no está activo');
-      if (!(amount > 0)) throw new Error('El monto del pago debe ser mayor a 0');
-      if (amount > credit.remaining_balance) {
-        throw new Error(
-          `El pago ($${amount.toFixed(2)}) excede el saldo restante ($${credit.remaining_balance.toFixed(2)}). Registra como máximo el saldo restante.`
-        );
-      }
 
-      const newPaidAmount = credit.paid_amount + amount;
-      const newRemainingBalance = Math.max(0, credit.remaining_balance - amount);
-      const paymentsMade = (credit.payments_made || 0) + 1;
-      const isCompleted = newRemainingBalance <= 0;
+      const validation = validateCreditPayment(credit, amount);
+      if (!validation.valid) throw new Error(validation.error);
+
+      const { newPaidAmount, newRemainingBalance, paymentsMade, isCompleted } =
+        computeCreditPaymentUpdate(credit, amount);
 
       const { error: updateError } = await supabase
         .from('credits')
