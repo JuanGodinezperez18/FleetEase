@@ -18,6 +18,7 @@ type MultiSelectOption = {
   role?: string;
 };
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { sanitizeUserInput } from '@/lib/validators';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
@@ -224,19 +225,25 @@ const MessageSender = ({
       return;
     }
 
+    // Texto libre escrito por el usuario: se persiste y se vuelve a cargar
+    // en el textarea (loadTemplate) y se reenvía tal cual a los
+    // destinatarios, así que se sanitiza aquí antes de guardar.
+    const sanitizedName = sanitizeUserInput(templateName);
+    const sanitizedContent = sanitizeUserInput(message);
+
     try {
       if (editingTemplate) {
         await updateMessageTemplate(editingTemplate.id, {
-          name: templateName,
-          content: message,
+          name: sanitizedName,
+          content: sanitizedContent,
           type,
           updatedAt: new Date().toISOString(),
         });
         toast.success('Plantilla actualizada correctamente');
       } else {
         const template: Omit<MessageTemplate, 'id'> = {
-          name: templateName,
-          content: message,
+          name: sanitizedName,
+          content: sanitizedContent,
           type,
           companyId: currentUser.companyId,
           createdAt: new Date().toISOString(),
@@ -310,8 +317,8 @@ const MessageSender = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: notificationTitle,
-            message: message,
+            title: sanitizeUserInput(notificationTitle),
+            message: sanitizeUserInput(message),
             recipientType: 'specific',
             selectedUsers: selectedRecipients,
             sendPush: true,
@@ -355,7 +362,7 @@ const MessageSender = ({
 
       setIsSending(true);
       try {
-        await sendInternalMessage(selectedRecipients, 'Mensaje del Administrador', message);
+        await sendInternalMessage(selectedRecipients, 'Mensaje del Administrador', sanitizeUserInput(message));
         toast.success("Mensajes internos enviados correctamente");
         setSelectedRecipients([]);
         setMessage('');

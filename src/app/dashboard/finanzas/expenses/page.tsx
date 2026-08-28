@@ -17,6 +17,7 @@ import { getColumns, type ExpenseData } from './columns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
+import { sanitizeExpenseFormData } from '@/lib/sanitize-expense';
 import type { DateRange } from 'react-day-picker';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -186,21 +187,23 @@ export default function ExpensesPage() {
         setIsSubmitting(true);
         const toastId = toast.loading(editingRecord ? 'Actualizando gasto...' : 'Agregando gasto...');
         try {
+            const sanitizedData = sanitizeExpenseFormData(data);
+
             if (editingRecord) {
-                await updateFinancialRecord(editingRecord.id, data);
+                await updateFinancialRecord(editingRecord.id, sanitizedData);
                 toast.success('Gasto actualizado', { id: toastId });
             } else {
                 // Calcular amount total de los items
-                const totalAmount = data.items.reduce((sum, item) => sum + item.amount, 0);
-                const description = data.items.map(item => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
-                
+                const totalAmount = sanitizedData.items.reduce((sum, item) => sum + item.amount, 0);
+                const description = sanitizedData.items.map(item => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
+
                 // Obtener nombre de la categoría
                 const category = financialCategories.find(c => c.id === data.categoryId)?.name || '';
-                
+
                 await addExpense({
-                    ...data,
+                    ...sanitizedData,
                     amount: totalAmount,
-                    description: data.description || description,
+                    description: sanitizedData.description || description,
                     isDeleted: false,
                     createdAt: new Date().toISOString(),
                     category,
