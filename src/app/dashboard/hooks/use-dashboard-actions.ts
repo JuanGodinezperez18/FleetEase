@@ -4,16 +4,20 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { checkCreditAvailability, buildCreditData } from '@/lib/credit-creation';
 import type { QuickActionModal } from './use-dashboard-page';
 
 interface UseDashboardActionsProps {
   addIncome?: (data: any) => Promise<any>;
   addExpense?: (data: any) => Promise<any>;
-  addCredit?: (data: any) => Promise<any>;
+  createCreditWithFinancialRecord?: (creditData: any, companyId: string) => Promise<string | null>;
+  updateVehicle?: (id: string, data: any) => Promise<any>;
+  credits?: Array<{ id: string; vehicleId: string; clientId: string; status: string; isDeleted?: boolean }>;
+  selectedCompanyId?: string | null;
   addClient?: (data: any) => Promise<any>;
   addVehicle?: (data: any) => Promise<any>;
   addMileageLog?: (data: any) => Promise<any>;
-  currentUser?: { uid?: string; role?: string };
+  currentUser?: { uid?: string; role?: string; companyId?: string | null };
   handleCloseQuickAction: () => void;
 }
 
@@ -24,7 +28,10 @@ interface UseDashboardActionsProps {
 export function useDashboardActions({
   addIncome,
   addExpense,
-  addCredit,
+  createCreditWithFinancialRecord,
+  updateVehicle,
+  credits,
+  selectedCompanyId,
   addClient,
   addVehicle,
   addMileageLog,
@@ -84,24 +91,54 @@ export function useDashboardActions({
   }, [addExpense, handleCloseQuickAction]);
 
   // Handler para créditos
+  //
+  // Antes: llamaba a addCredit(data) directo con el 'data' crudo del
+  // formulario (clientId, vehicleId, startDate, numberOfPayments,
+  // weeklyPayment) - eso es un insert crudo sin total_amount calculado
+  // (columna NOT NULL), sin cronograma de pagos, sin bloquear el vehículo
+  // y sin generar el ingreso "Crédito Otorgado". Esta acción rápida usaba
+  // una ruta completamente distinta a la de /dashboard/credits, que sí
+  // hace todo eso via createCreditWithFinancialRecord. Ahora replica
+  // exactamente esa misma lógica.
   const handleCreditSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
-      await addCredit?.(data);
+
+      const availability = checkCreditAvailability(credits || [], {
+        vehicleId: data.vehicleId,
+        clientId: data.clientId,
+      });
+      if (!availability.available) {
+        toast.error(availability.error);
+        return;
+      }
+
+      const creditData = buildCreditData(data, currentUser?.companyId ?? selectedCompanyId);
+      const creditId = await createCreditWithFinancialRecord?.(creditData, creditData.companyId);
+
+      if (creditId) {
+        await updateVehicle?.(data.vehicleId, {
+          lockedByCredit: true,
+          associatedCreditId: creditId,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['credits'] }),
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
         queryClient.invalidateQueries({ queryKey: ['financialRecords'] }),
+        queryClient.invalidateQueries({ queryKey: ['creditPaymentSchedules'] }),
       ]);
       toast.success('Crédito registrado exitosamente');
       handleCloseQuickAction();
     } catch (error) {
       console.error('Error al registrar crédito:', error);
-      toast.error('Error al registrar el crédito');
+      toast.error(error instanceof Error ? error.message : 'Error al registrar el crédito');
     } finally {
       setIsSubmittingForm(false);
     }
-  }, [addCredit, queryClient, handleCloseQuickAction]);
+  }, [createCreditWithFinancialRecord, updateVehicle, credits, selectedCompanyId, currentUser?.companyId, queryClient, handleCloseQuickAction]);
 
   // Handler para clientes
   const handleClientSubmit = useCallback(async (data: any) => {

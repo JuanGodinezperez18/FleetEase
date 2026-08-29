@@ -195,6 +195,27 @@ export const DataContext = createContext<DataContextType | undefined>(undefined)
 // CONSTANTES (exportadas para compatibilidad)
 // =====================================================
 
+// Resuelve el id real (uuid) de la categoría financiera marcada con el
+// 'affects' dado. category_id es NOT NULL en Postgres, así que nunca se
+// puede insertar un id hardcodeado/heredado (p.ej. de Firestore) como
+// fallback: hay que resolverlo contra la tabla real. Lanza un error claro
+// y accionable si no existe ninguna categoría configurada con ese affects.
+async function resolveCategoryIdByAffects(
+  affects: 'credit_payment' | 'credit_granted' | 'security_deposit' | 'client_balance' | 'partner_balance' | 'driver_payment' | 'none',
+  friendlyName: string
+): Promise<string> {
+  const { data: category, error } = await supabase
+    .from('financial_categories')
+    .select('id')
+    .eq('affects', affects)
+    .limit(1)
+    .maybeSingle();
+  if (error || !category) {
+    throw new Error(`No existe una categoría de "${friendlyName}" configurada (affects=${affects}). Créala en Configuración > Categorías Financieras.`);
+  }
+  return category.id;
+}
+
 export const CREDIT_GRANTED_CATEGORY = 'Crédito Otorgado';
 export const CREDIT_PAYMENT_CATEGORY = 'vKeQhlbdBmZhPw8ZmJEX';
 export const CLIENT_PAYMENT_CATEGORY = "Abono de Cliente";
@@ -1353,16 +1374,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Firestore, ya no es un uuid válido en Supabase).
       let resolvedCategoryId = categoryId;
       if (!resolvedCategoryId) {
-        const { data: paymentCategory, error: categoryError } = await supabase
-          .from('financial_categories')
-          .select('id')
-          .eq('affects', 'credit_payment')
-          .limit(1)
-          .maybeSingle();
-        if (categoryError || !paymentCategory) {
-          throw new Error('No existe una categoría de "Pago de Crédito" configurada (affects=credit_payment). Créala en Configuración > Categorías Financieras.');
-        }
-        resolvedCategoryId = paymentCategory.id;
+        resolvedCategoryId = await resolveCategoryIdByAffects('credit_payment', 'Pago de Crédito');
       }
 
       await addFinancialRecordMutation.mutateAsync({
@@ -1451,11 +1463,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .eq('status', 'pending');
 
       if (remainingBalance > 0) {
+        // Antes: categoryId: 'credit-cancellation' (string literal, no es un
+        // uuid válido) -> financial_records.category_id es NOT NULL uuid en
+        // Postgres, así que esto fallaba en toda cancelación con saldo > 0
+        // (que es prácticamente cualquier cancelación real, porque solo se
+        // puede cancelar un crédito 'active'). Se reutiliza la categoría de
+        // 'Pago de Crédito' (affects=credit_payment) porque una Nota de
+        // Crédito por cancelación es, contablemente, un movimiento contra el
+        // mismo saldo del crédito.
+        const categoryId = await resolveCategoryIdByAffects('credit_payment', 'Pago de Crédito');
         await addFinancialRecordMutation.mutateAsync({
           companyId: credit.company_id,
           clientId: credit.client_id,
           vehicleId: credit.vehicle_id,
-          categoryId: 'credit-cancellation',
+          categoryId,
           category: 'Nota de Crédito',
           type: 'payment',
           amount: remainingBalance,

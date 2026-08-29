@@ -23,6 +23,7 @@ import { formatDate } from '@/lib/date-utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-provider';
+import { checkCreditAvailability, buildCreditData } from '@/lib/credit-creation';
 
 
 const CreditMobileCard = ({ credit, onEdit, onDelete, onDeactivate, onViewDetails }: { credit: CreditWithMetrics, onEdit: (c: Credit) => void, onDelete: (id: string) => void, onDeactivate: (id: string) => void, onViewDetails: (id: string) => void }) => {
@@ -249,93 +250,41 @@ export default function CreditsPage() {
     const toastId = sonnerToast.loading(editingCredit ? "Actualizando crédito..." : "Creando crédito...");
     
     try {
-      // Validar que exista un vehículo disponible
-      const existingCreditForVehicle = credits.find(c => 
-        c.vehicleId === data.vehicleId && 
-        c.status === 'active' && 
-        !c.isDeleted &&
-        c.id !== editingCredit?.id
-      );
-      
-      if (existingCreditForVehicle) {
-        const client = clients.find(cl => cl.id === existingCreditForVehicle.clientId);
-        console.log('❌ Vehículo ya tiene crédito activo');
-        sonnerToast.error('Vehículo No Disponible', {
-          id: toastId,
-          description: `Este vehículo ya tiene un crédito activo con ${client?.firstname || 'otro cliente'}`
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Validar que el cliente no tenga créditos activos
-      const clientActiveCreditsCount = credits.filter(c =>
-        c.clientId === data.clientId &&
-        c.status === 'active' &&
-        !c.isDeleted &&
-        c.id !== editingCredit?.id
-      ).length;
-
-      if (clientActiveCreditsCount > 0) {
-        console.log('❌ Cliente ya tiene crédito activo');
-        sonnerToast.error('Cliente con Crédito Activo', {
-          id: toastId,
-          description: 'Este cliente ya tiene un crédito activo. Complete o desactive el anterior primero.'
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      const weeklyPayment = Number(data.weeklyPayment) || 0;
-      const totalPayments = Number(data.numberOfPayments) || 0;
-      const totalAmount = weeklyPayment * totalPayments;
-      
-      console.log('💰 Cálculos:', { weeklyPayment, totalPayments, totalAmount });
-
-      // IMPORTANTE: Obtener el companyId correcto
-      const companyIdToUse = data.companyId || currentUser?.companyId || null;
-      
-      if (!companyIdToUse) {
-        console.error('❌ No se pudo determinar el companyId');
-        sonnerToast.error('Error', {
-          id: toastId,
-          description: 'No se pudo determinar la empresa. Por favor, selecciona una empresa.'
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
-      console.log('🏢 CompanyId a usar:', companyIdToUse);
-
-      const creditData: Omit<Credit, 'id'| 'isDeleted'> & { companyId?: string | null, createdAt?: string, updatedAt?: string } = {
-        clientId: data.clientId,
+      // Validar disponibilidad (1 crédito activo por vehículo/cliente) con
+      // la misma regla que usa la acción rápida del dashboard.
+      const availability = checkCreditAvailability(credits, {
         vehicleId: data.vehicleId,
-        startDate: data.startDate,
-        totalAmount,
-        weeklyPayment,
-        numberOfPayments: totalPayments,
-        paidAmount: 0,
-        remainingBalance: totalAmount,
-        status: 'active',
-        paymentsMade: 0,
-        companyId: companyIdToUse,
-        createdAt: editingCredit?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      console.log('📋 Datos del crédito preparados:', creditData);
-      
+        clientId: data.clientId,
+        excludeCreditId: editingCredit?.id,
+      });
+      if (!availability.available) {
+        const isVehicleError = availability.error?.includes('vehículo');
+        sonnerToast.error(isVehicleError ? 'Vehículo No Disponible' : 'Cliente con Crédito Activo', {
+          id: toastId,
+          description: availability.error,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const creditData = buildCreditData(
+        data,
+        currentUser?.companyId,
+        editingCredit?.createdAt
+      );
+      const totalAmount = creditData.totalAmount;
+
       if (editingCredit?.id) {
         console.log('✏️ Modo edición - Actualizando crédito:', editingCredit.id);
         await updateCredit(editingCredit.id, creditData);
         sonnerToast.success("Crédito Actualizado", { id: toastId });
       } else {
         console.log('➕ Modo creación - Llamando a createCreditWithFinancialRecord...');
-        console.log('📞 Argumentos:', { creditData, companyId: companyIdToUse });
+        console.log('📞 Argumentos:', { creditData, companyId: creditData.companyId });
         
         const creditId = await createCreditWithFinancialRecord(
             creditData, 
-            companyIdToUse
+            creditData.companyId
         );
 
         console.log('✅ Crédito creado con ID:', creditId);

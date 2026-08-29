@@ -44,7 +44,10 @@ export function useDashboardPage() {
   const actions = useDashboardActions({
     addIncome: data.dataContext?.addIncome,
     addExpense: data.dataContext?.addExpense,
-    addCredit: data.dataContext?.addCredit,
+    createCreditWithFinancialRecord: data.dataContext?.createCreditWithFinancialRecord,
+    updateVehicle: data.dataContext?.updateVehicle,
+    credits: data.dataContext?.credits,
+    selectedCompanyId: data.dataContext?.selectedCompanyId,
     addClient: data.dataContext?.addClient,
     addVehicle: data.dataContext?.addVehicle,
     addMileageLog: data.dataContext?.addMileageLog,
