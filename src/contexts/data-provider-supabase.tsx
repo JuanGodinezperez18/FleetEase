@@ -18,6 +18,7 @@ import { logger } from '@/lib/logger';
 import { validateCreditPayment, computeCreditPaymentUpdate } from '@/lib/credit-payments';
 import { allocatePaymentToSchedules } from '@/lib/credit-schedule-allocation';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
+import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, type NewAssignmentInput } from '@/lib/vehicle-assignment';
 import type {
   Client,
   Vehicle,
@@ -163,6 +164,8 @@ export interface DataContextType {
   cancelCredit: (creditId: string) => Promise<void>;
   cancelCreditWithAdjustment: (creditId: string, reason?: string) => Promise<void>;
   deleteCreditWithCleanup: (creditId: string) => Promise<void>;
+  createVehicleAssignment: (input: NewAssignmentInput) => Promise<void>;
+  endVehicleAssignment: (assignmentLogId: string, vehicleId: string) => Promise<void>;
 
   // Mileage operations
   addMileageLog: (log: Partial<DomainMileageLog>) => Promise<void>;
@@ -1524,6 +1527,106 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUser, addFinancialRecordMutation, refreshData]);
 
+  // Submódulo de Asignaciones (dentro de Vehículos): vehicle_assignment_logs
+  // ya existía y tenía RLS de SELECT/INSERT configurado, pero nada en la
+  // app insertaba filas ahí - no había forma de registrar una asignación
+  // general (renta) ni de consultar después "quién tenía este vehículo en
+  // tal fecha" (uso principal: identificar al responsable de una multa).
+  const createVehicleAssignment = useCallback(async (input: NewAssignmentInput) => {
+    if (!currentUser?.uid) throw new Error('Usuario no autenticado');
+    try {
+      const { data: vehicle, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', input.vehicleId)
+        .single();
+      if (vehicleError || !vehicle) throw new Error('Vehículo no encontrado');
+
+      const { data: openLogsRaw } = await supabase
+        .from('vehicle_assignment_logs')
+        .select('*')
+        .eq('vehicle_id', input.vehicleId)
+        .is('unassigned_at', null);
+      const openLogs = (openLogsRaw || []).map(toDomainVehicleAssignmentLog);
+
+      const availability = checkVehicleAssignmentAvailability(
+        { lockedByCredit: vehicle.locked_by_credit },
+        openLogs,
+        input.clientId
+      );
+      if (!availability.available) throw new Error(availability.error);
+
+      const now = new Date().toISOString();
+
+      // Cerrar cualquier asignación abierta de este mismo vehículo (será
+      // del mismo cliente si llegamos hasta aquí, dado el check anterior)
+      // antes de abrir la nueva, para que el historial no quede con
+      // asignaciones solapadas.
+      for (const openLog of openLogs) {
+        await supabase
+          .from('vehicle_assignment_logs')
+          .update({ unassigned_at: now })
+          .eq('id', openLog.id);
+      }
+
+      const payload = buildAssignmentLogPayload({ ...input, assignedBy: currentUser.uid }, now);
+      const { error: insertError } = await supabase
+        .from('vehicle_assignment_logs')
+        .insert(toSbVehicleAssignmentLog(payload) as any);
+      if (insertError) throw insertError;
+
+      await supabase
+        .from('vehicles')
+        .update({ client_id: input.clientId, status: 'rented', updated_at: now })
+        .eq('id', input.vehicleId);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }),
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+      ]);
+      toast.success('Asignación registrada exitosamente');
+    } catch (error: any) {
+      toast.error('Error al registrar la asignación', { description: error.message });
+      throw error;
+    }
+  }, [currentUser, queryClient]);
+
+  const endVehicleAssignment = useCallback(async (assignmentLogId: string, vehicleId: string) => {
+    try {
+      const now = new Date().toISOString();
+      const { error: updateLogError } = await supabase
+        .from('vehicle_assignment_logs')
+        .update({ unassigned_at: now })
+        .eq('id', assignmentLogId);
+      if (updateLogError) throw updateLogError;
+
+      const { data: vehicle } = await supabase
+        .from('vehicles')
+        .select('locked_by_credit')
+        .eq('id', vehicleId)
+        .single();
+
+      // Si el vehículo está bloqueado por un crédito activo, ese sistema
+      // es dueño de client_id/status - no lo tocamos aquí para no pisar
+      // el bloqueo de crédito.
+      if (!vehicle?.locked_by_credit) {
+        await supabase
+          .from('vehicles')
+          .update({ client_id: null, status: 'active', updated_at: now })
+          .eq('id', vehicleId);
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }),
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+      ]);
+      toast.success('Asignación finalizada');
+    } catch (error: any) {
+      toast.error('Error al finalizar la asignación', { description: error.message });
+      throw error;
+    }
+  }, [queryClient]);
+
   const deleteCreditWithCleanup = useCallback(async (creditId: string) => {
     try {
       await supabase
@@ -1685,6 +1788,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     cancelCredit: cancelCreditWithAdjustment,
     cancelCreditWithAdjustment,
     deleteCreditWithCleanup,
+    createVehicleAssignment,
+    endVehicleAssignment,
 
     addMileageLog: async (data) => {
       await addMileageLogMutation.mutateAsync(data as any);

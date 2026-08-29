@@ -216,11 +216,15 @@ export interface VehicleAssignmentLog {
   assignedAt: string;
   unassignedAt?: string | null;
   assignedBy: string;
-  reason?: string;
+  reason?: string | null;
   createdAt: string;
   //Alias para comparibilidad con analytics
   startDate?: string;
   endDate?: string | null;
+  odometerReading?: number | null;
+  fuelLevel?: string | null;
+  conditionNotes?: string | null;
+  photos?: Record<string, string> | null;
 }
 
 export type UserRole = 'admin' | 'editor' | 'viewer' | 'superAdmin' | 'partner' | 'client';

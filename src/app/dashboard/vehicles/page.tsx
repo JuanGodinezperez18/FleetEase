@@ -280,9 +280,14 @@ export default function VehiclesPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <h2 className="text-2xl font-bold tracking-tight">Gestión de Flota</h2>
-              <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Agregar Vehículo
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>
+                  Asignaciones
+                </Button>
+                <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Vehículo
+                </Button>
+              </div>
           </div>
         </CardHeader>
         <CardContent>

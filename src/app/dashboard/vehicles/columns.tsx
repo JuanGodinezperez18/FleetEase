@@ -3,7 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import type { Vehicle, Client, Partner } from "@/types";
-import { MoreHorizontal, Eye, FileText, DollarSign, CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { MoreHorizontal, Eye, FileText, DollarSign, CheckCircle, AlertTriangle, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -167,6 +167,10 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
               <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/transactions`)}>
                 <DollarSign className="mr-2 h-4 w-4" />
                 Transacciones
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}>
+                <Users className="mr-2 h-4 w-4" />
+                Historial de Asignaciones
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => onEdit(vehicle)}>

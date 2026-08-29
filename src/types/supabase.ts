@@ -328,6 +328,14 @@ export interface VehicleAssignmentLog {
   created_at: string;
   start_date?: string | null;
   end_date?: string | null;
+  /** Kilometraje del odómetro al momento de la entrega. */
+  odometer_reading?: number | null;
+  /** Nivel de combustible al momento de la entrega (ej. 'E', '1/4', '1/2', '3/4', 'F'). */
+  fuel_level?: string | null;
+  /** Notas de condición general del vehículo al entregarlo (rayones, golpes, etc.). */
+  condition_notes?: string | null;
+  /** Fotos de entrega, mismo patrón que vehicle_inspections.photos: { vista: url }. */
+  photos?: Record<string, string> | null;
 }
 
 export interface CompanyChangeLog {
