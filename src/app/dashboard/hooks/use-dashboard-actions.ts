@@ -4,7 +4,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { checkCreditAvailability, buildCreditData } from '@/lib/credit-creation';
+import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload } from '@/lib/credit-creation';
 import type { QuickActionModal } from './use-dashboard-page';
 
 interface UseDashboardActionsProps {
@@ -117,11 +117,7 @@ export function useDashboardActions({
       const creditId = await createCreditWithFinancialRecord?.(creditData, creditData.companyId);
 
       if (creditId) {
-        await updateVehicle?.(data.vehicleId, {
-          lockedByCredit: true,
-          associatedCreditId: creditId,
-          updatedAt: new Date().toISOString(),
-        });
+        await updateVehicle?.(data.vehicleId, buildVehicleCreditLockPayload(data.clientId, creditId));
       }
 
       await Promise.all([

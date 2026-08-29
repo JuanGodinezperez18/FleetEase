@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { addWeeks } from 'date-fns';
 import { logger } from '@/lib/logger';
 import { validateCreditPayment, computeCreditPaymentUpdate } from '@/lib/credit-payments';
+import { allocatePaymentToSchedules } from '@/lib/credit-schedule-allocation';
+import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
 import type {
   Client,
   Vehicle,
@@ -1321,8 +1323,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const validation = validateCreditPayment(credit, amount);
       if (!validation.valid) throw new Error(validation.error);
 
+      // Antes: solo se tomaba LA SIGUIENTE cuota pendiente (.limit(1)) y se
+      // marcaba pagada completa sin importar el monto del pago. Un pago de
+      // $3,000 contra cuotas de $1,000 descontaba bien el balance total
+      // pero solo marcaba 1 cuota en vez de 3 y solo sumaba +1 a
+      // payments_made en vez de +3, desincronizando el cronograma y el
+      // contador de cuotas pagadas del balance real. Ahora se traen TODAS
+      // las pendientes y se reparte el pago sobre las consecutivas que
+      // alcance a cubrir, antes de tocar el crédito.
+      const { data: schedules } = await supabase
+        .from('credit_payment_schedules')
+        .select('*')
+        .eq('credit_id', creditId)
+        .eq('status', 'pending')
+        .order('payment_number', { ascending: true });
+
+      const paidDate = new Date().toISOString();
+      const allocation = allocatePaymentToSchedules(schedules || [], amount, paidDate);
+      // Créditos legado sin cronograma generado: no penalizar el contador,
+      // conservar el +1 de siempre.
+      const installmentsCovered = schedules && schedules.length > 0 ? allocation.fullyPaid.length : 1;
+
       const { newPaidAmount, newRemainingBalance, paymentsMade, isCompleted } =
-        computeCreditPaymentUpdate(credit, amount);
+        computeCreditPaymentUpdate(credit, amount, installmentsCovered);
 
       const { error: updateError } = await supabase
         .from('credits')
@@ -1338,23 +1361,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (updateError) throw updateError;
 
-      const { data: schedules } = await supabase
-        .from('credit_payment_schedules')
-        .select('*')
-        .eq('credit_id', creditId)
-        .eq('status', 'pending')
-        .order('payment_number', { ascending: true })
-        .limit(1);
-
-      if (schedules && schedules.length > 0) {
+      for (const update of allocation.fullyPaid) {
         await supabase
           .from('credit_payment_schedules')
-          .update({
-            status: 'paid',
-            paid_amount: amount,
-            paid_date: new Date().toISOString(),
-          })
-          .eq('id', schedules[0].id);
+          .update({ status: update.status, paid_amount: update.paid_amount, paid_date: update.paid_date })
+          .eq('id', update.id);
+      }
+      for (const update of allocation.partiallyPaid) {
+        await supabase
+          .from('credit_payment_schedules')
+          .update({ paid_amount: update.paid_amount })
+          .eq('id', update.id);
       }
 
       if (isCompleted) {
@@ -1365,6 +1382,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
             active_credit_id: null,
           })
           .eq('id', clientId);
+
+        // El vehículo se bloqueó al crear el crédito (clientId, status,
+        // lockedByCredit) - antes nada lo liberaba al liquidarse, así que
+        // quedaba bloqueado para siempre incluso con el crédito pagado.
+        await supabase
+          .from('vehicles')
+          .update(toSbVehicle(buildVehicleCreditUnlockPayload()) as any)
+          .eq('id', credit.vehicle_id);
       }
 
       // category_id es NOT NULL (uuid) en Postgres: si no se provee uno
@@ -1400,7 +1425,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         success: true,
         newCreditBalance: newRemainingBalance,
         creditId,
-        paymentScheduleId: schedules?.[0]?.id || null,
+        paymentScheduleId: allocation.fullyPaid[0]?.id || allocation.partiallyPaid[0]?.id || null,
         creditCompleted: isCompleted,
       };
     } catch (error: any) {
@@ -1447,12 +1472,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .eq('id', credit.client_id);
 
       if (credit.vehicle_id) {
+        // Antes solo limpiaba locked_by_credit/associated_credit_id, sin
+        // tocar client_id/status - con el fix de que la creación ahora sí
+        // fija client_id+status='rented' (para que el vehículo deje de
+        // aparecer disponible para otros clientes), la cancelación tiene
+        // que revertir exactamente lo mismo o el vehículo quedaría
+        // "casado" con el cliente para siempre pese a estar cancelado.
         await supabase
           .from('vehicles')
-          .update({
-            locked_by_credit: false,
-            associated_credit_id: null,
-          })
+          .update(toSbVehicle(buildVehicleCreditUnlockPayload()) as any)
           .eq('id', credit.vehicle_id);
       }
 

@@ -164,8 +164,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
     const companyVehicles = vehicles.filter(v => v.companyId === companyIdToFilter && !v.isDeleted);
 
     return companyVehicles.filter(v => {
-      const isUnassignedAndActive = v.status === 'active' && !v.clientId;
       const isCurrentlyAssignedToThisClient = v.id === initialData?.assignedVehicleId;
+      // No ofrecer vehículos que ya están comprometidos con un crédito
+      // activo de OTRO cliente. Se revisa lockedByCredit explícitamente
+      // (no solo !v.clientId) como defensa extra por si algún crédito
+      // quedó creado antes de que la creación empezara a fijar clientId
+      // en el vehículo.
+      if (v.lockedByCredit && !isCurrentlyAssignedToThisClient) return false;
+
+      const isUnassignedAndActive = v.status === 'active' && !v.clientId;
 
       return isUnassignedAndActive || isCurrentlyAssignedToThisClient;
     });

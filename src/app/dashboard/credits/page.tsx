@@ -23,7 +23,7 @@ import { formatDate } from '@/lib/date-utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-provider';
-import { checkCreditAvailability, buildCreditData } from '@/lib/credit-creation';
+import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload } from '@/lib/credit-creation';
 
 
 const CreditMobileCard = ({ credit, onEdit, onDelete, onDeactivate, onViewDetails }: { credit: CreditWithMetrics, onEdit: (c: Credit) => void, onDelete: (id: string) => void, onDeactivate: (id: string) => void, onViewDetails: (id: string) => void }) => {
@@ -291,11 +291,7 @@ export default function CreditsPage() {
 
         if (creditId) {
           console.log('🔒 Bloqueando vehículo:', data.vehicleId);
-          await updateVehicle(data.vehicleId, {
-            lockedByCredit: true,
-            associatedCreditId: creditId,
-            updatedAt: new Date().toISOString()
-          });
+          await updateVehicle(data.vehicleId, buildVehicleCreditLockPayload(data.clientId, creditId));
           console.log('✅ Vehículo bloqueado correctamente');
         }
         

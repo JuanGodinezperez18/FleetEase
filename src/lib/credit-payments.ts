@@ -60,11 +60,12 @@ export function validateCreditPayment(
  */
 export function computeCreditPaymentUpdate(
   credit: Pick<Credit, 'paid_amount' | 'remaining_balance' | 'payments_made'>,
-  amount: number
+  amount: number,
+  installmentsCovered: number = 1
 ): CreditPaymentComputation {
   const newPaidAmount = credit.paid_amount + amount;
   const newRemainingBalance = Math.max(0, credit.remaining_balance - amount);
-  const paymentsMade = (credit.payments_made || 0) + 1;
+  const paymentsMade = (credit.payments_made || 0) + installmentsCovered;
   const isCompleted = newRemainingBalance <= 0;
 
   return { newPaidAmount, newRemainingBalance, paymentsMade, isCompleted };

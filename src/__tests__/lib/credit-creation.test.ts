@@ -9,7 +9,7 @@
  * 2. buildCreditData: el cálculo de totalAmount/remainingBalance/etc,
  *    antes duplicado (y desincronizado) entre ambos flujos.
  */
-import { checkCreditAvailability, buildCreditData } from '@/lib/credit-creation';
+import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload, buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
 import type { ExistingCreditLike } from '@/lib/credit-creation';
 
 const activeCredit = (overrides: Partial<ExistingCreditLike> = {}): ExistingCreditLike => ({
@@ -133,5 +133,37 @@ describe('buildCreditData', () => {
     const result = buildCreditData({ ...baseInput, weeklyPayment: 'abc' } as any, 'company-1');
     expect(result.weeklyPayment).toBe(0);
     expect(result.totalAmount).toBe(0);
+  });
+});
+
+describe('buildVehicleCreditLockPayload / buildVehicleCreditUnlockPayload', () => {
+  it('el payload de bloqueo fija clientId, status=rented y las banderas de crédito', () => {
+    const result = buildVehicleCreditLockPayload('client-1', 'credit-1', '2026-08-29T00:00:00.000Z');
+    expect(result).toEqual({
+      clientId: 'client-1',
+      status: 'rented',
+      lockedByCredit: true,
+      associatedCreditId: 'credit-1',
+      updatedAt: '2026-08-29T00:00:00.000Z',
+    });
+  });
+
+  it('el payload de desbloqueo limpia clientId, revierte status y apaga las banderas', () => {
+    const result = buildVehicleCreditUnlockPayload('2026-08-29T00:00:00.000Z');
+    expect(result).toEqual({
+      clientId: null,
+      status: 'active',
+      lockedByCredit: false,
+      associatedCreditId: null,
+      updatedAt: '2026-08-29T00:00:00.000Z',
+    });
+  });
+
+  it('genera un timestamp propio si no se pasa uno', () => {
+    const before = Date.now();
+    const lock = buildVehicleCreditLockPayload('client-1', 'credit-1');
+    const unlock = buildVehicleCreditUnlockPayload();
+    expect(new Date(lock.updatedAt).getTime()).toBeGreaterThanOrEqual(before);
+    expect(new Date(unlock.updatedAt).getTime()).toBeGreaterThanOrEqual(before);
   });
 });

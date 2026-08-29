@@ -55,6 +55,60 @@ export function checkCreditAvailability(
   return { available: true };
 }
 
+export interface VehicleCreditLockPayload {
+  clientId: string;
+  status: 'rented';
+  lockedByCredit: true;
+  associatedCreditId: string;
+  updatedAt: string;
+}
+
+export interface VehicleCreditUnlockPayload {
+  clientId: null;
+  status: 'active';
+  lockedByCredit: false;
+  associatedCreditId: null;
+  updatedAt: string;
+}
+
+/**
+ * Payload para "reclamar" un vehículo al crear un crédito: además de las
+ * banderas propias del crédito (lockedByCredit/associatedCreditId), fija
+ * clientId y status='rented' porque esos son los campos que el RESTO de
+ * la app usa como fuente de verdad de "este vehículo es de este cliente"
+ * (perfil de cliente, portal del cliente, formularios de gastos/ingresos/
+ * kilometraje, el propio formulario de crédito). Antes solo se fijaban
+ * lockedByCredit/associatedCreditId, así que el vehículo seguía apareciendo
+ * como disponible para asignarse a OTRO cliente en /dashboard/clients.
+ */
+export function buildVehicleCreditLockPayload(
+  clientId: string,
+  creditId: string,
+  timestamp?: string
+): VehicleCreditLockPayload {
+  return {
+    clientId,
+    status: 'rented',
+    lockedByCredit: true,
+    associatedCreditId: creditId,
+    updatedAt: timestamp || new Date().toISOString(),
+  };
+}
+
+/**
+ * Payload para liberar un vehículo cuando su crédito se completa o se
+ * cancela. Antes esto no existía en ningún lado: un vehículo bloqueado por
+ * crédito quedaba bloqueado para siempre, incluso después de liquidarse.
+ */
+export function buildVehicleCreditUnlockPayload(timestamp?: string): VehicleCreditUnlockPayload {
+  return {
+    clientId: null,
+    status: 'active',
+    lockedByCredit: false,
+    associatedCreditId: null,
+    updatedAt: timestamp || new Date().toISOString(),
+  };
+}
 export interface CreditFormInput {
   clientId: string;
   vehicleId: string;

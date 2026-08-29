@@ -113,6 +113,20 @@ describe('credit-payments', () => {
       expect(result.paymentsMade).toBe(1);
     });
 
+    it('suma installmentsCovered en vez de +1 fijo cuando el pago cubre varias cuotas (sobrepago)', () => {
+      // Caso reportado: pago de $3,000 contra cuotas de $1,000 debe sumar
+      // 3 al contador de cuotas pagadas, no 1.
+      const credit = makeCredit({ payments_made: 4, paid_amount: 4000, remaining_balance: 6000 });
+      const result = computeCreditPaymentUpdate(credit, 3000, 3);
+      expect(result.paymentsMade).toBe(7);
+    });
+
+    it('con installmentsCovered=0 (pago parcial que no completa ninguna cuota) no incrementa el contador', () => {
+      const credit = makeCredit({ payments_made: 4 });
+      const result = computeCreditPaymentUpdate(credit, 400, 0);
+      expect(result.paymentsMade).toBe(4);
+    });
+
     it('no altera el objeto crédito original (pura, sin side effects)', () => {
       const credit = makeCredit({ paid_amount: 2000, remaining_balance: 8000 });
       const snapshot = { ...credit };
