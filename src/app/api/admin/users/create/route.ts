@@ -18,12 +18,62 @@ interface CreateUserRequest {
   partnerAccess?: string[];
 }
 
+const PLAN_DEFAULTS: Record<string, { maxUsers: number }> = {
+  starter: { maxUsers: 1 },
+  pro: { maxUsers: 3 },
+  enterprise: { maxUsers: -1 },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body: CreateUserRequest = await request.json();
     const { email, password, name, phone, role, companyId, partnerAccess } = body;
 
-    // 1. Crear usuario en Supabase Auth
+    if (!email || !password || !name || !role) {
+      return NextResponse.json({ success: false, message: 'Faltan campos obligatorios.' }, { status: 400 });
+    }
+
+    // Enforce the plan limit on the server before touching Supabase Auth.
+    // The UI also validates this, but client-side validation is never authoritative.
+    if (role !== 'super_admin' && companyId) {
+      const { data: company, error: companyError } = await supabaseAdmin
+        .from('companies')
+        .select('plan, max_users')
+        .eq('id', companyId)
+        .single();
+
+      if (companyError || !company) {
+        return NextResponse.json({ success: false, message: 'Compañía no encontrada.' }, { status: 404 });
+      }
+
+      const plan = company.plan || 'starter';
+      const configuredLimit = company.max_users;
+      const maxUsers = configuredLimit ?? PLAN_DEFAULTS[plan]?.maxUsers ?? PLAN_DEFAULTS.starter.maxUsers;
+
+      if (maxUsers !== -1) {
+        const { count, error: countError } = await supabaseAdmin
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId)
+          .eq('is_deleted', false)
+          .neq('role', 'super_admin');
+
+        if (countError) {
+          console.error('[Create User API] Count error:', countError);
+          return NextResponse.json({ success: false, message: 'No se pudo validar el límite de usuarios.' }, { status: 500 });
+        }
+
+        if ((count ?? 0) >= maxUsers) {
+          return NextResponse.json({
+            success: false,
+            code: 'PLAN_USER_LIMIT_REACHED',
+            message: `Has alcanzado el límite de ${maxUsers} usuarios de tu plan ${plan}. Actualiza tu plan para agregar más usuarios.`,
+          }, { status: 409 });
+        }
+      }
+    }
+
+    // Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -33,20 +83,13 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('[Create User API] Auth error:', authError);
-      return NextResponse.json(
-        { success: false, message: authError.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: authError.message }, { status: 400 });
     }
 
     if (!authData.user) {
-      return NextResponse.json(
-        { success: false, message: 'No se pudo crear el usuario' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'No se pudo crear el usuario' }, { status: 500 });
     }
 
-    // 2. Crear perfil en tabla users
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -61,13 +104,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (profileError) {
-      // Rollback: eliminar usuario auth
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       console.error('[Create User API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: 'Error al crear el perfil de usuario' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'Error al crear el perfil de usuario' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -77,9 +116,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Create User API] Unexpected error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
   }
 }
