@@ -1,25 +1,46 @@
 "use client";
 
-import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function GlobalLoader() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-32 w-screen">
-      <div className="bg-white dark:bg-slate-950/50 border-b border-gray-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          {/* Header skeleton */}
-          <div className="h-10 bg-gray-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
-          <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded w-1/4"></div>
+    <div className="fe-app-shell min-h-screen w-full px-4 pb-12 pt-6 sm:px-6 lg:px-8" aria-busy="true" aria-label="Cargando FleetEase">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-7 flex items-center justify-between border-b border-white/[0.07] pb-5">
+          <div className="flex items-center gap-3">
+            <Skeleton className="fe-skeleton h-10 w-10 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="fe-skeleton h-4 w-28 rounded" />
+              <Skeleton className="fe-skeleton h-3 w-40 rounded" />
+            </div>
+          </div>
+          <Skeleton className="fe-skeleton h-10 w-10 rounded-full" />
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full">
-        {/* Grid skeleton con mismo ancho que el contenido real */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-max">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-3">
+            <Skeleton className="fe-skeleton h-8 w-56 rounded-lg" />
+            <Skeleton className="fe-skeleton h-4 w-72 rounded" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="fe-skeleton h-10 w-32 rounded-xl" />
+            <Skeleton className="fe-skeleton h-10 w-28 rounded-xl" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-gray-200 dark:bg-slate-700 rounded-lg h-32 animate-pulse"></div>
+            <div key={i} className="fe-surface rounded-2xl p-5">
+              <Skeleton className="fe-skeleton mb-5 h-3 w-24 rounded" />
+              <Skeleton className="fe-skeleton mb-3 h-8 w-28 rounded-lg" />
+              <Skeleton className="fe-skeleton h-3 w-36 rounded" />
+            </div>
           ))}
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="fe-surface h-64 rounded-2xl p-5"><Skeleton className="fe-skeleton h-full w-full rounded-xl" /></div>
+          <div className="fe-surface h-64 rounded-2xl p-5"><Skeleton className="fe-skeleton h-full w-full rounded-xl" /></div>
         </div>
       </div>
     </div>
