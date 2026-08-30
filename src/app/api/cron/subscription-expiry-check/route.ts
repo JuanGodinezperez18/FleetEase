@@ -1,0 +1,118 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { sendEmail } from '@/lib/resend';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } },
+);
+
+const REMINDER_DAYS = [7, 3, 1, 0];
+
+function authorized(request: NextRequest) {
+  const auth = request.headers.get('authorization');
+  return Boolean(process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`);
+}
+
+function reminderKey(daysRemaining: number) {
+  return daysRemaining === 0 ? 'expires-today' : `expires-in-${daysRemaining}-days`;
+}
+
+function renderEmail(companyName: string, plan: string, periodEnd: Date, daysRemaining: number) {
+  const formattedDate = new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'long',
+    timeZone: 'America/Monterrey',
+  }).format(periodEnd);
+
+  const title = daysRemaining === 0
+    ? 'Tu suscripción vence hoy'
+    : `Tu suscripción vence en ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}`;
+
+  return {
+    subject: `FleetEase — ${title}`,
+    html: `<!doctype html><html lang="es"><body style="margin:0;background:#080a0f;color:#fff;font-family:Arial,sans-serif"><div style="max-width:620px;margin:0 auto;padding:48px 24px"><div style="font-size:24px;font-weight:700;margin-bottom:36px">Fleet<span style="color:#d7ff3f">Ease</span></div><div style="background:#11151c;border:1px solid #252a32;border-radius:18px;padding:32px"><div style="color:#d7ff3f;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Aviso de suscripción</div><h1 style="font-size:30px;line-height:1.15;margin:14px 0 18px">${title}</h1><p style="color:#a7adb8;line-height:1.7;margin:0 0 22px">Hola. La suscripción de <strong style="color:#fff">${companyName}</strong> al plan <strong style="color:#fff">${plan}</strong> termina el <strong style="color:#fff">${formattedDate}</strong>.</p><p style="color:#a7adb8;line-height:1.7;margin:0 0 28px">Para evitar interrupciones en el acceso a FleetEase, revisa tu suscripción y actualiza el método de pago si es necesario.</p><a href="${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/billing" style="display:inline-block;background:#d7ff3f;color:#080a0f;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:999px">Administrar suscripción</a></div><p style="color:#555d69;font-size:12px;line-height:1.6;margin-top:24px">Este correo fue enviado automáticamente por FleetEase.</p></div></body></html>`,
+    text: `${title}. La suscripción de ${companyName} (${plan}) termina el ${formattedDate}. Administra tu suscripción en ${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/billing`,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY is not configured' }, { status: 500 });
+
+  const now = new Date();
+  let companiesChecked = 0;
+  let remindersSent = 0;
+  let remindersSkipped = 0;
+  const errors: string[] = [];
+
+  try {
+    const { data: subscriptions, error } = await supabase
+      .from('stripe_customers')
+      .select('company_id, current_period_end, subscription_plan, subscription_status')
+      .not('company_id', 'is', null)
+      .not('current_period_end', 'is', null)
+      .in('subscription_status', ['active', 'trialing', 'past_due']);
+
+    if (error) throw error;
+    companiesChecked = subscriptions?.length ?? 0;
+
+    for (const subscription of subscriptions ?? []) {
+      try {
+        const periodEnd = new Date(subscription.current_period_end);
+        const daysRemaining = Math.ceil((periodEnd.getTime() - now.getTime()) / 86400000);
+        if (!REMINDER_DAYS.includes(daysRemaining)) continue;
+
+        const key = reminderKey(daysRemaining);
+        const { data: reservation, error: reservationError } = await supabase
+          .from('subscription_email_reminders')
+          .insert({ company_id: subscription.company_id, reminder_key: key, period_end: periodEnd.toISOString() })
+          .select('id')
+          .maybeSingle();
+
+        if (reservationError) {
+          if (reservationError.code === '23505') {
+            remindersSkipped++;
+            continue;
+          }
+          throw reservationError;
+        }
+        if (!reservation) continue;
+
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .select('name, plan')
+          .eq('id', subscription.company_id)
+          .single();
+        if (companyError || !company) throw companyError || new Error('Company not found');
+
+        const { data: admins, error: adminError } = await supabase
+          .from('users')
+          .select('email')
+          .eq('company_id', subscription.company_id)
+          .eq('is_deleted', false)
+          .eq('role', 'admin');
+        if (adminError) throw adminError;
+
+        const recipients = (admins ?? []).map((u) => u.email).filter(Boolean);
+        if (!recipients.length) {
+          remindersSkipped++;
+          continue;
+        }
+
+        const email = renderEmail(company.name || 'tu empresa', subscription.subscription_plan || company.plan || 'FleetEase', periodEnd, daysRemaining);
+        await sendEmail({ to: recipients, subject: email.subject, html: email.html, text: email.text });
+        remindersSent++;
+      } catch (companyError) {
+        const message = companyError instanceof Error ? companyError.message : String(companyError);
+        errors.push(`${subscription.company_id}: ${message}`);
+        console.error('[Subscription expiry cron]', subscription.company_id, companyError);
+      }
+    }
+
+    return NextResponse.json({ success: true, companiesChecked, remindersSent, remindersSkipped, errors });
+  } catch (error) {
+    console.error('[Subscription expiry cron] failed:', error);
+    return NextResponse.json({ success: false, companiesChecked, remindersSent, remindersSkipped, errors: [...errors, error instanceof Error ? error.message : String(error)] }, { status: 500 });
+  }
+}
