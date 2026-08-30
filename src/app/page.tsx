@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring } from 'framer-motion';
 import {
   ArrowRight,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-provider';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
+import { plans } from '@/config/plans';
 
 // Animation variants
 const containerVariants = {
@@ -107,34 +109,34 @@ export default function LandingPage() {
   ];
 
   const features = [
-    { title: "Profitability Tracking", desc: "Live ROI metrics per vehicle with predictive analytics.", icon: TrendingUp, color: "from-emerald-500 to-teal-600" },
-    { title: "Fleet Health", desc: "AI-powered predictive maintenance alerts.", icon: Activity, color: "from-blue-500 to-cyan-600" },
-    { title: "Real-time Telemetry", desc: "GPS & engine status sync with live monitoring.", icon: Target, color: "from-violet-500 to-purple-600" },
-    { title: "Operational Reports", desc: "Deep financial analysis with automated insights.", icon: PieChart, color: "from-orange-500 to-amber-600" },
+    { title: "Seguimiento de Rentabilidad", desc: "Métricas de ROI en vivo por vehículo con análisis predictivo.", icon: TrendingUp, color: "from-emerald-500 to-teal-600" },
+    { title: "Salud de la Flotilla", desc: "Alertas de mantenimiento predictivo con inteligencia artificial.", icon: Activity, color: "from-blue-500 to-cyan-600" },
+    { title: "Telemetría en Tiempo Real", desc: "Sincronización de GPS y estado del motor con monitoreo en vivo.", icon: Target, color: "from-violet-500 to-purple-600" },
+    { title: "Reportes Operativos", desc: "Análisis financiero profundo con información automatizada.", icon: PieChart, color: "from-orange-500 to-amber-600" },
   ];
 
   const stats = [
-    { value: "10K+", label: "Active Vehicles", icon: Car },
-    { value: "$2.5M", label: "Revenue Managed", icon: TrendingUp },
-    { value: "99.9%", label: "Uptime", icon: Activity },
-    { value: "500+", label: "Companies", icon: Building },
+    { value: "10K+", label: "Vehículos Activos", icon: Car },
+    { value: "$2.5M", label: "Ingresos Administrados", icon: TrendingUp },
+    { value: "99.9%", label: "Disponibilidad", icon: Activity },
+    { value: "500+", label: "Empresas", icon: Building },
   ];
 
   const testimonials = [
     {
-      quote: "FleetEase transformed how we manage our fleet. The ROI tracking is game-changing.",
+      quote: "FleetEase transformó la forma en que administramos nuestra flotilla. El seguimiento de ROI cambió las reglas del juego.",
       author: "Maria Rodriguez",
-      role: "Fleet Manager, TransportCorp",
+      role: "Gerente de Flotilla, TransportCorp",
       rating: 5,
     },
     {
-      quote: "Best investment we made. Predictive maintenance saved us thousands.",
+      quote: "La mejor inversión que hicimos. El mantenimiento predictivo nos ahorró miles de pesos.",
       author: "Carlos Mendez",
-      role: "Operations Director, Logistics Plus",
+      role: "Director de Operaciones, Logistics Plus",
       rating: 5,
     },
     {
-      quote: "The real-time telemetry gives us unprecedented visibility into our operations.",
+      quote: "La telemetría en tiempo real nos da una visibilidad sin precedentes de nuestras operaciones.",
       author: "Ana Garcia",
       role: "CEO, Swift Transport",
       rating: 5,
@@ -144,45 +146,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#060e20] text-[#dae2fd] font-sans overflow-hidden selection:bg-[#2e5bff] selection:text-white">
       {/* Animated Background Orbs */}
+      {/* Antes: 3 blobs a pantalla completa con blur-[200px] animando
+          scale/opacity infinitamente para siempre (incluso fuera de
+          vista) - es el mayor costo de rendimiento continuo de la
+          página. Se dejan estáticos: mismo efecto visual de fondo,
+          sin recalcular el filtro blur en cada frame. */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <motion.div
-          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#2e5bff] rounded-full blur-[200px]"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.1, 0.15, 0.1],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#8342f4] rounded-full blur-[200px]"
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.08, 0.12, 0.08],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-        />
-        <motion.div
-          className="absolute top-[40%] left-[30%] w-[40%] h-[40%] bg-[#00d4ff] rounded-full blur-[150px]"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.05, 0.08, 0.05],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4,
-          }}
-        />
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#2e5bff] rounded-full blur-[200px] opacity-[0.12]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#8342f4] rounded-full blur-[200px] opacity-[0.1]" />
+        <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] bg-[#00d4ff] rounded-full blur-[150px] opacity-[0.06]" />
       </div>
 
       {/* Navigation */}
@@ -200,24 +172,10 @@ export default function LandingPage() {
             transition={{ type: "spring", stiffness: 400 }}
           >
             <motion.div
-              className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#b8c3ff] to-[#2e5bff] flex items-center justify-center"
+              className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden"
               whileHover={{ rotate: 5 }}
-              animate={{
-                boxShadow: [
-                  "0 0 20px rgba(46,91,255,0.3)",
-                  "0 0 30px rgba(46,91,255,0.5)",
-                  "0 0 20px rgba(46,91,255,0.3)",
-                ],
-              }}
-              transition={{
-                boxShadow: {
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                },
-              }}
             >
-              <span className="font-heading font-extrabold text-[#060e20] text-xl">F</span>
+              <Image src="/logo.png" alt="FleetEase" width={32} height={32} priority className="w-8 h-8 object-contain" />
             </motion.div>
             <span className="font-heading font-bold text-2xl tracking-tight text-white">FleetEase</span>
           </motion.div>
@@ -247,7 +205,7 @@ export default function LandingPage() {
                 transition={{ delay: 0.6 }}
               >
                 <Link href="/login" className="text-[#c4c5d9] hover:text-white transition-colors text-sm font-medium">
-                  Sign In
+                  Iniciar Sesión
                 </Link>
               </motion.div>
               <motion.div
@@ -261,7 +219,7 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <span className="relative z-10">Get Started</span>
+                    <span className="relative z-10">Comenzar</span>
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-[#2e5bff] to-[#b8c3ff]"
                       initial={{ x: "100%" }}
@@ -335,7 +293,7 @@ export default function LandingPage() {
                 ))}
                 <div className="h-px bg-[#2d3449]" />
                 <Link href="/login" className="text-lg font-medium text-[#c4c5d9]" onClick={() => setIsMenuOpen(false)}>
-                  Sign In
+                  Iniciar Sesión
                 </Link>
                 <Link href="/registro" onClick={() => setIsMenuOpen(false)}>
                   <motion.button
@@ -343,7 +301,7 @@ export default function LandingPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Get Started
+                    Comenzar
                   </motion.button>
                 </Link>
               </div>
@@ -375,7 +333,7 @@ export default function LandingPage() {
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
-                  <span className="text-sm font-medium text-[#c4c5d9]">FleetEase 2.0 is Live</span>
+                  <span className="text-sm font-medium text-[#c4c5d9]">FleetEase 2.0 ya está aquí</span>
                   <Sparkles className="w-4 h-4 text-[#4edea3]" />
                 </motion.div>
 
@@ -384,10 +342,10 @@ export default function LandingPage() {
                   variants={itemVariants}
                   className="font-heading text-5xl lg:text-7xl leading-[1.1] font-extrabold tracking-[-0.03em] mb-8 text-white"
                 >
-                  The Future of{" "}
+                  El Futuro de la{" "}
                   <span className="relative">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b8c3ff] to-[#2e5bff]">
-                      Fleet Management
+                      Gestión de Flotillas
                     </span>
                     <motion.svg
                       className="absolute -bottom-2 left-0 w-full"
@@ -419,8 +377,8 @@ export default function LandingPage() {
                   variants={itemVariants}
                   className="text-xl text-[#c4c5d9] leading-relaxed max-w-2xl mx-auto lg:mx-0 mb-12 font-light"
                 >
-                  Turn your fleet operations into a living, responsive ecosystem.
-                  Identify exactly which vehicles generate profit and which bleed capital with unparalleled clarity.
+                  Convierte las operaciones de tu flotilla en un ecosistema vivo y receptivo.
+                  Identifica exactamente qué vehículos generan ganancias y cuáles consumen capital, con total claridad.
                 </motion.p>
 
                 {/* CTA Buttons */}
@@ -432,7 +390,7 @@ export default function LandingPage() {
                       whileTap={{ scale: 0.95 }}
                     >
                       <span className="relative z-10 flex items-center gap-2">
-                        Start Free Trial
+                        Comenzar Prueba Gratis
                         <motion.span
                           animate={{ x: [0, 5, 0] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
@@ -455,7 +413,7 @@ export default function LandingPage() {
                         >
                           <Zap className="w-5 h-5 text-[#4edea3]" />
                         </motion.span>
-                        Explore Features
+                        Explorar Funciones
                       </span>
                     </motion.button>
                   </Link>
@@ -611,13 +569,13 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05 }}
             >
               <Sparkles className="w-4 h-4 text-[#4edea3]" />
-              Features
+              Funciones
             </motion.span>
             <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
-              Intelligence Ecosystem
+              Ecosistema Inteligente
             </h2>
             <p className="text-[#c4c5d9] text-xl max-w-2xl mx-auto">
-              Beyond static tables. The anti-template strategy for modern fleet management.
+              Más allá de tablas estáticas. La estrategia anti-plantilla para la gestión de flotillas moderna.
             </p>
           </motion.div>
 
@@ -717,10 +675,10 @@ export default function LandingPage() {
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
-                Trusted by Industry Leaders
+                Confiado por Líderes de la Industria
               </h2>
               <p className="text-[#c4c5d9] text-xl">
-                See what our customers have to say about FleetEase.
+                Mira lo que dicen nuestros clientes sobre FleetEase.
               </p>
             </motion.div>
 
@@ -791,136 +749,76 @@ export default function LandingPage() {
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
-                Simple, Transparent Pricing
+                Precios Simples y Transparentes
               </h2>
-              <p className="text-[#c4c5d9] text-xl">Choose the plan that fits your fleet.</p>
+              <p className="text-[#c4c5d9] text-xl">Elige el plan que se ajuste a tu flotilla.</p>
             </motion.div>
 
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {/* Starter */}
-              <motion.div
-                className="p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449] flex flex-col"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -8, borderColor: "rgba(67, 70, 86, 0.8)" }}
-              >
-                <h3 className="text-xl font-bold text-white mb-2">Starter</h3>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-heading font-extrabold text-white">$299</span>
-                  <span className="text-[#c4c5d9]">/mo</span>
-                </div>
-                <p className="text-[#c4c5d9] text-sm mb-8">Essential tools for emerging fleets.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["Up to 5 Vehicles", "1 Admin User", "Basic Income Tracking", "Standard Dashboard"].map((feature, i) => (
-                    <motion.li
-                      key={i}
-                      className="flex gap-3 text-sm text-[#c4c5d9]"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.05 }}
-                    >
-                      <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                      {feature}
-                    </motion.li>
-                  ))}
-                </ul>
-                <motion.button
-                  className="w-full py-3 rounded-xl border border-[#434656] text-white font-medium hover:bg-[#171f33] transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Get Started
-                </motion.button>
-              </motion.div>
-
-              {/* Pro */}
-              <motion.div
-                className="p-8 rounded-2xl bg-gradient-to-b from-[#171f33] to-[#131b2e] border-2 border-[#2e5bff] relative flex flex-col md:-translate-y-4 shadow-[0_20px_50px_rgba(46,91,255,0.2)]"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -12, boxShadow: "0_30px_60px_rgba(46,91,255,0.3)" }}
-              >
-                <motion.div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white text-xs font-bold tracking-wider uppercase rounded-full"
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 400 }}
-                >
-                  Most Popular
-                </motion.div>
-                <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-heading font-extrabold text-white">$599</span>
-                  <span className="text-[#c4c5d9]">/mo</span>
-                </div>
-                <p className="text-[#c4c5d9] text-sm mb-8">Advanced terminal for optimization.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["Up to 15 Vehicles", "3 Editor Users", "Profitability Heatmaps", "Client Behavior Score", "Priority Integration"].map((feature, i) => (
-                    <motion.li
-                      key={i}
-                      className="flex gap-3 text-sm text-[#c4c5d9]"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.1 + i * 0.05 }}
-                    >
-                      <CheckCircle className="w-5 h-5 text-[#b8c3ff] flex-shrink-0" />
-                      {feature}
-                    </motion.li>
-                  ))}
-                </ul>
-                <motion.button
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white font-bold hover:shadow-[0_0_30px_rgba(46,91,255,0.4)] transition-all"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Start 14-Day Trial
-                </motion.button>
-              </motion.div>
-
-              {/* Enterprise */}
-              <motion.div
-                className="p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449] flex flex-col"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -8, borderColor: "rgba(67, 70, 86, 0.8)" }}
-              >
-                <h3 className="text-xl font-bold text-white mb-2">Enterprise</h3>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-heading font-extrabold text-white">Custom</span>
-                </div>
-                <p className="text-[#c4c5d9] text-sm mb-8">For mass-scale operations.</p>
-                <ul className="space-y-4 mb-8 flex-1">
-                  {["Unlimited Vehicles", "Custom Logic Rules", "API Access Mapping", "White-labeled Node", "24/7 Dedicated Support"].map((feature, i) => (
-                    <motion.li
-                      key={i}
-                      className="flex gap-3 text-sm text-[#c4c5d9]"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 + i * 0.05 }}
-                    >
-                      <CheckCircle className="w-5 h-5 text-violet-400 flex-shrink-0" />
-                      {feature}
-                    </motion.li>
-                  ))}
-                </ul>
-                <motion.button
-                  className="w-full py-3 rounded-xl border border-[#434656] text-white font-medium hover:bg-[#171f33] transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Contact Sales
-                </motion.button>
-              </motion.div>
+              {(Object.values(plans) as any[]).map((plan: any, planIndex: number) => {
+                const isPopular = !!plan.popular;
+                return (
+                  <motion.div
+                    key={plan.id}
+                    className={
+                      isPopular
+                        ? "p-8 rounded-2xl bg-gradient-to-b from-[#171f33] to-[#131b2e] border-2 border-[#2e5bff] relative flex flex-col md:-translate-y-4 shadow-[0_20px_50px_rgba(46,91,255,0.2)]"
+                        : "p-8 rounded-2xl bg-[#131b2e] border border-[#2d3449] flex flex-col"
+                    }
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: planIndex * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={isPopular ? { y: -12 } : { y: -8, borderColor: "rgba(67, 70, 86, 0.8)" }}
+                  >
+                    {isPopular && (
+                      <motion.div
+                        className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white text-xs font-bold tracking-wider uppercase rounded-full"
+                        initial={{ scale: 0 }}
+                        whileInView={{ scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.5, type: "spring", stiffness: 400 }}
+                      >
+                        Más Popular
+                      </motion.div>
+                    )}
+                    <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-4xl font-heading font-extrabold text-white">${plan.price}</span>
+                      <span className="text-[#c4c5d9]">MXN/{plan.period}</span>
+                    </div>
+                    <p className="text-[#c4c5d9] text-sm mb-8">{plan.description}</p>
+                    <ul className="space-y-4 mb-8 flex-1">
+                      {plan.features.map((feature: string, i: number) => (
+                        <motion.li
+                          key={i}
+                          className="flex gap-3 text-sm text-[#c4c5d9]"
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: planIndex * 0.1 + i * 0.05 }}
+                        >
+                          <CheckCircle className={`w-5 h-5 flex-shrink-0 ${isPopular ? 'text-[#b8c3ff]' : 'text-emerald-400'}`} />
+                          {feature}
+                        </motion.li>
+                      ))}
+                    </ul>
+                    <Link href="/registro">
+                      <motion.button
+                        className={
+                          isPopular
+                            ? "w-full py-3 rounded-xl bg-gradient-to-r from-[#2e5bff] to-[#8342f4] text-white font-bold hover:shadow-[0_0_30px_rgba(46,91,255,0.4)] transition-all"
+                            : "w-full py-3 rounded-xl border border-[#434656] text-white font-medium hover:bg-[#171f33] transition-colors"
+                        }
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {isPopular ? 'Prueba Gratis de 14 Días' : plan.id === 'enterprise' ? 'Contactar Ventas' : 'Comenzar'}
+                      </motion.button>
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -935,17 +833,17 @@ export default function LandingPage() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             <h2 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">
-              Frequently Asked Questions
+              Preguntas Frecuentes
             </h2>
-            <p className="text-[#c4c5d9] text-xl">Everything you need to know about FleetEase.</p>
+            <p className="text-[#c4c5d9] text-xl">Todo lo que necesitas saber sobre FleetEase.</p>
           </motion.div>
 
           <div className="space-y-4">
             {[
-              { q: "Is a credit card required for the trial?", a: "No. Protocol activation is instant without financial commitment." },
-              { q: "How fast is the integration?", a: "Most fleets complete the telemetry mapping in under 48 hours." },
-              { q: "Can I extract data?", a: "All data nodes can be exported via CSV or directly connected via API." },
-              { q: "What happens if I exceed limits?", a: "The system dynamically alerts you. Service is never interrupted." },
+              { q: "¿Se requiere tarjeta de crédito para la prueba?", a: "No. La activación es instantánea, sin compromiso financiero." },
+              { q: "¿Qué tan rápida es la integración?", a: "La mayoría de las flotillas completan la configuración en menos de 48 horas." },
+              { q: "¿Puedo exportar mis datos?", a: "Todos tus datos se pueden exportar vía CSV o conectar directamente por API." },
+              { q: "¿Qué pasa si excedo los límites de mi plan?", a: "El sistema te avisa automáticamente. El servicio nunca se interrumpe." },
             ].map((faq, i) => (
               <motion.details
                 key={i}
@@ -1000,10 +898,10 @@ export default function LandingPage() {
                 variants={itemVariants}
                 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-6"
               >
-                Ready to Transform Your Fleet?
+                ¿Listo para Transformar tu Flotilla?
               </motion.h2>
               <motion.p variants={itemVariants} className="text-[#c4c5d9] text-xl mb-8 max-w-2xl mx-auto">
-                Join thousands of companies already using FleetEase to optimize their operations.
+                Únete a miles de empresas que ya usan FleetEase para optimizar sus operaciones.
               </motion.p>
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/registro">
@@ -1013,7 +911,7 @@ export default function LandingPage() {
                     whileTap={{ scale: 0.95 }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      Start Free Trial
+                      Comenzar Prueba Gratis
                       <ArrowRight className="w-5 h-5" />
                     </span>
                   </motion.button>
@@ -1023,7 +921,7 @@ export default function LandingPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Schedule Demo
+                  Agendar Demo
                 </motion.button>
               </motion.div>
             </motion.div>
@@ -1041,23 +939,27 @@ export default function LandingPage() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#b8c3ff] to-[#2e5bff] flex items-center justify-center">
-                <span className="font-heading font-bold text-[#060e20] text-sm">F</span>
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                <Image src="/logo.png" alt="FleetEase" width={24} height={24} className="w-6 h-6 object-contain" />
               </div>
               <span className="font-heading font-bold text-white tracking-wide">FleetEase</span>
             </motion.div>
             <div className="flex items-center gap-8">
-              {["Privacy", "Terms", "Contact"].map((link, i) => (
+              {[
+                { label: "Privacidad", href: "/privacidad" },
+                { label: "Términos", href: "/terminos" },
+                { label: "Contacto", href: "#" },
+              ].map((link, i) => (
                 <motion.a
-                  key={link}
-                  href="#"
+                  key={link.label}
+                  href={link.href}
                   className="text-[#8e90a2] text-sm hover:text-white transition-colors"
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  {link}
+                  {link.label}
                 </motion.a>
               ))}
             </div>
@@ -1067,7 +969,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
             >
-              © 2026 FleetEase. All operational rights reserved.
+              © 2026 FleetEase. Todos los derechos reservados.
             </motion.p>
           </div>
         </div>
