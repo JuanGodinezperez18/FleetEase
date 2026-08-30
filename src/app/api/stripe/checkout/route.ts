@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
+import { getStripePriceId, type BillingCycle } from '@/config/stripe';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-04-10',
-});
-
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
@@ -39,20 +36,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { planId, billingCycle = 'monthly' } = body;
+    const { planId, billingCycle = 'monthly' } = body as { planId: string; billingCycle?: BillingCycle };
 
-    const plans: Record<string, { monthly: number; yearly: number }> = {
-      starter: { monthly: 29900, yearly: 299900 },
-      pro: { monthly: 59900, yearly: 599900 },
-      enterprise: { monthly: 99900, yearly: 999900 },
-    };
-
-    const plan = plans[planId];
-    if (!plan) {
-      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
+    // Antes: se armaba un price_data inline con montos hardcodeados,
+    // creando un producto nuevo en Stripe en CADA checkout en vez de
+    // reusar el catálogo real (6 Price IDs ya creados: starter/pro/
+    // enterprise x mensual/anual). Eso fragmentaba los reportes de
+    // ingresos y ensuciaba el dashboard de Stripe con productos
+    // duplicados. Ahora se usa el Price ID real.
+    let priceId: string;
+    try {
+      priceId = getStripePriceId(planId, billingCycle);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Plan inválido' },
+        { status: 400 }
+      );
     }
-
-    const amount = billingCycle === 'yearly' ? plan.yearly : plan.monthly;
 
     // Obtener o crear customer de Stripe
     let { data: stripeCustomer, error: customerError } = await supabaseAdmin
@@ -90,23 +90,13 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = stripeCustomer.stripe_customer_id;
     }
 
-    // Crear sesión de checkout
+    // Crear sesión de checkout usando el Price ID real del catálogo
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'mxn',
-            product_data: {
-              name: `Plan ${planId.charAt(0).toUpperCase() + planId.slice(1)}`,
-              description: `Suscripción ${billingCycle === 'yearly' ? 'anual' : 'mensual'}`,
-            },
-            unit_amount: amount,
-            recurring: {
-              interval: billingCycle === 'yearly' ? 'year' : 'month',
-            },
-          },
+          price: priceId,
           quantity: 1,
         },
       ],

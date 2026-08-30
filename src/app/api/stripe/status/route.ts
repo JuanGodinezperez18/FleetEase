@@ -2,10 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-});
+import { getStripe } from '@/lib/stripe';
 
 async function createClient() {
   const cookieStore = await cookies();
@@ -24,6 +21,7 @@ async function createClient() {
 
 export async function GET() {
   try {
+    const stripe = getStripe();
     const supabase = await createClient();
 
     // 1. Verify Supabase Auth session

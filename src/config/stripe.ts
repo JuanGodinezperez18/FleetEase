@@ -1,23 +1,40 @@
 /**
  * Configuración de Stripe para la aplicación
- * 
+ *
  * Variables de ambiente requeridas:
  * - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
  * - STRIPE_SECRET_KEY
  * - STRIPE_WEBHOOK_SECRET
- * - STRIPE_PRICE_ID_STARTER
- * - STRIPE_PRICE_ID_PRO
- * - STRIPE_PRICE_ID_ENTERPRISE
+ * - STRIPE_PRICE_ID_STARTER_MONTHLY / STRIPE_PRICE_ID_STARTER_YEARLY
+ * - STRIPE_PRICE_ID_PRO_MONTHLY / STRIPE_PRICE_ID_PRO_YEARLY
+ * - STRIPE_PRICE_ID_ENTERPRISE_MONTHLY / STRIPE_PRICE_ID_ENTERPRISE_YEARLY
+ *
+ * Antes había un solo price ID por plan (sin distinguir mensual/anual) y
+ * el checkout de todas formas no los usaba - creaba un producto nuevo en
+ * Stripe en cada intento de pago via price_data inline. Ahora el checkout
+ * SÍ usa estos IDs reales (ver src/app/api/stripe/checkout/route.ts), así
+ * que hace falta un ID por combinación de plan+ciclo (6 en total).
  */
 
 export const stripeConfig = {
-  // Precios de los planes (deben coincidir con los IDs de Stripe Price)
+  // Precios de los planes: deben ser los Price IDs reales creados en el
+  // dashboard de Stripe (o via API) - NO son secretos, pero no necesitan
+  // exponerse al cliente (NEXT_PUBLIC_), el checkout corre en el servidor.
   prices: {
-    starter: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_STARTER || '',
-    pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO || '',
-    enterprise: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE || '',
+    starter: {
+      monthly: process.env.STRIPE_PRICE_ID_STARTER_MONTHLY || '',
+      yearly: process.env.STRIPE_PRICE_ID_STARTER_YEARLY || '',
+    },
+    pro: {
+      monthly: process.env.STRIPE_PRICE_ID_PRO_MONTHLY || '',
+      yearly: process.env.STRIPE_PRICE_ID_PRO_YEARLY || '',
+    },
+    enterprise: {
+      monthly: process.env.STRIPE_PRICE_ID_ENTERPRISE_MONTHLY || '',
+      yearly: process.env.STRIPE_PRICE_ID_ENTERPRISE_YEARLY || '',
+    },
   },
-  
+
   // URLs para el checkout
   successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/subscription?success=true`,
   cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/subscription?canceled=true`,
@@ -94,6 +111,28 @@ export const planFeatures = {
  */
 export function getPlanFeatures(planId: string) {
   return planFeatures[planId as keyof typeof planFeatures] || planFeatures.starter;
+}
+
+export type BillingCycle = 'monthly' | 'yearly';
+
+/**
+ * Resuelve el Price ID real de Stripe para un plan+ciclo. Lanza un error
+ * claro y accionable si la variable de entorno correspondiente no está
+ * configurada, en vez de dejar que Stripe falle con un mensaje genérico
+ * de "price no encontrado" más adelante.
+ */
+export function getStripePriceId(planId: string, billingCycle: BillingCycle): string {
+  const planPrices = stripeConfig.prices[planId as keyof typeof stripeConfig.prices];
+  if (!planPrices) {
+    throw new Error(`Plan inválido: ${planId}`);
+  }
+  const priceId = planPrices[billingCycle];
+  if (!priceId) {
+    throw new Error(
+      `Falta configurar STRIPE_PRICE_ID_${planId.toUpperCase()}_${billingCycle.toUpperCase()} en las variables de entorno.`
+    );
+  }
+  return priceId;
 }
 
 /**

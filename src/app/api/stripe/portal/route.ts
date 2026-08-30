@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-04-10',
-});
-
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
