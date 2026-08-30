@@ -163,6 +163,11 @@ export function VehicleInspectionModal({ isOpen, onClose, vehicleId, onSuccess }
 
       // Crear el documento de inspección en Supabase
       console.log('📝 Creando documento de inspección en Supabase...');
+
+      if (!targetVehicle.clientId || !targetVehicle.companyId) {
+        throw new Error('El vehículo no tiene cliente o empresa asignada; no se puede registrar la inspección.');
+      }
+
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
 
       const { error: inspectionError } = await supabase
