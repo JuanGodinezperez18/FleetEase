@@ -1,0 +1,84 @@
+/* FleetEase application visual system: aligned with the landing page */
+:root {
+  --fe-lime: #d7ff3f;
+  --fe-ink: #080a0f;
+  --fe-surface: #0e1117;
+  --fe-surface-2: #12161d;
+  --fe-border: rgba(255,255,255,.09);
+}
+
+.dark body {
+  background: var(--fe-ink);
+}
+
+.dark .bg-background { background-color: var(--fe-ink) !important; }
+.dark .bg-card { background-color: var(--fe-surface) !important; }
+.dark .bg-sidebar { background-color: var(--fe-ink) !important; }
+.dark .border-border { border-color: var(--fe-border) !important; }
+.dark .text-primary { color: var(--fe-lime) !important; }
+.dark .bg-primary { background-color: var(--fe-lime) !important; }
+.dark .text-primary-foreground { color: var(--fe-ink) !important; }
+
+.fe-app-shell {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(215,255,63,.055), transparent 32%),
+    var(--fe-ink);
+}
+
+.fe-surface {
+  background: rgba(14,17,23,.82);
+  border: 1px solid var(--fe-border);
+  box-shadow: 0 18px 50px rgba(0,0,0,.18);
+  backdrop-filter: blur(18px);
+}
+
+.fe-section-title {
+  letter-spacing: -.035em;
+}
+
+.fe-online-banner,
+.fe-offline-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border-radius: 999px;
+  padding: .55rem .9rem;
+  font-size: .75rem;
+  font-weight: 700;
+  box-shadow: 0 12px 35px rgba(0,0,0,.28);
+  backdrop-filter: blur(16px);
+}
+
+.fe-online-banner {
+  color: var(--fe-ink);
+  background: var(--fe-lime);
+}
+
+.fe-offline-banner {
+  color: #fff;
+  background: #151922;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.fe-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.055);
+}
+
+.fe-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+  animation: fe-shimmer 1.5s infinite;
+}
+
+@keyframes fe-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fe-skeleton::after { animation: none; }
+}
