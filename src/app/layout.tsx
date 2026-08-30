@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
+import { ServiceWorkerRegister } from "@/components/common/service-worker-register";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
@@ -28,16 +29,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${inter.variable} ${manrope.variable} font-sans`}>
         <GlobalErrorBoundary>
           <Providers>
+            <ServiceWorkerRegister />
             <OfflineIndicator />
             {children}
             <Toaster />
@@ -46,9 +44,7 @@ export default function RootLayout({
         <Script id="chunk-error-handler">
           {`
             window.addEventListener('error', (e) => {
-              if (e.message.includes('ChunkLoadError')) {
-                window.location.reload();
-              }
+              if (e.message.includes('ChunkLoadError')) window.location.reload();
             });
           `}
         </Script>
