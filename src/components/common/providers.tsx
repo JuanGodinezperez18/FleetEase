@@ -14,16 +14,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 5 * 60 * 1000,
+        // Keep useful data in memory and prefer it while reconnecting.
+        staleTime: 10 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
+        networkMode: 'offlineFirst',
         retry: 1,
         refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        networkMode: 'online',
       },
     },
   }));
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SplashProvider minDuration={2500} enabled={true}>
+      <SplashProvider minDuration={650} enabled={true}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
