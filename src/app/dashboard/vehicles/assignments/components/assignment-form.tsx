@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Camera, X, Car, User } from 'lucide-react';
+import { Loader2, Camera, X, Car, User, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client, Vehicle } from '@/types';
 
@@ -44,7 +44,7 @@ interface AssignmentFormProps {
 }
 
 export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: AssignmentFormProps) {
-  const { clients, rawVehicles, createVehicleAssignment, selectedCompanyId } = useData();
+  const { clients, rawVehicles, createVehicleAssignment, selectedCompanyId, credits } = useData();
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
@@ -61,18 +61,38 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     },
   });
 
-  // Solo vehículos que se pueden asignar por este formulario: no
-  // bloqueados por un crédito activo (ese sistema es dueño de esos
-  // vehículos - ver módulo de Créditos) y no vendidos.
+  const selectedClientId = form.watch('clientId');
+
+  // Solo unidades realmente libres: sin cliente, sin crédito y operativas.
+  // Un vehículo asignado nunca debe aparecer como disponible.
   const availableVehicles = useMemo(() => {
     return rawVehicles.filter((v: Vehicle) =>
       !v.isDeleted &&
-      v.status !== 'sold' &&
+      v.status === 'active' &&
+      !v.clientId &&
       !v.lockedByCredit
     );
   }, [rawVehicles]);
 
   const activeClients = useMemo(() => clients.filter((c: Client) => !c.isDeleted), [clients]);
+
+  const selectedClient = useMemo(
+    () => activeClients.find((client) => client.id === selectedClientId),
+    [activeClients, selectedClientId]
+  );
+
+  const selectedClientVehicle = useMemo(() => {
+    if (!selectedClientId) return null;
+    return rawVehicles.find((vehicle: Vehicle) => !vehicle.isDeleted && vehicle.clientId === selectedClientId) || null;
+  }, [rawVehicles, selectedClientId]);
+
+  const selectedClientActiveCredit = useMemo(() => {
+    if (!selectedClientId) return false;
+    return credits.some((credit) =>
+      credit.clientId === selectedClientId &&
+      credit.status === 'active'
+    );
+  }, [credits, selectedClientId]);
 
   const handlePhotoChange = (viewKey: string, file: File | null) => {
     setPhotos(prev => ({ ...prev, [viewKey]: file }));
@@ -108,6 +128,23 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       toast.error('Usuario no autenticado');
       return;
     }
+
+    if (selectedClientVehicle) {
+      throw new Error(
+        selectedClientActiveCredit
+          ? 'El cliente tiene un vehículo ligado a un crédito activo. El crédito debe liquidarse o cancelarse antes de liberar ese vehículo.'
+          : `El cliente ya tiene asignado el vehículo ${selectedClientVehicle.plate}. Desasígnalo antes de asignarle otra unidad.`
+      );
+    }
+
+    const selectedVehicle = rawVehicles.find((vehicle) => vehicle.id === data.vehicleId);
+    if (!selectedVehicle || selectedVehicle.isDeleted || selectedVehicle.status !== 'active' || selectedVehicle.clientId || selectedVehicle.lockedByCredit) {
+      toast.error('Vehículo no disponible', {
+        description: 'La unidad ya no está disponible para asignación. Actualiza la información e inténtalo nuevamente.',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       setUploadingPhotos(true);
@@ -156,6 +193,24 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
                 </SelectContent>
               </Select>
               <FormMessage />
+              {selectedClientVehicle && (
+                <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <div>
+                      <p className="font-medium text-foreground">Este cliente ya tiene vehículo</p>
+                      <p className="text-muted-foreground">
+                        {selectedClientVehicle.plate} · {selectedClientVehicle.make} {selectedClientVehicle.model}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {selectedClientActiveCredit
+                          ? 'Está protegido por un crédito activo. Debe liquidarse o cancelarse antes de liberar la unidad.'
+                          : 'Primero debes desasignar esta unidad para poder asignarle otra.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </FormItem>
           )}
         />
@@ -165,10 +220,10 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
           name="vehicleId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2"><Car className="h-4 w-4" /> Vehículo</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <FormLabel className="flex items-center gap-2"><Car className="h-4 w-4" /> Vehículo disponible</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value} disabled={!!selectedClientVehicle}>
                 <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Selecciona un vehículo" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={selectedClientVehicle ? 'Primero libera el vehículo actual' : 'Selecciona un vehículo'} /></SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {availableVehicles.map((v: Vehicle) => (
@@ -177,6 +232,9 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
                 </SelectContent>
               </Select>
               <FormMessage />
+              {availableVehicles.length === 0 && !selectedClientVehicle && (
+                <p className="text-xs text-muted-foreground">No hay vehículos disponibles para asignar.</p>
+              )}
             </FormItem>
           )}
         />
@@ -239,29 +297,15 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
                 <p className="text-xs text-muted-foreground">{label}</p>
                 {photos[key] ? (
                   <div className="relative">
-                    <img
-                      src={URL.createObjectURL(photos[key]!)}
-                      alt={label}
-                      className="w-full h-24 object-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handlePhotoChange(key, null)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                    >
+                    <img src={URL.createObjectURL(photos[key]!)} alt={label} className="w-full h-24 object-cover rounded" />
+                    <button type="button" onClick={() => handlePhotoChange(key, null)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1">
                       <X className="h-3 w-3" />
                     </button>
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50">
                     <Camera className="h-5 w-5 text-muted-foreground" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => handlePhotoChange(key, e.target.files?.[0] || null)}
-                    />
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handlePhotoChange(key, e.target.files?.[0] || null)} />
                   </label>
                 )}
               </div>
@@ -270,10 +314,8 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancelar</Button>
+          <Button type="submit" disabled={isSubmitting || !!selectedClientVehicle || availableVehicles.length === 0}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {uploadingPhotos ? 'Subiendo fotos...' : 'Registrar Asignación'}
           </Button>
