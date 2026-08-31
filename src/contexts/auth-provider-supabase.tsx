@@ -2,17 +2,18 @@
 
 /**
  * Auth Provider con Supabase.
- * Mantiene compatibilidad con la API existente de FleetEase.
+ * Mantiene una única fuente de verdad para la sesión de Supabase Auth.
  */
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
-import type { User as SupabaseUser } from '@/types/supabase';
+import { supabase } from '@/lib/supabase';
+import type { User as SupabaseProfile } from '@/types/supabase';
 import type { UserProfile } from '@/types';
-import { signIn, signOut, onAuthStateChange, resetPassword, formatAuthError } from '@/lib/auth';
+import { signIn, signOut, resetPassword, formatAuthError } from '@/lib/auth';
 import { userService } from '@/lib/supabase-services';
 import { logger } from '@/lib/logger';
 
-function adaptUserToProfile(user: SupabaseUser): UserProfile {
+function adaptUserToProfile(user: SupabaseProfile): UserProfile {
   return {
     uid: user.id,
     name: user.name,
@@ -51,54 +52,67 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-    let initialResolved = false;
+    let initialSessionResolved = false;
 
-    logger.info('[Supabase Auth] Iniciando listener de autenticación...');
-
-    const loadProfile = async (user: SupabaseUser | null) => {
-      if (!user) {
-        if (mounted) {
-          setCurrentUser(null);
-          setLoading(false);
-        }
-        return;
-      }
-
+    const loadProfile = async (authUserId: string, preserveCurrentUser = false) => {
       try {
-        const profile = await userService.get(user.id);
+        const profile = await userService.get(authUserId);
         if (!mounted) return;
 
-        if (profile) {
+        if (profile && !profile.is_deleted) {
           setCurrentUser(adaptUserToProfile(profile));
-        } else {
-          // Auth already has a valid session. Do not turn a transient profile
-          // read failure into currentUser=null and a permanent dashboard loader.
-          setCurrentUser(prev => prev ?? adaptUserToProfile(user));
-          logger.warn('[Supabase Auth] Sesión válida, pero no se pudo cargar el perfil');
+        } else if (!preserveCurrentUser) {
+          setCurrentUser(null);
         }
       } catch (error) {
         logger.error('[Supabase Auth] Error cargando perfil', error as Error);
-        if (mounted) setCurrentUser(prev => prev ?? adaptUserToProfile(user));
-      } finally {
-        if (mounted) setLoading(false);
+        // A valid Auth session should not be replaced by null because the
+        // profile request failed transiently. Keep any existing user intact.
+        if (!preserveCurrentUser && mounted) setCurrentUser(null);
       }
     };
 
-    // Initial session is resolved once. Subsequent auth events refresh the
-    // profile without ever replacing an existing valid user with null.
-    onAuthStateChange((user) => {
-      if (!mounted) return;
-      logger.debug('[Supabase Auth] Estado cambió', { uid: user?.id ?? 'Sin usuario' });
+    const initializeSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
-      if (!user) {
-        if (initialResolved) {
+        if (data.session?.user) {
+          await loadProfile(data.session.user.id, false);
+        } else if (mounted) {
           setCurrentUser(null);
+        }
+      } catch (error) {
+        logger.error('[Supabase Auth] Error obteniendo sesión inicial', error as Error);
+        if (mounted) setCurrentUser(null);
+      } finally {
+        if (mounted) {
+          initialSessionResolved = true;
           setLoading(false);
         }
+      }
+    };
+
+    initializeSession();
+
+    // One and only one auth listener. It never performs the initial session
+    // read and therefore cannot race with initializeSession().
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted || !initialSessionResolved) return;
+
+      logger.debug('[Supabase Auth] Estado cambió', {
+        event,
+        uid: session?.user?.id ?? 'Sin usuario',
+      });
+
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setCurrentUser(null);
+        setLoading(false);
         return;
       }
 
-      loadProfile(user);
+      // Refresh the profile in the background without blanking a valid user.
+      void loadProfile(session.user.id, true);
     });
 
     const safetyTimer = window.setTimeout(() => {
@@ -108,15 +122,10 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }, 8000);
 
-    // onAuthStateChange() performs the initial getSession/getUser internally.
-    // Mark the initial phase resolved after the first event cycle.
-    Promise.resolve().then(() => {
-      if (mounted) initialResolved = true;
-    });
-
     return () => {
       mounted = false;
       window.clearTimeout(safetyTimer);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -157,7 +166,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserProfile = async (data: Partial<UserProfile>) => {
     if (!currentUser) throw new Error('No hay usuario autenticado');
-    const supabaseData: Partial<SupabaseUser> = {
+    const supabaseData: Partial<SupabaseProfile> = {
       name: data.name,
       phone: data.phone ?? null,
       street: data.street ?? null,
@@ -165,7 +174,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       state: data.state ?? null,
       zip_code: data.zipCode ?? null,
       country: data.country ?? null,
-      role: (data.role === 'superAdmin' ? 'super_admin' : data.role) as SupabaseUser['role'],
+      role: (data.role === 'superAdmin' ? 'super_admin' : data.role) as SupabaseProfile['role'],
       company_id: data.companyId ?? null,
       partner_access: data.partnerAccess ?? null,
       notification_settings: data.notificationSettings ?? null,
