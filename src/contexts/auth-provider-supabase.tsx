@@ -50,35 +50,79 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    let initialResolved = false;
+
     logger.info('[Supabase Auth] Iniciando listener de autenticación...');
 
-    const handleAuthUser = (user: SupabaseUser | null) => {
-      // La landing pública NO debe redirigir automáticamente al dashboard.
-      // Esto evita el ciclo / -> /dashboard -> /login?callbackUrl=/dashboard
-      // cuando el navegador conserva una sesión/cookie de Supabase (por
-      // ejemplo después de una recuperación de contraseña).
-      const isLanding = typeof window !== 'undefined' && window.location.pathname === '/';
-
-      if (isLanding) {
-        setCurrentUser(null);
-      } else if (user) {
-        setCurrentUser(adaptUserToProfile(user));
-      } else {
-        setCurrentUser(null);
+    const loadProfile = async (user: SupabaseUser | null) => {
+      if (!user) {
+        if (mounted) {
+          setCurrentUser(null);
+          setLoading(false);
+        }
+        return;
       }
-      setLoading(false);
+
+      try {
+        const profile = await userService.get(user.id);
+        if (!mounted) return;
+
+        if (profile) {
+          setCurrentUser(adaptUserToProfile(profile));
+        } else {
+          // Auth already has a valid session. Do not turn a transient profile
+          // read failure into currentUser=null and a permanent dashboard loader.
+          setCurrentUser(prev => prev ?? adaptUserToProfile(user));
+          logger.warn('[Supabase Auth] Sesión válida, pero no se pudo cargar el perfil');
+        }
+      } catch (error) {
+        logger.error('[Supabase Auth] Error cargando perfil', error as Error);
+        if (mounted) setCurrentUser(prev => prev ?? adaptUserToProfile(user));
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
-    const { subscription } = onAuthStateChange((user) => {
+    // Initial session is resolved once. Subsequent auth events refresh the
+    // profile without ever replacing an existing valid user with null.
+    onAuthStateChange((user) => {
+      if (!mounted) return;
       logger.debug('[Supabase Auth] Estado cambió', { uid: user?.id ?? 'Sin usuario' });
-      handleAuthUser(user);
+
+      if (!user) {
+        if (initialResolved) {
+          setCurrentUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      loadProfile(user);
     });
 
-    return () => subscription.unsubscribe();
+    const safetyTimer = window.setTimeout(() => {
+      if (mounted) {
+        logger.warn('[Supabase Auth] Timeout de inicialización; liberando loader');
+        setLoading(false);
+      }
+    }, 8000);
+
+    // onAuthStateChange() performs the initial getSession/getUser internally.
+    // Mark the initial phase resolved after the first event cycle.
+    Promise.resolve().then(() => {
+      if (mounted) initialResolved = true;
+    });
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(safetyTimer);
+    };
   }, []);
 
   const login = async (email: string, pass: string, _rememberMe: boolean) => {
     logger.info('[Supabase Auth] Iniciando login...');
+    setLoading(true);
     try {
       const { user, error } = await signIn({ email, password: pass });
       if (error) {
@@ -92,6 +136,8 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       logger.error('[Supabase Auth] Error en login', error as Error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
