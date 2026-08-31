@@ -6,7 +6,7 @@ export function GlobalLoader() {
   return (
     <div className="fe-app-shell min-h-screen w-full px-4 pb-12 pt-6 sm:px-6 lg:px-8" aria-busy="true" aria-label="Cargando FleetEase">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-7 flex items-center justify-between border-b border-white/[0.07] pb-5">
+        <div className="mb-7 flex items-center justify-between border-b border-border pb-5">
           <div className="flex items-center gap-3">
             <Skeleton className="fe-skeleton h-10 w-10 rounded-xl" />
             <div className="space-y-2">

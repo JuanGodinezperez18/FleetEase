@@ -11,11 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth-provider';
-import { Moon, Settings2, UserCircle, KeyRound, Bell, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Moon, Sun, Settings2, UserCircle, KeyRound, Bell, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { NotificationSettings, UserProfile } from '@/types';
 import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useTheme } from 'next-themes';
 import { useSystemSettingsAnalytics } from '@/hooks/use-system-settings-analytics';
 import { SystemAdminDashboard } from './components/system-admin-dashboard';
 import { useData } from '@/hooks/use-data';
@@ -129,6 +132,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const { currentUser, updateUserProfile,  loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { loadingData } = useData();
@@ -432,13 +436,14 @@ export default function SettingsPage() {
                   <CardDescription>Personaliza el tema visual de la aplicación.</CardDescription>
               </CardHeader>
               <CardContent>
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-primary bg-popover p-4 text-center">
-                    <Moon className="mb-1 h-6 w-6 text-primary" />
-                    <span className="font-medium">Oscuro</span>
-                    <p className="text-sm text-muted-foreground">
-                      FleetEase usa un único tema oscuro para mantener la misma identidad visual en toda la aplicación. El modo claro llegará más adelante.
-                    </p>
-                  </div>
+                  <RadioGroup value={theme} onValueChange={(v) => setTheme(v as "light" | "dark" | "system")} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <Label htmlFor="light" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <RadioGroupItem value="light" id="light" className="sr-only" /><Sun className="mb-3 h-6 w-6" /> Claro</Label>
+                      <Label htmlFor="dark" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <RadioGroupItem value="dark" id="dark" className="sr-only" /><Moon className="mb-3 h-6 w-6" /> Oscuro</Label>
+                      <Label htmlFor="system" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <RadioGroupItem value="system" id="system" className="sr-only" /><Settings2 className="mb-3 h-6 w-6" /> Sistema</Label>
+                  </RadioGroup>
               </CardContent>
             </Card>
             <Card>

@@ -196,7 +196,7 @@ export function AnimatedMetricCard({
         </div>
 
         {/* Title */}
-        <p className="text-sm font-medium text-white/60 mb-2">{title}</p>
+        <p className="text-sm font-medium text-muted-foreground mb-2">{title}</p>
 
         {/* Value with counter animation */}
         <div className="flex items-baseline gap-1">
@@ -214,7 +214,7 @@ export function AnimatedMetricCard({
         {/* Subtitle */}
         {subtitle && (
           <motion.p
-            className="text-xs text-white/40 mt-2"
+            className="text-xs text-muted-foreground/70 mt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: delay + 0.3 }}

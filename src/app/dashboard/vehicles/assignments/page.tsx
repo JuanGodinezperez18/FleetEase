@@ -14,7 +14,7 @@ import { AssignmentForm } from './components/assignment-form';
 import { toast } from 'sonner';
 import type { Vehicle, Client, VehicleAssignmentLog } from '@/types';
 
-const shell = 'rounded-2xl border border-white/[0.08] bg-white/[0.035] shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl';
+const shell = 'rounded-2xl border border-border bg-card/60 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl';
 
 export default function VehicleAssignmentsPage() {
   const router = useRouter();
@@ -68,7 +68,7 @@ export default function VehicleAssignmentsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#d7ff3f]">
+            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
               <Car className="h-3.5 w-3.5" /> Control de flota
             </div>
             <h2 className="text-3xl font-bold tracking-tight">Asignaciones</h2>
@@ -83,7 +83,7 @@ export default function VehicleAssignmentsPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className={shell}>
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="rounded-xl bg-[#d7ff3f]/10 p-3 text-[#d7ff3f]"><Car className="h-5 w-5" /></div>
+            <div className="rounded-xl bg-primary/10 p-3 text-primary"><Car className="h-5 w-5" /></div>
             <div><p className="text-xs uppercase tracking-wider text-muted-foreground">Asignadas ahora</p><p className="text-2xl font-bold">{activeAssignments.length}</p></div>
           </CardContent>
         </Card>
@@ -102,7 +102,7 @@ export default function VehicleAssignmentsPage() {
       </div>
 
       <Card className={shell}>
-        <CardHeader className="border-b border-white/[0.06]">
+        <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-xl">
@@ -124,7 +124,7 @@ export default function VehicleAssignmentsPage() {
             </div>
           ) : sortedLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <div className="mb-4 rounded-2xl bg-[#d7ff3f]/10 p-4 text-[#d7ff3f]"><Clock3 className="h-6 w-6" /></div>
+              <div className="mb-4 rounded-2xl bg-primary/10 p-4 text-primary"><Clock3 className="h-6 w-6" /></div>
               <p className="font-semibold">No hay asignaciones registradas</p>
               <p className="mt-1 text-sm text-muted-foreground">Cuando entregues una unidad, su historial aparecerá aquí.</p>
             </div>
@@ -132,7 +132,7 @@ export default function VehicleAssignmentsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                  <TableRow className="border-border hover:bg-transparent">
                     <TableHead>Vehículo</TableHead><TableHead>Cliente</TableHead><TableHead>Asignado</TableHead><TableHead>Finalizado</TableHead><TableHead>Odómetro</TableHead><TableHead>Combustible</TableHead><TableHead>Fotos</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -144,7 +144,7 @@ export default function VehicleAssignmentsPage() {
                     const isCreditProtected = !!vehicle?.lockedByCredit || credits.some((credit) => credit.vehicleId === log.vehicleId && credit.status === 'active');
                     const photoCount = log.photos ? Object.keys(log.photos).length : 0;
                     return (
-                      <TableRow key={log.id} className="border-white/[0.06] hover:bg-white/[0.025]">
+                      <TableRow key={log.id} className="border-border hover:bg-accent/40">
                         <TableCell className="font-medium">{vehicle ? `${vehicle.plate} · ${vehicle.make} ${vehicle.model}` : log.vehicleId}</TableCell>
                         <TableCell>{client ? `${client.firstname} ${client.lastname}` : '—'}</TableCell>
                         <TableCell>{formatDate(log.assignedAt)}</TableCell>
@@ -171,7 +171,7 @@ export default function VehicleAssignmentsPage() {
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-white/[0.08] bg-[#0b0e13]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-border bg-popover">
           <DialogHeader>
             <DialogTitle>Nueva asignación</DialogTitle>
             <DialogDescription>Selecciona un cliente y una unidad disponible. Las unidades asignadas o protegidas por crédito no aparecen aquí.</DialogDescription>
