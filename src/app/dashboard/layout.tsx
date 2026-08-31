@@ -12,11 +12,7 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardDateProvider } from '@/contexts/dashboard-date-context';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
   const { selectedCompanyId } = useData();
   const router = useRouter();
@@ -29,8 +25,12 @@ export default function DashboardLayout({
     }
   }, [currentUser, loading, router]);
 
-  if (loading || !currentUser) {
+  if (loading) {
     return <GlobalLoader />;
+  }
+
+  if (!currentUser) {
+    return null;
   }
 
   return (
@@ -38,9 +38,7 @@ export default function DashboardLayout({
       <VehiclesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
         <ClientsProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
           <FinancesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
-            <SidebarLayout>
-              {children}
-            </SidebarLayout>
+            <SidebarLayout>{children}</SidebarLayout>
           </FinancesProvider>
         </ClientsProvider>
       </VehiclesProvider>
