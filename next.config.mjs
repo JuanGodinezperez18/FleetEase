@@ -1,4 +1,3 @@
-
 // next.config.mjs
 //
 // Antes existían DOS archivos de configuración a la vez: next.config.js
@@ -62,7 +61,11 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob: https://firebasestorage.googleapis.com https://storage.googleapis.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.googleapis.com https://api.stripe.com https://*.stripe.com",
+              // Supabase Auth/REST/Realtime must be reachable from the browser.
+              // Without these hosts, fetch() fails in the browser with the
+              // misleading error "Failed to fetch" before Supabase receives
+              // the request.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
               "object-src 'none'",
               "base-uri 'self'",
