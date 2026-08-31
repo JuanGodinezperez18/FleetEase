@@ -21,7 +21,18 @@ export async function getCurrentUser():Promise<User|null>{try{const {data:{user:
 
 export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){const userProfile=await userService.get(session.user.id);callback(userProfile||null);}else callback(null);});return{subscription};}
 
-export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{const siteUrl=(process.env.NEXT_PUBLIC_SITE_URL||(typeof window!=='undefined'?window.location.origin:'https://fleetease.com.mx')).replace(/\/$/,'');const {error}=await supabase.auth.resetPasswordForEmail(params.email,{redirectTo:`${siteUrl}/reset-password`});if(error)return error;return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
+export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{
+  // Producción siempre usa el dominio canónico. Esto evita que una variable
+  // NEXT_PUBLIC_SITE_URL antigua haga que el correo de recuperación apunte a
+  // una preview de Vercel o a la landing en lugar del formulario de reset.
+  const browserOrigin = typeof window !== 'undefined' ? window.location.origin.replace(/\/$/,'') : '';
+  const siteUrl = typeof window !== 'undefined' && window.location.hostname === 'fleetease.com.mx'
+    ? 'https://fleetease.com.mx'
+    : (process.env.NEXT_PUBLIC_SITE_URL || browserOrigin || 'https://fleetease.com.mx').replace(/\/$/,'');
+  const {error}=await supabase.auth.resetPasswordForEmail(params.email,{redirectTo:`${siteUrl}/reset-password`});
+  if(error)return error;
+  return null;
+}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
 
 export async function updatePassword(params:UpdatePasswordParams):Promise<Error|null>{try{const {error}=await supabase.auth.updateUser({password:params.newPassword});if(error)return error;return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
 
