@@ -33,8 +33,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SplashProvider minDuration={650} enabled={true}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          forcedTheme="dark"
           disableTransitionOnChange
         >
           <ToastProvider>
