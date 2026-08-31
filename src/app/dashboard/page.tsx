@@ -1,7 +1,6 @@
 // app/dashboard/page.tsx
 'use client';
 
-import { Suspense, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useDashboardPage } from './hooks/use-dashboard-page';
@@ -10,11 +9,10 @@ import { KpiGrid } from './components/kpi-grid';
 import { QuickActions } from './components/quick-actions';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardConfigurator } from '@/components/dashboard/dashboard-configurator';
-import { ErrorBoundary } from '@/components/error-boundary';
 import { LiveRegion, useAnnounce } from '@/components/accessibility/live-region';
 import type { QuickActionModal } from './hooks/use-dashboard-page';
+import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
 
-// Bundle de modales (todos en un solo import dinámico)
 import {
   ClientListModal,
   LicenseExpiringModal,
@@ -25,18 +23,12 @@ import {
   IncomeListModal,
   ExpenseListModal,
   VehicleInspectionModal,
-  ModalSkeleton,
 } from './components/dashboard-modals-bundle';
 
-import dynamic from 'next/dynamic';
-
 export default function DashboardPage() {
-  // ✅ IMPORTANT: All hooks MUST be called at the top level, before any conditional returns
-  // Accessibility announcements - MUST be at top level
   const { announce, message: announcementMessage } = useAnnounce();
 
   const {
-    // State
     currentUser,
     dashboardConfig,
     isLoadingConfig,
@@ -47,8 +39,6 @@ export default function DashboardPage() {
     quickActionModal,
     isSubmittingForm,
     dateFilterType,
-
-    // Data
     vehicles,
     clients,
     partners,
@@ -58,8 +48,6 @@ export default function DashboardPage() {
     allKPIs,
     KPI_MAP,
     enabledWidgets,
-
-    // Actions
     setIsConfigOpen,
     setActiveModal,
     setQuickActionModal,
@@ -77,48 +65,29 @@ export default function DashboardPage() {
     modalTitles,
   } = useDashboardPage();
 
-  // Prefetch data cuando el usuario se autentica
-  useEffect(() => {
-    if (currentUser) {
-      // Anunciar carga a screen readers
-      announce('Cargando dashboard, por favor espere');
+  // La configuración del dashboard es local/opcional. Nunca debe bloquear
+  // el render de toda la página mientras React Query la resuelve.
+  const effectiveDashboardConfig = currentUser
+    ? (dashboardConfig ?? {
+        userId: currentUser.uid,
+        ...DEFAULT_DASHBOARD_CONFIG,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    : null;
 
-      // Prefetch de datos críticos en background
-      const prefetchPromises = [
-        import('@/lib/supabase-services').then(({ financialRecordService }) => financialRecordService.getAll({})),
-        import('@/lib/supabase-services').then(({ vehicleService }) => vehicleService.getAll({})),
-        import('@/lib/supabase-services').then(({ clientService }) => clientService.getAll({})),
-      ];
-
-      Promise.all(prefetchPromises).catch((error) => {
-        console.error('Error prefetching data:', error);
-      });
-    }
-  }, [currentUser, announce]);
-
-  // ✅ Conditional returns AFTER all hooks
-  if (configError) {
-    console.error('🔴 [Dashboard] Error cargando configuración:', configError);
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
-        <p className="text-xl font-semibold mb-2 text-red-600">Error al cargar la configuración</p>
-        <p className="text-muted-foreground mb-4">Detalles del error:</p>
-        <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-w-2xl mb-4">
-          {JSON.stringify(configError, null, 2)}
-        </pre>
-        <div className="flex gap-2">
-          <Button onClick={() => window.location.reload()} variant="outline">Recargar Página</Button>
-        </div>
-      </div>
-    );
+  if (!currentUser) {
+    return <GlobalLoader />;
   }
 
-  if (isLoadingConfig || !currentUser) {
-    console.log('🔄 [Dashboard] Mostrando GlobalLoader. Razones:', {
-      isLoadingConfig,
-      currentUser: !!currentUser,
-    });
-    return <GlobalLoader />;
+  if (configError) {
+    console.error('🔴 [Dashboard] Error cargando configuración:', configError);
+    // La configuración no es crítica para mostrar el dashboard. Continuamos
+    // con la configuración por defecto y dejamos el error en consola.
+  }
+
+  if (isLoadingConfig) {
+    console.log('⏳ [Dashboard] Configuración aún cargando; renderizando con fallback local.');
   }
 
   return (
@@ -130,23 +99,18 @@ export default function DashboardPage() {
         Ir al contenido principal
       </a>
 
-      {/* Live region para anuncios de accesibilidad */}
       <LiveRegion message={announcementMessage} politeness="polite" clearAfter={5000} />
 
       <div className="space-y-6" id="main-content">
-
         <DashboardHeader
-          userName={currentUser?.name}
+          userName={currentUser.name}
           isConfigOpen={isConfigOpen}
           onOpenConfig={() => setIsConfigOpen(true)}
-          onDateChange={(range) => {
-            // The DashboardDateFilter handles its own state internally
-            // and calls onDateChange with the computed range
-          }}
+          onDateChange={() => undefined}
         />
 
         <KpiGrid
-          enabledWidgets={enabledWidgets}
+          enabledWidgets={enabledWidgets.length > 0 ? enabledWidgets : effectiveDashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) ?? []}
           kpiMap={KPI_MAP}
           allKPIs={allKPIs}
           onKpiClick={handleKpiClick}
@@ -172,11 +136,11 @@ export default function DashboardPage() {
           modalTitles={modalTitles}
         />
 
-        {isConfigOpen && dashboardConfig && (
+        {isConfigOpen && effectiveDashboardConfig && (
           <DashboardConfigurator
             isOpen={isConfigOpen}
             onClose={() => setIsConfigOpen(false)}
-            currentWidgets={dashboardConfig.widgets}
+            currentWidgets={effectiveDashboardConfig.widgets}
             onSave={(widgets) => {
               saveWidgetOrder(widgets);
               setIsConfigOpen(false);
@@ -185,69 +149,29 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Modales agrupados */}
         {activeModal === 'clients' && (
-          <ClientListModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            clients={modalData.data}
-          />
+          <ClientListModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} clients={modalData.data} />
         )}
         {activeModal === 'licenses' && (
-          <LicenseExpiringModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            clients={modalData.data}
-          />
+          <LicenseExpiringModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} clients={modalData.data} />
         )}
         {activeModal === 'insurance' && (
-          <InsuranceExpiringModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            vehicles={modalData.data}
-          />
+          <InsuranceExpiringModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} vehicles={modalData.data} />
         )}
         {activeModal === 'vehicles' && (
-          <VehicleListModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            vehicles={modalData.data}
-          />
+          <VehicleListModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} vehicles={modalData.data} />
         )}
         {activeModal === 'partners' && (
-          <PartnerBalancesModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            balances={modalData.data}
-          />
+          <PartnerBalancesModal isOpen={true} onClose={() => setActiveModal(null)} balances={modalData.data} />
         )}
         {activeModal === 'credits' && (
-          <CreditListModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            credits={modalData.data}
-          />
+          <CreditListModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} credits={modalData.data} />
         )}
         {activeModal === 'incomes' && (
-          <IncomeListModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            incomes={modalData.data}
-          />
+          <IncomeListModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} incomes={modalData.data} />
         )}
         {activeModal === 'expenses' && (
-          <ExpenseListModal
-            isOpen={true}
-            onClose={() => setActiveModal(null)}
-            title={modalData.title}
-            expenses={modalData.data}
-          />
+          <ExpenseListModal isOpen={true} onClose={() => setActiveModal(null)} title={modalData.title} expenses={modalData.data} />
         )}
 
         {quickActionModal === 'vehicle-inspection' && (
