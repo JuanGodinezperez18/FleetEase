@@ -15,9 +15,22 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Páginas públicas
-  const publicPaths = ['/login', '/register', '/forgot-password', '/registro', '/'];
-  const isPublicPath = publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
+  // 2. Páginas públicas.
+  // /reset-password DEBE ser pública: el enlace de Supabase Auth llega aquí
+  // antes de que exista una sesión normal. Si se trata como ruta protegida,
+  // el middleware redirige a /login?callbackUrl=/dashboard y el usuario nunca
+  // llega al formulario para cambiar la contraseña.
+  const publicPaths = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/registro',
+    '/',
+  ];
+  const isPublicPath = publicPaths.some(
+    path => pathname === path || pathname.startsWith(path + '/')
+  );
 
   // 3. Crear cliente de Supabase para el servidor
   const res = NextResponse.next();
@@ -45,8 +58,12 @@ export async function middleware(req: NextRequest) {
 
   // 5. Si es ruta pública
   if (isPublicPath) {
-    // Si ya tiene sesión válida y está en login/register, redirigir al dashboard
-    if (session?.user && (pathname === '/login' || pathname === '/register' || pathname === '/registro')) {
+    // Una recuperación de contraseña no debe enviarse al dashboard aunque
+    // Supabase haya creado una sesión temporal de recuperación.
+    if (
+      session?.user &&
+      (pathname === '/login' || pathname === '/register' || pathname === '/registro')
+    ) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
     return res;
@@ -84,12 +101,10 @@ export async function middleware(req: NextRequest) {
   }
 
   if (pathname.startsWith('/partner') && userRole !== 'partner') {
-    logger.warn('[Middleware] Acceso denegado a partner', { role: userRole });
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
   if (pathname.startsWith('/client') && userRole !== 'client') {
-    logger.warn('[Middleware] Acceso denegado a client', { role: userRole });
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
