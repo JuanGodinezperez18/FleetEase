@@ -48,7 +48,6 @@ export default function DashboardPage() {
     setActiveModal,
     setQuickActionModal,
     handleQuickAction,
-    handleDatePresetChange,
     handleDragEnd,
     handleKpiClick,
     handleIncomeSubmit,
@@ -72,29 +71,18 @@ export default function DashboardPage() {
 
   if (!currentUser) return <GlobalLoader />;
 
-  if (configError) {
-    console.error('🔴 [Dashboard] Error cargando configuración:', configError);
-  }
-
-  if (isLoadingConfig) {
-    console.log('⏳ [Dashboard] Configuración aún cargando; renderizando con fallback local.');
-  }
+  if (configError) console.error('🔴 [Dashboard] Error cargando configuración:', configError);
+  if (isLoadingConfig) console.log('⏳ [Dashboard] Configuración aún cargando; renderizando con fallback local.');
 
   return (
     <>
-      <a
-        href="#main-content"
-        className="sr-only absolute left-4 top-4 z-50 rounded bg-[#d7ff3f] px-4 py-2 text-[#080a0f] focus:not-sr-only"
-      >
+      <a href="#main-content" className="sr-only absolute left-4 top-4 z-50 rounded bg-[#d7ff3f] px-4 py-2 text-[#080a0f] focus:not-sr-only">
         Ir al contenido principal
       </a>
 
       <LiveRegion message={announcementMessage} politeness="polite" clearAfter={5000} />
 
-      <div
-        id="main-content"
-        className="relative min-h-full space-y-6 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 text-white sm:p-6 lg:p-7"
-      >
+      <div id="main-content" className="relative min-h-full space-y-6 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 text-white sm:p-6 lg:p-7">
         <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
         <div className="pointer-events-none absolute -right-48 top-[-220px] h-[520px] w-[520px] rounded-full bg-[#d7ff3f]/[0.055] blur-[120px]" />
 
@@ -103,7 +91,7 @@ export default function DashboardPage() {
             userName={currentUser.name}
             isConfigOpen={isConfigOpen}
             onOpenConfig={() => setIsConfigOpen(true)}
-            onDateChange={handleDatePresetChange}
+            onDateChange={() => undefined}
           />
 
           <section aria-label="Indicadores principales">
