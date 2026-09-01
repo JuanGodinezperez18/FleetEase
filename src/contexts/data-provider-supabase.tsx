@@ -1791,8 +1791,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateCredit: (id, data) => updateCreditMutation.mutateAsync({ ...data, id }),
     deleteCredit: (id) => deleteCreditMutation.mutateAsync(id),
     deactivateCredit: async (id) => {
-      await supabase.from('credits').update({ status: 'inactive' }).eq('id', id);
-      await supabase.from('vehicles').update({ status: 'active', client_id: null }).eq('id', id);
+      const { data: credit, error: creditError } = await supabase
+        .from('credits')
+        .select('id, vehicle_id, client_id')
+        .eq('id', id)
+        .single();
+      if (creditError) throw creditError;
+      if (!credit) throw new Error('Crédito no encontrado');
+
+      const { error: creditUpdateError } = await supabase
+        .from('credits')
+        .update({ status: 'inactive' })
+        .eq('id', credit.id);
+      if (creditUpdateError) throw creditUpdateError;
+
+      if (credit.vehicle_id) {
+        const { error: vehicleError } = await supabase
+          .from('vehicles')
+          .update({ status: 'active', client_id: null })
+          .eq('id', credit.vehicle_id);
+        if (vehicleError) throw vehicleError;
+      }
+
       await refreshData();
     },
     createCreditWithFinancialRecord,
