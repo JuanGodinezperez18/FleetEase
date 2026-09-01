@@ -24,6 +24,7 @@ import { getColumns } from './columns';
 import type { ColumnDef } from '@tanstack/react-table';
 import { canAddUser, getUserLimitMessage, type PlanType } from '@/config/plans';
 import { supabase } from '@/lib/supabase';
+import { getSessionToken } from '@/lib/auth';
 
 
 export type UserWithMetrics = UserProfile & Partial<UserMetric>;
@@ -120,9 +121,14 @@ export default function UsersPage() {
     
     try {
       if (editingUser) {
+        const token = await getSessionToken();
+        if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
         const response = await fetch('/api/admin/users/update-claims', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             userId: editingUser.uid,
             role: data.role,
@@ -164,9 +170,14 @@ export default function UsersPage() {
             }
         }
 
+        const token = await getSessionToken();
+        if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
         const response = await fetch('/api/admin/users/create', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             email: data.email,
             password: data.password,
@@ -219,9 +230,14 @@ export default function UsersPage() {
       setIsSubmitting(true);
       const toastId = sonnerToast.loading("Desactivando usuario...");
       try {
+        const token = await getSessionToken();
+        if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
         const response = await fetch('/api/admin/users/delete', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ uid: userToDelete.uid }),
         });
         
@@ -242,9 +258,14 @@ export default function UsersPage() {
   const handleResendInvitation = async (user: UserProfile) => {
     const toastId = sonnerToast.loading('Enviando email de bienvenida...');
     try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
       const response = await fetch('/api/admin/users/resend-welcome', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ uid: user.uid }),
       });
       
@@ -270,9 +291,14 @@ export default function UsersPage() {
 
     const toastId = sonnerToast.loading('Enviando link...');
     try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
       const response = await fetch('/api/admin/users/send-password-reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ email: user.email }),
       });
       

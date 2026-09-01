@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
 interface SendPasswordResetRequest {
   email: string;
@@ -16,6 +9,24 @@ export async function POST(request: NextRequest) {
   try {
     const body: SendPasswordResetRequest = await request.json();
     const { email } = body;
+
+    if (!email) {
+      return NextResponse.json(
+        { success: false, message: 'email es obligatorio.' },
+        { status: 400 },
+      );
+    }
+
+    const { data: target } = await supabaseAdmin
+      .from('users')
+      .select('id, company_id, email')
+      .eq('email', email)
+      .maybeSingle();
+
+    const auth = await requireAdmin(request, {
+      targetCompanyId: target?.company_id ?? null,
+    });
+    if ('error' in auth) return auth.error;
 
     const { error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
@@ -29,7 +40,7 @@ export async function POST(request: NextRequest) {
       console.error('[Send Password Reset API] Error:', error);
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -41,7 +52,7 @@ export async function POST(request: NextRequest) {
     console.error('[Send Password Reset API] Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

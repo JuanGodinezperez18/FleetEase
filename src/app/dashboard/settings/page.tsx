@@ -23,7 +23,8 @@ import { useSystemSettingsAnalytics } from '@/hooks/use-system-settings-analytic
 import { SystemAdminDashboard } from './components/system-admin-dashboard';
 import { useData } from '@/hooks/use-data';
 import { toast as sonnerToast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'
+import { getSessionToken } from '@/lib/auth';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
@@ -64,9 +65,14 @@ const SystemMaintenanceCard = () => {
         setIsSyncing(true);
         const toastId = sonnerToast.loading("Sincronizando permisos de usuario...");
         try {
+            const token = await getSessionToken();
+            if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
             const response = await fetch('/api/admin/sync-claims', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
             });
             
             const data = await response.json();
@@ -246,9 +252,14 @@ export default function SettingsPage() {
       }
       
       // Actualizar contraseña via API admin
+      const token = await getSessionToken();
+      if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
       const response = await fetch('/api/admin/users/update-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userId: user.id, newPassword: data.newPassword }),
       });
       
@@ -308,9 +319,14 @@ export default function SettingsPage() {
         // Unsubscribe
         await existingSubscription.unsubscribe();
         
+        const token = await getSessionToken();
+        if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
         const response = await fetch('/api/admin/push-subscription', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ 
             userId: currentUser!.uid, 
             subscription: existingSubscription.toJSON(),
@@ -334,9 +350,14 @@ export default function SettingsPage() {
           applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
         });
 
+        const token = await getSessionToken();
+        if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
         const response = await fetch('/api/admin/push-subscription', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ 
             userId: currentUser!.uid, 
             subscription: subscription.toJSON(),

@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
 interface DeleteUserRequest {
   uid: string;
@@ -17,7 +10,46 @@ export async function POST(request: NextRequest) {
     const body: DeleteUserRequest = await request.json();
     const { uid } = body;
 
-    // 1. Soft delete en tabla users
+    if (!uid) {
+      return NextResponse.json(
+        { success: false, message: 'uid es obligatorio.' },
+        { status: 400 },
+      );
+    }
+
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from('users')
+      .select('id, company_id, role')
+      .eq('id', uid)
+      .single();
+
+    if (targetError || !target) {
+      return NextResponse.json(
+        { success: false, message: 'Usuario objetivo no encontrado.' },
+        { status: 404 },
+      );
+    }
+
+    const auth = await requireAdmin(request, {
+      targetCompanyId: target.company_id,
+    });
+    if ('error' in auth) return auth.error;
+
+    // Only super_admin may delete another super_admin
+    if (target.role === 'super_admin' && auth.profile.role !== 'super_admin') {
+      return NextResponse.json(
+        { success: false, message: 'No puedes desactivar un super_admin.' },
+        { status: 403 },
+      );
+    }
+
+    if (uid === auth.profile.id) {
+      return NextResponse.json(
+        { success: false, message: 'No puedes desactivar tu propia cuenta.' },
+        { status: 400 },
+      );
+    }
+
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .update({ is_deleted: true })
@@ -27,17 +59,13 @@ export async function POST(request: NextRequest) {
       console.error('[Delete User API] Profile error:', profileError);
       return NextResponse.json(
         { success: false, message: profileError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    // 2. Deshabilitar usuario en Supabase Auth (no eliminar, para mantener historial)
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(uid, {
-      user_metadata: { ...{ deleted: true } },
+    await supabaseAdmin.auth.admin.updateUserById(uid, {
+      user_metadata: { deleted: true },
     });
-
-    // Nota: No eliminamos el usuario de Auth para preservar integridad referencial
-    // Solo lo marcamos como deleted en metadata
 
     return NextResponse.json({
       success: true,
@@ -47,7 +75,7 @@ export async function POST(request: NextRequest) {
     console.error('[Delete User API] Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

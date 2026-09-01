@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
 interface UpdateClaimsRequest {
   userId: string;
@@ -15,18 +8,66 @@ interface UpdateClaimsRequest {
   partnerAccess?: string[];
 }
 
+const ALLOWED_ROLES = new Set(['super_admin', 'admin', 'user', 'editor', 'viewer']);
+
 export async function POST(request: NextRequest) {
   try {
     const body: UpdateClaimsRequest = await request.json();
     const { userId, role, companyId, partnerAccess } = body;
 
-    // Actualizar perfil en tabla users
+    if (!userId || !role) {
+      return NextResponse.json(
+        { success: false, message: 'userId y role son obligatorios.' },
+        { status: 400 },
+      );
+    }
+
+    const roleMap: Record<string, string> = {
+      superAdmin: 'super_admin',
+      super_admin: 'super_admin',
+      admin: 'admin',
+      editor: 'editor',
+      viewer: 'viewer',
+      user: 'user',
+      partner: 'partner',
+      client: 'client',
+    };
+    const normalizedRole = roleMap[role] ?? role;
+
+    if (!ALLOWED_ROLES.has(normalizedRole)) {
+      return NextResponse.json(
+        { success: false, message: 'Rol no permitido.' },
+        { status: 400 },
+      );
+    }
+
+    const auth = await requireAdmin(request, {
+      targetCompanyId: companyId ?? null,
+    });
+    if ('error' in auth) return auth.error;
+
+    // Company admins cannot escalate to super_admin or change company arbitrarily
+    if (auth.profile.role !== 'super_admin') {
+      if (normalizedRole === 'super_admin') {
+        return NextResponse.json(
+          { success: false, message: 'No puedes asignar rol super_admin.' },
+          { status: 403 },
+        );
+      }
+      if (companyId && companyId !== auth.profile.company_id) {
+        return NextResponse.json(
+          { success: false, message: 'No puedes mover usuarios a otra empresa.' },
+          { status: 403 },
+        );
+      }
+    }
+
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .update({
-        role,
-        company_id: role === 'super_admin' ? null : companyId,
-        partner_access: role === 'viewer' ? (partnerAccess || []) : [],
+        role: normalizedRole,
+        company_id: normalizedRole === 'super_admin' ? null : companyId ?? auth.profile.company_id,
+        partner_access: normalizedRole === 'viewer' ? partnerAccess || [] : [],
       })
       .eq('id', userId);
 
@@ -34,12 +75,9 @@ export async function POST(request: NextRequest) {
       console.error('[Update Claims API] Profile error:', profileError);
       return NextResponse.json(
         { success: false, message: profileError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
-
-    // En Supabase, los roles se manejan via RLS y la tabla users
-    // No hay "custom claims" como en Firebase, el middleware usa la tabla users directamente
 
     return NextResponse.json({
       success: true,
@@ -49,7 +87,7 @@ export async function POST(request: NextRequest) {
     console.error('[Update Claims API] Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
 interface CreateUserRequest {
   email: string;
@@ -33,9 +26,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Faltan campos obligatorios.' }, { status: 400 });
     }
 
+    const auth = await requireAdmin(request, { targetCompanyId: companyId ?? null });
+    if ('error' in auth) return auth.error;
+
+    const roleMap: Record<string, string> = {
+      superAdmin: 'super_admin',
+      super_admin: 'super_admin',
+      admin: 'admin',
+      editor: 'editor',
+      viewer: 'viewer',
+      user: 'user',
+      partner: 'partner',
+      client: 'client',
+    };
+    const normalizedRole = roleMap[role] ?? role;
+
+    if (auth.profile.role !== 'super_admin') {
+      if (normalizedRole === 'super_admin') {
+        return NextResponse.json({ success: false, message: 'No puedes crear un super_admin.' }, { status: 403 });
+      }
+      if (!companyId || companyId !== auth.profile.company_id) {
+        return NextResponse.json({ success: false, message: 'Solo puedes crear usuarios en tu empresa.' }, { status: 403 });
+      }
+    }
+
     // Enforce the plan limit on the server before touching Supabase Auth.
     // The UI also validates this, but client-side validation is never authoritative.
-    if (role !== 'super_admin' && companyId) {
+    if (normalizedRole !== 'super_admin' && companyId) {
       const { data: company, error: companyError } = await supabaseAdmin
         .from('companies')
         .select('plan, max_users')
@@ -98,8 +115,8 @@ export async function POST(request: NextRequest) {
         name,
         phone,
         role,
-        company_id: role === 'super_admin' ? null : companyId,
-        partner_access: role === 'viewer' ? (partnerAccess || []) : [],
+        company_id: normalizedRole === 'super_admin' ? null : companyId,
+        partner_access: normalizedRole === 'viewer' ? (partnerAccess || []) : [],
         is_deleted: false,
       });
 

@@ -1,36 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-interface ResendWelcomeRequest {
-  uid: string;
-}
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ResendWelcomeRequest = await request.json();
+    const body = await request.json();
     const { uid } = body;
 
-    // Obtener email del usuario
-    const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserById(uid);
-
-    if (userError || !user) {
+    if (!uid) {
       return NextResponse.json(
-        { success: false, message: 'Usuario no encontrado' },
-        { status: 404 }
+        { success: false, message: 'uid es obligatorio.' },
+        { status: 400 },
       );
     }
 
-    // Enviar email de recuperación de contraseña (funciona como welcome)
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from('users')
+      .select('id, company_id')
+      .eq('id', uid)
+      .single();
+
+    if (targetError || !target) {
+      return NextResponse.json(
+        { success: false, message: 'Usuario no encontrado' },
+        { status: 404 },
+      );
+    }
+
+    const auth = await requireAdmin(request, {
+      targetCompanyId: target.company_id,
+    });
+    if ('error' in auth) return auth.error;
+
+    const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserById(uid);
+
+    if (userError || !user?.user?.email) {
+      return NextResponse.json(
+        { success: false, message: 'Usuario no encontrado en Auth' },
+        { status: 404 },
+      );
+    }
+
     const { error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
-      email: user.user.email!,
+      email: user.user.email,
       options: {
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
       },
@@ -40,7 +52,7 @@ export async function POST(request: NextRequest) {
       console.error('[Resend Welcome API] Error:', error);
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -52,7 +64,7 @@ export async function POST(request: NextRequest) {
     console.error('[Resend Welcome API] Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

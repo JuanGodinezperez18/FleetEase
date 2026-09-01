@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // En Supabase, los claims/roles se sincronizan automáticamente
-    // porque el middleware lee directamente de la tabla users
-    // Esta API existe por compatibilidad
+    const auth = await requireAdmin(request, {
+      allowedRoles: ['super_admin'],
+    });
+    if ('error' in auth) return auth.error;
 
-    // Podríamos verificar que todos los usuarios tengan perfiles
     const { data: users, error } = await supabaseAdmin
       .from('users')
       .select('id, email, role, company_id, is_deleted')
@@ -25,13 +18,19 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       message: `Sincronización completada. ${users?.length || 0} usuarios verificados.`,
-      users: users?.map(u => ({ id: u.id, email: u.email, role: u.role, companyId: u.company_id })) || [],
+      users:
+        users?.map((u) => ({
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          companyId: u.company_id,
+        })) || [],
     });
   } catch (error) {
     console.error('[Sync Claims API] Unexpected error:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
