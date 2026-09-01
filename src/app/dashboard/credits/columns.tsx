@@ -22,7 +22,6 @@ import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { CreditWithMetrics } from '@/hooks/use-credits-search';
 
-// Helper to format currency safely
 const formatCurrency = (amount: number | null | undefined) => {
     const num = Number(amount);
     if (isNaN(num)) {
@@ -122,10 +121,8 @@ export const getCreditColumns = ({ clients, vehicles, onEdit, onDelete, onDeacti
     cell: ({ row }) => {
       const date = row.original.estimatedCompletionDate;
       if (!date) return '-';
-      
       const daysToCompletion = differenceInDays(date, new Date());
       const isOverdue = daysToCompletion < 0;
-      
       return (
         <div className={`text-sm ${isOverdue ? 'text-red-600' : ''}`}>
           {format(date, 'dd/MM/yyyy')}
@@ -139,7 +136,6 @@ export const getCreditColumns = ({ clients, vehicles, onEdit, onDelete, onDeacti
     id: "actions",
     cell: ({ row }) => {
       const credit = row.original;
-
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -172,8 +168,8 @@ export const getCreditColumns = ({ clients, vehicles, onEdit, onDelete, onDeacti
               onClick={() => onDelete(credit.id)}
               className="text-red-600 focus:text-red-700"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancelar crédito
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
