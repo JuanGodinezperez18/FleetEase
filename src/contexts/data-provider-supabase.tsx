@@ -10,7 +10,6 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo, ReactNode, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './auth-provider-supabase';
-import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { addWeeks } from 'date-fns';
@@ -361,7 +360,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainClient);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -379,7 +378,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainVehicle);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -397,7 +396,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainPartner);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 10 * 60 * 1000,
   });
 
@@ -415,7 +414,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainCredit);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 10 * 60 * 1000,
   });
 
@@ -437,7 +436,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainFinancialRecord);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -459,7 +458,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainMileageLog);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 15 * 60 * 1000,
   });
 
@@ -501,7 +500,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       return Array.from(categoryMap.values());
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
   });
 
   // Notifications Query
@@ -518,7 +517,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainNotification);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
   });
 
   // Message Templates Query
@@ -535,7 +534,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainMessageTemplate);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -553,7 +552,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainCreditPaymentSchedule);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -571,7 +570,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainMulta);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -589,7 +588,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       return (data || []).map(toDomainVehicleAssignmentLog);
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -1824,10 +1823,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refreshData,
     handleCreditUpdate: async () => false,
   };
-
-  if (loadingData) {
-    return <GlobalLoader />;
-  }
 
   return (
     <DataContext.Provider value={contextValue}>
