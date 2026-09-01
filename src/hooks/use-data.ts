@@ -11,8 +11,24 @@ export function useData() {
     );
   };
 
+  const deleteCredit = async (id: string) => {
+    await data.cancelCreditWithAdjustment(
+      id,
+      'Cancelación de crédito solicitada desde la gestión de créditos. Motivo no especificado en la interfaz actual.',
+    );
+  };
+
+  const deleteCreditWithCleanup = async (id: string) => {
+    await data.cancelCreditWithAdjustment(
+      id,
+      'Cancelación de crédito solicitada desde la gestión de créditos. Se conserva el historial y no se eliminan registros financieros.',
+    );
+  };
+
   return {
     ...data,
     deleteClient,
+    deleteCredit,
+    deleteCreditWithCleanup,
   };
 }
