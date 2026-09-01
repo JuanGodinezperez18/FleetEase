@@ -10,7 +10,8 @@ import type { Client, Company, Vehicle, ClientWithMetrics } from '@/types';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { FormModal } from '@/components/common/form-modal';
 import { ClientForm, type ClientFormValues } from './components/client-form';
-import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
+import { ClientOffboardingDialog, type ClientOffboardingResult } from '@/components/dashboard/client-offboarding-dialog';
+import { offboardClientWithWriteOff } from '@/lib/client-offboarding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getColumns } from './columns';
 import { toast } from 'sonner';
@@ -59,7 +60,7 @@ const ClientMobileCard = ({ client, onEdit, onDelete, onNavigate }: { client: an
                 <Eye className="mr-2 h-4 w-4" /> Ver Transacciones
             </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => onDelete(client)}>
-                <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                <Trash2 className="mr-2 h-4 w-4" /> Dar de baja
             </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -79,7 +80,6 @@ export default function ClientsPage() {
     clientMetrics, // Consume memoized metrics
     addClient,
     updateClient,
-    deleteClient,
     clientBalances,
     refreshData,
   } = useData();
@@ -313,13 +313,13 @@ export default function ClientsPage() {
     );
     
     if (activeCredits.length > 0) {
-      toast.error('No se puede eliminar', {
-        description: `El cliente tiene ${activeCredits.length} crédito(s) activo(s). Finalice o desactive los créditos antes de eliminar.`
+      toast.error('No se puede dar de baja', {
+        description: `El cliente tiene ${activeCredits.length} crédito(s) activo(s). Finalice o cancele los créditos antes de dar de baja.`
       });
       return;
     }
     
-    setClientsToDelete([client]);
+    setClientsToDelete([client as ClientWithMetrics]);
     setIsDeleteDialogOpen(true);
   }, [credits]);
 
@@ -333,10 +333,10 @@ export default function ClientsPage() {
 
     if (clientsWithActiveCredits.length > 0) {
         toast.error('Operación Bloqueada', {
-            description: `${clientsWithActiveCredits.length} de los clientes seleccionados tienen créditos activos y no pueden ser eliminados.`,
+            description: `${clientsWithActiveCredits.length} de los clientes seleccionados tienen créditos activos y no pueden darse de baja.`,
         });
         const clientsWithoutCredits = clientsToProcess.filter(client => !clientsWithActiveCredits.some(cwc => cwc.id === client.id));
-        if(clientsWithoutCredits.length > 0) {
+        if (clientsWithoutCredits.length > 0) {
             setClientsToDelete(clientsWithoutCredits);
             setIsDeleteDialogOpen(true);
         }
@@ -352,26 +352,50 @@ export default function ClientsPage() {
     setTimeout(() => setClientsToDelete([]), 300);
   }, [isSubmitting]);
 
-  const handleDeleteConfirm = async () => {
-    if (clientsToDelete.length === 0) return;
-    
+  const primaryOffboardClient = clientsToDelete[0];
+  const totalOutstandingBalance = clientsToDelete.reduce((sum, c) => sum + (Number(c.balance) || 0), 0);
+
+  const handleOffboardConfirm = async (reason: string): Promise<ClientOffboardingResult> => {
+    if (clientsToDelete.length === 0) {
+      throw new Error('No hay clientes seleccionados para dar de baja.');
+    }
+
     setIsSubmitting(true);
-    const toastId = toast.loading(`Eliminando ${clientsToDelete.length} cliente(s)...`);
-    
+    const toastId = toast.loading(
+      clientsToDelete.length === 1
+        ? 'Dando de baja al cliente...'
+        : `Dando de baja a ${clientsToDelete.length} clientes...`
+    );
+
     try {
-      await Promise.all(clientsToDelete.map(client => deleteClient(client.id)));
-      toast.success("Clientes Eliminados", {
-        id: toastId,
-        description: `${clientsToDelete.length} cliente(s) han sido marcados como eliminados.`
-      });
-      setRowSelection({}); 
-      handleCloseDeleteDialog();
+      let lastResult: ClientOffboardingResult | null = null;
+      for (const client of clientsToDelete) {
+        lastResult = await offboardClientWithWriteOff(client.id, reason);
+      }
+
+      if (!lastResult) {
+        throw new Error('La baja no devolvió información de trazabilidad.');
+      }
+
+      toast.success(
+        clientsToDelete.length === 1 ? 'Cliente dado de baja' : 'Clientes dados de baja',
+        {
+          id: toastId,
+          description:
+            clientsToDelete.length === 1
+              ? `Historial conservado. Ref: ${lastResult.clientReferenceCode || '—'} · Pérdida: ${formatCurrency(lastResult.amountWrittenOff)}`
+              : `${clientsToDelete.length} cliente(s) procesados. Historial y trazabilidad conservados.`,
+        }
+      );
+
+      setRowSelection({});
+      await refreshData();
+      return lastResult;
     } catch (error) {
       console.error(error);
-      toast.error("Error", {
-        id: toastId,
-        description: "No se pudieron eliminar todos los clientes seleccionados."
-      });
+      const message = error instanceof Error ? error.message : 'No se pudo completar la baja.';
+      toast.error('Error al dar de baja', { id: toastId, description: message });
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -497,7 +521,7 @@ export default function ClientsPage() {
                       </Button>
                        <Button variant="destructive" onClick={handleBulkDelete}>
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar ({selectedCount})
+                        Dar de baja ({selectedCount})
                       </Button>
                     </>
                   ) : (
@@ -575,18 +599,25 @@ export default function ClientsPage() {
         />
       </FormModal>
 
-      {clientsToDelete.length > 0 && (
-        <DeleteConfirmationDialog
-          isOpen={isDeleteDialogOpen}
-          onClose={handleCloseDeleteDialog}
-          onConfirm={handleDeleteConfirm}
-          itemName={clientsToDelete.length > 1 ? `${clientsToDelete.length} clientes` : `${clientsToDelete[0].firstname} ${clientsToDelete[0].lastname}`}
-          titleText={`¿Confirmar eliminación de ${clientsToDelete.length} cliente(s)?`}
-          descriptionText={
-            `Esta acción marcará al/los cliente(s) como eliminado(s). Se desasignará de cualquier vehículo asignado.`
+      {primaryOffboardClient && (
+        <ClientOffboardingDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) handleCloseDeleteDialog();
+            else setIsDeleteDialogOpen(true);
+          }}
+          clientName={
+            clientsToDelete.length > 1
+              ? `${clientsToDelete.length} clientes seleccionados`
+              : `${primaryOffboardClient.firstname} ${primaryOffboardClient.lastname}`
           }
-          confirmText="Eliminar"
-          isDeleting={isSubmitting}
+          clientReferenceCode={
+            clientsToDelete.length === 1
+              ? (primaryOffboardClient as any).referenceCode ?? null
+              : null
+          }
+          outstandingBalance={totalOutstandingBalance}
+          onConfirm={handleOffboardConfirm}
         />
       )}
     </div>

@@ -125,7 +125,7 @@ export function ClientOffboardingDialog({
                 disabled={!reason.trim() || submitting}
               >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Confirmar baja
+                Dar de baja y registrar pérdida
               </Button>
             </DialogFooter>
           </>
