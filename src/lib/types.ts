@@ -10,19 +10,18 @@ export interface Vehicle {
   serialNumber: string;
   color: string;
   status: 'active' | 'inactive' | 'maintenance' | 'sold' | 'rented';
-  clientId: string | null; // ID del cliente al que está asignado
-  partnerId: string | null; // ID del socio propietario
-  cost?: number; // Costo de adquisición
-  weeklyRentalValue?: number; // Valor de renta por semana
-  acquisitionDate: string; // Fecha de adquisición
-  // ... otros campos
-  maintenanceInterval?: number; // ✅ AGREGAR ESTE CAMPO (en km)
-  lastMaintenanceMileage?: number; // Kilometraje del último mantenimiento
+  clientId: string | null;
+  partnerId: string | null;
+  cost?: number;
+  weeklyRentalValue?: number;
+  acquisitionDate: string;
+  maintenanceInterval?: number;
+  lastMaintenanceMileage?: number;
   currentMileage: number;
   insuranceCompany?: string;
   insurancePolicyNumber?: string;
   insuranceExpiryDate?: string;
-  adminCommission?: number; // Comisión de administración
+  adminCommission?: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -47,6 +46,7 @@ export interface VehicleWithMileage extends Vehicle {
 
 export interface Client {
   id: string;
+  referenceCode?: string;
   userId?: string;
   firstname: string;
   lastname: string;
@@ -61,13 +61,13 @@ export interface Client {
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
-  vehicleAssignedAt?: string; // ✅ Fecha de asignación de vehículo
+  vehicleAssignedAt?: string;
   licenseNumber: string;
   licenseExpiry: string;
-  licenseStatus: 'active' | 'expired'; // ✅ FIX: Solo estos dos
+  licenseStatus: 'active' | 'expired';
   initialBalance: number;
   balance: number;
-  securityDeposit: number; // Depósito en garantía
+  securityDeposit: number;
   assignedVehicleId?: string | null;
   paymentBehavior?: 'Excelente' | 'Bueno' | 'Regular' | 'Malo' | 'Crítico';
   photoUrl?: string | File;
@@ -76,17 +76,17 @@ export interface Client {
   companyId?: string;
   hasActiveCredit?: boolean;
   activeCreditId?: string | null;
+  writtenOffAmount?: number;
+  writeOffReason?: string | null;
+  writtenOffAt?: string | null;
+  writtenOffBy?: string | null;
 }
 
-// ✅ TIPO EXTENDIDO CON MÉTRICAS (usado en tablas/dashboards)
 export interface ClientWithMetrics extends Omit<Client, 'licenseStatus'> {
-// Ya tiene balance heredado de Client
-// Agrega campos adicionales si los necesitas
   licenseStatus?: 'active' | 'expired' | 'Vigente' | 'Próxima a Vencer' | 'Vencida' | 'N/A';
   totalPayments?: number;
   lastPaymentDate?: string;
   daysWithDebt?: number;
-  // Propiedades adicionales de ClientMetric
   totalTransactions?: number;
   totalIncome?: number;
   currentBalance?: number;
@@ -100,7 +100,6 @@ export interface ClientWithMetrics extends Omit<Client, 'licenseStatus'> {
   recommendations?: string[];
 }
 
-// ✅ TIPO PARA DATOS COMPLETOS DEL CLIENTE (con vehículo asignado)
 export interface ClientWithAllData extends Client {
   vehicle?: Vehicle | null;
   assignedVehicle?: Vehicle | null;
@@ -120,7 +119,7 @@ export interface Partner {
   zipCode?: string;
   country?: string;
   initialBalance?: number;
-  balance?: number; // Saldo actual del socio
+  balance?: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -135,7 +134,7 @@ export interface MileageLog {
   mileage: number;
   date: string;
   notes?: string;
-  source?: 'expense' | 'manual'; // ✅ Origen del registro
+  source?: 'expense' | 'manual';
   kind?: 'odometer' | 'maintenance';
   financialRecordId?: string;
   createdAt: string;
@@ -146,6 +145,7 @@ export interface MileageLog {
 
 export interface FinancialRecord {
   id: string;
+  referenceCode?: string;
   companyId?: string | null;
   clientId?: string | null;
   vehicleId?: string | null;
@@ -171,19 +171,24 @@ export interface FinancialRecord {
   mileageAtExpense?: number;
   multaId?: string;
   notes?: string;
+  sourceRecordId?: string | null;
+  sourceRecordType?: string | null;
+  relatedRecordId?: string | null;
+  relatedRecordType?: string | null;
 }
 
 export interface Credit {
   id: string;
+  referenceCode?: string;
   uid?: string;
   clientId: string;
   vehicleId: string;
-  totalAmount: number; // Monto total del crédito
-  paidAmount: number; // Monto ya pagado
-  remainingBalance: number; // Saldo restante
-  weeklyPayment: number; // Monto del pago semanal
-  numberOfPayments: number; // Número total de pagos
-  paymentsMade: number; // Número de pagos ya realizados
+  totalAmount: number;
+  paidAmount: number;
+  remainingBalance: number;
+  weeklyPayment: number;
+  numberOfPayments: number;
+  paymentsMade: number;
   startDate: string;
   status: 'active' | 'completed' | 'defaulted' | 'inactive' | 'cancelled';
   isDeleted: boolean;
@@ -192,7 +197,7 @@ export interface Credit {
   companyId?: string;
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
-  lastPaymentStatus?: 'paid' | 'overdue' | 'pending'
+  lastPaymentStatus?: 'paid' | 'overdue' | 'pending';
 }
 
 export interface Notification {
@@ -202,7 +207,7 @@ export interface Notification {
   message: string;
   date: string;
   isRead: boolean;
-  relatedId?: string; // ID de la entidad relacionada (vehículo, cliente, etc.)
+  relatedId?: string;
   readAt?: string | null;
   companyId?: string;
 }
@@ -212,13 +217,12 @@ export interface VehicleAssignmentLog {
   vehicleId: string;
   clientId: string | null;
   partnerId?: string | null;
-  companyId?: string | null;  // ⬅️ Añade esta línea
+  companyId?: string | null;
   assignedAt: string;
   unassignedAt?: string | null;
   assignedBy: string;
   reason?: string | null;
   createdAt: string;
-  //Alias para comparibilidad con analytics
   startDate?: string;
   endDate?: string | null;
   odometerReading?: number | null;
@@ -230,32 +234,32 @@ export interface VehicleAssignmentLog {
 export type UserRole = 'admin' | 'editor' | 'viewer' | 'superAdmin' | 'partner' | 'client';
 
 export interface NotificationSettings {
-    maintenance?: boolean;
-    maintenanceThreshold?: number; // in km
-    insurance?: boolean;
-    insuranceThreshold?: number; // in days
-    license?: boolean;
-    licenseThreshold?: number; // in days
+  maintenance?: boolean;
+  maintenanceThreshold?: number;
+  insurance?: boolean;
+  insuranceThreshold?: number;
+  license?: boolean;
+  licenseThreshold?: number;
 }
 
 export interface UserProfile {
-    uid: string;
-    name: string;
-    email: string;
-    phone?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-    role: UserRole;
-    companyId?: string | null;
-    partnerAccess?: string[];
-    notificationSettings?: NotificationSettings;
-    isDeleted: boolean;
-    createdAt?: string;
-    updatedAt?: string;
-    pushSubscriptions?: any[];
+  uid: string;
+  name: string;
+  email: string;
+  phone?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  role: UserRole;
+  companyId?: string | null;
+  partnerAccess?: string[];
+  notificationSettings?: NotificationSettings;
+  isDeleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  pushSubscriptions?: any[];
 }
 
 export interface Company {
@@ -270,8 +274,7 @@ export interface Company {
   country?: string;
   isDeleted: boolean;
   createdAt: string;
-  updatedAt?: string;
-  // Nuevos campos de configuración
+  updatedAt: string;
   defaultRentalDays?: number;
   maintenanceInterval?: number;
   latePaymentFee?: number;
@@ -359,25 +362,51 @@ export interface CreditPaymentSchedule {
   createdAt: string;
 }
 
-// ============ SISTEMA DE MULTAS ============
+export interface RecordAuditLog {
+  id: string;
+  companyId?: string | null;
+  entityType: string;
+  entityId: string;
+  entityReferenceCode?: string | null;
+  action: 'INSERT' | 'UPDATE' | 'DELETE' | 'SOFT_DELETE' | 'WRITE_OFF' | 'LINK';
+  actorUserId?: string | null;
+  occurredAt: string;
+  oldData?: Record<string, unknown> | null;
+  newData?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ClientWriteOff {
+  id: string;
+  companyId: string;
+  clientId: string;
+  amount: number;
+  financialRecordId?: string | null;
+  reason: string;
+  createdBy?: string | null;
+  createdAt: string;
+  reversedAt?: string | null;
+  reversedBy?: string | null;
+  reversalReason?: string | null;
+}
 
 export interface Multa {
   id: string;
   vehicleId: string;
-  clientId: string | null; // Cliente asignado basado en historial
-  folio?: string; // Número de folio de la multa (opcional)
-  fechaInfraccion: string; // Fecha cuando se cometió la infracción
-  direccion: string; // Dirección donde se cometió la infracción
-  descripcion: string; // Descripción de la infracción
-  importe: number; // Monto de la multa
-  recargos?: number; // Recargos adicionales
-  total: number; // Total a pagar (importe + recargos)
+  clientId: string | null;
+  folio?: string;
+  fechaInfraccion: string;
+  direccion: string;
+  descripcion: string;
+  importe: number;
+  recargos?: number;
+  total: number;
   status: 'pendiente' | 'pagada' | 'en_proceso' | 'cancelada';
-  fechaPago?: string; // Fecha cuando se pagó la multa
-  evidenciaUrls?: (string | File)[]; // URLs de evidencias (fotos, documentos)
-  notas?: string; // Notas adicionales
-  asignadoAutomaticamente: boolean; // Si se asignó automáticamente basado en historial
-  assignmentDate?: string; // Fecha cuando se encontró el vehículo en el historial
+  fechaPago?: string;
+  evidenciaUrls?: (string | File)[];
+  notas?: string;
+  asignadoAutomaticamente: boolean;
+  assignmentDate?: string;
   companyId: string;
   createdBy: string;
   createdAt: string;
@@ -385,11 +414,10 @@ export interface Multa {
   isDeleted: boolean;
 }
 
-// Multa con información extendida para visualización
 export interface MultaWithDetails extends Multa {
   vehiclePlate?: string;
   vehicleAlias?: string;
   clientName?: string;
   clientPhone?: string;
-  daysOverdue?: number; // Días desde la infracción
+  daysOverdue?: number;
 }
