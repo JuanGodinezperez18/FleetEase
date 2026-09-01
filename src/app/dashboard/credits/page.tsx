@@ -10,7 +10,7 @@ import { FormModal } from '@/components/common/form-modal';
 import { CreditForm, CreditFormValues } from './components/credit-form';
 import type { Credit, Client, Vehicle } from '@/types';
 import { toast as sonnerToast } from 'sonner';
-import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
+import { CreditCancellationDialog, type CreditCancellationResult } from '@/components/dashboard/credit-cancellation-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useCreditAnalytics } from '@/hooks/use-credits-analytics';
 import { useCreditsSearch, type CreditWithMetrics } from '@/hooks/use-credits-search';
@@ -73,8 +73,11 @@ const CreditMobileCard = ({ credit, onEdit, onDelete, onDeactivate, onViewDetail
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => onViewDetails(credit.id)}>Ver Detalles</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onEdit(credit)}>Editar</DropdownMenuItem>
-            {credit.status === 'active' && <DropdownMenuItem onSelect={() => onDeactivate(credit.id)} className="text-orange-600 focus:text-orange-700">Cancelar Crédito</DropdownMenuItem>}
-            <DropdownMenuItem onSelect={() => onDelete(credit.id)} className="text-destructive focus:text-destructive">Eliminar</DropdownMenuItem>
+            {credit.status === 'active' && (
+              <DropdownMenuItem onSelect={() => onDeactivate(credit.id)} className="text-destructive focus:text-destructive">
+                Cancelar crédito
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -93,8 +96,8 @@ export default function CreditsPage() {
     loadingData, 
     addCredit, 
     updateCredit, 
-    deleteCredit, 
     cancelCredit, 
+    cancelCreditWithAdjustment,
     updateVehicle, 
     refreshData, 
     createCreditWithFinancialRecord 
@@ -106,7 +109,6 @@ export default function CreditsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCredit, setEditingCredit] = useState<Credit | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [creditToAction, setCreditToAction] = useState<Credit | null>(null);
   
@@ -168,75 +170,50 @@ export default function CreditsPage() {
     }, 300);
   }, [isSubmitting]);
 
-  const handleDelete = useCallback((creditId: string) => {
-    const credit = credits.find(c => c.id === creditId);
-    if (credit) {
-      setCreditToAction(credit);
-      setIsDeleteDialogOpen(true);
-    }
-  }, [credits]);
-
-  const handleDeactivate = useCallback((creditId: string) => {
+  const openCancellationDialog = useCallback((creditId: string) => {
     const credit = credits.find(c => c.id === creditId);
     if (credit) {
       setCreditToAction(credit);
       setIsDeactivateDialogOpen(true);
     }
   }, [credits]);
-  
-  const confirmDelete = async () => {
-    if (!creditToAction) return;
-    
-    const creditPayments = financialRecords.filter(fr =>
-      fr.creditId === creditToAction.id && !fr.isDeleted
-    );
-    
-    if (creditPayments.length > 0) {
-      sonnerToast.error('No se puede eliminar', {
-        description: `Este crédito tiene ${creditPayments.length} pago(s) registrado(s). No se puede eliminar.`
-      });
-      setIsDeleteDialogOpen(false);
-      return;
-    }
 
-    setIsSubmitting(true);
-    const toastId = sonnerToast.loading("Eliminando crédito...");
-    try {
-      await deleteCredit(creditToAction.id);
-      sonnerToast.success("Crédito Eliminado", { id: toastId });
-      setIsDeleteDialogOpen(false);
-      setCreditToAction(null);
-    } catch (error) {
-      console.error("Error deleting credit:", error);
-      sonnerToast.error("Error", { id: toastId, description: "Hubo un error al eliminar el crédito." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // Compat: rutas antiguas "eliminar" se redirigen a cancelación no destructiva
+  const handleDelete = openCancellationDialog;
+  const handleDeactivate = openCancellationDialog;
 
-  const confirmDeactivate = async () => {
-    if (!creditToAction) return;
+  const handleCancelCreditConfirm = async (reason: string): Promise<CreditCancellationResult> => {
+    if (!creditToAction) {
+      throw new Error('No hay crédito seleccionado.');
+    }
 
     setIsSubmitting(true);
     const toastId = sonnerToast.loading("Cancelando crédito...");
 
     try {
-      await cancelCredit(creditToAction.id);
+      await cancelCreditWithAdjustment(creditToAction.id, reason);
 
-      sonnerToast.success("Crédito Cancelado", {
+      const result: CreditCancellationResult = {
+        creditId: creditToAction.id,
+        creditReferenceCode: (creditToAction as any).referenceCode ?? null,
+        status: 'cancelled',
+        remainingBalance: Number(creditToAction.remainingBalance || 0),
+        vehicleReleased: Boolean(creditToAction.vehicleId),
+        clientReleased: Boolean(creditToAction.clientId),
+      };
+
+      sonnerToast.success("Crédito cancelado", {
         id: toastId,
-        description: `Se generó una Nota de Crédito por ${formatCurrency(creditToAction.remainingBalance || 0)} para ajustar el saldo del cliente.`
+        description: `Historial conservado. Ref: ${result.creditReferenceCode || '—'} · Saldo: ${formatCurrency(result.remainingBalance)}`,
       });
 
-      setIsDeactivateDialogOpen(false);
-      setCreditToAction(null);
       await refreshData();
+      return result;
     } catch (error) {
-      console.error("Error deactivating credit:", error);
-      sonnerToast.error("Error", {
-        id: toastId,
-        description: error instanceof Error ? error.message : "Hubo un error al cancelar el crédito."
-      });
+      console.error("Error cancelling credit:", error);
+      const message = error instanceof Error ? error.message : "Hubo un error al cancelar el crédito.";
+      sonnerToast.error("Error", { id: toastId, description: message });
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -395,33 +372,35 @@ export default function CreditsPage() {
         />
       </FormModal>
 
-      <DeleteConfirmationDialog
-        isOpen={isDeactivateDialogOpen}
-        onClose={() => setIsDeactivateDialogOpen(false)}
-        onConfirm={confirmDeactivate}
-        itemName={getCreditNameForDialog(creditToAction)}
-        isDeleting={isSubmitting}
-        titleText="¿Confirmar cancelación de crédito?"
-        descriptionText={`Esta acción:
-• Marcará ${getCreditNameForDialog(creditToAction)} como cancelado
-• Generará una Nota de Crédito por ${formatCurrency(creditToAction?.remainingBalance || 0)} para ajustar el saldo del cliente
-• Liberará el vehículo asociado
-• Cancelará los pagos pendientes del cronograma
-
-Esta acción NO se puede deshacer.`}
-        confirmText="Cancelar Crédito"
-      />
-
-      <DeleteConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={confirmDelete}
-        itemName={getCreditNameForDialog(creditToAction)}
-        isDeleting={isSubmitting}
-        titleText="¿Confirmar eliminación?"
-        descriptionText={`Esta acción eliminará permanentemente ${getCreditNameForDialog(creditToAction)}. Esta acción no se puede deshacer.`}
-        confirmText="Eliminar Permanentemente"
-      />
+      {creditToAction && (
+        <CreditCancellationDialog
+          open={isDeactivateDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsDeactivateDialogOpen(false);
+              setTimeout(() => setCreditToAction(null), 300);
+            } else {
+              setIsDeactivateDialogOpen(true);
+            }
+          }}
+          clientName={
+            (() => {
+              const client = clients.find(c => c.id === creditToAction.clientId);
+              return client ? `${client.firstname} ${client.lastname}` : 'Cliente desconocido';
+            })()
+          }
+          creditReferenceCode={(creditToAction as any).referenceCode ?? null}
+          vehicleLabel={
+            (() => {
+              const vehicle = vehicles.find(v => v.id === creditToAction.vehicleId);
+              return vehicle?.plate || null;
+            })()
+          }
+          outstandingBalance={Number(creditToAction.remainingBalance || 0)}
+          creditStatus={creditToAction.status}
+          onConfirm={handleCancelCreditConfirm}
+        />
+      )}
     </div>
   );
 }
