@@ -27,8 +27,25 @@ function getPathFromUrl(fileUrl: string): string {
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
   try {
-    const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId);
-    return filePath.includes(userId);
+    // Paths are stored as companies/{companyId}/...
+    // Allow access if the file belongs to the caller's company, or was uploaded by them.
+    const { data: profile, error } = await supabaseAdmin
+      .from('users')
+      .select('company_id, role')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) return false;
+
+    if (profile.role === 'super_admin') return true;
+
+    if (filePath.includes(userId)) return true;
+
+    if (profile.company_id && filePath.includes(`companies/${profile.company_id}/`)) {
+      return true;
+    }
+
+    return false;
   } catch (error) {
     console.error('⚠️ [API Download] Error verificando propiedad:', error);
     return false;

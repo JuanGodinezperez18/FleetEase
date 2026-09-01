@@ -1639,30 +1639,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [queryClient]);
 
+  // NO destructive path: never hard-delete credits, schedules or financial history.
+  // Routes through the same non-destructive cancellation used by the UI.
   const deleteCreditWithCleanup = useCallback(async (creditId: string) => {
-    try {
-      await supabase
-        .from('financial_records')
-        .delete()
-        .eq('credit_id', creditId);
-
-      await supabase
-        .from('credit_payment_schedules')
-        .delete()
-        .eq('credit_id', creditId);
-
-      await supabase
-        .from('credits')
-        .delete()
-        .eq('id', creditId);
-
-      await refreshData();
-      toast.success('Crédito y registros asociados eliminados');
-    } catch (error: any) {
-      toast.error('Error al eliminar crédito', { description: error.message });
-      throw error;
-    }
-  }, [refreshData]);
+    await cancelCreditWithAdjustment(
+      creditId,
+      'Cancelación de crédito solicitada (cleanup). Se conserva historial y registros financieros.',
+    );
+  }, [cancelCreditWithAdjustment]);
 
   const addMulta = useCallback(async (data: Partial<DomainMulta>) => {
     const { data: result, error } = await supabase
