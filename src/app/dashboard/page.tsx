@@ -6,7 +6,6 @@ import { useDashboardPage } from './hooks/use-dashboard-page';
 import { DashboardHeader } from './components/dashboard-header';
 import { KpiGrid } from './components/kpi-grid';
 import { QuickActions } from './components/quick-actions';
-import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardConfigurator } from '@/components/dashboard/dashboard-configurator';
 import { LiveRegion, useAnnounce } from '@/components/accessibility/live-region';
 import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
@@ -69,7 +68,36 @@ export default function DashboardPage() {
       })
     : null;
 
-  if (!currentUser) return <GlobalLoader />;
+  // AuthProvider ya bloquea mientras restaura la sesión. Si después de eso no
+  // existe perfil, nunca debemos dejar al usuario atrapado en un loader infinito.
+  if (!currentUser) {
+    return (
+      <main className="flex min-h-[70vh] items-center justify-center bg-[#080a0f] p-6 text-white">
+        <section className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f]/10 text-2xl">⚠️</div>
+          <h1 className="text-xl font-semibold">No pudimos cargar tu sesión</h1>
+          <p className="mt-2 text-sm leading-6 text-white/55">
+            Tu sesión de acceso existe, pero no pudimos recuperar el perfil de FleetEase. Esto evita que el dashboard se quede cargando indefinidamente.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-xl bg-[#d7ff3f] px-5 py-3 text-sm font-semibold text-[#080a0f] transition-opacity hover:opacity-90"
+            >
+              Reintentar
+            </button>
+            <a
+              href="/login?callbackUrl=%2Fdashboard"
+              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:bg-white/5"
+            >
+              Volver a iniciar sesión
+            </a>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (configError) console.error('🔴 [Dashboard] Error cargando configuración:', configError);
   if (isLoadingConfig) console.log('⏳ [Dashboard] Configuración aún cargando; renderizando con fallback local.');
