@@ -11,20 +11,39 @@ export interface PasswordResetParams { email:string; }
 export interface UpdatePasswordParams { newPassword:string; }
 export interface AuthResponse { user:User|null; error:Error|null; }
 
+/** Fetches the authenticated user's profile through our same-origin API.
+ * This avoids browser-side REST calls to Supabase for the critical auth path,
+ * which can otherwise leave the dashboard loader waiting on a failed request.
+ */
+async function fetchProfileFromApp(accessToken:string):Promise<User|null>{
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),7000);
+  try{
+    const response=await fetch('/api/auth/profile',{
+      method:'GET',
+      headers:{Authorization:`Bearer ${accessToken}`},
+      cache:'no-store',
+      signal:controller.signal,
+    });
+    if(!response.ok)return null;
+    const data=await response.json();
+    const profile=data?.profile as User|undefined;
+    if(!profile||profile.is_deleted)return null;
+    return profile;
+  }catch{return null;}finally{clearTimeout(timeout);}
+}
+
 export async function signUp(params:SignUpParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signUp({email:params.email,password:params.password,options:{data:{name:params.name,phone:params.phone}}});if(authError)return{user:null,error:authError};if(!authData.user)return{user:null,error:new Error('No se pudo crear el usuario')};const userProfile=await userService.add({id:authData.user.id,email:params.email,name:params.name,phone:params.phone,role:params.role||'viewer',company_id:params.company_id,is_deleted:false});return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
-export async function signIn(params:SignInParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user)return{user:null,error:new Error('Credenciales inválidas')};const userProfile=await userService.get(authData.user.id);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};if(userProfile.is_deleted)return{user:null,error:new Error('Usuario eliminado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
+export async function signIn(params:SignInParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
 export async function signOut():Promise<void>{const {error}=await supabase.auth.signOut();if(error)throw error;}
 
-export async function getCurrentUser():Promise<User|null>{try{const {data:{user:authUser},error:authError}=await supabase.auth.getUser();if(authError||!authUser)return null;const userProfile=await userService.get(authUser.id);if(!userProfile||userProfile.is_deleted)return null;return userProfile;}catch{return null;}}
+export async function getCurrentUser():Promise<User|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session?.access_token)return null;return await fetchProfileFromApp(session.access_token);}catch{return null;}}
 
-export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.user){const userProfile=await userService.get(session.user.id);callback(userProfile||null);}else callback(null);});return{subscription};}
+export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}
 
 export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{
-  // Producción siempre usa el dominio canónico. Esto evita que una variable
-  // NEXT_PUBLIC_SITE_URL antigua haga que el correo de recuperación apunte a
-  // una preview de Vercel o a la landing en lugar del formulario de reset.
   const browserOrigin = typeof window !== 'undefined' ? window.location.origin.replace(/\/$/,'') : '';
   const siteUrl = typeof window !== 'undefined' && window.location.hostname === 'fleetease.com.mx'
     ? 'https://fleetease.com.mx'
