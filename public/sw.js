@@ -1,24 +1,16 @@
-const CACHE_NAME = 'fleetease-v3';
-const APP_SHELL = [
-  '/',
-  '/dashboard',
-  '/offline.html',
-  '/logo-192.png',
-  '/logo-512.png',
-];
+const CACHE_NAME = 'fleetease-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) => Promise.all(
-      names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-    ))
+    Promise.all([
+      caches.keys().then((names) => Promise.all(names.map((name) => caches.delete(name)))),
+      self.clients.claim(),
+    ])
   );
-  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -26,35 +18,33 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  const sameOrigin = url.origin === self.location.origin;
-  if (!sameOrigin) return;
+  if (url.origin !== self.location.origin) return;
 
-  // Navigation: network first, cached shell as an offline fallback.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/offline.html')))
-    );
+  // Never cache auth, API, Next.js data/RSC, or navigations. These must always
+  // reach the current production application and session.
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/_next/') ||
+    request.mode === 'navigate' ||
+    request.headers.get('RSC') === '1'
+  ) {
     return;
   }
 
-  // Static assets: cache first, then update from network.
+  // Only cache immutable-ish static assets. Everything else remains network-only.
+  const destination = request.destination;
+  if (!['script', 'style', 'image', 'font'].includes(destination)) return;
+
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
+    caches.match(request).then((cached) =>
+      cached || fetch(request).then((response) => {
         if (response.ok && response.type === 'basic') {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
-      });
-      return cached || network;
-    })
+      })
+    )
   );
 });
 
