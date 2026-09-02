@@ -13,6 +13,8 @@ import { signIn, signOut, resetPassword, formatAuthError } from '@/lib/auth';
 import { userService } from '@/lib/supabase-services';
 import { logger } from '@/lib/logger';
 
+const PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
+
 function adaptUserToProfile(user: SupabaseProfile): UserProfile {
   return {
     uid: user.id,
@@ -33,6 +35,36 @@ function adaptUserToProfile(user: SupabaseProfile): UserProfile {
     updatedAt: user.updated_at ?? undefined,
     pushSubscriptions: (user.push_subscriptions as any[] | undefined) ?? undefined,
   };
+}
+
+function readCachedProfile(): UserProfile | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserProfile;
+    return parsed?.uid && parsed?.role ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheProfile(profile: UserProfile) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+  } catch {
+    // Cache is only a startup optimization; auth must continue without it.
+  }
+}
+
+function clearCachedProfile() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(PROFILE_CACHE_KEY);
+  } catch {
+    // Ignore storage failures during logout.
+  }
 }
 
 export interface AuthContextType {
@@ -60,15 +92,18 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         if (!mounted) return;
 
         if (profile && !profile.is_deleted) {
-          setCurrentUser(adaptUserToProfile(profile));
+          const adapted = adaptUserToProfile(profile);
+          cacheProfile(adapted);
+          setCurrentUser(adapted);
         } else if (!preserveCurrentUser) {
+          clearCachedProfile();
           setCurrentUser(null);
         }
       } catch (error) {
         logger.error('[Supabase Auth] Error cargando perfil', error as Error);
-        // A valid Auth session should not be replaced by null because the
-        // profile request failed transiently. Keep any existing user intact.
-        if (!preserveCurrentUser && mounted) setCurrentUser(null);
+        // Never blank an already authenticated UI because the profile request
+        // is temporarily unavailable. A cached profile is used only as a UI
+        // bootstrap; the real Supabase session remains the auth source.
       }
     };
 
@@ -78,15 +113,42 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) throw error;
 
         if (data.session?.user) {
-          await loadProfile(data.session.user.id, false);
+          // IMPORTANT: do not block the application on the profile REST call.
+          // This prevents a transient Supabase/TLS/network problem from leaving
+          // /dashboard on an infinite skeleton after a valid session restore.
+          const cachedProfile = readCachedProfile();
+          if (cachedProfile && cachedProfile.uid === data.session.user.id && !cachedProfile.isDeleted) {
+            if (mounted) {
+              setCurrentUser(cachedProfile);
+              setLoading(false);
+            }
+            initialSessionResolved = true;
+            void loadProfile(data.session.user.id, true);
+          } else {
+            await loadProfile(data.session.user.id, false);
+            if (mounted) {
+              initialSessionResolved = true;
+              setLoading(false);
+            }
+          }
         } else if (mounted) {
+          clearCachedProfile();
           setCurrentUser(null);
+          initialSessionResolved = true;
+          setLoading(false);
         }
       } catch (error) {
         logger.error('[Supabase Auth] Error obteniendo sesión inicial', error as Error);
-        if (mounted) setCurrentUser(null);
-      } finally {
         if (mounted) {
+          // If the session endpoint itself is temporarily unavailable, a cached
+          // profile can keep the already-authenticated UI usable while the next
+          // auth event/session refresh re-establishes the source of truth.
+          const cachedProfile = readCachedProfile();
+          if (cachedProfile && !cachedProfile.isDeleted) {
+            setCurrentUser(cachedProfile);
+          } else {
+            setCurrentUser(null);
+          }
           initialSessionResolved = true;
           setLoading(false);
         }
@@ -95,8 +157,6 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
     initializeSession();
 
-    // One and only one auth listener. It never performs the initial session
-    // read and therefore cannot race with initializeSession().
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted || !initialSessionResolved) return;
 
@@ -106,12 +166,12 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (event === 'SIGNED_OUT' || !session?.user) {
+        clearCachedProfile();
         setCurrentUser(null);
         setLoading(false);
         return;
       }
 
-      // Refresh the profile in the background without blanking a valid user.
       void loadProfile(session.user.id, true);
     });
 
@@ -140,7 +200,9 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(formattedError);
       }
       if (!user) throw new Error('Usuario no encontrado');
-      setCurrentUser(adaptUserToProfile(user));
+      const adapted = adaptUserToProfile(user);
+      cacheProfile(adapted);
+      setCurrentUser(adapted);
       logger.info('[Supabase Auth] Usuario autenticado', { uid: user.id });
     } catch (error) {
       logger.error('[Supabase Auth] Error en login', error as Error);
@@ -151,8 +213,12 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await signOut();
-    setCurrentUser(null);
+    try {
+      await signOut();
+    } finally {
+      clearCachedProfile();
+      setCurrentUser(null);
+    }
   };
 
   const sendPasswordResetEmail = async (email: string) => {
@@ -181,7 +247,9 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       push_subscriptions: data.pushSubscriptions ?? null,
     };
     await userService.update(currentUser.uid, supabaseData);
-    setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    const updated = { ...currentUser, ...data };
+    setCurrentUser(updated);
+    cacheProfile(updated);
   };
 
   return (
