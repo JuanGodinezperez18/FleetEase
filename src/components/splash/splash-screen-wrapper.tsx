@@ -1,49 +1,39 @@
 // components/splash/splash-screen-wrapper.tsx
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect } from 'react';
 import { useSplash } from '@/contexts/splash-provider';
 import { useAuth } from '@/contexts/auth-provider';
 import { useData } from '@/contexts/data-provider';
 import { SplashScreen } from './splash-screen';
 
 interface SplashScreenWrapperProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
-  const { showSplash, setDataLoaded, hideSplash } = useSplash();
+  const { showSplash, setDataLoaded } = useSplash();
   const { loading: authLoading } = useAuth();
   const dataContext = useData();
 
-  // Verificar si los datos están cargados
+  // Mark initial data as loaded once auth and the DataProvider finish.
+  // The splash component owns its visual timeout; keeping the callback
+  // stable avoids restarting that timeout on every parent render.
   useEffect(() => {
-    // Considerar los datos cargados cuando:
-    // 1. Auth no está cargando
-    // 2. DataProvider no está cargando
     const isLoaded = !authLoading && !dataContext?.loadingData;
 
-    if (isLoaded) {
-      // Pequeño delay para asegurar que todo está renderizado
-      const timer = setTimeout(() => {
-        setDataLoaded(true);
-      }, 500);
+    if (!isLoaded) return;
 
-      return () => clearTimeout(timer);
-    }
+    const timer = window.setTimeout(() => {
+      setDataLoaded(true);
+    }, 500);
+
+    return () => window.clearTimeout(timer);
   }, [authLoading, dataContext?.loadingData, setDataLoaded]);
 
   return (
     <>
-      {showSplash && (
-        <SplashScreen
-          duration={3000}
-          onFinish={() => {
-            console.log('✅ Splash screen finalizado');
-          }}
-          forceHide={!showSplash}
-        />
-      )}
+      {showSplash && <SplashScreen duration={3000} />}
       {children}
     </>
   );
