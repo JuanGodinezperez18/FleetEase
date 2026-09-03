@@ -24,28 +24,23 @@ export default function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Alertas de Negocio</h1>
+        <h1 className="fe-section-title font-heading text-3xl font-bold tracking-tight">Alertas de Negocio</h1>
         <p className="text-muted-foreground mt-1">
           Notificaciones inteligentes sobre tu operación
         </p>
       </div>
 
-      {/* Feature Description */}
-      <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
-        <Bell className="h-5 w-5 text-blue-600" />
-        <AlertTitle className="text-blue-900 dark:text-blue-100">
-          Alertas Inteligentes
-        </AlertTitle>
-        <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2">
+      <Alert className="fe-surface border-[color:var(--fe-lime)]/20 bg-[color:var(--fe-lime)]/5">
+        <Bell className="h-5 w-5 text-[color:var(--fe-lime)]" />
+        <AlertTitle className="font-heading text-foreground">Alertas Inteligentes</AlertTitle>
+        <AlertDescription className="text-muted-foreground mt-2">
           El sistema analiza automáticamente tu operación y te notifica sobre:
           clientes morosos, vehículos sin renta, gastos atípicos, mantenimientos vencidos,
           y oportunidades de mejora.
         </AlertDescription>
       </Alert>
 
-      {/* Contenido Principal */}
       {hasData ? (
         <SmartBusinessAlerts
           vehicles={vehicles}
@@ -54,9 +49,9 @@ export default function AlertsPage() {
           periodDays={30}
         />
       ) : (
-        <Card>
+        <Card className="fe-surface">
           <CardHeader>
-            <CardTitle>Insuficientes Datos para Alertas</CardTitle>
+            <CardTitle className="font-heading">Insuficientes Datos para Alertas</CardTitle>
             <CardDescription>
               El sistema necesita más información para generar alertas inteligentes
             </CardDescription>
@@ -71,7 +66,7 @@ export default function AlertsPage() {
                 <li>Al menos 1 cliente</li>
                 <li>Al menos 1 registro financiero (ingreso o gasto)</li>
               </ul>
-              <div className="flex gap-4 mt-4">
+              <div className="flex flex-wrap gap-3 mt-4">
                 <Button asChild>
                   <Link href="/dashboard/vehicles">Registrar Vehículo</Link>
                 </Button>
@@ -87,58 +82,42 @@ export default function AlertsPage() {
         </Card>
       )}
 
-      {/* Guía de Alertas */}
-      <Card>
+      <Card className="fe-surface">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <InfoIcon className="h-5 w-5" />
+          <CardTitle className="font-heading flex items-center gap-2">
+            <InfoIcon className="h-5 w-5 text-[color:var(--fe-lime)]" />
             Tipos de Alertas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-red-600">
-                <span className="h-3 w-3 rounded-full bg-red-600" />
+              <div className="flex items-center gap-2 font-semibold text-red-600 dark:text-red-400">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
                 Críticas
               </div>
-              <p className="text-muted-foreground">
-                Problemas graves que requieren atención inmediata: clientes con deuda &gt;$5,000,
-                mantenimientos vencidos, pérdidas significativas.
-              </p>
+              <p className="text-muted-foreground">Problemas graves que requieren atención inmediata: clientes con deuda &gt;$5,000, mantenimientos vencidos, pérdidas significativas.</p>
             </div>
-
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-yellow-600">
-                <span className="h-3 w-3 rounded-full bg-yellow-600" />
+              <div className="flex items-center gap-2 font-semibold text-yellow-600 dark:text-yellow-400">
+                <span className="h-2.5 w-2.5 rounded-full bg-yellow-600" />
                 Advertencias
               </div>
-              <p className="text-muted-foreground">
-                Problemas moderados que debes monitorear: deuda entre $2,000-$5,000,
-                vehículos sin renta, gastos atípicos.
-              </p>
+              <p className="text-muted-foreground">Problemas moderados que debes monitorear: deuda entre $2,000-$5,000, vehículos sin renta, gastos atípicos.</p>
             </div>
-
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-blue-600">
-                <span className="h-3 w-3 rounded-full bg-blue-600" />
+              <div className="flex items-center gap-2 font-semibold text-slate-500 dark:text-slate-400">
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
                 Informativas
               </div>
-              <p className="text-muted-foreground">
-                Información útil para tu operación: mantenimientos próximos,
-                vehículos con baja ocupación, recordatorios.
-              </p>
+              <p className="text-muted-foreground">Información útil para tu operación: mantenimientos próximos, vehículos con baja ocupación, recordatorios.</p>
             </div>
-
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-green-600">
-                <span className="h-3 w-3 rounded-full bg-green-600" />
+              <div className="flex items-center gap-2 font-semibold text-[color:var(--fe-lime)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--fe-lime)]" />
                 Oportunidades
               </div>
-              <p className="text-muted-foreground">
-                Oportunidades para mejorar ganancias: vehículos muy rentables
-                (sugerencia de aumento de precio), clientes confiables para créditos.
-              </p>
+              <p className="text-muted-foreground">Oportunidades para mejorar ganancias: vehículos muy rentables (sugerencia de aumento de precio), clientes confiables para créditos.</p>
             </div>
           </div>
         </CardContent>
