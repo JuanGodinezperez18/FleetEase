@@ -16,10 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Install PostgreSQL client
+      - name: Install PostgreSQL 17 client
         run: |
+          sudo install -d /etc/apt/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
 
       - name: Create compressed database dump
         env:
