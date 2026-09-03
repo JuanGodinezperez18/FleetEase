@@ -22,20 +22,16 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let mounted = true;
-
     const initialize = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (mounted) setReady(Boolean(session));
     };
-
     initialize();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (event === 'PASSWORD_RECOVERY') setReady(true);
       else if (session) setReady(true);
     });
-
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -45,23 +41,18 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
-
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
     }
-
     setSubmitting(true);
-
     try {
       const resetError = await updatePassword({ newPassword: password });
       if (resetError) throw resetError;
-
       setSuccess(true);
       toast.success('Contraseña actualizada correctamente');
     } catch (err) {
@@ -85,7 +76,7 @@ export default function ResetPasswordPage() {
             </div>
             <h1 className="font-heading text-2xl font-semibold tracking-tight text-white">Contraseña actualizada</h1>
             <p className="mt-2 text-sm text-white/60">Tu contraseña se cambió correctamente.</p>
-            <Button className="mt-7 h-11 w-full bg-[var(--fe-lime)] font-semibold text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90]" onClick={() => router.push('/login')}>
+            <Button className="mt-7 h-11 w-full bg-[var(--fe-lime)] font-semibold text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90" onClick={() => router.push('/login')}>
               Iniciar sesión
             </Button>
           </CardContent>
@@ -109,9 +100,7 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           {!ready ? (
-            <div className="rounded-xl border border-white/10 bg-white/[0.025] py-6 text-center text-sm text-white/55">
-              Verificando el enlace de recuperación...
-            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.025] py-6 text-center text-sm text-white/55">Verificando el enlace de recuperación...</div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
