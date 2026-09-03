@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { plans, type PlanType } from '@/config/plans';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
   try {
     const body: RegisterRequest = await request.json();
     const { email, password, name, phone, companyName, plan } = body;
+    const selectedPlan = plan as PlanType;
+    const planConfig = plans[selectedPlan];
 
     if (!email || !password || !name || !companyName) {
       return NextResponse.json(
@@ -28,6 +31,17 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    if (!planConfig) {
+      return NextResponse.json(
+        { success: false, message: 'Plan de suscripción no válido' },
+        { status: 400 }
+      );
+    }
+
+    const trialEndsAt = planConfig.trialDays
+      ? new Date(Date.now() + planConfig.trialDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
     // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -52,22 +66,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Crear compañía
+    // 2. Crear compañía con límites reales del plan.
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
         name: companyName,
         email,
-        plan,
+        plan: selectedPlan,
         is_deleted: false,
-        max_vehicles: plan === 'starter' ? 5 : plan === 'pro' ? 50 : null,
-        max_users: plan === 'starter' ? 2 : plan === 'pro' ? 10 : null,
+        max_vehicles: planConfig.maxVehicles === -1 ? null : planConfig.maxVehicles,
+        max_users: planConfig.maxUsers === -1 ? null : planConfig.maxUsers,
+        ...(selectedPlan === 'free'
+          ? { subscription_status: 'trialing', trial_ends_at: trialEndsAt }
+          : { subscription_status: 'active' }),
       })
       .select()
       .single();
 
     if (companyError) {
-      // Rollback: eliminar usuario auth
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       console.error('[Register API] Company error:', companyError);
       return NextResponse.json(
@@ -90,7 +106,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (profileError) {
-      // Rollback: eliminar compañía y usuario
       await supabaseAdmin.from('companies').delete().eq('id', company.id);
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       console.error('[Register API] Profile error:', profileError);
@@ -100,7 +115,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Insertar categorías financieras por defecto para la nueva empresa
+    // 4. Insertar categorías financieras por defecto.
     const defaultCategories = [
       { name: 'Pago de Cliente', type: 'income', affects: 'client_balance', is_default: true, category: 'Pago', company_id: company.id },
       { name: 'Gasto Operativo', type: 'expense', affects: 'none', is_default: true, category: 'Operativo', company_id: company.id },
@@ -113,9 +128,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Cuenta creada exitosamente',
+      message: selectedPlan === 'free'
+        ? 'Cuenta creada. Tu prueba gratuita de 14 días ha comenzado.'
+        : 'Cuenta creada exitosamente',
       userId: authData.user.id,
       companyId: company.id,
+      plan: selectedPlan,
+      trialEndsAt,
+      requiresPaymentMethod: planConfig.requiresPaymentMethod !== false,
     });
   } catch (error) {
     console.error('[Register API] Unexpected error:', error);
