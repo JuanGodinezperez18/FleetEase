@@ -23,11 +23,11 @@ jobs:
 
       - name: Create compressed database dump
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_POOLER_DB_URL: ${{ secrets.SUPABASE_POOLER_DB_URL }}
         run: |
-          test -n "$SUPABASE_DB_URL" || (echo 'Missing SUPABASE_DB_URL GitHub secret' && exit 1)
+          test -n "$SUPABASE_POOLER_DB_URL" || (echo 'Missing SUPABASE_POOLER_DB_URL GitHub secret' && exit 1)
           mkdir -p backups
-          pg_dump "$SUPABASE_DB_URL" \
+          pg_dump "$SUPABASE_POOLER_DB_URL" \
             --format=custom \
             --no-owner \
             --no-privileges \
