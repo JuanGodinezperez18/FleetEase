@@ -29,6 +29,9 @@
       }
     ],
     "paths": {
+      "@/lib/supabase": [
+        "./src/lib/supabase-browser"
+      ],
       "@/*": [
         "./src/*"
       ]
