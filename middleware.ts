@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -14,34 +14,35 @@ export async function middleware(req: NextRequest) {
     path => pathname === path || pathname.startsWith(path + '/')
   );
 
-  const response = NextResponse.next();
+  let response = NextResponse.next({ request: req });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
+        getAll() {
+          return req.cookies.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({ name, value: '', ...options });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+          response = NextResponse.next({ request: req });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  // getUser() valida/renueva la sesión correctamente en SSR. getSession()
-  // puede devolver una sesión que el servidor todavía no tiene sincronizada
-  // en cookies y provocaba el falso retorno a /login?callbackUrl=/dashboard.
-  const { data: { user }, error } = await supabase.auth.getUser();
+  // getUser() valida la sesión contra Supabase Auth y puede renovar tokens.
+  // Los nuevos tokens se sincronizan con la request y la response.
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (isPublicPath) {
-    // Las páginas públicas siempre deben poder abrirse. En particular,
-    // /reset-password necesita recibir el callback de recuperación de Auth.
     return response;
   }
 
@@ -51,11 +52,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // La autenticación de ruta queda separada de la autorización de datos.
-  // No consultamos `users` desde middleware porque esa consulta está sujeta
-  // a RLS y podía fallar aunque la sesión de Auth fuera válida, provocando un
-  // redirect loop. Las tablas/RLS siguen siendo la barrera de seguridad real;
-  // el Dashboard valida el rol del perfil antes de mostrar funciones sensibles.
   return response;
 }
 
