@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Vehicle } from "@/types";
@@ -31,15 +30,23 @@ export const sanitizeAndFormatData = (data: any): any => {
 
     // Omitir completamente las claves con valor undefined
     if (value === undefined) {
-      continue; 
+      continue;
     }
-    
+
+    // Los Select usan @none como sentinel visual. Nunca debe llegar a
+    // Supabase porque algunos campos (por ejemplo assigned_vehicle_id)
+    // son UUID y PostgreSQL no puede castear "@none" a uuid.
+    if (value === '@none') {
+      sanitized[key] = null;
+      continue;
+    }
+
     // Convertir strings vacíos a null para campos que no son obligatorios.
     if (value === '') {
       sanitized[key] = null;
       continue;
     }
-    
+
     sanitized[key] = value;
   }
   return sanitized;
