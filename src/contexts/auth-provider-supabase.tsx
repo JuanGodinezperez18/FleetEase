@@ -6,7 +6,7 @@ import { MfaChallenge } from '@/components/auth/mfa-challenge';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseProfile } from '@/types/supabase';
 import type { UserProfile } from '@/types';
-import { signIn, signOut, resetPassword, formatAuthError } from '@/lib/auth';
+import { signIn, signOut, resetPassword, formatAuthError, setAuthPersistence, restoreSessionOnly, enforceSessionOnlyPersistence, clearAuthPersistence } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 const PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
@@ -113,10 +113,12 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initializeSession = async () => {
       try {
+        await restoreSessionOnly();
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
 
         if (data.session?.user) {
+          enforceSessionOnlyPersistence(data.session);
           const cachedProfile = readCachedProfile();
           if (cachedProfile && cachedProfile.uid === data.session.user.id && !cachedProfile.isDeleted) {
             if (mounted) {
@@ -160,6 +162,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
         return;
       }
+      enforceSessionOnlyPersistence(session);
       void loadProfile(session.user.id, true);
     });
 
@@ -169,11 +172,12 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, pass: string, _rememberMe: boolean) => {
-    logger.info('[Supabase Auth] Iniciando login...');
+  const login = async (email: string, pass: string, rememberMe: boolean) => {
+    logger.info('[Supabase Auth] Iniciando login...', { rememberMe });
     setLoading(true);
+    setAuthPersistence(rememberMe);
     try {
-      const { user, error } = await signIn({ email, password: pass });
+      const { user, error } = await signIn(email, pass);
       if (error) {
         const formattedError = formatAuthError(error);
         logger.error('[Supabase Auth] Error en login', formattedError);
@@ -200,10 +204,14 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await signOut();
-    clearCachedProfile();
-    setMfaProfile(null);
-    setCurrentUser(null);
+    try {
+      await signOut();
+    } finally {
+      clearAuthPersistence();
+      clearCachedProfile();
+      setMfaProfile(null);
+      setCurrentUser(null);
+    }
   };
 
   const sendPasswordResetEmail = async (email: string) => {
