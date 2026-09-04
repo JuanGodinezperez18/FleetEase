@@ -14,8 +14,51 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 
 export const metadata: Metadata = {
-  title: "FleetEase | Gestión inteligente de flotillas",
-  description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar.",
+  metadataBase: new URL("https://fleetease.com.mx"),
+  title: {
+    default: "FleetEase | Gestión inteligente de flotillas",
+    template: "%s | FleetEase",
+  },
+  description: "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar.",
+  applicationName: "FleetEase",
+  keywords: [
+    "gestión de flotillas",
+    "software para flotillas",
+    "administración de vehículos",
+    "control de flotillas",
+    "renta de vehículos",
+    "mantenimiento de flotillas",
+    "FleetEase",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_MX",
+    url: "https://fleetease.com.mx/",
+    siteName: "FleetEase",
+    title: "FleetEase | Gestión inteligente de flotillas",
+    description: "Controla clientes, vehículos, rentabilidad y mantenimiento de tu flotilla desde un solo lugar.",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "FleetEase" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FleetEase | Gestión inteligente de flotillas",
+    description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar.",
+    images: ["/logo.png"],
+  },
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
