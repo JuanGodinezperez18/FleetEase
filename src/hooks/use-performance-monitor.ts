@@ -1,157 +1,58 @@
-// src/hooks/use-performance-monitor.ts
-'use client';
+"use client";
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
-interface PerformanceMetrics {
-  mountTime: number;
-  unmountTime?: number;
-  renderCount: number;
-  lastRenderTime?: number;
+const metricStore: Array<{ name: string; value: number; timestamp: number }> = [];
+
+function logMetric(name: string, metric: { value?: number }) {
+  const value = Number(metric.value ?? 0);
+  metricStore.push({ name, value, timestamp: Date.now() });
+  if (metricStore.length > 100) metricStore.shift();
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug(`[Web Vitals] ${name}: ${value}`);
+  }
 }
 
-interface UsePerformanceMonitorOptions {
-  componentName: string;
-  logOnUnmount?: boolean;
-  warnThreshold?: number; // ms
-  enabled?: boolean;
-}
+export function usePerformanceMonitor() {
+  const mountTimeRef = useRef(Date.now());
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
 
-/**
- * Hook para monitorear rendimiento de componentes
- * - Mide tiempo de mount
- * - Cuenta re-renders
- * - Opcionalmente loguea métricas al desmontar
- */
-export function usePerformanceMonitor({
-  componentName,
-  logOnUnmount = false,
-  warnThreshold = 3000,
-  enabled = true,
-}: UsePerformanceMonitorOptions) {
-  const mountTimeRef = useRef<number>(Date.now());
-  const renderCountRef = useRef<number>(0);
-  const lastRenderTimeRef = useRef<number | undefined>(undefined);
-  const metricsRef = useRef<PerformanceMetrics>({
-    mountTime: 0,
-    renderCount: 0,
-  });
-
-  // Registrar render
   useEffect(() => {
-    if (!enabled) return;
-
-    renderCountRef.current += 1;
-    lastRenderTimeRef.current = Date.now();
-
-    metricsRef.current = {
-      mountTime: lastRenderTimeRef.current - mountTimeRef.current,
-      renderCount: renderCountRef.current,
-      lastRenderTime: lastRenderTimeRef.current,
-    };
-  });
-
-  // Log al montar
-  useEffect(() => {
-    if (!enabled) return;
-
-    const mountDuration = Date.now() - mountTimeRef.current;
-
-    if (mountDuration > warnThreshold) {
-      console.warn(
-        `⚠️ [Performance] ${componentName} tardó ${mountDuration.toFixed(0)}ms en montarse (threshold: ${warnThreshold}ms)`
-      );
-    } else if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `✅ [Performance] ${componentName} montado en ${mountDuration.toFixed(0)}ms`
-      );
-    }
-  }, [componentName, warnThreshold, enabled]);
-
-  // Log al desmontar
-  useEffect(() => {
-    return () => {
-      if (!enabled || !logOnUnmount) return;
-
-      const unmountTime = Date.now();
-      const totalTime = unmountTime - mountTimeRef.current;
-
-      console.log(
-        `[Performance] ${componentName}:`,
-        {
-          mountTime: metricsRef.current.mountTime,
-          totalRenders: metricsRef.current.renderCount,
-          totalTime,
-          avgRenderTime: totalTime / metricsRef.current.renderCount,
-        }
-      );
-    };
-  }, [componentName, logOnUnmount, enabled]);
-
-  // Obtener métricas actuales
-  const getMetrics = useCallback((): PerformanceMetrics => {
-    return {
-      mountTime: Date.now() - mountTimeRef.current,
-      unmountTime: undefined,
-      renderCount: renderCountRef.current,
-      lastRenderTime: lastRenderTimeRef.current,
-    };
-  }, []);
-
-  // Resetear contador (útil para medir entre acciones)
-  const resetMetrics = useCallback(() => {
-    renderCountRef.current = 0;
-    lastRenderTimeRef.current = undefined;
+    mountTimeRef.current = Date.now();
   }, []);
 
   return {
-    getMetrics,
-    resetMetrics,
     mountTime: Date.now() - mountTimeRef.current,
     renderCount: renderCountRef.current,
   };
 }
 
 /**
- * Hook para reportar Web Vitals
+ * Lightweight Web Vitals fallback that does not require an optional package.
+ * This keeps production builds deterministic while still collecting the
+ * browser's navigation timing when available.
  */
 export function useWebVitalsReport() {
   useEffect(() => {
-    // Solo en cliente
     if (typeof window === 'undefined') return;
 
-    // Importar dinámicamente web-vitals si está disponible
-    const reportWebVitals = async () => {
-      try {
-        // Intentar cargar web-vitals si existe
-        const { onCLS, onFID, onFCP, onLCP, onTTFB } = await import('web-vitals');
+    const reportNavigation = () => {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      if (!navigation) return;
 
-        onCLS((metric) => logMetric('CLS', metric));
-        onFID((metric) => logMetric('FID', metric));
-        onFCP((metric) => logMetric('FCP', metric));
-        onLCP((metric) => logMetric('LCP', metric));
-        onTTFB((metric) => logMetric('TTFB', metric));
-      } catch (error) {
-        // web-vitals no disponible, usar fallback
-        console.log('[Web Vitals] Package not available, using fallback');
-      }
+      logMetric('FCP', navigation.responseStart - navigation.startTime);
+      logMetric('TTFB', navigation.responseStart - navigation.requestStart);
     };
 
-    reportWebVitals();
+    if (document.readyState === 'complete') {
+      reportNavigation();
+      return;
+    }
+
+    window.addEventListener('load', reportNavigation, { once: true });
+    return () => window.removeEventListener('load', reportNavigation);
   }, []);
 
   return null;
-}
-
-function logMetric(name: string, metric: any) {
-  // Log en desarrollo
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Web Vitals] ${name}:`, metric.value, metric.rating);
-  }
-
-  // Enviar a servicio de analytics en producción
-  if (process.env.NODE_ENV === 'production') {
-    // Aquí iría el código para enviar a Google Analytics, etc.
-    // gtag('event', name, { value: metric.value, ... });
-  }
 }
