@@ -19,6 +19,12 @@ const solutions = [
 
 export default function SolutionsPage() {
   return <main className="min-h-screen bg-background text-foreground">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="font-bold tracking-tight">FleetEase</Link>
+        <Link href="/registro" className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Probar gratis 14 días</Link>
+      </div>
+    </header>
     <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
       <div className="max-w-3xl">
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-primary">FleetEase</p>
