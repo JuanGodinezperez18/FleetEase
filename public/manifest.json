@@ -2,10 +2,11 @@
   "name": "FleetEase Manager",
   "short_name": "FleetEase",
   "description": "Sistema de gestión de flotas vehiculares",
-  "start_url": "/dashboard",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
+  "background_color": "#020817",
+  "theme_color": "#020817",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -23,60 +24,19 @@
   ],
   "categories": ["business", "productivity", "finance"],
   "shortcuts": [
-    {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Ver dashboard principal",
-      "url": "/dashboard"
-    },
-    {
-      "name": "Clientes",
-      "short_name": "Clientes",
-      "description": "Gestionar clientes",
-      "url": "/dashboard/clients"
-    },
-    {
-      "name": "Vehículos",
-      "short_name": "Vehículos",
-      "description": "Gestionar vehículos",
-      "url": "/dashboard/vehicles"
-    },
-    {
-      "name": "Finanzas",
-      "short_name": "Finanzas",
-      "description": "Ver finanzas",
-      "url": "/dashboard/finanzas"
-    }
+    { "name": "Dashboard", "short_name": "Dashboard", "description": "Ver dashboard principal", "url": "/dashboard" },
+    { "name": "Clientes", "short_name": "Clientes", "description": "Gestionar clientes", "url": "/dashboard/clients" },
+    { "name": "Vehículos", "short_name": "Vehículos", "description": "Gestionar vehículos", "url": "/dashboard/vehicles" },
+    { "name": "Finanzas", "short_name": "Finanzas", "description": "Ver finanzas", "url": "/dashboard/finanzas" }
   ],
   "screenshots": [
-    {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard Principal"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Vista Móvil"
-    }
+    { "src": "/screenshots/dashboard.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Dashboard Principal" },
+    { "src": "/screenshots/mobile.png", "sizes": "750x1334", "type": "image/png", "form_factor": "narrow", "label": "Vista Móvil" }
   ],
   "share_target": {
     "action": "/share",
     "method": "POST",
     "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  },
-  "permissions": [
-    "geolocation",
-    "notifications",
-    "storage-access"
-  ]
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
 }
