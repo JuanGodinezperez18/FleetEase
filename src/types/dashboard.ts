@@ -46,7 +46,7 @@ export const AVAILABLE_KPIS = {
     { id: 'income-month', label: 'Ingresos del Mes', icon: 'TrendingUp', isInteractive: true, color: 'green', category: 'FINANZAS' },
     { id: 'income-today', label: 'Ingresos de Hoy', icon: 'DollarSign', isInteractive: true, color: 'green', category: 'FINANZAS' },
     { id: 'expenses-month', label: 'Gastos del Mes', icon: 'TrendingDown', isInteractive: true, color: 'red', category: 'FINANZAS' },
-    { id: 'expenses-today', label: 'Gastos de Hoy', icon: 'XCircle', isInteractive: true, color: 'red', category: 'FINANZAS' },
+    { id: 'expenses-today', label: 'Gastos de Hoy', icon: 'DollarSign', isInteractive: true, color: 'red', category: 'FINANZAS' },
     { id: 'net-income', label: 'Ingreso Neto del Mes', icon: 'Wallet', color: 'blue', category: 'FINANZAS' },
     { id: 'top-income-category', label: 'Top Categoría Ingresos', icon: 'Star', color: 'yellow', category: 'FINANZAS' },
     { id: 'top-expense-category', label: 'Top Categoría Gastos', icon: 'AlertCircle', isInteractive: true, color: 'orange', category: 'FINANZAS' },
@@ -99,6 +99,10 @@ export interface DashboardWidget {
 export const CHART_WIDGETS: DashboardWidget[] = [
   { id: 'finance-summary-chart', type: 'chart', title: 'Resumen Financiero', category: 'FINANZAS', dataKey: 'finance-summary-chart', enabled: true, order: 8, size: 'large' },
   { id: 'fleet-status-chart', type: 'chart', title: 'Estado de la Flota', category: 'FLOTA', dataKey: 'fleet-status-chart', enabled: true, order: 9, size: 'large' },
+  { id: 'credit-portfolio-chart', type: 'chart', title: 'Cartera de Créditos', category: 'CREDITOS', dataKey: 'credit-portfolio-chart', enabled: true, order: 10, size: 'large' },
+  { id: 'maintenance-chart', type: 'chart', title: 'Salud de Mantenimiento', category: 'KILOMETRAJE', dataKey: 'maintenance-chart', enabled: true, order: 11, size: 'large' },
+  { id: 'fines-chart', type: 'chart', title: 'Multas de la Flota', category: 'MULTAS', dataKey: 'fines-chart', enabled: true, order: 12, size: 'large' },
+  { id: 'client-risk-chart', type: 'chart', title: 'Riesgo de Clientes', category: 'CLIENTES', dataKey: 'client-risk-chart', enabled: true, order: 13, size: 'large' },
 ];
 
 export interface UserDashboardConfig {
