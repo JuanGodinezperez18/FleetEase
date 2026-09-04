@@ -11,6 +11,85 @@ export interface PasswordResetParams { email:string; }
 export interface UpdatePasswordParams { newPassword:string; }
 export interface AuthResponse { user:User|null; error:Error|null; }
 
+const AUTH_PERSISTENCE_KEY = 'fleetease.auth.persistence.v1';
+const SESSION_STORAGE_KEY = 'fleetease.auth.session.v1';
+const SUPABASE_AUTH_STORAGE_KEY = 'sb-qettktslcbjjuyejcpqy-auth-token';
+
+type AuthPersistence = 'persistent' | 'session';
+
+function isBrowser(): boolean {
+  return typeof window !== 'undefined';
+}
+
+export function getAuthPersistence(): AuthPersistence {
+  if (!isBrowser()) return 'persistent';
+  return window.localStorage.getItem(AUTH_PERSISTENCE_KEY) === 'session' ? 'session' : 'persistent';
+}
+
+/** Selects where the browser-side session should survive: localStorage or the current tab only. */
+export function setAuthPersistence(rememberMe: boolean): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(AUTH_PERSISTENCE_KEY, rememberMe ? 'persistent' : 'session');
+    if (rememberMe) window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {}
+}
+
+function clearSupabasePersistentSession(): void {
+  if (!isBrowser()) return;
+  try { window.localStorage.removeItem(SUPABASE_AUTH_STORAGE_KEY); } catch {}
+}
+
+function saveSessionForCurrentTab(session: unknown): void {
+  if (!isBrowser() || !session) return;
+  try {
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    clearSupabasePersistentSession();
+  } catch {}
+}
+
+export function enforceSessionOnlyPersistence(session: unknown): void {
+  if (!isBrowser() || getAuthPersistence() !== 'session' || !session) return;
+  saveSessionForCurrentTab(session);
+}
+
+/** Restores a non-remembered session after a page refresh without making it persistent. */
+export async function restoreSessionOnly(): Promise<void> {
+  if (!isBrowser() || getAuthPersistence() !== 'session') return;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return;
+    const stored = JSON.parse(raw) as { access_token?: string; refresh_token?: string };
+    if (!stored?.access_token || !stored?.refresh_token) {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return;
+    }
+    const { error } = await supabase.auth.setSession({
+      access_token: stored.access_token,
+      refresh_token: stored.refresh_token,
+    });
+    if (error) {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      clearSupabasePersistentSession();
+      return;
+    }
+    clearSupabasePersistentSession();
+  } catch {
+    try { window.sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch {}
+    clearSupabasePersistentSession();
+  }
+}
+
+export function clearAuthPersistence(): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_PERSISTENCE_KEY);
+    clearSupabasePersistentSession();
+  } catch {}
+}
+
 /** Fetches the authenticated user's profile through our same-origin API.
  * This avoids browser-side REST calls to Supabase for the critical auth path,
  * which can otherwise leave the dashboard loader waiting on a failed request.
@@ -35,13 +114,13 @@ async function fetchProfileFromApp(accessToken:string):Promise<User|null>{
 
 export async function signUp(params:SignUpParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signUp({email:params.email,password:params.password,options:{data:{name:params.name,phone:params.phone}}});if(authError)return{user:null,error:authError};if(!authData.user)return{user:null,error:new Error('No se pudo crear el usuario')};const userProfile=await userService.add({id:authData.user.id,email:params.email,name:params.name,phone:params.phone,role:params.role||'viewer',company_id:params.company_id,is_deleted:false});return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
-export async function signIn(params:SignInParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
+export async function signIn(params:SignInParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};if(getAuthPersistence()==='session')enforceSessionOnlyPersistence(authData.session);const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
-export async function signOut():Promise<void>{const {error}=await supabase.auth.signOut();if(error)throw error;}
+export async function signOut():Promise<void>{const {error}=await supabase.auth.signOut();if(error)throw error;clearAuthPersistence();}
 
 export async function getCurrentUser():Promise<User|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session?.access_token)return null;return await fetchProfileFromApp(session.access_token);}catch{return null;}}
 
-export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}
+export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){enforceSessionOnlyPersistence(session);callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}
 
 export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{
   const browserOrigin = typeof window !== 'undefined' ? window.location.origin.replace(/\/$/,'') : '';
@@ -57,7 +136,7 @@ export async function updatePassword(params:UpdatePasswordParams):Promise<Error|
 
 export async function updateUserProfile(userId:string,updates:Partial<User>):Promise<Error|null>{try{await userService.update(userId,updates);return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
 
-export async function signInWithOAuth(provider:'google'|'facebook'|'github'|'discord',redirectTo?:string):Promise<{url?:string;error:Error|null}>{try{const {data,error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:redirectTo||`${window.location.origin}/dashboard`}});if(error)return{url:undefined,error};return{url:data.url,error:null};}catch(error){return{url:undefined,error:error instanceof Error?error:new Error('Error desconocido')}}}
+export function signInWithOAuth(provider:'google'|'facebook'|'github'|'discord',redirectTo?:string):Promise<{url?:string;error:Error|null}>{return (async()=>{try{const {data,error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:redirectTo||`${window.location.origin}/dashboard`}});if(error)return{url:undefined,error};return{url:data.url,error:null};}catch(error){return{url:undefined,error:error instanceof Error?error:new Error('Error desconocido')}}})();}
 
 export async function isAuthenticated():Promise<boolean>{return(await getCurrentUser())!==null;}
 
