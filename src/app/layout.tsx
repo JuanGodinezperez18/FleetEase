@@ -33,6 +33,17 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        <Script id="pwa-install-capture" strategy="beforeInteractive">
+          {`
+            window.addEventListener('beforeinstallprompt', function(event) {
+              event.preventDefault();
+              window.__fleetEaseInstallPrompt = event;
+              window.dispatchEvent(new Event('fleetease-install-available'));
+            });
+          `}
+        </Script>
+      </head>
       <body className={`${inter.variable} ${manrope.variable} font-sans`}>
         <GlobalErrorBoundary>
           <Providers>
