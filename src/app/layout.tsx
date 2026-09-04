@@ -73,10 +73,41 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://fleetease.com.mx/#organization",
+      name: "FleetEase",
+      url: "https://fleetease.com.mx/",
+      logo: "https://fleetease.com.mx/logo.png",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://fleetease.com.mx/#software",
+      name: "FleetEase",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      url: "https://fleetease.com.mx/",
+      description: "Software para gestionar flotillas, vehículos, mantenimiento, clientes y rentabilidad desde un solo lugar.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "MXN",
+        description: "Prueba gratuita durante 14 días, con 1 usuario y hasta 2 vehículos, sin tarjeta.",
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
+        <Script id="fleetease-structured-data" type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`
             window.addEventListener('beforeinstallprompt', function(event) {
