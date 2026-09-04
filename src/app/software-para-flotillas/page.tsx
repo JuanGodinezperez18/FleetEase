@@ -17,6 +17,12 @@ const benefits = [
 
 export default function Page() {
   return <main className="min-h-screen bg-[#080a0f] text-white">
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#080a0f]/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="font-bold tracking-tight">FleetEase</Link>
+        <Link href="/registro" className="rounded-full bg-[#d7ff3f] px-5 py-2.5 text-sm font-bold text-[#080a0f]">Probar gratis 14 días</Link>
+      </div>
+    </header>
     <section className="relative overflow-hidden border-b border-white/[0.08]">
       <div className="absolute left-1/2 top-[-220px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[#d7ff3f]/[0.09] blur-[120px]" />
       <div className="relative mx-auto max-w-6xl px-6 py-24 md:py-32">
