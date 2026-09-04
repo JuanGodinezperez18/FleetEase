@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Assets and API routes are handled by Next.js/API handlers directly.
   if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
     return NextResponse.next();
   }
@@ -13,6 +14,13 @@ export async function middleware(req: NextRequest) {
   const isPublicPath = publicPaths.some(
     path => pathname === path || pathname.startsWith(path + '/')
   );
+
+  // Public pages must never wait for a Supabase network round-trip. This is
+  // especially important for the PWA start route, where a slow auth service
+  // must not leave Android showing only the native splash screen.
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
 
   let response = NextResponse.next({ request: req });
 
@@ -35,16 +43,12 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // getUser() valida la sesión contra Supabase Auth y puede renovar tokens.
-  // Los nuevos tokens se sincronizan con la request y la response.
+  // Protected routes validate the session server-side. A failure redirects to
+  // login rather than failing open.
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
-
-  if (isPublicPath) {
-    return response;
-  }
 
   if (error || !user) {
     const loginUrl = new URL('/login', req.url);
