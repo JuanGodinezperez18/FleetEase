@@ -17,16 +17,13 @@ const SUPABASE_AUTH_STORAGE_KEY = 'sb-qettktslcbjjuyejcpqy-auth-token';
 
 type AuthPersistence = 'persistent' | 'session';
 
-function isBrowser(): boolean {
-  return typeof window !== 'undefined';
-}
+function isBrowser(): boolean { return typeof window !== 'undefined'; }
 
 export function getAuthPersistence(): AuthPersistence {
   if (!isBrowser()) return 'persistent';
   return window.localStorage.getItem(AUTH_PERSISTENCE_KEY) === 'session' ? 'session' : 'persistent';
 }
 
-/** Selects where the browser-side session should survive: localStorage or the current tab only. */
 export function setAuthPersistence(rememberMe: boolean): void {
   if (!isBrowser()) return;
   try {
@@ -53,7 +50,6 @@ export function enforceSessionOnlyPersistence(session: unknown): void {
   saveSessionForCurrentTab(session);
 }
 
-/** Restores a non-remembered session after a page refresh without making it persistent. */
 export async function restoreSessionOnly(): Promise<void> {
   if (!isBrowser() || getAuthPersistence() !== 'session') return;
   try {
@@ -64,10 +60,7 @@ export async function restoreSessionOnly(): Promise<void> {
       window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
       return;
     }
-    const { error } = await supabase.auth.setSession({
-      access_token: stored.access_token,
-      refresh_token: stored.refresh_token,
-    });
+    const { error } = await supabase.auth.setSession({ access_token: stored.access_token, refresh_token: stored.refresh_token });
     if (error) {
       window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
       clearSupabasePersistentSession();
@@ -90,20 +83,11 @@ export function clearAuthPersistence(): void {
   } catch {}
 }
 
-/** Fetches the authenticated user's profile through our same-origin API.
- * This avoids browser-side REST calls to Supabase for the critical auth path,
- * which can otherwise leave the dashboard loader waiting on a failed request.
- */
 async function fetchProfileFromApp(accessToken:string):Promise<User|null>{
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),7000);
   try{
-    const response=await fetch('/api/auth/profile',{
-      method:'GET',
-      headers:{Authorization:`Bearer ${accessToken}`},
-      cache:'no-store',
-      signal:controller.signal,
-    });
+    const response=await fetch('/api/auth/profile',{method:'GET',headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store',signal:controller.signal});
     if(!response.ok)return null;
     const data=await response.json();
     const profile=data?.profile as User|undefined;
@@ -114,37 +98,21 @@ async function fetchProfileFromApp(accessToken:string):Promise<User|null>{
 
 export async function signUp(params:SignUpParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signUp({email:params.email,password:params.password,options:{data:{name:params.name,phone:params.phone}}});if(authError)return{user:null,error:authError};if(!authData.user)return{user:null,error:new Error('No se pudo crear el usuario')};const userProfile=await userService.add({id:authData.user.id,email:params.email,name:params.name,phone:params.phone,role:params.role||'viewer',company_id:params.company_id,is_deleted:false});return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
-export async function signIn(params:SignInParams):Promise<AuthResponse>{try{const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};if(getAuthPersistence()==='session')enforceSessionOnlyPersistence(authData.session);const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
+export async function signIn(params:SignInParams):Promise<AuthResponse>;
+export async function signIn(email:string,password:string):Promise<AuthResponse>;
+export async function signIn(paramsOrEmail:SignInParams|string,password?:string):Promise<AuthResponse>{try{const params=typeof paramsOrEmail==='string'?{email:paramsOrEmail,password:password??''}:paramsOrEmail;const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};if(getAuthPersistence()==='session')enforceSessionOnlyPersistence(authData.session);const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
 export async function signOut():Promise<void>{const {error}=await supabase.auth.signOut();if(error)throw error;clearAuthPersistence();}
-
 export async function getCurrentUser():Promise<User|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session?.access_token)return null;return await fetchProfileFromApp(session.access_token);}catch{return null;}}
-
 export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){enforceSessionOnlyPersistence(session);callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}
 
-export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{
-  const browserOrigin = typeof window !== 'undefined' ? window.location.origin.replace(/\/$/,'') : '';
-  const siteUrl = typeof window !== 'undefined' && window.location.hostname === 'fleetease.com.mx'
-    ? 'https://fleetease.com.mx'
-    : (process.env.NEXT_PUBLIC_SITE_URL || browserOrigin || 'https://fleetease.com.mx').replace(/\/$/,'');
-  const {error}=await supabase.auth.resetPasswordForEmail(params.email,{redirectTo:`${siteUrl}/reset-password`});
-  if(error)return error;
-  return null;
-}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
-
+export async function resetPassword(params:PasswordResetParams):Promise<Error|null>{try{const browserOrigin=typeof window!=='undefined'?window.location.origin.replace(/\/$/,''):'';const siteUrl=typeof window!=='undefined'&&window.location.hostname==='fleetease.com.mx'?'https://fleetease.com.mx':(process.env.NEXT_PUBLIC_SITE_URL||browserOrigin||'https://fleetease.com.mx').replace(/\/$/,'');const {error}=await supabase.auth.resetPasswordForEmail(params.email,{redirectTo:`${siteUrl}/reset-password`});if(error)return error;return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
 export async function updatePassword(params:UpdatePasswordParams):Promise<Error|null>{try{const {error}=await supabase.auth.updateUser({password:params.newPassword});if(error)return error;return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
-
 export async function updateUserProfile(userId:string,updates:Partial<User>):Promise<Error|null>{try{await userService.update(userId,updates);return null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
-
-export function signInWithOAuth(provider:'google'|'facebook'|'github'|'discord',redirectTo?:string):Promise<{url?:string;error:Error|null}>{return (async()=>{try{const {data,error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:redirectTo||`${window.location.origin}/dashboard`}});if(error)return{url:undefined,error};return{url:data.url,error:null};}catch(error){return{url:undefined,error:error instanceof Error?error:new Error('Error desconocido')}}})();}
-
+export function signInWithOAuth(provider:'google'|'facebook'|'github'|'discord',redirectTo?:string):Promise<{url?:string;error:Error|null}>{return(async()=>{try{const {data,error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:redirectTo||`${window.location.origin}/dashboard`}});if(error)return{url:undefined,error};return{url:data.url,error:null};}catch(error){return{url:undefined,error:error instanceof Error?error:new Error('Error desconocido')}}})();}
 export async function isAuthenticated():Promise<boolean>{return(await getCurrentUser())!==null;}
-
 export async function getSessionToken():Promise<string|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session)return null;return session.access_token;}catch{return null;}}
-
 export async function refreshSession():Promise<Error|null>{try{const {error}=await supabase.auth.refreshSession();return error||null;}catch(error){return error instanceof Error?error:new Error('Error desconocido');}}
-
 export function formatAuthError(error:Error):string{const message=error.message;if(message.includes('Invalid login credentials'))return'Email o contraseña inválidos';if(message.includes('User already registered'))return'Este email ya está registrado';if(message.includes('Weak password'))return'La contraseña es muy débil. Debe tener al menos 6 caracteres';if(message.includes('Email not confirmed'))return'Por favor verifica tu email antes de iniciar sesión';if(message.includes('Provider not found'))return'Proveedor de autenticación no encontrado';return message;}
-
 export function validatePassword(password:string):{valid:boolean;error?:string}{if(password.length<6)return{valid:false,error:'La contraseña debe tener al menos 6 caracteres'};return{valid:true};}
 export function validateEmail(email:string):{valid:boolean;error?:string}{if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return{valid:false,error:'Email inválido'};return{valid:true};}
