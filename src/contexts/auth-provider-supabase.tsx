@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
+import { MfaChallenge } from '@/components/auth/mfa-challenge';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseProfile } from '@/types/supabase';
 import type { UserProfile } from '@/types';
@@ -67,6 +68,12 @@ async function fetchProfileThroughApp(authUserId: string): Promise<SupabaseProfi
   return body.profile ?? null;
 }
 
+async function sessionRequiresMfa(): Promise<boolean> {
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error) throw error;
+  return data.currentLevel === 'aal1' && data.nextLevel === 'aal2';
+}
+
 export interface AuthContextType {
   currentUser: UserProfile | null;
   login: (email: string, pass: string, rememberMe: boolean) => Promise<void>;
@@ -81,6 +88,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaProfile, setMfaProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -100,8 +108,6 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         logger.error('[Supabase Auth] Error cargando perfil', error as Error);
-        // Never erase a valid session because profile transport failed.
-        // The dashboard can continue with a previously cached profile.
       }
     };
 
@@ -122,9 +128,6 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          // Resolve auth immediately. Profile is fetched through a same-origin
-          // server endpoint so browser TLS problems against *.supabase.co do
-          // not freeze the dashboard.
           initialSessionResolved = true;
           if (mounted) setLoading(false);
           void loadProfile(data.session.user.id, false);
@@ -153,6 +156,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === 'SIGNED_OUT' || !session?.user) {
         clearCachedProfile();
         setCurrentUser(null);
+        setMfaProfile(null);
         setLoading(false);
         return;
       }
@@ -176,7 +180,17 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(formattedError);
       }
       if (!user) throw new Error('Usuario no encontrado');
+
       const profile = adaptUserToProfile(user);
+      const needsMfa = await sessionRequiresMfa();
+      if (needsMfa) {
+        clearCachedProfile();
+        setCurrentUser(null);
+        setMfaProfile(profile);
+        logger.info('[Supabase Auth] MFA requerido para continuar', { uid: user.id });
+        return;
+      }
+
       cacheProfile(profile);
       setCurrentUser(profile);
       logger.info('[Supabase Auth] Usuario autenticado', { uid: user.id });
@@ -188,6 +202,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     await signOut();
     clearCachedProfile();
+    setMfaProfile(null);
     setCurrentUser(null);
   };
 
@@ -224,6 +239,20 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(profile);
     }
   };
+
+  if (mfaProfile) {
+    return (
+      <MfaChallenge
+        profile={mfaProfile}
+        onVerified={() => {
+          cacheProfile(mfaProfile);
+          setCurrentUser(mfaProfile);
+          setMfaProfile(null);
+        }}
+        onCancel={logout}
+      />
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ currentUser, login, logout, loading, sendPasswordResetEmail, updateUserProfile }}>
