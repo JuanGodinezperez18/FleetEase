@@ -10,6 +10,12 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+declare global {
+  interface Window {
+    __fleetEaseInstallPrompt?: BeforeInstallPromptEvent;
+  }
+}
+
 export function PwaInstallButton() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -24,41 +30,68 @@ export function PwaInstallButton() {
     const isIosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
     setIos(isIosDevice);
 
+    const syncInstallPrompt = () => {
+      if (window.__fleetEaseInstallPrompt) {
+        setInstallPrompt(window.__fleetEaseInstallPrompt);
+      }
+    };
+
+    syncInstallPrompt();
+    window.addEventListener("fleetease-install-available", syncInstallPrompt);
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallPrompt(event as BeforeInstallPromptEvent);
+      const promptEvent = event as BeforeInstallPromptEvent;
+      window.__fleetEaseInstallPrompt = promptEvent;
+      setInstallPrompt(promptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+      delete window.__fleetEaseInstallPrompt;
+      toast.success("FleetEase instalado", {
+        description: "Ahora puedes abrir FleetEase desde la pantalla de inicio.",
+      });
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", () => setInstalled(true));
+    window.addEventListener("appinstalled", handleAppInstalled);
 
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("fleetease-install-available", syncInstallPrompt);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   if (installed || dismissed) return null;
 
   const handleInstall = async () => {
-    if (installPrompt) {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
+    const promptEvent = installPrompt ?? window.__fleetEaseInstallPrompt;
+
+    if (promptEvent) {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+
       if (choice.outcome === "accepted") {
         setInstalled(true);
-        toast.success("FleetEase instalado", { description: "Ahora puedes abrir FleetEase desde la pantalla de inicio." });
+        delete window.__fleetEaseInstallPrompt;
+        toast.success("FleetEase instalado", {
+          description: "Ahora puedes abrir FleetEase desde la pantalla de inicio.",
+        });
       }
+
       setInstallPrompt(null);
       return;
     }
 
-    if (ios) {
-      toast.info("Instalar FleetEase en iPhone/iPad", {
-        description: "Pulsa Compartir en Safari y después 'Añadir a pantalla de inicio'.",
-        duration: 7000,
-      });
-      return;
-    }
+    // Never send Android/desktop users to the browser menu. Direct PWA
+    // installation is controlled by the browser's native prompt.
+    if (!ios) return;
 
-    toast.info("Instalación disponible", {
-      description: "Abre el menú del navegador y selecciona 'Instalar aplicación' o 'Añadir a pantalla de inicio'.",
+    toast.info("Instalar FleetEase en iPhone/iPad", {
+      description: "Pulsa Compartir en Safari y después 'Añadir a pantalla de inicio'.",
       duration: 7000,
     });
   };
