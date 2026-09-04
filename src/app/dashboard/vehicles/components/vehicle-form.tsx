@@ -33,6 +33,7 @@ const CREATE_NEW_PARTNER_VALUE = "@create_new_partner";
 
 // Helper function to create the schema dynamically
 const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) => z.object({
+  alias: z.string().min(1, "El alias es requerido.").max(120),
   make: z.string().min(2, "La marca es requerida."),
   model: z.string().min(2, "El modelo es requerido."),
   year: z.coerce.number().min(1980, "El año debe ser posterior a 1980.").max(new Date().getFullYear() + 1, "El año no puede ser futuro."),
@@ -94,6 +95,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
     const vehicleSchema = useMemo(() => createVehicleSchema(rawVehicles, initialData?.id), [rawVehicles, initialData]);
 
     const initialValues: VehicleFormValues = useMemo(() => ({
+      alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || "",
       make: initialData?.make || "",
       model: initialData?.model || "",
       year: initialData?.year || new Date().getFullYear(),
@@ -216,6 +218,13 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
 
               {/* Vehicle Info Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <FormField name="alias" control={form.control} render={({field}) => (
+                    <FormItem className="xl:col-span-2">
+                        <FormLabel>Alias del vehículo</FormLabel>
+                        <FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
                 <FormField name="make" control={form.control} render={({field}) => (
                     <FormItem className="xl:col-span-2">
                         <FormLabel>Marca</FormLabel>
@@ -368,14 +377,14 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 <FormField name="cost" control={form.control} render={({field}) => (
                     <FormItem>
                         <FormLabel>Costo Adquisición</FormLabel>
-                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl>
+                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
                 <FormField name="weeklyRentalValue" control={form.control} render={({field}) => (
                     <FormItem>
                         <FormLabel>Renta por Semana</FormLabel>
-                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl>
+                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>

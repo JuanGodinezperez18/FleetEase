@@ -265,6 +265,17 @@ export default function VehiclesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operación</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Vehículos</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Administra tu flota, asignaciones y rentabilidad.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>Asignaciones</Button>
+          <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}><PlusCircle className="mr-2 h-4 w-4" />Agregar Vehículo</Button>
+        </div>
+      </div>
       <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />
       <VehicleAdvancedFilters 
         filters={filters}
@@ -280,14 +291,7 @@ export default function VehiclesPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <h2 className="text-2xl font-bold tracking-tight">Gestión de Flota</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>
-                  Asignaciones
-                </Button>
-                <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Vehículo
-                </Button>
-              </div>
+
           </div>
         </CardHeader>
         <CardContent>
