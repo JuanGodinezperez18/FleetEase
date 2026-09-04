@@ -14,6 +14,15 @@ interface KpiGridProps {
   onDragEnd: (event: any) => void;
 }
 
+const chartActionMap: Record<string, string> = {
+  'finance-summary-chart': 'income-month',
+  'fleet-status-chart': 'vehicles-rented',
+  'credit-portfolio-chart': 'active-credits',
+  'maintenance-chart': 'maintenance-overdue',
+  'fines-chart': 'multas-pendientes',
+  'client-risk-chart': 'clients-with-debt',
+};
+
 export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick }: KpiGridProps) {
   const isEmpty = enabledWidgets.length === 0;
   const alwaysInteractive = new Set(['total-clients', 'total-vehicles', 'vehicles-rented']);
@@ -26,11 +35,15 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick }: KpiGrid
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {enabledWidgets.map(widget => {
             if (widget.type === 'chart') {
-              const chartClick = widget.id === 'finance-summary-chart' ? 'income-month' : 'vehicles-rented';
-              const chartAction = { ...widget, id: chartClick } as DashboardWidget;
+              const actionId = chartActionMap[widget.id];
+              const chartAction = actionId ? ({ ...widget, id: actionId } as DashboardWidget) : undefined;
               return (
                 <div key={widget.id} className="md:col-span-2 xl:col-span-4">
-                  <DashboardChartCard widget={widget} allKPIs={allKPIs as Record<string, MetricKPIData>} onClick={() => onKpiClick(chartAction)} />
+                  <DashboardChartCard
+                    widget={widget}
+                    allKPIs={allKPIs as Record<string, MetricKPIData>}
+                    onClick={chartAction ? () => onKpiClick(chartAction) : undefined}
+                  />
                 </div>
               );
             }
