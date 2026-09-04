@@ -44,6 +44,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   alias: z.string().min(1, "El alias es requerido.").max(120),
   alias: z.string().min(1, "El alias es requerido.").max(120),
   alias: z.string().min(1, "El alias es requerido.").max(120),
+  alias: z.string().min(1, "El alias es requerido.").max(120),
   make: z.string().min(2, "La marca es requerida."),
   model: z.string().min(2, "El modelo es requerido."),
   year: z.coerce.number().min(1980, "El año debe ser posterior a 1980.").max(new Date().getFullYear() + 1, "El año no puede ser futuro."),
@@ -105,6 +106,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
     const vehicleSchema = useMemo(() => createVehicleSchema(rawVehicles, initialData?.id), [rawVehicles, initialData]);
 
     const initialValues: VehicleFormValues = useMemo(() => ({
+      alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || "",
       alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || "",
       alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || "",
       alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || "",
