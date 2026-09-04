@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { EmptyState } from '@/components/common/empty-state';
 import { Settings } from 'lucide-react';
 import { DraggableMetricCard } from '@/components/dashboard/draggrable-metric-card';
@@ -14,41 +13,21 @@ interface KpiGridProps {
   onDragEnd: (event: any) => void;
 }
 
-export function KpiGrid({
-  enabledWidgets,
-  kpiMap,
-  allKPIs,
-  onKpiClick,
-  onDragEnd,
-}: KpiGridProps) {
-  // ✅ Empty state - sin return temprano para evitar problemas de hooks
+export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick }: KpiGridProps) {
   const isEmpty = enabledWidgets.length === 0;
+  const alwaysInteractive = new Set(['total-clients', 'total-vehicles', 'vehicles-rented']);
 
   return (
     <>
       {isEmpty ? (
-        <EmptyState
-          icon={Settings}
-          title="No tienes KPIs configurados"
-          description="Personaliza tu dashboard agregando los indicadores que más te interesen."
-          actionLabel="Configurar Dashboard"
-          onAction={() => {}}
-        />
+        <EmptyState icon={Settings} title="No tienes KPIs configurados" description="Personaliza tu dashboard agregando los indicadores que más te interesen." actionLabel="Configurar Dashboard" onAction={() => {}} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {enabledWidgets.map((widget) => {
+          {enabledWidgets.map(widget => {
             const kpiConfig = kpiMap[widget.id];
             const kpiData = allKPIs[widget.id as keyof typeof allKPIs];
-
-            return (
-              <DraggableMetricCard
-                key={widget.id}
-                widget={widget}
-                kpiData={kpiData as MetricKPIData}
-                kpiConfig={kpiConfig}
-                onClick={kpiConfig?.isInteractive ? () => onKpiClick(widget) : undefined}
-              />
-            );
+            const isInteractive = Boolean(kpiConfig?.isInteractive || alwaysInteractive.has(widget.id));
+            return <DraggableMetricCard key={widget.id} widget={widget} kpiData={kpiData as MetricKPIData} kpiConfig={kpiConfig} onClick={isInteractive ? () => onKpiClick(widget) : undefined} />;
           })}
         </div>
       )}
