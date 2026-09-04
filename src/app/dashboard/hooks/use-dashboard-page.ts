@@ -9,7 +9,7 @@ import { useDashboardKPIs } from '@/hooks/use-dashboard-kpis';
 import { useDashboardData } from './use-dashboard-data';
 import { useDashboardModals } from './use-dashboard-modals';
 import { useDashboardActions } from './use-dashboard-actions';
-import { AVAILABLE_KPIS, type DashboardWidget, type MetricKPIData, type KPIConfig } from '@/types/dashboard';
+import { AVAILABLE_KPIS, CHART_WIDGETS, type DashboardWidget, type MetricKPIData, type KPIConfig } from '@/types/dashboard';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -52,7 +52,12 @@ export function useDashboardPage() {
   const enabledKPIIds = useMemo(() => dashboardConfig?.widgets.filter(w => w.enabled).map(w => w.id) || [], [dashboardConfig]);
   const allKPIs = useDashboardKPIs(effectiveDateRange);
   const KPI_MAP = useMemo(() => Object.values(AVAILABLE_KPIS).flat().reduce((acc, kpi) => { acc[kpi.id] = kpi; return acc; }, {} as Record<string, KPIConfig>), []);
-  const enabledWidgets = useMemo(() => dashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) || [], [dashboardConfig]);
+  const enabledWidgets = useMemo(() => {
+    const configured = dashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) || [];
+    const configuredIds = new Set(configured.map(w => w.id));
+    const missingCharts = CHART_WIDGETS.filter(chart => !configuredIds.has(chart.id));
+    return [...configured, ...missingCharts].sort((a, b) => a.order - b.order);
+  }, [dashboardConfig]);
 
   const openClientListModal = React.useCallback((kpiKey: string, title: string) => {
     const kpiDetails = (allKPIs[kpiKey] as any)?.details;
