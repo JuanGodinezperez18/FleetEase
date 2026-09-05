@@ -41,7 +41,10 @@ export default function ClientMultasPage() {
     const pendientes = clientMultas.filter(m => m.status === 'pendiente');
     const pagadas = clientMultas.filter(m => m.status === 'pagada');
     const enProceso = clientMultas.filter(m => m.status === 'en_proceso');
-    const totalPendiente = pendientes.reduce((sum, m) => sum + m.total, 0);
+    // Pendiente y En Proceso siguen siendo obligaciones del cliente.
+    // Solo Pagada y Cancelada dejan de formar parte del saldo por pagar.
+    const multasPorPagar = clientMultas.filter(m => m.status === 'pendiente' || m.status === 'en_proceso');
+    const totalPendiente = multasPorPagar.reduce((sum, m) => sum + m.total, 0);
     const totalPagado = pagadas.reduce((sum, m) => sum + m.total, 0);
     const vehiculosMap = new Map<string, number>();
     clientMultas.forEach(m => vehiculosMap.set(m.vehicleId, (vehiculosMap.get(m.vehicleId) || 0) + 1));
@@ -71,7 +74,7 @@ export default function ClientMultasPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="fe-surface"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Multas</CardTitle><ShieldAlert className="h-4 w-4 text-[var(--fe-lime)]" /></CardHeader><CardContent><div className="text-2xl font-semibold">{stats.total}</div><p className="text-xs text-muted-foreground">En {stats.vehiculosConMultas} vehículo{stats.vehiculosConMultas !== 1 ? 's' : ''}</p></CardContent></Card>
-        <Card className="fe-surface"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pendientes</CardTitle><Clock className="h-4 w-4 text-yellow-500" /></CardHeader><CardContent><div className="text-2xl font-semibold text-yellow-500">{stats.pendientes}</div><p className="text-xs text-muted-foreground">{formatCurrency(stats.totalPendiente)} a pagar</p></CardContent></Card>
+        <Card className="fe-surface"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Por pagar</CardTitle><Clock className="h-4 w-4 text-yellow-500" /></CardHeader><CardContent><div className="text-2xl font-semibold text-yellow-500">{stats.pendientes + stats.enProceso}</div><p className="text-xs text-muted-foreground">{formatCurrency(stats.totalPendiente)} a pagar</p></CardContent></Card>
         <Card className="fe-surface"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pagadas</CardTitle><CheckCircle className="h-4 w-4 text-emerald-400" /></CardHeader><CardContent><div className="text-2xl font-semibold text-emerald-400">{stats.pagadas}</div><p className="text-xs text-muted-foreground">{formatCurrency(stats.totalPagado)} histórico</p></CardContent></Card>
         <Card className="fe-surface"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">En Proceso</CardTitle><AlertTriangle className="h-4 w-4 text-amber-400" /></CardHeader><CardContent><div className="text-2xl font-semibold">{stats.enProceso}</div><p className="text-xs text-muted-foreground">En gestión</p></CardContent></Card>
       </div>
@@ -107,7 +110,7 @@ export default function ClientMultasPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-white">Importante</p>
                 <p className="text-sm text-muted-foreground">Estas son todas las multas registradas a tu nombre, incluyendo vehículos que tuviste asignados anteriormente. Si tienes multas pendientes, es importante que las liquides para evitar recargos adicionales.</p>
-                {stats.pendientes > 0 && <p className="mt-2 text-sm font-semibold text-[var(--fe-lime)]">Tienes {stats.pendientes} multa{stats.pendientes !== 1 ? 's' : ''} pendiente{stats.pendientes !== 1 ? 's' : ''} por un total de {formatCurrency(stats.totalPendiente)}</p>}
+                {stats.pendientes + stats.enProceso > 0 && <p className="mt-2 text-sm font-semibold text-[var(--fe-lime)]">Tienes {stats.pendientes + stats.enProceso} multa{stats.pendientes + stats.enProceso !== 1 ? 's' : ''} por pagar por un total de {formatCurrency(stats.totalPendiente)}</p>}
               </div>
             </div>
           </CardContent>
