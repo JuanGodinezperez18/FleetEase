@@ -1,82 +1,3 @@
-
-
-export interface Vehicle {
-  id: string;
-  alias: string;
-  make: string;
-  model: string;
-  year: number;
-  plate: string;
-  serialNumber: string;
-  color: string;
-  status: 'active' | 'inactive' | 'maintenance' | 'sold' | 'rented';
-  clientId: string | null;
-  partnerId: string | null;
-  cost?: number;
-  weeklyRentalValue?: number;
-  acquisitionDate: string;
-  maintenanceInterval?: number;
-  lastMaintenanceMileage?: number;
-  currentMileage: number;
-  insuranceCompany?: string;
-  insurancePolicyNumber?: string;
-  insuranceExpiryDate?: string;
-  adminCommission?: number;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  companyId?: string;
-  imageUrl?: string | File;
-  circulationCardUrl?: string | File;
-  insurancePolicyDocumentUrl?: string | File;
-  gpsPhoneNumber?: string;
-  gpsPhoneCompany?: string;
-  lockedByCredit?: boolean;
-  associatedCreditId?: string | null;
-}
-
-export interface VehicleWithMileage extends Vehicle {
-  displayCurrentMileage: string;
-  displayLastMaintMileage: string;
-  displayNextMaintDueAt: string;
-  displayKmToNextMaintenance: string;
-  kmToNextMaintenance?: number;
-  dailyAveragekm: number;
-}
-
-export interface Client {
-  id: string;
-  referenceCode?: string;
-  userId?: string;
-  firstname: string;
-  lastname: string;
-  email?: string;
-  phone: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  status: 'active' | 'inactive';
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  vehicleAssignedAt?: string;
-  licenseNumber: string;
-  licenseExpiry: string;
-  licenseStatus: 'active' | 'expired';
-  initialBalance: number;
-  balance: number;
-  securityDeposit: number;
-  assignedVehicleId?: string | null;
-  paymentBehavior?: 'Excelente' | 'Bueno' | 'Regular' | 'Malo' | 'Crítico';
-  photoUrl?: string | File;
-  ineUrl?: string | File;
-  licenseImageUrl?: string | File;
-  companyId?: string;
-  hasActiveCredit?: boolean;
-  activeCreditId?: string | null;
-  writtenOffAmount?: number;
   writeOffReason?: string | null;
   writtenOffAt?: string | null;
   writtenOffBy?: string | null;
@@ -143,6 +64,18 @@ export interface MileageLog {
   isDeleted?: boolean;
 }
 
+export interface FinancialRecordItem {
+  catalogItemId?: string | null;
+  concept: string;
+  amount: number;
+  supplierId?: string | null;
+  supplierName?: string | null;
+  partNumber?: string | null;
+  warrantyDays?: number | null;
+  warrantyExpiresAt?: string | null;
+  vehicleId?: string | null;
+}
+
 export interface FinancialRecord {
   id: string;
   referenceCode?: string;
@@ -175,6 +108,7 @@ export interface FinancialRecord {
   sourceRecordType?: string | null;
   relatedRecordId?: string | null;
   relatedRecordType?: string | null;
+  items?: FinancialRecordItem[] | null;
 }
 
 export interface Credit {
@@ -188,236 +122,3 @@ export interface Credit {
   remainingBalance: number;
   weeklyPayment: number;
   numberOfPayments: number;
-  paymentsMade: number;
-  startDate: string;
-  status: 'active' | 'completed' | 'defaulted' | 'inactive' | 'cancelled';
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  companyId?: string;
-  lastPaymentDate?: string;
-  lastPaymentAmount?: number;
-  lastPaymentStatus?: 'paid' | 'overdue' | 'pending';
-}
-
-export interface Notification {
-  id: string;
-  uid?: string;
-  type: string;
-  message: string;
-  date: string;
-  isRead: boolean;
-  relatedId?: string;
-  readAt?: string | null;
-  companyId?: string;
-}
-
-export interface VehicleAssignmentLog {
-  id: string;
-  vehicleId: string;
-  clientId: string | null;
-  partnerId?: string | null;
-  companyId?: string | null;
-  assignedAt: string;
-  unassignedAt?: string | null;
-  assignedBy: string;
-  reason?: string | null;
-  createdAt: string;
-  startDate?: string;
-  endDate?: string | null;
-  odometerReading?: number | null;
-  fuelLevel?: string | null;
-  conditionNotes?: string | null;
-  photos?: Record<string, string> | null;
-}
-
-export type UserRole = 'admin' | 'editor' | 'viewer' | 'superAdmin' | 'partner' | 'client';
-
-export interface NotificationSettings {
-  maintenance?: boolean;
-  maintenanceThreshold?: number;
-  insurance?: boolean;
-  insuranceThreshold?: number;
-  license?: boolean;
-  licenseThreshold?: number;
-}
-
-export interface UserProfile {
-  uid: string;
-  name: string;
-  email: string;
-  phone?: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  role: UserRole;
-  companyId?: string | null;
-  partnerAccess?: string[];
-  notificationSettings?: NotificationSettings;
-  isDeleted: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  pushSubscriptions?: any[];
-}
-
-export interface Company {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
-  defaultRentalDays?: number;
-  maintenanceInterval?: number;
-  latePaymentFee?: number;
-  gracePeriodDays?: number;
-  emailNotifications?: boolean;
-  whatsappNotifications?: boolean;
-  contractTemplateUrl?: string | null;
-  vehicleLimit?: number | null;
-  plan?: string | null;
-}
-
-export interface FinancialCategory {
-  id: string;
-  name: string;
-  type: 'income' | 'expense' | 'payment';
-  affects: 'client_balance' | 'partner_balance' | 'none' | 'security_deposit' | 'credit_payment' | 'credit_granted' | 'driver_payment';
-  description?: string;
-  isDefault?: boolean;
-  companyId?: string | null;
-  category?: string | null;
-}
-
-export interface ClientChangeLog {
-  id: string;
-  clientId: string;
-  changeType: 'created' | 'updated' | 'deleted' | 'vehicle_assigned' | 'vehicle_unassigned' | 'balance_updated' | 'deposit_updated' | 'document_uploaded' | 'credit_approved';
-  changedBy: string;
-  changedByName: string;
-  changedAt: string;
-  description: string;
-  fieldChanged?: string;
-  previousValue?: any;
-  newValue?: any;
-}
-
-export interface CompanyChangeLog {
-  id: string;
-  companyId: string;
-  changeType: 'created' | 'updated' | 'deleted' | 'limit_changed' | 'contract_uploaded' | 'contract_deleted';
-  changedBy: string;
-  changedByName: string;
-  changedAt: string;
-  description: string;
-  fieldChanged?: string;
-  previousValue?: any;
-  newValue?: any;
-}
-
-export interface MessageTemplate {
-  id: string;
-  name: string;
-  content: string;
-  type: 'cliente' | 'socio' | 'usuario';
-  companyId: string;
-  createdAt: string;
-  updatedAt: string;
-  isDeleted: boolean;
-}
-
-export interface MessageLog {
-  id: string;
-  recipientId: string;
-  recipientName: string;
-  recipientType: 'cliente' | 'socio' | 'usuario';
-  content: string;
-  status: 'sent' | 'delivered' | 'failed';
-  sentBy: string;
-  sentAt: string;
-  companyId: string;
-}
-
-export interface CreditPaymentSchedule {
-  id: string;
-  creditId: string;
-  paymentNumber: number;
-  dueDate: string;
-  amount: number;
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
-  paidAmount?: number;
-  paidDate?: string;
-  companyId?: string;
-  isDeleted?: boolean;
-  deletedAt?: string;
-  cancelledAt?: string;
-  createdAt: string;
-}
-
-export interface RecordAuditLog {
-  id: string;
-  companyId?: string | null;
-  entityType: string;
-  entityId: string;
-  entityReferenceCode?: string | null;
-  action: 'INSERT' | 'UPDATE' | 'DELETE' | 'SOFT_DELETE' | 'WRITE_OFF' | 'LINK';
-  actorUserId?: string | null;
-  occurredAt: string;
-  oldData?: Record<string, unknown> | null;
-  newData?: Record<string, unknown> | null;
-  metadata?: Record<string, unknown>;
-}
-
-export interface ClientWriteOff {
-  id: string;
-  companyId: string;
-  clientId: string;
-  amount: number;
-  financialRecordId?: string | null;
-  reason: string;
-  createdBy?: string | null;
-  createdAt: string;
-  reversedAt?: string | null;
-  reversedBy?: string | null;
-  reversalReason?: string | null;
-}
-
-export interface Multa {
-  id: string;
-  vehicleId: string;
-  clientId: string | null;
-  folio?: string;
-  fechaInfraccion: string;
-  direccion: string;
-  descripcion: string;
-  importe: number;
-  recargos?: number;
-  total: number;
-  status: 'pendiente' | 'pagada' | 'en_proceso' | 'cancelada';
-  fechaPago?: string;
-  evidenciaUrls?: (string | File)[];
-  notas?: string;
-  asignadoAutomaticamente: boolean;
-  assignmentDate?: string;
-  companyId: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt?: string;
-  isDeleted: boolean;
-}
-
-export interface MultaWithDetails extends Multa {
-  vehiclePlate?: string;
-  vehicleAlias?: string;
-  clientName?: string;
-  clientPhone?: string;
-  daysOverdue?: number;
-}
