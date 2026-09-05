@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Search, Trash2 } from 'lucide-react';
+import { Edit, Search, Trash2, CreditCard, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -43,13 +43,16 @@ interface MultasTableProps {
 }
 
 export function MultasTable({ multas, onEdit }: MultasTableProps) {
-  const { deleteMulta } = useFinances();
+  const { deleteMulta, processMultaPayment } = useFinances();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [vehicleFilter, setVehicleFilter] = useState<string>('todos');
   const [multaToDelete, setMultaToDelete] = useState<MultaWithDetails | null>(null);
+  const [multaToPay, setMultaToPay] = useState<MultaWithDetails | null>(null);
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState('Transferencia');
+  const [paying, setPaying] = useState(false);
 
-  // Obtener lista única de vehículos
   const uniqueVehicles = useMemo(() => {
     const vehiclesMap = new Map();
     multas.forEach(m => {
@@ -64,7 +67,6 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
     return Array.from(vehiclesMap.values());
   }, [multas]);
 
-  // Filtrar multas
   const filteredMultas = useMemo(() => {
     return multas.filter(multa => {
       const matchesSearch =
@@ -117,9 +119,42 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
     }
   };
 
+  const openPaymentDialog = (multa: MultaWithDetails) => {
+    if (multa.status === 'pagada' || multa.status === 'cancelada') return;
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentMethod('Transferencia');
+    setMultaToPay(multa);
+  };
+
+  const handlePayment = async () => {
+    if (!multaToPay || !paymentDate) return;
+
+    try {
+      setPaying(true);
+      await processMultaPayment(multaToPay.id, {
+        clientId: multaToPay.clientId,
+        vehicleId: multaToPay.vehicleId,
+        companyId: multaToPay.companyId,
+        amount: multaToPay.total,
+        date: paymentDate,
+        paymentMethod,
+        description: `Pago de multa${multaToPay.folio ? ` - Folio ${multaToPay.folio}` : ''}`,
+        isDeleted: false,
+      });
+      toast.success('Multa pagada correctamente', {
+        description: `Se registró el pago de ${formatCurrency(multaToPay.total)} y la multa pasó a Pagada.`,
+      });
+      setMultaToPay(null);
+    } catch (error) {
+      console.error('Error al registrar pago de multa:', error);
+      toast.error('No se pudo registrar el pago de la multa');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -159,7 +194,6 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
         </Select>
       </div>
 
-      {/* Tabla */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -186,17 +220,11 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
             ) : (
               filteredMultas.map((multa) => (
                 <TableRow key={multa.id}>
-                  <TableCell className="font-medium">
-                    {multa.folio || '-'}
-                  </TableCell>
+                  <TableCell className="font-medium">{multa.folio || '-'}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>
-                        {format(new Date(multa.fechaInfraccion), 'dd/MM/yyyy', { locale: es })}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Hace {multa.daysOverdue} días
-                      </span>
+                      <span>{format(new Date(multa.fechaInfraccion), 'dd/MM/yyyy', { locale: es })}</span>
+                      <span className="text-xs text-muted-foreground">Hace {multa.daysOverdue} días</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -214,36 +242,30 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="max-w-xs">
-                    <div className="truncate" title={multa.descripcion}>
-                      {multa.descripcion}
-                    </div>
+                    <div className="truncate" title={multa.descripcion}>{multa.descripcion}</div>
                   </TableCell>
                   <TableCell className="max-w-xs">
-                    <div className="truncate" title={multa.direccion}>
-                      {multa.direccion}
-                    </div>
+                    <div className="truncate" title={multa.direccion}>{multa.direccion}</div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(multa.importe)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatCurrency(multa.total)}
-                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(multa.importe)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(multa.total)}</TableCell>
                   <TableCell>{getStatusBadge(multa.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(multa)}
-                      >
+                      {multa.status !== 'pagada' && multa.status !== 'cancelada' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Registrar pago"
+                          onClick={() => openPaymentDialog(multa)}
+                        >
+                          <CreditCard className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" title="Editar" onClick={() => onEdit(multa)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setMultaToDelete(multa)}
-                      >
+                      <Button variant="ghost" size="icon" title="Eliminar" onClick={() => setMultaToDelete(multa)}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -255,8 +277,61 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
         </Table>
       </div>
 
-      {/* Dialog de confirmación de eliminación */}
-      <AlertDialog open={!!multaToDelete} onOpenChange={() => setMultaToDelete(null)}>
+      <AlertDialog open={!!multaToPay} onOpenChange={(open) => !open && !paying && setMultaToPay(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar pago de multa</AlertDialogTitle>
+            <AlertDialogDescription>
+              {multaToPay && (
+                <span>
+                  Se registrará el pago total de <strong>{formatCurrency(multaToPay.total)}</strong> para la multa
+                  {multaToPay.folio ? ` con folio ${multaToPay.folio}` : ''}. Al confirmar, el estado cambiará a Pagada.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {multaToPay && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="multa-payment-date">Fecha de pago</Label>
+                <Input
+                  id="multa-payment-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  disabled={paying}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="multa-payment-method">Método de pago</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={paying}>
+                  <SelectTrigger id="multa-payment-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Efectivo">Efectivo</SelectItem>
+                    <SelectItem value="Transferencia">Transferencia</SelectItem>
+                    <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                    <SelectItem value="Cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePayment} disabled={paying || !paymentDate}>
+              {paying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar pago
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!multaToDelete} onOpenChange={(open) => !open && setMultaToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
@@ -266,9 +341,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Eliminar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
