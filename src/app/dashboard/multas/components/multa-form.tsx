@@ -82,13 +82,13 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
   const fechaInfraccion = watch('fechaInfraccion');
   const importe = watch('importe');
   const recargos = watch('recargos');
+  const currentStatus = watch('status');
 
   const activeVehicles = useMemo(
     () => vehicles.filter(v => !v.isDeleted && v.status !== 'sold'),
     [vehicles]
   );
 
-  // Lógica para encontrar al cliente responsable basado en el historial
   useEffect(() => {
     if (!selectedVehicleId || !fechaInfraccion) {
       setAssignedClient(null);
@@ -98,12 +98,10 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
     const infraccionDate = new Date(fechaInfraccion).getTime();
     let foundClient: { id: string; name: string; auto: boolean } | null = null;
 
-    // MÉTODO 1: Buscar en el historial de asignaciones (vehicleAssignmentLogs)
     const assignments = vehicleAssignmentLogs
       .filter(log => log.vehicleId === selectedVehicleId)
       .sort((a, b) => new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime());
 
-    // Encontrar la asignación activa en la fecha de la infracción
     const activeAssignment = assignments.find(log => {
       const assignedAt = new Date(log.assignedAt).getTime();
       const unassignedAt = log.unassignedAt
@@ -124,8 +122,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       }
     }
 
-    // MÉTODO 2: Si no se encontró en logs, buscar directamente en clientes
-    // que tengan el vehículo asignado y su fecha de asignación sea anterior a la multa
     if (!foundClient) {
       const clientsWithVehicle = clients.filter(
         c => c.assignedVehicleId === selectedVehicleId &&
@@ -134,12 +130,10 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
              c.vehicleAssignedAt
       );
 
-      // Buscar el cliente cuya fecha de asignación sea la más cercana pero anterior a la infracción
       const eligibleClients = clientsWithVehicle.filter(c => {
         const assignedAt = new Date(c.vehicleAssignedAt!).getTime();
         return assignedAt <= infraccionDate;
       }).sort((a, b) => {
-        // Ordenar por fecha más reciente primero
         const dateA = new Date(a.vehicleAssignedAt!).getTime();
         const dateB = new Date(b.vehicleAssignedAt!).getTime();
         return dateB - dateA;
@@ -155,11 +149,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       }
     }
 
-    if (foundClient) {
-      setAssignedClient(foundClient);
-    } else {
-      setAssignedClient(null);
-    }
+    setAssignedClient(foundClient);
   }, [selectedVehicleId, fechaInfraccion, vehicleAssignmentLogs, clients]);
 
   const total = Number(importe || 0) + Number(recargos || 0);
@@ -172,13 +162,21 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         toast.error('No se pudo determinar el cliente responsable', {
           description: 'Verifica que el vehículo estuviera asignado en la fecha de la infracción',
         });
-        setLoading(false);
         return;
       }
 
       if (!currentUser?.companyId) {
         toast.error('Error: No se encontró la compañía del usuario');
-        setLoading(false);
+        return;
+      }
+
+      // Una multa nunca se marca como pagada desde este formulario.
+      // El estado pagada debe generarse únicamente mediante un pago real
+      // para conservar la trazabilidad financiera.
+      if (data.status === 'pagada') {
+        toast.error('Una multa no puede marcarse como pagada desde este formulario', {
+          description: 'Registra el pago desde la acción de pago de la multa.',
+        });
         return;
       }
 
@@ -198,12 +196,9 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         createdBy: currentUser.uid,
         createdAt: new Date().toISOString(),
         isDeleted: false,
-        // Optional fields, only add them if they have a value
         ...(data.folio ? { folio: data.folio } : {}),
-        ...(data.status === 'pagada' && data.fechaPago ? { fechaPago: data.fechaPago } : {}),
         ...(data.notas ? { notas: data.notas } : {}),
       };
-
 
       if (multa) {
         await updateMulta(multa.id, multaData);
@@ -226,7 +221,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Selección de vehículo */}
       <div className="space-y-2">
         <Label htmlFor="vehicleId">Vehículo *</Label>
         <Select
@@ -250,7 +244,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         )}
       </div>
 
-      {/* Información del cliente asignado */}
       {selectedVehicleId && fechaInfraccion && (
         <Alert className={assignedClient ? 'border-green-500' : 'border-yellow-500'}>
           <AlertDescription className="flex items-center gap-2">
@@ -275,17 +268,11 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Folio */}
         <div className="space-y-2">
           <Label htmlFor="folio">Folio (Opcional)</Label>
-          <Input
-            id="folio"
-            {...register('folio')}
-            placeholder="Número de folio"
-          />
+          <Input id="folio" {...register('folio')} placeholder="Número de folio" />
         </div>
 
-        {/* Fecha de infracción */}
         <div className="space-y-2">
           <Label htmlFor="fechaInfraccion">Fecha de Infracción *</Label>
           <Input
@@ -299,7 +286,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         </div>
       </div>
 
-      {/* Dirección */}
       <div className="space-y-2">
         <Label htmlFor="direccion">Dirección *</Label>
         <Input
@@ -312,7 +298,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         )}
       </div>
 
-      {/* Descripción */}
       <div className="space-y-2">
         <Label htmlFor="descripcion">Descripción de la Infracción *</Label>
         <Textarea
@@ -327,7 +312,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {/* Importe */}
         <div className="space-y-2">
           <Label htmlFor="importe">Importe *</Label>
           <Input
@@ -345,60 +329,48 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           )}
         </div>
 
-        {/* Recargos */}
         <div className="space-y-2">
           <Label htmlFor="recargos">Recargos</Label>
-          <Input
-            id="recargos"
-            type="number"
-            step="0.01"
-            {...register('recargos', { valueAsNumber: true })}
-          />
+          <Input id="recargos" type="number" step="0.01" {...register('recargos', { valueAsNumber: true })} />
         </div>
 
-        {/* Total */}
         <div className="space-y-2">
           <Label>Total</Label>
-          <Input
-            value={`$${total.toFixed(2)}`}
-            disabled
-            className="font-bold"
-          />
+          <Input value={`$${total.toFixed(2)}`} disabled className="font-bold" />
         </div>
       </div>
 
-      {/* Estado */}
       <div className="space-y-2">
         <Label htmlFor="status">Estado *</Label>
         <Select
-          value={watch('status') || 'pendiente'}
-          onValueChange={(value: any) => setValue('status', value)}
+          value={currentStatus || 'pendiente'}
+          onValueChange={(value: MultaFormData['status']) => setValue('status', value)}
+          disabled={multa?.status === 'pagada'}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="pendiente">Pendiente</SelectItem>
-            <SelectItem value="en_proceso">En Proceso</SelectItem>
-            <SelectItem value="pagada">Pagada</SelectItem>
-            <SelectItem value="cancelada">Cancelada</SelectItem>
+            {multa && <SelectItem value="en_proceso">En Proceso</SelectItem>}
+            {multa && <SelectItem value="cancelada">Cancelada</SelectItem>}
+            {multa?.status === 'pagada' && <SelectItem value="pagada">Pagada</SelectItem>}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          {multa?.status === 'pagada'
+            ? 'El pago ya fue registrado y este estado no puede modificarse desde aquí.'
+            : 'Para marcar la multa como pagada debes registrar el pago desde la acción de pago.'}
+        </p>
       </div>
 
-      {/* Fecha de pago (solo si está pagada) */}
-      {watch('status') === 'pagada' && (
+      {currentStatus === 'pagada' && multa?.status === 'pagada' && (
         <div className="space-y-2">
           <Label htmlFor="fechaPago">Fecha de Pago</Label>
-          <Input
-            id="fechaPago"
-            type="date"
-            {...register('fechaPago')}
-          />
+          <Input id="fechaPago" type="date" value={multa.fechaPago || ''} disabled />
         </div>
       )}
 
-      {/* Notas */}
       <div className="space-y-2">
         <Label htmlFor="notas">Notas Adicionales</Label>
         <Textarea
@@ -409,7 +381,6 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         />
       </div>
 
-      {/* Botones */}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
           Cancelar
