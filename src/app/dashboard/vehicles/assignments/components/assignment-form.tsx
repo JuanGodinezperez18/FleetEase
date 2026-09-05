@@ -44,7 +44,7 @@ interface AssignmentFormProps {
 }
 
 export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: AssignmentFormProps) {
-  const { clients, rawVehicles, createVehicleAssignment, selectedCompanyId, credits } = useData();
+  const { clients, rawVehicles, vehicleAssignmentLogs, createVehicleAssignment, selectedCompanyId, credits } = useData();
   const { currentUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
@@ -66,15 +66,37 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
   const selectedClientId = form.watch('clientId');
   const selectedVehicleId = form.watch('vehicleId');
 
-  const availableVehicles = useMemo(() => rawVehicles.filter((v: Vehicle) =>
-    !v.isDeleted && v.status === 'active' && !v.clientId && !v.lockedByCredit
-  ), [rawVehicles]);
+  const activeAssignmentClientIds = useMemo(() => new Set(
+    vehicleAssignmentLogs
+      .filter((log) => !log.unassignedAt)
+      .map((log) => log.clientId)
+  ), [vehicleAssignmentLogs]);
 
-  const activeClients = useMemo(() => clients.filter((c: Client) => !c.isDeleted), [clients]);
+  const activeAssignmentVehicleIds = useMemo(() => new Set(
+    vehicleAssignmentLogs
+      .filter((log) => !log.unassignedAt)
+      .map((log) => log.vehicleId)
+  ), [vehicleAssignmentLogs]);
+
+  const availableVehicles = useMemo(() => rawVehicles.filter((v: Vehicle) =>
+    !v.isDeleted &&
+    v.status === 'active' &&
+    !v.clientId &&
+    !v.lockedByCredit &&
+    !activeAssignmentVehicleIds.has(v.id)
+  ), [rawVehicles, activeAssignmentVehicleIds]);
+
+  const activeClients = useMemo(() => clients.filter((c: Client) =>
+    !c.isDeleted && !activeAssignmentClientIds.has(c.id) && !rawVehicles.some((v: Vehicle) =>
+      !v.isDeleted && v.clientId === c.id
+    )
+  ), [clients, activeAssignmentClientIds, rawVehicles]);
 
   const selectedClientVehicle = useMemo(() => {
     if (!selectedClientId) return null;
-    return rawVehicles.find((vehicle: Vehicle) => !vehicle.isDeleted && vehicle.clientId === selectedClientId) || null;
+    return rawVehicles.find((vehicle: Vehicle) =>
+      !vehicle.isDeleted && vehicle.clientId === selectedClientId
+    ) || null;
   }, [rawVehicles, selectedClientId]);
 
   const selectedClientActiveCredit = useMemo(() => {
@@ -155,15 +177,15 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
 
   const onSubmit = async (data: AssignmentFormValues) => {
     if (!currentUser?.uid) { toast.error('Usuario no autenticado'); return; }
-    if (selectedClientVehicle) {
+    if (selectedClientVehicle || activeAssignmentClientIds.has(data.clientId)) {
       toast.error('No se puede asignar otro vehículo', { description: selectedClientActiveCredit
         ? 'El cliente tiene un vehículo ligado a un crédito activo. Debe liquidarse o cancelarse antes de liberar la unidad.'
-        : `El cliente ya tiene asignado el vehículo ${selectedClientVehicle.plate}. Desasígnalo antes de asignarle otra unidad.` });
+        : 'El cliente ya tiene un vehículo asignado. Primero debes desasignarlo antes de asignarle otra unidad.' });
       return;
     }
 
     const selected = rawVehicles.find((vehicle) => vehicle.id === data.vehicleId);
-    if (!selected || selected.isDeleted || selected.status !== 'active' || selected.clientId || selected.lockedByCredit) {
+    if (!selected || selected.isDeleted || selected.status !== 'active' || selected.clientId || selected.lockedByCredit || activeAssignmentVehicleIds.has(selected.id)) {
       toast.error('Vehículo no disponible', { description: 'La unidad ya no está disponible para asignación. Actualiza la información e inténtalo nuevamente.' });
       return;
     }
