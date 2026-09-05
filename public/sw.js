@@ -1,13 +1,18 @@
-const CACHE_NAME = 'fleetease-v5';
+const CACHE_NAME = 'fleetease-v6';
 
 self.addEventListener('install', (event) => {
+  // Activate the new worker immediately so installed PWAs pick up deployments
+  // without waiting for all existing tabs to close.
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
-      caches.keys().then((names) => Promise.all(names.map((name) => caches.delete(name)))),
+      // Remove caches created by previous FleetEase service-worker versions.
+      caches.keys().then((names) =>
+        Promise.all(names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name)))
+      ),
       self.clients.claim(),
     ])
   );
