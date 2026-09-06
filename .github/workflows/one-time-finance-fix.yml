@@ -1,0 +1,65 @@
+name: One-time finance frontend fix
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: "!contains(github.event.head_commit.message, '[finance-auto-fix]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch finance frontend
+        shell: python
+        run: |
+          from pathlib import Path
+
+          income = Path('src/app/dashboard/finanzas/income/components/IncomeForm.tsx')
+          text = income.read_text()
+          old = "category?.id === SECURITY_DEPOSIT_CATEGORY"
+          new = "(category?.name === SECURITY_DEPOSIT_CATEGORY || category?.affects === 'security_deposit')"
+          if old not in text:
+              raise SystemExit('IncomeForm target comparison not found')
+          text = text.replace(old, new, 1)
+          income.write_text(text)
+
+          provider = Path('src/contexts/data-provider-supabase.tsx')
+          text = provider.read_text()
+          old = 'export const SECURITY_DEPOSIT_CATEGORY = "Depósito de Crédito / Enganche";'
+          new = 'export const SECURITY_DEPOSIT_CATEGORY = "Depósito en Garantía";'
+          if old in text:
+              text = text.replace(old, new, 1)
+          provider.write_text(text)
+
+          expense = Path('src/app/dashboard/finanzas/expenses/components/ExpensesFormMultiLine.tsx')
+          text = expense.read_text()
+          marker = '<FormField control={form.control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel>'
+          if marker not in text:
+              raise SystemExit('Expense category marker not found')
+          payment = '''<FormField control={form.control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Forma de pago / quién absorbe</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar responsable" /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Pagado por la empresa / afecta al socio</SelectItem><SelectItem value="partner_pays">Pagado por el socio / no afecta al socio</SelectItem><SelectItem value="company_absorbs">Absorbido por la empresa</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />\n      '''
+          if 'name="paymentMethod"' not in text:
+              text = text.replace(marker, payment + marker, 1)
+          expense.write_text(text)
+      
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/dashboard/finanzas/income/components/IncomeForm.tsx src/contexts/data-provider-supabase.tsx src/app/dashboard/finanzas/expenses/components/ExpensesFormMultiLine.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(finanzas): normalize income and expense flows [finance-auto-fix]"
+          git push
+
+      - name: Remove one-time workflow
+        if: success()
+        shell: bash
+        run: |
+          git rm .github/workflows/one-time-finance-fix.yml || true
+          git commit -m "chore(finanzas): remove one-time finance fixer [finance-auto-fix]" || true
+          git push || true
