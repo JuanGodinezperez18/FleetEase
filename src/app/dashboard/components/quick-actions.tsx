@@ -25,8 +25,8 @@ interface QuickActionsProps {
   modalTitles: Record<Exclude<QuickActionModal, null>, string>;
 }
 
-// Dynamic imports for form components
-const ExpensesForm = dynamic(() => import('@/app/dashboard/finanzas/expenses/components/ExpensesForm'), { ssr: false });
+// The floating action must use the exact same canonical forms as the module pages.
+const ExpensesForm = dynamic(() => import('@/app/dashboard/finanzas/expenses/components/ExpensesFormMultiLine').then(mod => mod.ExpensesForm), { ssr: false });
 const IncomeForm = dynamic(() => import('@/app/dashboard/finanzas/income/components/IncomeForm'), { ssr: false });
 const CreditForm = dynamic(() => import('@/app/dashboard/credits/components/credit-form').then(mod => mod.CreditForm), { ssr: false });
 const ClientForm = dynamic(() => import('@/app/dashboard/clients/components/client-form').then(mod => mod.ClientForm), { ssr: false });
@@ -51,9 +51,7 @@ export function QuickActions({
   onMileageSubmit,
   modalTitles,
 }: QuickActionsProps) {
-  const handleSuccess = useCallback(() => {
-    onCloseModal();
-  }, [onCloseModal]);
+  const handleSuccess = useCallback(() => onCloseModal(), [onCloseModal]);
 
   return (
     <>
@@ -67,59 +65,36 @@ export function QuickActions({
         >
           <Suspense fallback={<div>Cargando formulario...</div>}>
             {quickActionModal === 'expense' && (
-              <ExpensesForm 
-                onSubmit={onExpenseSubmit} 
-                initialData={null} 
-                companies={companies} 
-                expenseCategories={expenseCategories} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
+              <ExpensesForm
+                onSubmit={onExpenseSubmit}
+                initialData={null}
+                companies={companies}
+                expenseCategories={expenseCategories}
+                isSubmitting={isSubmittingForm}
+                onClose={onCloseModal}
               />
             )}
             {quickActionModal === 'income' && (
-              <IncomeForm 
-                onSubmit={onIncomeSubmit} 
-                initialData={null} 
-                companies={companies} 
-                incomeAndPaymentCategories={incomeAndPaymentCategories} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
+              <IncomeForm
+                onSubmit={onIncomeSubmit}
+                initialData={null}
+                companies={companies}
+                incomeAndPaymentCategories={incomeAndPaymentCategories}
+                isSubmitting={isSubmittingForm}
+                onClose={onCloseModal}
               />
             )}
             {quickActionModal === 'credit' && (
-              <CreditForm 
-                onSubmit={onCreditSubmit} 
-                initialData={undefined} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
-              />
+              <CreditForm onSubmit={onCreditSubmit} initialData={undefined} isSubmitting={isSubmittingForm} onClose={onCloseModal} />
             )}
             {quickActionModal === 'client' && (
-              <ClientForm 
-                onSubmit={onClientSubmit} 
-                initialData={null} 
-                vehicles={vehicles} 
-                companies={companies} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
-              />
+              <ClientForm onSubmit={onClientSubmit} initialData={null} vehicles={vehicles} companies={companies} isSubmitting={isSubmittingForm} onClose={onCloseModal} />
             )}
             {quickActionModal === 'vehicle' && (
-              <VehicleForm 
-                onSuccess={handleSuccess} 
-                onSubmit={onVehicleSubmit} 
-                onOpenPartnerModal={() => {}} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
-              />
+              <VehicleForm onSuccess={handleSuccess} onSubmit={onVehicleSubmit} onOpenPartnerModal={() => {}} isSubmitting={isSubmittingForm} onClose={onCloseModal} />
             )}
             {quickActionModal === 'mileage' && (
-              <MileageLogForm 
-                onSubmit={onMileageSubmit} 
-                companies={companies} 
-                isSubmitting={isSubmittingForm} 
-                onClose={onCloseModal} 
-              />
+              <MileageLogForm onSubmit={onMileageSubmit} companies={companies} isSubmitting={isSubmittingForm} onClose={onCloseModal} />
             )}
           </Suspense>
         </FormModal>
