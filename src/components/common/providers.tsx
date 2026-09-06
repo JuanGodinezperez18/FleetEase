@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster as SonnerToaster } from "sonner";
 import { ToastProvider } from "@/contexts/toast-provider";
 import { SplashScreenWrapper } from "@/components/splash/splash-screen-wrapper";
+import { retryQuery, retryDelayQuery } from "@/lib/query-resilience";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({
@@ -18,7 +19,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         staleTime: 10 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
         networkMode: 'offlineFirst',
-        retry: 1,
+        // Only transient failures are retried. Backoff is exponential and
+        // jittered; the shared circuit breaker stops synchronized retry storms.
+        retry: retryQuery,
+        retryDelay: retryDelayQuery,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
       },
