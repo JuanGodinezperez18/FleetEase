@@ -225,7 +225,7 @@ export const CREDIT_PAYMENT_CATEGORY = 'vKeQhlbdBmZhPw8ZmJEX';
 export const CLIENT_PAYMENT_CATEGORY = "Abono de Cliente";
 export const DRIVER_PAYMENT_CATEGORY = "Pago a Conductor";
 export const MAINTENANCE_CATEGORY = "Mantenimiento";
-export const SECURITY_DEPOSIT_CATEGORY = "Depósito de Crédito / Enganche";
+export const SECURITY_DEPOSIT_CATEGORY = "Depósito en Garantía";
 export const CLIENT_SECURITY_DEPOSIT_CATEGORY_ID = "66NXhL4RKMnc65R5GcKQ";
 export const PARTNER_PAYMENT_CATEGORY_NAME = 'Pago a Socio';
 export let PARTNER_PAYMENT_CATEGORY_ID: string | undefined;

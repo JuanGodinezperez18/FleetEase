@@ -273,7 +273,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
               initialBalance = partner?.initialBalance || 0;
               impactDescription = `Disminuye el saldo a pagar a ${entityName}.`;
               previewBalance = currentBalance - amountValue;
-            } else if (category?.id === SECURITY_DEPOSIT_CATEGORY) {
+            } else if ((category?.name === SECURITY_DEPOSIT_CATEGORY || category?.affects === 'security_deposit')) {
               impactDescription = `Aumenta el depósito de garantía de ${entityName}. No afecta su balance.`;
             } else if (category?.name === 'Pago de Crédito') {
               previewBalance = currentBalance - amountValue;
