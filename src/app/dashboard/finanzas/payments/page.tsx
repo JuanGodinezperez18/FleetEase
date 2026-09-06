@@ -22,21 +22,10 @@ const PAYMENT_KINDS = [
   { value: "credit_payment", label: "Pago de Crédito", short: "Créditos", affects: "credit_payment", icon: CreditCard },
 ] as const;
 type PaymentKind = typeof PAYMENT_KINDS[number]["value"];
-
 type LinkRow = { target_financial_record_id: string; amount_applied: number | null; source_financial_record_id: string };
 
 export default function PaymentsPage() {
-  const {
-    financialRecords,
-    financialCategories,
-    clients,
-    partners,
-    credits,
-    creditPaymentSchedules,
-    processCreditPayment,
-    refreshData,
-    selectedCompanyId,
-  } = useData();
+  const { financialRecords, financialCategories, clients, partners, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentKind>("client_payment");
   const [entityId, setEntityId] = useState("");
@@ -107,7 +96,7 @@ export default function PaymentsPage() {
   const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
   const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules.filter(s => s.creditId === selectedCredit.id && s.status === "pending").sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
   const selectedTarget = targets.find(r => r.id === targetId);
-  const maxAmount = selectedTarget?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.balance || 0) : 0);
+  const maxAmount = selectedTarget?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
 
   const reset = () => { setEntityId(""); setTargetId(""); setAmount(""); setReference(""); };
 
@@ -123,8 +112,18 @@ export default function PaymentsPage() {
     setSaving(true);
     try {
       if (kind === "credit_payment") {
-        const result = await processCreditPayment(entityId, selectedCredit?.clientId || "", numericAmount, method, `${PAYMENT_KINDS.find(k => k.value === kind)?.label}${reference ? ` · Ref. ${reference}` : ""}`, companyId, paymentCategory.id);
-        if (result?.error) throw new Error(result.error.message || "No se pudo registrar el pago del crédito.");
+        const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
+          p_company_id: companyId,
+          p_credit_id: entityId,
+          p_client_id: selectedCredit?.clientId || null,
+          p_amount: numericAmount,
+          p_payment_date: date,
+          p_payment_method: method,
+          p_reference: reference || null,
+          p_created_by: currentUser?.uid || null,
+        } as any);
+        if (error) throw error;
+        if (!data) throw new Error("La base de datos no devolvió el pago del crédito.");
       } else {
         const { data, error } = await supabase.rpc("create_financial_payment", {
           p_company_id: companyId,
@@ -173,7 +172,7 @@ export default function PaymentsPage() {
 
               {kind !== "supplier_payment" && kind !== "credit_payment" && <div className="space-y-2"><Label>Aplicar a registro</Label><Select value={targetId} onValueChange={setTargetId} disabled={!entityId}><SelectTrigger><SelectValue placeholder="Seleccionar cargo pendiente..." /></SelectTrigger><SelectContent>{targets.map(r => <SelectItem key={r.id} value={r.id}>{r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select></div>}
 
-              {kind === "credit_payment" && selectedCredit && <div className="space-y-2 md:col-span-2"><Label>Cuota pendiente</Label><div className="rounded-lg border bg-muted/30 p-3 text-sm">{pendingSchedule.length ? <>{pendingSchedule.slice(0, 3).map(s => <div key={s.id} className="flex justify-between py-1"><span>Cuota #{s.paymentNumber}</span><span>{formatCurrency(Number(s.amount))}</span></div>)}</> : <span className="text-muted-foreground">No hay cuotas pendientes.</span>}</div></div>}
+              {kind === "credit_payment" && selectedCredit && <div className="space-y-2 md:col-span-2"><Label>Cuota pendiente</Label><div className="rounded-lg border bg-muted/30 p-3 text-sm">{pendingSchedule.length ? <>{pendingSchedule.slice(0, 3).map(s => <div key={s.id} className="flex justify-between py-1"><span>Cuota #{s.paymentNumber}</span><span>{formatCurrency(Number(s.amount) - Number(s.paidAmount || 0))}</span></div>)}</> : <span className="text-muted-foreground">No hay cuotas pendientes.</span>}</div></div>}
 
               <div className="space-y-2"><Label>Importe</Label><Input inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0.00" /></div>
               <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
