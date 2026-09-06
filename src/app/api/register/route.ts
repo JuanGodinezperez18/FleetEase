@@ -26,17 +26,10 @@ export async function POST(request: NextRequest) {
     const planConfig = plans[selectedPlan];
 
     if (!email || !password || !name || !companyName) {
-      return NextResponse.json(
-        { success: false, message: 'Faltan campos requeridos' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'Faltan campos requeridos' }, { status: 400 });
     }
-
     if (!planConfig) {
-      return NextResponse.json(
-        { success: false, message: 'Plan de suscripción no válido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'Plan de suscripción no válido' }, { status: 400 });
     }
 
     const trialEndsAt = planConfig.trialDays
@@ -53,17 +46,10 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('[Register API] Auth error:', authError);
-      return NextResponse.json(
-        { success: false, message: authError.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: authError.message }, { status: 400 });
     }
-
     if (!authData.user) {
-      return NextResponse.json(
-        { success: false, message: 'No se pudo crear el usuario' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'No se pudo crear el usuario' }, { status: 500 });
     }
 
     // 2. Crear compañía con límites reales del plan.
@@ -86,10 +72,7 @@ export async function POST(request: NextRequest) {
     if (companyError) {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       console.error('[Register API] Company error:', companyError);
-      return NextResponse.json(
-        { success: false, message: 'Error al crear la empresa' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'Error al crear la empresa' }, { status: 500 });
     }
 
     // 3. Crear perfil de usuario
@@ -109,22 +92,34 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.from('companies').delete().eq('id', company.id);
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       console.error('[Register API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: 'Error al crear el perfil de usuario' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'Error al crear el perfil de usuario' }, { status: 500 });
     }
 
-    // 4. Insertar categorías financieras por defecto.
+    // 4. Categorías iniciales separadas por flujo.
+    // Los pagos NO se crean como ingresos: viven en Finanzas > Pagos.
     const defaultCategories = [
-      { name: 'Pago de Cliente', type: 'income', affects: 'client_balance', is_default: true, category: 'Pago', company_id: company.id },
-      { name: 'Gasto Operativo', type: 'expense', affects: 'none', is_default: true, category: 'Operativo', company_id: company.id },
-      { name: 'Mantenimiento', type: 'expense', affects: 'none', is_default: true, category: 'Mantenimiento', company_id: company.id },
-      { name: 'Comisión Socio', type: 'payment', affects: 'partner_balance', is_default: true, category: 'Pago Socio', company_id: company.id },
       { name: 'Renta Semanal', type: 'income', affects: 'client_balance', is_default: true, category: 'Renta', company_id: company.id },
+      { name: 'Depósito en Garantía', type: 'income', affects: 'security_deposit', is_default: true, category: 'Depósito', company_id: company.id },
+      { name: 'Crédito Otorgado', type: 'income', affects: 'credit_granted', is_default: true, category: 'Crédito', company_id: company.id },
+      { name: 'Otros Ingresos', type: 'income', affects: 'none', is_default: true, category: 'Otros', company_id: company.id },
+      { name: 'Pago de Cliente', type: 'payment', affects: 'client_balance', payment_kind: 'client_payment', is_default: true, category: 'Pago', company_id: company.id },
+      { name: 'Pago a Socio', type: 'payment', affects: 'partner_balance', payment_kind: 'partner_payment', is_default: true, category: 'Pago Socio', company_id: company.id },
+      { name: 'Pago a Proveedor', type: 'payment', affects: 'none', payment_kind: 'supplier_payment', is_default: true, category: 'Pago Proveedor', company_id: company.id },
+      { name: 'Pago de Crédito', type: 'payment', affects: 'credit_payment', payment_kind: 'credit_payment', is_default: true, category: 'Pago Crédito', company_id: company.id },
     ];
 
-    await supabaseAdmin.from('financial_categories').insert(defaultCategories);
+    const { error: categoriesError } = await supabaseAdmin
+      .from('financial_categories')
+      .insert(defaultCategories);
+
+    if (categoriesError) {
+      // No dejamos una cuenta parcialmente inicializada si falló la configuración financiera.
+      await supabaseAdmin.from('users').delete().eq('id', authData.user.id);
+      await supabaseAdmin.from('companies').delete().eq('id', company.id);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      console.error('[Register API] Categories error:', categoriesError);
+      return NextResponse.json({ success: false, message: 'Error al configurar las categorías financieras' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
@@ -139,9 +134,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Register API] Unexpected error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
   }
 }
