@@ -126,35 +126,23 @@ export default function PaymentsPage() {
         const result = await processCreditPayment(entityId, selectedCredit?.clientId || "", numericAmount, method, `${PAYMENT_KINDS.find(k => k.value === kind)?.label}${reference ? ` · Ref. ${reference}` : ""}`, companyId, paymentCategory.id);
         if (result?.error) throw new Error(result.error.message || "No se pudo registrar el pago del crédito.");
       } else {
-        const payload: any = {
-          company_id: companyId,
-          category_id: paymentCategory.id,
-          category: paymentCategory.name,
-          type: "payment",
-          amount: numericAmount,
-          payment_method: method,
-          description: `${PAYMENT_KINDS.find(k => k.value === kind)?.label}${reference ? ` · Ref. ${reference}` : ""}`,
-          date: new Date(`${date}T12:00:00`).toISOString(),
-          is_deleted: false,
-          created_by: currentUser?.uid || null,
-          payment_kind: kind,
-        };
-        if (kind === "client_payment") payload.client_id = entityId;
-        if (kind === "partner_payment") payload.partner_id = entityId;
-        if (kind === "supplier_payment") payload.supplier_id = entityId;
-        const { data: payment, error } = await supabase.from("financial_records").insert(payload).select("id").single();
+        const { data, error } = await supabase.rpc("create_financial_payment", {
+          p_company_id: companyId,
+          p_payment_kind: kind,
+          p_amount: numericAmount,
+          p_payment_date: date,
+          p_payment_method: method,
+          p_reference: reference || null,
+          p_client_id: kind === "client_payment" ? entityId : null,
+          p_partner_id: kind === "partner_payment" ? entityId : null,
+          p_supplier_id: kind === "supplier_payment" ? entityId : null,
+          p_target_financial_record_id: targetId || null,
+          p_credit_id: null,
+          p_credit_payment_schedule_id: null,
+          p_created_by: currentUser?.uid || null,
+        } as any);
         if (error) throw error;
-        if (targetId && payment?.id) {
-          const { error: linkError } = await supabase.from("financial_record_links").insert({
-            company_id: companyId,
-            source_financial_record_id: payment.id,
-            target_financial_record_id: targetId,
-            relationship_type: `${kind}_to_financial_record`,
-            amount_applied: numericAmount,
-            created_by: currentUser?.uid || null,
-          } as any);
-          if (linkError) throw linkError;
-        }
+        if (!data) throw new Error("La base de datos no devolvió el pago creado.");
       }
       toast.success("Pago registrado", { description: "El movimiento quedó separado de Ingresos y con trazabilidad financiera." });
       await refreshData();
