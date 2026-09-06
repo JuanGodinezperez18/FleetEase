@@ -27,6 +27,7 @@ declare
   v_applied numeric(14,2);
   v_outstanding numeric(14,2);
   v_category_id uuid;
+  v_expected_target_type text;
 begin
   if p_amount is null or p_amount <= 0 then
     raise exception 'El monto del pago debe ser mayor que cero';
@@ -37,6 +38,11 @@ begin
   end if;
 
   if p_target_financial_record_id is not null then
+    v_expected_target_type := case
+      when p_payment_kind = 'partner_payment' then 'expense'
+      else 'income'
+    end;
+
     select * into v_target
     from public.financial_records
     where id = p_target_financial_record_id
@@ -48,8 +54,8 @@ begin
       raise exception 'El cargo financiero indicado no existe o no pertenece a la empresa';
     end if;
 
-    if v_target.type <> 'income' then
-      raise exception 'Un pago solo puede aplicarse contra un cargo de ingreso';
+    if v_target.type <> v_expected_target_type then
+      raise exception 'El registro seleccionado no corresponde al tipo de obligación del pago';
     end if;
 
     select coalesce(sum(amount_applied),0) into v_applied
@@ -97,7 +103,7 @@ begin
       relationship_type, amount_applied, created_by
     ) values (
       p_company_id, v_payment.id, p_target_financial_record_id,
-      p_payment_kind || '_to_income', p_amount, p_created_by
+      p_payment_kind || '_to_financial_record', p_amount, p_created_by
     );
   end if;
 
