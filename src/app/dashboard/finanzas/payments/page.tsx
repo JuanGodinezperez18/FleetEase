@@ -47,7 +47,7 @@ export default function PaymentsPage() {
   const entities = kind === "client_payment" ? clients.filter(c => c.status === "active" && !c.isDeleted) : partners.filter(p => !p.isDeleted);
   const targets = useMemo(() => {
     if (!entityId) return [];
-    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income' && r.clientId === entityId && r.category !== "Depósito en Garantía").sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== "Depósito en Garantía").sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     if (kind === "partner_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "expense" && r.partnerId === entityId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return [];
   }, [financialRecords, entityId, kind]);
