@@ -13,11 +13,6 @@ interface UseAutoSaveOptions<T> {
   isDirty?: boolean;
 }
 
-/**
- * Hook para auto-guardado de formularios.
- * Los formularios pueden conservar el borrador en localStorage sin interrumpir
- * al usuario con una notificación en cada cambio.
- */
 export function useAutoSave<T extends Record<string, any>>({
   data,
   storageKey,
@@ -33,9 +28,7 @@ export function useAutoSave<T extends Record<string, any>>({
   const saveToLocalStorage = useCallback((dataToSave: T) => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-      if (shouldNotify) {
-        toast.info('Borrador guardado automáticamente', { duration: 2000 });
-      }
+      if (shouldNotify) toast.info('Borrador guardado automáticamente', { duration: 2000 });
     } catch (error) {
       console.error('Error guardando borrador:', error);
     }
@@ -45,15 +38,12 @@ export function useAutoSave<T extends Record<string, any>>({
     if (!isDirty || !data) return;
     const dataString = JSON.stringify(data);
     if (dataString === JSON.stringify(previousDataRef.current)) return;
-
     if (timerRef.current) clearTimeout(timerRef.current);
-
     timerRef.current = setTimeout(() => {
       saveToLocalStorage(data);
       if (onSave) void Promise.resolve(onSave(data)).catch(console.error);
       previousDataRef.current = data;
     }, saveDelay);
-
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -61,6 +51,12 @@ export function useAutoSave<T extends Record<string, any>>({
 
   const loadDraft = useCallback((): T | null => {
     try {
+      // El formulario de gastos cambió de estructura; no reutilizar borradores
+      // antiguos que pueden contener categorías/responsables incompatibles.
+      if (storageKey === 'expense-form-draft') {
+        localStorage.removeItem(storageKey);
+        return null;
+      }
       const saved = localStorage.getItem(storageKey);
       if (saved) return JSON.parse(saved) as T;
     } catch (error) {
