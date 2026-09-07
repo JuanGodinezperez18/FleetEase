@@ -1,161 +1,33 @@
-# Lighthouse CI Configuration
-# https://github.com/GoogleChrome/lighthouse-ci
-
-extends: true
-settings:
-  # Performance thresholds
-  performance: 0.9
-  accessibility: 0.9
-  best-practices: 0.9
-  seo: 0.9
-  pwa: 0.8
-
-  # Specific audits
-  audits:
-    # Performance
-    - first-contentful-paint
-    - largest-contentful-paint
-    - total-blocking-time
-    - cumulative-layout-shift
-    - speed-index
-    - time-to-interactive
-
-    # Accessibility
-    - color-contrast
-    - image-alt
-    - label
-    - link-name
-    - html-has-lang
-    - valid-lang
-
-    # Best Practices
-    - is-on-https
-    - uses-http2
-    - uses-passive-event-listeners
-    - no-document-write
-    - no-vulnerable-libraries
-
-    # PWA
-    - installable-manifest
-    - service-worker
-    - offline-start-url
-    - works-offline
-
-  # Budgets
-  budgets:
-    - path: /
-      resourceCounts:
-        - resourceType: script
-          budget: 10
-        - resourceType: stylesheet
-          budget: 5
-        - resourceType: image
-          budget: 20
-        - resourceType: font
-          budget: 5
-        - resourceType: total
-          budget: 50
-
-    - path: /dashboard
-      resourceCounts:
-        - resourceType: script
-          budget: 15
-        - resourceType: total
-          budget: 60
-
-    - path: /dashboard/**
-      resourceCounts:
-        - resourceType: script
-          budget: 20
-        - resourceType: total
-          budget: 70
-
-  # Size budgets
-    - path: /
-      resourceSizes:
-        - resourceType: script
-          budget: 500
-        - resourceType: stylesheet
-          budget: 100
-        - resourceType: total
-          budget: 1000
-
-  # Timing budgets
-    - path: /
-      timing:
-        - metric: firstContentfulPaint
-          budget: 1500
-        - metric: largestContentfulPaint
-          budget: 2500
-        - metric: timeToInteractive
-          budget: 3500
-        - metric: totalBlockingTime
-          budget: 300
-        - metric: maxPotentialFID
-          budget: 200
-
-  # Device emulation
-  formFactor: desktop
-  screenEmulation:
-    mobile: false
-    width: 1350
-    height: 940
-    deviceScaleFactor: 1
-    disabled: false
-
-  # Throttling
-  throttlingMethod: simulate
-  throttling:
-    rttMs: 40
-    throughputKbps: 1638.4
-    cpuSlowdownMultiplier: 1
-
-  # Locale
-  locale: es
-
-  # Output
-  output:
-    - html
-    - json
-
-  # Output directory
-  outputPath: ./lighthouse-reports
-
-  # Skip audits
-  skipAudits:
-    - uses-rel-preconnect
-    - uses-rel-preload
-
-  # Only audits
-  onlyAudits:
-    - performance
-    - accessibility
-    - best-practices
-    - seo
-
-# CI settings
-ci:
-  collect:
-    url:
-      - http://localhost:3000
-      - http://localhost:3000/dashboard
-      - http://localhost:3000/dashboard/clients
-      - http://localhost:3000/dashboard/vehicles
-      - http://localhost:3000/dashboard/finanzas
-    settings:
-      preset: desktop
-      chromeFlags: "--no-sandbox --headless"
-    numberOfRuns: 3
-
-  assert:
-    assertions:
-      categories:performance: warn
-      categories:accessibility: error
-      categories:best-practices: warn
-      categories:seo: warn
-      first-contentful-paint: warn
-      largest-contentful-paint: warn
-      cumulative-layout-shift: warn
-
-  upload:
-    target: temporary-public-storage
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:3000",
+        "http://localhost:3000/soluciones",
+        "http://localhost:3000/funciones",
+        "http://localhost:3000/software-para-flotillas",
+        "http://localhost:3000/software-para-renta-de-vehiculos",
+        "http://localhost:3000/control-de-mantenimiento-de-flotillas"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "chromeFlags": "--no-sandbox --headless"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": "warn",
+        "categories:accessibility": "error",
+        "categories:best-practices": "warn",
+        "categories:seo": "warn",
+        "first-contentful-paint": "warn",
+        "largest-contentful-paint": "warn",
+        "cumulative-layout-shift": "warn"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
