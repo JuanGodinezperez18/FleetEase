@@ -13,22 +13,21 @@ on:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-      
+          node-version: '22'
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm install --legacy-peer-deps
+
       - name: Build application
         run: npm run build
-      
+
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v11
         with:
@@ -43,7 +42,7 @@ jobs:
             http://localhost:3000/dashboard/clients
             http://localhost:3000/dashboard/vehicles
             http://localhost:3000/dashboard/finanzas
-      
+
       - name: Upload Lighthouse reports
         uses: actions/upload-artifact@v4
         with:
@@ -53,24 +52,23 @@ jobs:
 
   performance-budget:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-      
+          node-version: '22'
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm install --legacy-peer-deps
+
       - name: Build and analyze bundle
         run: |
           npm run build
           npm run analyze:bundle || true
-      
+
       - name: Upload bundle analysis
         uses: actions/upload-artifact@v4
         with:
