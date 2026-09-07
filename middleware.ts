@@ -25,7 +25,6 @@ export async function middleware(req: NextRequest) {
     '/software-para-flotillas',
     '/software-para-renta-de-vehiculos',
     '/control-de-mantenimiento-de-flotillas',
-    '/precios',
   ];
   const isPublicPath = publicPaths.some(
     path => pathname === path || pathname.startsWith(path + '/')
