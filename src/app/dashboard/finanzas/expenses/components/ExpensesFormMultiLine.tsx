@@ -158,7 +158,26 @@ export const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>((
   const selectedCategoryId = form.watch('categoryId');
 
   useEffect(() => { const vehicle = rawVehicles.find(v => v.id === selectedVehicleId); form.setValue('clientId', vehicle?.clientId || null); }, [selectedVehicleId, rawVehicles, form]);
-  useEffect(() => { const selectedCategory = localCategories.find(cat => cat.id === selectedCategoryId); if (selectedCategory?.id === PARTNER_PAYMENT_CATEGORY_ID) { form.setValue('clientId', NONE_SELECT_VALUE); const selectedVehicle = rawVehicles.find(v => v.id === selectedVehicleId); if (!selectedVehicle?.partnerId) { toast.error('El vehículo seleccionado no tiene socio asignado'); form.setValue('categoryId', ''); } } }, [selectedCategoryId, localCategories, form, rawVehicles, selectedVehicleId]);
+  useEffect(() => {
+    const selectedCategory = localCategories.find(cat => cat.id === selectedCategoryId);
+    const isPartnerPaymentCategory = selectedCategory?.id === PARTNER_PAYMENT_CATEGORY_ID || selectedCategory?.name?.trim().toLowerCase() === 'pago a socio';
+
+    if (!isPartnerPaymentCategory) return;
+    if (!selectedVehicleId) {
+      form.setValue('clientId', null);
+      return;
+    }
+
+    const selectedVehicle = rawVehicles.find(v => v.id === selectedVehicleId);
+    if (!selectedVehicle) return;
+
+    form.setValue('clientId', NONE_SELECT_VALUE);
+    if (!selectedVehicle.partnerId) {
+      toast.error('El vehículo seleccionado no tiene socio asignado');
+      form.setValue('categoryId', '');
+      form.setValue('clientId', null);
+    }
+  }, [selectedCategoryId, localCategories, form, rawVehicles, selectedVehicleId]);
 
   const handleCatalogItemChange = (index: number, catalogItemId: string) => {
     const item = catalogItems.find(i => i.id === catalogItemId);
@@ -225,7 +244,7 @@ export const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>((
         <Separator /><div className="flex justify-between items-center p-3 bg-muted rounded-lg"><span className="font-semibold flex items-center gap-2"><BadgeDollarSign className="h-5 w-5" />Total:</span><span className="text-2xl font-bold">${totalAmount.toFixed(2)}</span></div>
       </CardContent></Card>
 
-      <FormField control={form.control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Forma de pago / quién absorbe</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar responsable" /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Pagado por la empresa / afecta al socio</SelectItem><SelectItem value="partner_pays">Pagado por el socio / no afecta al socio</SelectItem><SelectItem value="company_absorbs">Absorbido por la empresa</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
+      <FormField control={form.control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Forma de pago / quién absorbe</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar responsable" /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Pagado por la empresa / afecta al socio</SelectItem><SelectItem value="partner_pays">Pagado por el socio / no afecta al socio</SelectItem><SelectItem value="company_absorbs">Absorbido por la empresa</SelectItem></Select><FormMessage /></FormItem>} />
       <FormField control={form.control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><div className="flex gap-2"><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar categoría..." /></SelectTrigger></FormControl><SelectContent>{localCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}<SelectItem value={newCategoryValue}>+ Crear nueva categoría</SelectItem></SelectContent></Select>{field.value === newCategoryValue && <Button type="button" variant="outline" onClick={() => { setIsNewCategoryModalOpen(true); form.setValue('categoryId', ''); }}>Crear</Button>}</div><FormMessage /></FormItem>} />
       <FormField control={form.control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto (Opcional)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} placeholder={selectedVehicle?.currentMileage ? `Actual: ${selectedVehicle.currentMileage.toLocaleString()} km` : ''} /></FormControl><FormDescription>{selectedVehicle?.currentMileage && `Kilometraje actual del vehículo: ${selectedVehicle.currentMileage.toLocaleString()} km`}</FormDescription><FormMessage /></FormItem>} />
       <FormField control={form.control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (Opcional)</FormLabel><FormControl><MultipleFileInput initialValue={field.value || []} onFilesSelected={field.onChange} accept="image/*,application/pdf" folder="financial_receipts" /></FormControl><FormDescription>Sube fotos de facturas, tickets o comprobantes</FormDescription><FormMessage /></FormItem>} />
