@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// The admin client is created with a safe build-time fallback so Next.js can
+// collect API route data without requiring production secrets during `next build`.
+// Real Supabase credentials are still required when an API route actually runs.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://build-placeholder.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'build-placeholder-service-role-key';
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -85,9 +88,8 @@ export async function requireAdmin(
       error: NextResponse.json(
         { success: false, message: 'No puedes operar sobre otra empresa.' },
         { status: 403 },
-      ),
-    };
-  }
+      );
+    }
 
   return {
     profile: {
