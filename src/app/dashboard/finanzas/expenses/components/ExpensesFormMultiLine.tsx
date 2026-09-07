@@ -1,7 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
-import { ExpensesForm as LegacyExpensesForm, type ExpensesFormHandles as LegacyExpensesFormHandles, type ExpensesFormValues as LegacyExpensesFormValues } from "./ExpensesForm";
+import { ExpensesForm as LegacyExpensesForm, type ExpensesFormValues as LegacyExpensesFormValues } from "./ExpensesForm";
 import type { FinancialRecord, Company, FinancialCategory } from "@/types";
 
 export type ExpensesFormValues = LegacyExpensesFormValues & {
@@ -25,21 +24,17 @@ interface ExpensesFormProps {
   onClose: () => void;
 }
 
-export type ExpensesFormHandles = LegacyExpensesFormHandles;
+export const ExpensesForm = ({ onSubmit, ...props }: ExpensesFormProps) => {
+  const handleSubmit = (data: LegacyExpensesFormValues) => {
+    const rawItems = (data as unknown as { items?: unknown }).items;
+    const items = Array.isArray(rawItems)
+      ? (rawItems as ExpensesFormValues["items"])
+      : [{ concept: data.description || "Gasto", amount: Number(data.amount) || 0 }];
 
-export const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(
-  ({ onSubmit, ...props }, ref) => {
-    const handleSubmit = (data: LegacyExpensesFormValues) => {
-      const rawItems = (data as unknown as { items?: unknown }).items;
-      const items = Array.isArray(rawItems)
-        ? (rawItems as ExpensesFormValues["items"])
-        : [{ concept: data.description || "Gasto", amount: Number(data.amount) || 0 }];
+    onSubmit({ ...data, items });
+  };
 
-      onSubmit({ ...data, items });
-    };
-
-    return <LegacyExpensesForm ref={ref} {...props} onSubmit={handleSubmit} />;
-  },
-);
+  return <LegacyExpensesForm {...props} onSubmit={handleSubmit} />;
+};
 
 ExpensesForm.displayName = "ExpensesForm";
