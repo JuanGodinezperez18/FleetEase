@@ -7,8 +7,6 @@
 /.pnp
 .pnp.js
 /.yarn
-/yarn.lock
-/package-lock.json
 
 # ======================
 # TESTING
@@ -149,7 +147,6 @@ temp/
 # ======================
 /docs/_build/
 /docs/build/
-
 
 # Archivos sensibles / temporales
 temp-bootstrap-admin.json
