@@ -217,39 +217,85 @@ export const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>((
   };
 
   const selectedVehicle = rawVehicles.find(v => v.id === selectedVehicleId);
-  return <>
-    <Form {...form}><form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-      {currentUser?.role === 'superAdmin' && <FormField control={form.control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField control={form.control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" {...field} onChange={e => { field.onChange(e); fields.forEach((_, index) => recalculateWarranty(index, e.target.value)); }} /></FormControl><FormMessage /></FormItem>} />
-        <FormField control={form.control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar vehículo..." /></SelectTrigger></FormControl><SelectContent>{rawVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} - {v.plate}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+  const renderPaymentMethod = ({ field }: { field: any }) => (
+    <FormItem>
+      <FormLabel>Forma de pago / quién absorbe</FormLabel>
+      <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar responsable" />
+          </SelectTrigger>
+        </FormControl>
+        <SelectContent>
+          <SelectItem value="company_pays_for_partner">Pagado por la empresa / afecta al socio</SelectItem>
+          <SelectItem value="partner_pays">Pagado por el socio / no afecta al socio</SelectItem>
+          <SelectItem value="company_absorbs">Absorbido por la empresa</SelectItem>
+        </SelectContent>
+      </Select>
+      <FormMessage />
+    </FormItem>
+  );
+
+  const renderCategory = ({ field }: { field: any }) => (
+    <FormItem>
+      <FormLabel>Categoría</FormLabel>
+      <div className="flex gap-2">
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar categoría..." />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            {localCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            <SelectItem value={newCategoryValue}>+ Crear nueva categoría</SelectItem>
+          </SelectContent>
+        </Select>
+        {field.value === newCategoryValue && (
+          <Button type="button" variant="outline" onClick={() => { setIsNewCategoryModalOpen(true); form.setValue('categoryId', ''); }}>
+            Crear
+          </Button>
+        )}
       </div>
+      <FormMessage />
+    </FormItem>
+  );
 
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" />Artículos / Refacciones</CardTitle></CardHeader><CardContent className="space-y-4">
-        {fields.map((field, index) => <div key={field.id} className="rounded-lg border p-4 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_130px_auto] gap-2 items-start">
-            <div><FormLabel>Artículo del catálogo</FormLabel><Select value={form.watch(`items.${index}.catalogItemId`) || ''} onValueChange={value => handleCatalogItemChange(index, value)}><SelectTrigger><SelectValue placeholder="Buscar refacción..." /></SelectTrigger><SelectContent>{catalogItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name}{item.part_number ? ` · ${item.part_number}` : ''}</SelectItem>)}</SelectContent></Select></div>
-            <FormField control={form.control} name={`items.${index}.concept`} render={({ field: f }) => <FormItem><FormLabel>Concepto</FormLabel><FormControl><Input {...f} placeholder="Ej: Filtro de aceite, Mano de obra..." /></FormControl><FormMessage /></FormItem>} />
-            <FormField control={form.control} name={`items.${index}.amount`} render={({ field: f }) => <FormItem><FormLabel>Monto</FormLabel><FormControl><Input type="number" step="0.01" {...f} placeholder="0.00" /></FormControl><FormMessage /></FormItem>} />
-            {fields.length > 1 && <Button type="button" variant="ghost" size="icon" className="mt-8" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <FormItem><FormLabel>Proveedor</FormLabel><Select value={form.watch(`items.${index}.supplierId`) || ''} onValueChange={value => form.setValue(`items.${index}.supplierId`, value, { shouldDirty: true })}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar proveedor..." /></SelectTrigger></FormControl><SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></FormItem>
-            <FormItem><FormLabel>Número de parte</FormLabel><FormControl><Input value={form.watch(`items.${index}.partNumber`) || ''} onChange={e => form.setValue(`items.${index}.partNumber`, e.target.value, { shouldDirty: true })} /></FormControl></FormItem>
-            <FormItem><FormLabel>Garantía (días)</FormLabel><FormControl><Input type="number" min="0" value={form.watch(`items.${index}.warrantyDays`) ?? ''} onChange={e => { const value = e.target.value === '' ? null : Number(e.target.value); form.setValue(`items.${index}.warrantyDays`, value, { shouldDirty: true }); const date = form.getValues('date'); if (date && value != null) { const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + value); form.setValue(`items.${index}.warrantyExpiresAt`, d.toISOString().slice(0,10), { shouldDirty: true }); } }} /></FormControl></FormItem>
-          </div>
-          <div className="text-xs text-muted-foreground">{form.watch(`items.${index}.warrantyExpiresAt`) ? `Vence garantía: ${form.watch(`items.${index}.warrantyExpiresAt`)}` : 'Sin garantía registrada'}</div>
-        </div>)}
-        <Button type="button" variant="outline" size="sm" onClick={() => append({ concept: '', amount: 0, catalogItemId: null, supplierId: null, partNumber: '', warrantyDays: null, warrantyExpiresAt: null })} className="w-full"><PackagePlus className="h-4 w-4 mr-2" />Agregar Artículo</Button>
-        <Separator /><div className="flex justify-between items-center p-3 bg-muted rounded-lg"><span className="font-semibold flex items-center gap-2"><BadgeDollarSign className="h-5 w-5" />Total:</span><span className="text-2xl font-bold">${totalAmount.toFixed(2)}</span></div>
-      </CardContent></Card>
+  return <>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {currentUser?.role === 'superAdmin' && <FormField control={form.control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" {...field} onChange={e => { field.onChange(e); fields.forEach((_, index) => recalculateWarranty(index, e.target.value)); }} /></FormControl><FormMessage /></FormItem>} />
+          <FormField control={form.control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar vehículo..." /></SelectTrigger></FormControl><SelectContent>{rawVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} - {v.plate}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+        </div>
 
-      <FormField control={form.control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Forma de pago / quién absorbe</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar responsable" /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Pagado por la empresa / afecta al socio</SelectItem><SelectItem value="partner_pays">Pagado por el socio / no afecta al socio</SelectItem><SelectItem value="company_absorbs">Absorbido por la empresa</SelectItem></Select><FormMessage /></FormItem>} />
-      <FormField control={form.control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><div className="flex gap-2"><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar categoría..." /></SelectTrigger></FormControl><SelectContent>{localCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}<SelectItem value={newCategoryValue}>+ Crear nueva categoría</SelectItem></SelectContent></Select>{field.value === newCategoryValue && <Button type="button" variant="outline" onClick={() => { setIsNewCategoryModalOpen(true); form.setValue('categoryId', ''); }}>Crear</Button>}</div><FormMessage /></FormItem>} />
-      <FormField control={form.control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto (Opcional)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} placeholder={selectedVehicle?.currentMileage ? `Actual: ${selectedVehicle.currentMileage.toLocaleString()} km` : ''} /></FormControl><FormDescription>{selectedVehicle?.currentMileage && `Kilometraje actual del vehículo: ${selectedVehicle.currentMileage.toLocaleString()} km`}</FormDescription><FormMessage /></FormItem>} />
-      <FormField control={form.control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (Opcional)</FormLabel><FormControl><MultipleFileInput initialValue={field.value || []} onFilesSelected={field.onChange} accept="image/*,application/pdf" folder="financial_receipts" /></FormControl><FormDescription>Sube fotos de facturas, tickets o comprobantes</FormDescription><FormMessage /></FormItem>} />
-      <button ref={submitButtonRef} type="submit" className="hidden" />
-    </form></Form>
+        <Card><CardHeader><CardTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" />Artículos / Refacciones</CardTitle></CardHeader><CardContent className="space-y-4">
+          {fields.map((field, index) => <div key={field.id} className="rounded-lg border p-4 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_130px_auto] gap-2 items-start">
+              <div><FormLabel>Artículo del catálogo</FormLabel><Select value={form.watch(`items.${index}.catalogItemId`) || ''} onValueChange={value => handleCatalogItemChange(index, value)}><SelectTrigger><SelectValue placeholder="Buscar refacción..." /></SelectTrigger><SelectContent>{catalogItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name}{item.part_number ? ` · ${item.part_number}` : ''}</SelectItem>)}</SelectContent></Select></div>
+              <FormField control={form.control} name={`items.${index}.concept`} render={({ field: f }) => <FormItem><FormLabel>Concepto</FormLabel><FormControl><Input {...f} placeholder="Ej: Filtro de aceite, Mano de obra..." /></FormControl><FormMessage /></FormItem>} />
+              <FormField control={form.control} name={`items.${index}.amount`} render={({ field: f }) => <FormItem><FormLabel>Monto</FormLabel><FormControl><Input type="number" step="0.01" {...f} placeholder="0.00" /></FormControl><FormMessage /></FormItem>} />
+              {fields.length > 1 && <Button type="button" variant="ghost" size="icon" className="mt-8" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <FormItem><FormLabel>Proveedor</FormLabel><Select value={form.watch(`items.${index}.supplierId`) || ''} onValueChange={value => form.setValue(`items.${index}.supplierId`, value, { shouldDirty: true })}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar proveedor..." /></SelectTrigger></FormControl><SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></FormItem>
+              <FormItem><FormLabel>Número de parte</FormLabel><FormControl><Input value={form.watch(`items.${index}.partNumber`) || ''} onChange={e => form.setValue(`items.${index}.partNumber`, e.target.value, { shouldDirty: true })} /></FormControl></FormItem>
+              <FormItem><FormLabel>Garantía (días)</FormLabel><FormControl><Input type="number" min="0" value={form.watch(`items.${index}.warrantyDays`) ?? ''} onChange={e => { const value = e.target.value === '' ? null : Number(e.target.value); form.setValue(`items.${index}.warrantyDays`, value, { shouldDirty: true }); const date = form.getValues('date'); if (date && value != null) { const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + value); form.setValue(`items.${index}.warrantyExpiresAt`, d.toISOString().slice(0,10), { shouldDirty: true }); } }} /></FormControl></FormItem>
+            </div>
+            <div className="text-xs text-muted-foreground">{form.watch(`items.${index}.warrantyExpiresAt`) ? `Vence garantía: ${form.watch(`items.${index}.warrantyExpiresAt`)}` : 'Sin garantía registrada'}</div>
+          </div>)}
+          <Button type="button" variant="outline" size="sm" onClick={() => append({ concept: '', amount: 0, catalogItemId: null, supplierId: null, partNumber: '', warrantyDays: null, warrantyExpiresAt: null })} className="w-full"><PackagePlus className="h-4 w-4 mr-2" />Agregar Artículo</Button>
+          <Separator /><div className="flex justify-between items-center p-3 bg-muted rounded-lg"><span className="font-semibold flex items-center gap-2"><BadgeDollarSign className="h-5 w-5" />Total:</span><span className="text-2xl font-bold">${totalAmount.toFixed(2)}</span></div>
+        </CardContent></Card>
+
+        <FormField control={form.control} name="paymentMethod" render={renderPaymentMethod} />
+        <FormField control={form.control} name="categoryId" render={renderCategory} />
+        <FormField control={form.control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto (Opcional)</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} placeholder={selectedVehicle?.currentMileage ? `Actual: ${selectedVehicle.currentMileage.toLocaleString()} km` : ''} /></FormControl><FormDescription>{selectedVehicle?.currentMileage && `Kilometraje actual del vehículo: ${selectedVehicle.currentMileage.toLocaleString()} km`}</FormDescription><FormMessage /></FormItem>} />
+        <FormField control={form.control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (Opcional)</FormLabel><FormControl><MultipleFileInput initialValue={field.value || []} onFilesSelected={field.onChange} accept="image/*,application/pdf" folder="financial_receipts" /></FormControl><FormDescription>Sube fotos de facturas, tickets o comprobantes</FormDescription><FormMessage /></FormItem>} />
+        <button ref={submitButtonRef} type="submit" className="hidden" />
+      </form>
+    </Form>
     <NewCategoryModal open={isNewCategoryModalOpen} onOpenChange={setIsNewCategoryModalOpen} onCategoryCreated={newCategory => { setLocalCategories([...localCategories, newCategory]); form.setValue('categoryId', newCategory.id); setIsNewCategoryModalOpen(false); }} type="expense" companies={companies} />
   </>;
 });

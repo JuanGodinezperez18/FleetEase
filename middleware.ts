@@ -10,7 +10,22 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/'];
+  // Marketing, SEO and authentication routes are public. Keeping these routes
+  // outside the auth check is critical for crawlers: sitemap URLs must return
+  // their actual 200 content instead of a 307 redirect to /login.
+  const publicPaths = [
+    '/',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/registro',
+    '/soluciones',
+    '/funciones',
+    '/software-para-flotillas',
+    '/software-para-renta-de-vehiculos',
+    '/control-de-mantenimiento-de-flotillas',
+  ];
   const isPublicPath = publicPaths.some(
     path => pathname === path || pathname.startsWith(path + '/')
   );
