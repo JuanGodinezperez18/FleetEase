@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import type { Partner, Vehicle, FinancialRecord } from '@/types';
-import { infallibleNormalizeDate } from '@/lib/date-utils';
+import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
 
 const PARTNER_PAYMENT_CATEGORY = "Pago a Socio";
 
@@ -19,16 +19,11 @@ export type PartnerMetric = {
 };
 
 const useMemoDeep = <T,>(factory: () => T, deps: any[]): T => {
-    const ref = useRef<{ deps: any[], value: T } | undefined>(undefined);
-    const depsString = JSON.stringify(deps);
-
-    if (!ref.current || JSON.stringify(ref.current.deps) !== depsString) {
-      ref.current = { deps, value: factory() };
-    }
-
-    return ref.current.value;
+  const ref = useRef<{ deps: any[], value: T } | undefined>(undefined);
+  const depsString = JSON.stringify(deps);
+  if (!ref.current || JSON.stringify(ref.current.deps) !== depsString) ref.current = { deps, value: factory() };
+  return ref.current.value;
 };
-
 
 export const usePartnerAnalytics = (
   partners: Partner[],
@@ -36,39 +31,25 @@ export const usePartnerAnalytics = (
   financialRecords: FinancialRecord[]
 ) => {
   const partnerMetrics = useMemoDeep(() => {
-    if (!partners || !vehicles || !financialRecords) {
-      return [];
-    }
+    if (!partners || !vehicles || !financialRecords) return [];
 
     const metrics: PartnerMetric[] = partners.map(partner => {
       const partnerVehicles = vehicles.filter(v => v.partnerId === partner.id && !v.isDeleted);
       const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
+      const recordsForPartner = financialRecords.filter(record => partnerVehicleIds.has(record.vehicleId || '') && !record.isDeleted);
 
-      const recordsForPartner = financialRecords.filter(
-        record => (partnerVehicleIds.has(record.vehicleId || '')) && !record.isDeleted
-      );
-
-      const totalIncome = recordsForPartner
-        .filter(r => r.type === 'income')
-        .reduce((sum, r) => sum + r.amount, 0);
-      
-      const totalExpenses = recordsForPartner
-        .filter(r => r.type === 'expense' && r.category !== PARTNER_PAYMENT_CATEGORY)
-        .reduce((sum, r) => sum + r.amount, 0);
-      
+      // Utilidad de negocio: solo ingresos reales de renta. Los depósitos en
+      // garantía no son ingreso y no deben inflar la rentabilidad del socio.
+      const totalIncome = sumRentalIncome(recordsForPartner);
+      const totalExpenses = sumExpense(recordsForPartner.filter(r => r.category !== PARTNER_PAYMENT_CATEGORY));
       const netProfit = totalIncome - totalExpenses;
       const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : (netProfit < 0 ? -100 : 0);
 
       let performanceLevel: PartnerMetric['performanceLevel'];
-      if (netProfit > 5000) {
-        performanceLevel = 'Excelente';
-      } else if (netProfit > 1000) {
-        performanceLevel = 'Bueno';
-      } else if (netProfit >= 0) {
-        performanceLevel = 'Regular';
-      } else {
-        performanceLevel = 'Bajo';
-      }
+      if (netProfit > 5000) performanceLevel = 'Excelente';
+      else if (netProfit > 1000) performanceLevel = 'Bueno';
+      else if (netProfit >= 0) performanceLevel = 'Regular';
+      else performanceLevel = 'Bajo';
 
       return {
         partnerId: partner.id,
