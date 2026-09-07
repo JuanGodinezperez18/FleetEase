@@ -10,6 +10,13 @@ on:
       - master
       - main
 
+env:
+  # CI builds do not have production secrets. These values only prevent
+  # server-only Supabase clients from failing during Next.js module evaluation.
+  NEXT_PUBLIC_SUPABASE_URL: https://build-placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder-anon-key
+  SUPABASE_SERVICE_ROLE_KEY: build-placeholder-service-role-key
+
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
