@@ -1,8 +1,7 @@
-
-
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { useFinances } from '@/contexts/providers/finances-provider';
 import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useClients } from '@/contexts/providers/clients-provider';
@@ -17,60 +16,47 @@ import type { DateRange } from 'react-day-picker';
 export default function FinancialAnalysisPage() {
   const { financialRecords, financialCategories, loading: loadingFinances } = useFinances();
   const { vehicles, vehiclesLoading } = useVehicles();
-  const { clients, credits, loading: loadingClients } = useClients();
+  const { clients, loading: loadingClients } = useClients();
   const { companies, partners } = useData();
-
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string | 'all'>('all');
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(() => {
+    const today = new Date();
+    return { from: startOfMonth(today), to: endOfMonth(today) };
+  });
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState<string | 'all'>('all');
+  const [selectedPartnerId, setSelectedPartnerId] = React.useState<string | 'all'>('all');
   const loadingData = loadingFinances || vehiclesLoading || loadingClients;
 
-  const filteredRecords = React.useMemo(() => {
-    return financialRecords.filter(record => {
-      if (selectedCompanyId !== 'all' && record.companyId !== selectedCompanyId) {
-        return false;
-      }
-      if (selectedPartnerId !== 'all') {
-          if (selectedPartnerId === 'none' && record.partnerId) return false;
-          if (selectedPartnerId !== 'none' && record.partnerId !== selectedPartnerId) return false;
-      }
-      if (dateRange?.from || dateRange?.to) {
-        const recordDate = new Date(record.date);
-        if (dateRange.from && recordDate < dateRange.from) return false;
-        if (dateRange.to && recordDate > dateRange.to) return false;
-      }
-      return true;
-    });
-  }, [financialRecords, dateRange, selectedCompanyId, selectedPartnerId]);
+  const filteredRecords = React.useMemo(() => financialRecords.filter(record => {
+    if (selectedCompanyId !== 'all' && record.companyId !== selectedCompanyId) return false;
+    if (selectedPartnerId !== 'all') {
+      if (selectedPartnerId === 'none' && record.partnerId) return false;
+      if (selectedPartnerId !== 'none' && record.partnerId !== selectedPartnerId) return false;
+    }
+    if (dateRange?.from || dateRange?.to) {
+      const recordDate = new Date(record.date);
+      if (dateRange.from && recordDate < dateRange.from) return false;
+      if (dateRange.to && recordDate > dateRange.to) return false;
+    }
+    return true;
+  }), [financialRecords, dateRange, selectedCompanyId, selectedPartnerId]);
 
   const analytics = useFinancialAnalytics(filteredRecords, clients, vehicles, partners, dateRange, financialCategories);
+  if (loadingData) return <GlobalLoader />;
 
-  if (loadingData) {
-    return <GlobalLoader />;
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Análisis Financiero Global</CardTitle>
-          <CardDescription>
-            Un resumen ejecutivo del rendimiento financiero de toda la flota. 
-            Utilice los filtros para analizar un período específico.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <FinancialAdvancedFilters
-              companies={companies}
-              partners={partners}
-              onDateChange={setDateRange}
-              onCompanyChange={setSelectedCompanyId}
-              onPartnerChange={setSelectedPartnerId}
-            />
-        </CardContent>
-      </Card>
-      
-      <FinancialDashboard analytics={analytics} />
-    </div>
-  );
+  return <div className="space-y-6">
+    <Card>
+      <CardHeader><CardTitle>Análisis Financiero Global</CardTitle><CardDescription>Un resumen ejecutivo del rendimiento financiero de toda la flota. Utilice los filtros para analizar un período específico.</CardDescription></CardHeader>
+      <CardContent>
+        <FinancialAdvancedFilters
+          companies={companies}
+          partners={partners}
+          dateRange={dateRange}
+          onDateChange={setDateRange}
+          onCompanyChange={setSelectedCompanyId}
+          onPartnerChange={setSelectedPartnerId}
+        />
+      </CardContent>
+    </Card>
+    <FinancialDashboard analytics={analytics} />
+  </div>;
 }
