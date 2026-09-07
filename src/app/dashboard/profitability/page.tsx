@@ -8,6 +8,7 @@
 import React from 'react';
 import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useFinances } from '@/contexts/providers/finances-provider';
+import { useAuth } from '@/contexts/auth-provider';
 import { VehicleProfitabilityDashboard } from '@/components/dashboard/vehicle-profitability-dashboard';
 import { DashboardHeader } from '@/app/dashboard/components/dashboard-header';
 import { Card, CardContent, CardDescription, CardTitle, CardHeader } from '@/components/ui/card';
@@ -18,8 +19,9 @@ import Link from 'next/link';
 import { useDashboardDate } from '@/contexts/dashboard-date-context';
 
 export default function ProfitabilityPage() {
+  const { currentUser } = useAuth();
   const { vehicles = [] } = useVehicles();
-  const { financialRecords = [] } = useFinances();
+  const { financialRecords = [], financialCategories = [] } = useFinances();
   const { dateRange, periodDays } = useDashboardDate();
   const hasVehicles = vehicles.length > 0;
   const hasRecords = financialRecords.length > 0;
@@ -35,7 +37,7 @@ export default function ProfitabilityPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader userName="" isConfigOpen={false} onOpenConfig={() => {}} onDateChange={() => {}} />
+      <DashboardHeader userName={currentUser?.name || ''} isConfigOpen={false} onOpenConfig={() => {}} onDateChange={() => {}} />
       <div>
         <h1 className="fe-section-title font-heading text-3xl font-bold tracking-tight">Rentabilidad por Vehículo</h1>
         <p className="text-muted-foreground mt-1">Identifica qué vehículos ganan dinero y cuáles pierden</p>
@@ -50,7 +52,13 @@ export default function ProfitabilityPage() {
       </Alert>
 
       {hasVehicles && hasRecords ? (
-        <VehicleProfitabilityDashboard vehicles={vehicles} financialRecords={financialRecords} periodDays={periodDays} dateRange={dateRange} />
+        <VehicleProfitabilityDashboard
+          vehicles={vehicles}
+          financialRecords={financialRecords}
+          financialCategories={financialCategories}
+          periodDays={periodDays}
+          dateRange={dateRange}
+        />
       ) : (
         <Card className="fe-surface">
           <CardHeader>
