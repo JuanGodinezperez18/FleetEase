@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
       - name: Build application
         run: npm run build
 
@@ -40,6 +43,11 @@ jobs:
 
       - name: Wait for application
         run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run critical E2E smoke tests
+        run: npm run e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v11
@@ -53,12 +61,53 @@ jobs:
         if: always()
         with:
           name: lighthouse-reports
-          path: ./lighthouse-reports
+          path: ./.lighthouseci
+          if-no-files-found: ignore
           retention-days: 30
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: ./playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Show application log on failure
         if: failure()
         run: cat /tmp/fleetease.log || true
+
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --json > npm-audit-production.json || true
+
+      - name: Audit all dependencies
+        run: npm audit --json > npm-audit-all.json || true
+
+      - name: Upload npm audit reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-reports
+          path: |
+            ./npm-audit-production.json
+            ./npm-audit-all.json
+          if-no-files-found: ignore
+          retention-days: 30
 
   performance-budget:
     runs-on: ubuntu-latest
@@ -81,7 +130,9 @@ jobs:
 
       - name: Upload bundle analysis
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: bundle-analysis
           path: ./bundle-analysis-report.json
+          if-no-files-found: ignore
           retention-days: 7
