@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Allow Next.js to collect API route data during builds where runtime secrets
-// are intentionally unavailable. Production requests still use the real env vars.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://build-placeholder.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'build-placeholder-service-role-key';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -76,7 +74,7 @@ export async function requireAdmin(
     };
   }
 
-  // Tenant isolation: company admin cannot act on another company.
+  // Tenant isolation: company admin cannot act on another company
   if (
     profile.role !== 'super_admin' &&
     options?.targetCompanyId &&
