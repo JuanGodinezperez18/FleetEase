@@ -1,6 +1,6 @@
 "use client";
 
-import { ExpensesForm as LegacyExpensesForm, type ExpensesFormValues as LegacyExpensesFormValues } from "./ExpensesForm";
+import LegacyExpensesForm, { type ExpensesFormValues as LegacyExpensesFormValues } from "./ExpensesForm";
 import type { FinancialRecord, Company, FinancialCategory } from "@/types";
 
 export type ExpensesFormValues = LegacyExpensesFormValues & {
