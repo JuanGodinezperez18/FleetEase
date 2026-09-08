@@ -31,7 +31,7 @@ export function DashboardHeader({
             Dashboard general
           </h1>
           <p className="mt-2 text-sm text-white/40">
-            Bienvenido, <span className="text-white/70">{userName || 'Usuario'}</span>. Todo lo importante, en una sola vista.
+            Bienvenido, <span className="text-white/70">{userName || 'Cargando...'}</span>. Todo lo importante, en una sola vista.
           </p>
         </div>
 
