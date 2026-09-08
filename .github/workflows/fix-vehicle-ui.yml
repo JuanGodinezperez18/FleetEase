@@ -13,35 +13,49 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v4
-      - name: Patch vehicle form and actions
+      - name: Normalize vehicle form and actions
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('src/app/dashboard/vehicles/components/vehicle-form.tsx')
-          s=p.read_text()
-          s=s.replace("  make: z.string().min(2, \"La marca es requerida.\"),\n  model:", "  alias: z.string().min(1, \"El alias es requerido.\").max(120),\n  make: z.string().min(2, \"La marca es requerida.\"),\n  model:")
-          s=s.replace("      make: initialData?.make || \"\",\n      model:", "      alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(' ') || \"\",\n      make: initialData?.make || \"\",\n      model:")
-          needle='''                <FormField name="make" control={form.control} render={({field}) => ('''
-          alias='''                <FormField name="alias" control={form.control} render={({field}) => (\n                    <FormItem className="xl:col-span-2">\n                        <FormLabel>Alias del vehículo</FormLabel>\n                        <FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl>\n                        <FormMessage />\n                    </FormItem>\n                )}/>\n'''
+          import re
+
+          p = Path('src/app/dashboard/vehicles/components/vehicle-form.tsx')
+          s = p.read_text()
+
+          # Remove every duplicate alias schema line, then add exactly one.
+          alias_schema = '  alias: z.string().min(1, "El alias es requerido.").max(120),\n'
+          s = s.replace(alias_schema, '')
+          marker = 'const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) => z.object({\n'
+          s = s.replace(marker, marker + alias_schema, 1)
+
+          # Remove every alias initial-value line, then add exactly one.
+          s = re.sub(r'^\s*alias:\s*initialData\?\.alias.*\n', '', s, flags=re.M)
+          marker = 'const initialValues: VehicleFormValues = useMemo(() => ({\n'
+          alias_value = '      alias: initialData?.alias || [initialData?.make, initialData?.model, initialData?.plate].filter(Boolean).join(\' \') || "",\n'
+          s = s.replace(marker, marker + alias_value, 1)
+
+          # Add the alias field exactly once if it is missing from the vehicle info grid.
           if 'name="alias"' not in s:
-              s=s.replace(needle,alias+needle,1)
-          s=s.replace('''<Input type="number" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} />''','''<Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} />''')
+              needle = '                <FormField name="make" control={form.control} render={({field}) => (\n'
+              alias_field = '''                <FormField name="alias" control={form.control} render={({field}) => (\n                    <FormItem className="xl:col-span-2">\n                        <FormLabel>Alias del vehículo</FormLabel>\n                        <FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl>\n                        <FormMessage />\n                    </FormItem>\n                )}/>\n'''
+              s = s.replace(needle, alias_field + needle, 1)
+
           p.write_text(s)
 
-          p=Path('src/app/dashboard/vehicles/page.tsx')
-          s=p.read_text()
-          marker='''      <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />'''
-          header='''      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">\n        <div>\n          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operación</p>\n          <h1 className="text-3xl font-semibold tracking-tight">Vehículos</h1>\n          <p className="mt-1 text-sm text-muted-foreground">Administra tu flota, asignaciones y rentabilidad.</p>\n        </div>\n        <div className="flex flex-wrap gap-2">\n          <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>Asignaciones</Button>\n          <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}><PlusCircle className="mr-2 h-4 w-4" />Agregar Vehículo</Button>\n        </div>\n      </div>\n'''
+          p = Path('src/app/dashboard/vehicles/page.tsx')
+          s = p.read_text()
+          marker = '      <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />'
+          header = '''      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">\n        <div>\n          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operación</p>\n          <h1 className="text-3xl font-semibold tracking-tight">Vehículos</h1>\n          <p className="mt-1 text-sm text-muted-foreground">Administra tu flota, asignaciones y rentabilidad.</p>\n        </div>\n        <div className="flex flex-wrap gap-2">\n          <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>Asignaciones</Button>\n          <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}><PlusCircle className="mr-2 h-4 w-4" />Agregar Vehículo</Button>\n        </div>\n      </div>\n'''
           if 'Administra tu flota, asignaciones y rentabilidad.' not in s:
-              s=s.replace(marker,header+marker,1)
-          old='''              <div className="flex gap-2">\n                <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>\n                  Asignaciones\n                </Button>\n                <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}>\n                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Vehículo\n                </Button>\n              </div>'''
-          s=s.replace(old,'',1)
+              s = s.replace(marker, header + marker, 1)
+          old = '''              <div className="flex gap-2">\n                <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>\n                  Asignaciones\n                </Button>\n                <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}>\n                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Vehículo\n                </Button>\n              </div>'''
+          s = s.replace(old, '', 1)
           p.write_text(s)
           PY
-      - name: Commit patch
+      - name: Commit normalized files
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/app/dashboard/vehicles/components/vehicle-form.tsx src/app/dashboard/vehicles/page.tsx
-          git diff --cached --quiet || git commit -m 'fix(vehicles): expose alias and move create action to page header'
+          git diff --cached --quiet || git commit -m 'fix(vehicles): normalize alias field and page actions'
           git push
