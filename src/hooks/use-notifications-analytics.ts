@@ -1,19 +1,19 @@
-
 "use client";
 
 import { useMemo, useRef } from 'react';
 import type { Notification, Client, Vehicle, Partner, FinancialRecord, VehicleWithMileage } from '@/types';
-import { differenceInDays, subDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { useAuth } from '@/contexts/auth-provider';
-import type { ClientMetric } from './use-client-analytics'; // Import ClientMetric
+import { useQuery } from '@tanstack/react-query';
+import type { ClientMetric } from './use-client-analytics';
 import { formatCurrency } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
-// Define la estructura enriquecida de una notificación
 export type AnalyzedNotification = Notification & {
   priority: 'Crítica' | 'Alta' | 'Media' | 'Baja';
   category: 'Mantenimiento' | 'Financiera' | 'Legal' | 'Operacional';
-  urgencyScore: number; // 0-100, donde 100 es lo más urgente
+  urgencyScore: number;
   entityType: 'Vehículo' | 'Cliente' | 'Socio' | 'Sistema';
   relatedEntityType: 'Vehicle' | 'Client' | 'Partner' | 'System';
   actionRequired: boolean;
@@ -23,238 +23,131 @@ export type AnalyzedNotification = Notification & {
   timestamp?: string;
 };
 
-// --- Constantes para la lógica de negocio ---
 const MAINTENANCE_URGENCY_THRESHOLD_KM = 0;
 const MAINTENANCE_HIGH_THRESHOLD_KM = 1500;
 const EXPIRY_URGENCY_THRESHOLD_DAYS = 0;
-const EXPIRY_HIGH_THRESHOLD_DAYS = 30; // Unificado a 30 días
+const EXPIRY_HIGH_THRESHOLD_DAYS = 30;
 const HIGH_BALANCE_THRESHOLD = 5000;
-const VEHICLE_INACTIVITY_THRESHOLD_DAYS = 30;
 
 const useMemoDeep = <T,>(factory: () => T, deps: any[]): T => {
-    const ref = useRef<{ deps: any[], value: T } | undefined>(undefined);
-    const depsString = JSON.stringify(deps);
-
-    if (!ref.current || JSON.stringify(ref.current.deps) !== depsString) {
-      ref.current = { deps, value: factory() };
-    }
-
-    return ref.current.value;
+  const ref = useRef<{ deps: any[], value: T } | undefined>(undefined);
+  const depsString = JSON.stringify(deps);
+  if (!ref.current || JSON.stringify(ref.current.deps) !== depsString) {
+    ref.current = { deps, value: factory() };
+  }
+  return ref.current.value;
 };
 
-
-/**
- * Hook para analizar y enriquecer las notificaciones del sistema con inteligencia de negocio.
- * Ahora genera notificaciones dinámicamente basadas en el estado del sistema.
- */
 export const useNotificationsAnalytics = (
   notifications: Notification[],
   clients: Client[],
-  vehicles: VehicleWithMileage[], // Usamos el tipo enriquecido
+  vehicles: VehicleWithMileage[],
   partners: Partner[],
   financialRecords: FinancialRecord[],
   clientBalances: { id: string; balance: number; }[]
 ) => {
   const { currentUser } = useAuth();
-  
+  const userId = currentUser?.id;
+
+  // Las alertas automáticas no existen como filas en notifications.
+  // Su estado de lectura se persiste por usuario mediante una clave estable.
+  const { data: readStateRows = [] } = useQuery<{ notification_key: string; read_at: string }[]>({
+    queryKey: ['notification-read-states', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await (supabase as any)
+        .from('notification_read_states')
+        .select('notification_key, read_at')
+        .eq('user_id', userId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  const readStateKeys = useMemo(() => new Set(readStateRows.map(row => row.notification_key)), [readStateRows]);
+
   const analyzedNotifications = useMemoDeep(() => {
     const isSuperAdmin = currentUser?.role === 'superAdmin';
     const companyId = currentUser?.companyId;
-
-    // Filter entities based on user's company, unless they are a superAdmin
     const companyVehicles = isSuperAdmin ? vehicles : vehicles.filter(v => v.companyId === companyId);
     const companyClients = isSuperAdmin ? clients : clients.filter(c => c.companyId === companyId);
     const companyBalances = clientBalances.filter(cb => companyClients.some(cc => cc.id === cb.id));
-    
     const clientMap = new Map(companyClients.map(c => [c.id, c]));
     const now = new Date();
-    
     const allGeneratedNotifications: AnalyzedNotification[] = [];
 
-    // 1. Generate maintenance notifications for vehicles
     companyVehicles.forEach(vehicle => {
       if (vehicle.status === 'sold' || vehicle.isDeleted) return;
-
       const kmToMaint = vehicle.kmToNextMaintenance;
       if (kmToMaint === undefined) return;
-
       let priority: AnalyzedNotification['priority'] | null = null;
       let urgencyScore = 0;
       let message = '';
-      
       const assignedClient = vehicle.clientId ? clientMap.get(vehicle.clientId) : null;
       const clientNameStr = assignedClient ? ` (Asignado a: ${assignedClient.firstname} ${assignedClient.lastname})` : '';
-
       if (kmToMaint <= MAINTENANCE_URGENCY_THRESHOLD_KM) {
-        priority = 'Crítica';
-        urgencyScore = 95 - Math.min(Math.floor(kmToMaint / 1000), 5);
+        priority = 'Crítica'; urgencyScore = 95 - Math.min(Math.floor(kmToMaint / 1000), 5);
         message = `Mtto. Vencido: ${vehicle.plate} excedido por ${Math.abs(kmToMaint).toLocaleString()} km.${clientNameStr}`;
       } else if (kmToMaint <= MAINTENANCE_HIGH_THRESHOLD_KM) {
-        priority = 'Alta';
-        urgencyScore = 80 - Math.floor(kmToMaint / 200);
+        priority = 'Alta'; urgencyScore = 80 - Math.floor(kmToMaint / 200);
         message = `Próximo Mtto: ${vehicle.plate} en ${kmToMaint.toLocaleString()} km.${clientNameStr}`;
       }
-
       if (priority) {
-        allGeneratedNotifications.push({
-          id: `maint_alert_${vehicle.id}`,
-          uid: `maint_alert_${vehicle.id}`,
-          type: 'maintenance_mileage',
-          message,
-          date: now.toISOString(),
-          relatedId: vehicle.id,
-          isRead: false,
-          priority,
-          category: 'Mantenimiento',
-          urgencyScore,
-          entityType: 'Vehículo',
-          relatedEntityType: 'Vehicle',
-          actionRequired: true,
-          estimatedImpact: priority === 'Crítica' ? 'Alto' : 'Medio',
-          isAutoGenerated: true,
-          companyId: vehicle.companyId,
-        });
+        const id = `maint_alert_${vehicle.id}`;
+        allGeneratedNotifications.push({ id, uid: id, type: 'maintenance_mileage', message, date: now.toISOString(), relatedId: vehicle.id, isRead: readStateKeys.has(id), priority, category: 'Mantenimiento', urgencyScore, entityType: 'Vehículo', relatedEntityType: 'Vehicle', actionRequired: true, estimatedImpact: priority === 'Crítica' ? 'Alto' : 'Medio', isAutoGenerated: true, companyId: vehicle.companyId });
       }
     });
 
-    // 2. Generate insurance expiry notifications
     companyVehicles.forEach(vehicle => {
       if (vehicle.status === 'sold' || vehicle.isDeleted) return;
-
       const insExpiryDate = infallibleNormalizeDate(vehicle.insuranceExpiryDate);
-      if (insExpiryDate) {
-        const daysLeft = differenceInDays(insExpiryDate, now);
-        let priority: AnalyzedNotification['priority'] | null = null;
-        let urgencyScore = 0;
-        let message = '';
-        
-        const assignedClient = vehicle.clientId ? clientMap.get(vehicle.clientId) : null;
-        const clientNameStr = assignedClient ? ` (Asignado a: ${assignedClient.firstname} ${assignedClient.lastname})` : '';
-
-        if (daysLeft <= EXPIRY_URGENCY_THRESHOLD_DAYS) {
-          priority = 'Crítica';
-          urgencyScore = 90;
-          message = `Seguro Vencido: La póliza del vehículo ${vehicle.plate}${clientNameStr} ha vencido.`;
-        } else if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) {
-          priority = 'Alta';
-          urgencyScore = 75 - daysLeft;
-          message = `Seguro por Vencer: La póliza de ${vehicle.plate}${clientNameStr} vence en ${daysLeft} días.`;
-        }
-        
-        if (priority) {
-            allGeneratedNotifications.push({
-                id: `ins_alert_${vehicle.id}`,
-                uid: `ins_alert_${vehicle.id}`,
-                type: 'insurance_expiry',
-                message,
-                date: now.toISOString(),
-                relatedId: vehicle.id,
-                isRead: false,
-                priority,
-                category: 'Legal',
-                urgencyScore,
-                entityType: 'Vehículo',
-                relatedEntityType: 'Vehicle',
-                actionRequired: true,
-                estimatedImpact: priority === 'Crítica' ? 'Alto' : 'Medio',
-                isAutoGenerated: true,
-                companyId: vehicle.companyId,
-            });
-        }
+      if (!insExpiryDate) return;
+      const daysLeft = differenceInDays(insExpiryDate, now);
+      let priority: AnalyzedNotification['priority'] | null = null;
+      let urgencyScore = 0;
+      let message = '';
+      const assignedClient = vehicle.clientId ? clientMap.get(vehicle.clientId) : null;
+      const clientNameStr = assignedClient ? ` (Asignado a: ${assignedClient.firstname} ${assignedClient.lastname})` : '';
+      if (daysLeft <= EXPIRY_URGENCY_THRESHOLD_DAYS) { priority = 'Crítica'; urgencyScore = 90; message = `Seguro Vencido: La póliza del vehículo ${vehicle.plate}${clientNameStr} ha vencido.`; }
+      else if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) { priority = 'Alta'; urgencyScore = 75 - daysLeft; message = `Seguro por Vencer: La póliza de ${vehicle.plate}${clientNameStr} vence en ${daysLeft} días.`; }
+      if (priority) {
+        const id = `ins_alert_${vehicle.id}`;
+        allGeneratedNotifications.push({ id, uid: id, type: 'insurance_expiry', message, date: now.toISOString(), relatedId: vehicle.id, isRead: readStateKeys.has(id), priority, category: 'Legal', urgencyScore, entityType: 'Vehículo', relatedEntityType: 'Vehicle', actionRequired: true, estimatedImpact: priority === 'Crítica' ? 'Alto' : 'Medio', isAutoGenerated: true, companyId: vehicle.companyId });
       }
     });
-    
-    // 3. Generate client license expiry notifications
+
     companyClients.forEach(client => {
       if (client.status === 'inactive' || client.isDeleted) return;
-
       const licExpiryDate = infallibleNormalizeDate(client.licenseExpiry);
-      if (licExpiryDate) {
-        const daysLeft = differenceInDays(licExpiryDate, now);
-        let priority: AnalyzedNotification['priority'] | null = null;
-        let urgencyScore = 0;
-        let message = '';
-
-        const clientNameStr = `${client.firstname} ${client.lastname}` || 'Cliente desconocido';
-
-        if (daysLeft <= EXPIRY_URGENCY_THRESHOLD_DAYS) {
-          priority = 'Crítica';
-          urgencyScore = 88;
-          message = `Licencia Vencida: La licencia de ${clientNameStr} ha vencido.`;
-        } else if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) {
-          priority = 'Alta';
-          urgencyScore = 73 - daysLeft;
-          message = `Licencia por Vencer: La licencia de ${clientNameStr} vence en ${daysLeft} días.`;
-        }
-
-        if (priority) {
-            allGeneratedNotifications.push({
-                id: `lic_alert_${client.id}`,
-                uid: `lic_alert_${client.id}`,
-                type: 'license_expiry',
-                message,
-                date: now.toISOString(),
-                relatedId: client.id,
-                isRead: false,
-                priority,
-                category: 'Legal',
-                urgencyScore,
-                entityType: 'Cliente',
-                relatedEntityType: 'Client',
-                actionRequired: true,
-                estimatedImpact: 'Alto',
-                isAutoGenerated: true,
-                companyId: client.companyId,
-            });
-        }
+      if (!licExpiryDate) return;
+      const daysLeft = differenceInDays(licExpiryDate, now);
+      let priority: AnalyzedNotification['priority'] | null = null;
+      let urgencyScore = 0;
+      let message = '';
+      const clientNameStr = `${client.firstname} ${client.lastname}` || 'Cliente desconocido';
+      if (daysLeft <= EXPIRY_URGENCY_THRESHOLD_DAYS) { priority = 'Crítica'; urgencyScore = 88; message = `Licencia Vencida: La licencia de ${clientNameStr} ha vencido.`; }
+      else if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) { priority = 'Alta'; urgencyScore = 73 - daysLeft; message = `Licencia por Vencer: La licencia de ${clientNameStr} vence en ${daysLeft} días.`; }
+      if (priority) {
+        const id = `lic_alert_${client.id}`;
+        allGeneratedNotifications.push({ id, uid: id, type: 'license_expiry', message, date: now.toISOString(), relatedId: client.id, isRead: readStateKeys.has(id), priority, category: 'Legal', urgencyScore, entityType: 'Cliente', relatedEntityType: 'Client', actionRequired: true, estimatedImpact: 'Alto', isAutoGenerated: true, companyId: client.companyId });
       }
     });
-    
-    // 4. Generate high balance notifications
+
     companyBalances.forEach(client => {
-        const clientData = clientMap.get(client.id);
-        if (clientData && clientData.status === 'active' && !clientData.isDeleted && client.balance > HIGH_BALANCE_THRESHOLD) {
-            allGeneratedNotifications.push({
-                id: `balance_alert_${client.id}`,
-                uid: `balance_alert_${client.id}`,
-                type: 'driver_payment_pending',
-                message: `Cliente ${clientData.firstname} ${clientData.lastname} tiene un saldo pendiente elevado de ${formatCurrency(client.balance)}`,
-                date: now.toISOString(),
-                relatedId: client.id,
-                isRead: false,
-                priority: 'Alta',
-                category: 'Financiera',
-                urgencyScore: 85,
-                entityType: 'Cliente',
-                relatedEntityType: 'Client',
-                actionRequired: true,
-                estimatedImpact: 'Medio',
-                isAutoGenerated: true,
-                companyId: clientData.companyId,
-            });
-        }
+      const clientData = clientMap.get(client.id);
+      if (clientData && clientData.status === 'active' && !clientData.isDeleted && client.balance > HIGH_BALANCE_THRESHOLD) {
+        const id = `balance_alert_${client.id}`;
+        allGeneratedNotifications.push({ id, uid: id, type: 'driver_payment_pending', message: `Cliente ${clientData.firstname} ${clientData.lastname} tiene un saldo pendiente elevado de ${formatCurrency(client.balance)}`, date: now.toISOString(), relatedId: client.id, isRead: readStateKeys.has(id), priority: 'Alta', category: 'Financiera', urgencyScore: 85, entityType: 'Cliente', relatedEntityType: 'Client', actionRequired: true, estimatedImpact: 'Medio', isAutoGenerated: true, companyId: clientData.companyId });
+      }
     });
-    
-    // 5. Combine with existing notifications and sort
-    const processedExisting = (notifications || []).map(n => ({
-      ...n,
-      priority: 'Baja',
-      category: 'Operacional',
-      urgencyScore: 10,
-      entityType: 'Sistema',
-      relatedEntityType: 'System',
-      actionRequired: false,
-      estimatedImpact: 'Bajo',
-      isAutoGenerated: false,
-    } as AnalyzedNotification));
 
+    const processedExisting = (notifications || []).map(n => ({ ...n, priority: 'Baja', category: 'Operacional', urgencyScore: 10, entityType: 'Sistema', relatedEntityType: 'System', actionRequired: false, estimatedImpact: 'Bajo', isAutoGenerated: false } as AnalyzedNotification));
     const combined = [...allGeneratedNotifications, ...processedExisting];
-    const uniqueNotifications = Array.from(new Map(combined.map(n => [n.id, n])).values());
+    return Array.from(new Map(combined.map(n => [n.id, n])).values()).sort((a, b) => b.urgencyScore - a.urgencyScore);
+  }, [currentUser, notifications, clients, vehicles, partners, financialRecords, clientBalances, readStateKeys]);
 
-    return uniqueNotifications.sort((a, b) => b.urgencyScore - a.urgencyScore);
-  }, [currentUser, notifications, clients, vehicles, partners, financialRecords, clientBalances]);
-
-  return {
-    analyzedNotifications
-  };
+  return { analyzedNotifications };
 };
