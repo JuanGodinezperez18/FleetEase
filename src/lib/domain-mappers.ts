@@ -103,9 +103,23 @@ export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => 
 export const toSbCredit = (data: Partial<Credit>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 
-/** mileage_logs no tiene columna client_id; clientId es contexto de UI y no debe persistirse. */
-export const toSbMileageLog = (data: Partial<MileageLog> & { clientId?: string | null }): Record<string, unknown> => {
-  const { clientId: _clientId, ...persistable } = data;
+/**
+ * mileage_logs no tiene columnas client_id ni last_mileage.
+ *
+ * clientId y lastMileage son datos de contexto/validación del formulario:
+ * - clientId se usa para la UI y se deriva del vehículo/asignación.
+ * - lastMileage representa el valor anterior usado para validar el nuevo
+ *   kilometraje y NO debe persistirse en mileage_logs.
+ *
+ * El error "Could not find the 'last_mileage' column of 'mileage_logs' in the
+ * schema cache" aparecía porque el mapper genérico convertía lastMileage en
+ * last_mileage antes del INSERT. Se eliminan ambos campos aquí para que todos
+ * los formularios que reutilizan addMileageLog queden protegidos.
+ */
+export const toSbMileageLog = (
+  data: Partial<MileageLog> & { clientId?: string | null; lastMileage?: number | null }
+): Record<string, unknown> => {
+  const { clientId: _clientId, lastMileage: _lastMileage, ...persistable } = data;
   return mapKeys(persistable as Record<string, unknown>, camelToSnakeKey);
 };
 
