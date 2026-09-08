@@ -102,12 +102,38 @@ export async function GET(request: NextRequest) {
     }
 
     vehiclesChecked = vehicles?.length ?? 0;
+
+    // El intervalo vigente es propiedad de la empresa. No debemos usar un
+    // intervalo histórico guardado en el vehículo cuando la configuración de
+    // la empresa cambió (por ejemplo, de 5,000 a 10,000 km).
+    const { data: companies, error: companiesError } = await supabase
+      .from('companies')
+      .select('id, maintenance_interval')
+      .eq('is_deleted', false);
+
+    if (companiesError) {
+      console.error('Error fetching company maintenance intervals:', companiesError);
+      return NextResponse.json(
+        { error: 'Failed to fetch company maintenance settings', details: companiesError.message },
+        { status: 500 },
+      );
+    }
+
+    const companyIntervals = new Map<string, number>();
+    for (const company of companies ?? []) {
+      if (typeof company.maintenance_interval === 'number' && company.maintenance_interval > 0) {
+        companyIntervals.set(company.id, company.maintenance_interval);
+      }
+    }
+
     const allNotifications: NotificationRecord[] = [];
 
     for (const vehicle of vehicles as Vehicle[]) {
       try {
         const lastMileage = vehicle.last_maintenance_mileage ?? 0;
-        const interval = vehicle.maintenance_interval ?? 5000;
+        const interval = companyIntervals.get(vehicle.company_id)
+          ?? vehicle.maintenance_interval
+          ?? 5000;
         const currentMileage = vehicle.current_mileage ?? 0;
         const kmToNext = lastMileage + interval - currentMileage;
 
