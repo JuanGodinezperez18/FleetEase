@@ -69,7 +69,7 @@ export const toDomainNotification = (row: SbNotification): Notification => mapKe
 export const toDomainVehicleAssignmentLog = (row: SbVehicleAssignmentLog): VehicleAssignmentLog => mapKeys<VehicleAssignmentLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainCompany = (row: SbCompany): Company => mapKeys<Company>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainFinancialCategory = (row: SbFinancialCategory): FinancialCategory => mapKeys<FinancialCategory>(row as unknown as Record<string, unknown>, snakeToCamelKey);
-export const toDomainMessageTemplate = (row: SbMessageTemplate): MessageTemplate => mapKeys<MessageTemplate>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+export const toDomainMessageTemplate = (row: SbMessageTemplate): MessageTemplate => mapKeys<DomainMessageTemplate>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainMessageLog = (row: SbMessageLog): MessageLog => mapKeys<MessageLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainCreditPaymentSchedule = (row: SbCreditPaymentSchedule): CreditPaymentSchedule => mapKeys<CreditPaymentSchedule>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainMulta = (row: SbMulta): Multa => mapKeys<Multa>(row as unknown as Record<string, unknown>, snakeToCamelKey);
@@ -93,16 +93,19 @@ export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => 
   const lastName = typeof mapped.lastname === 'string' ? mapped.lastname.trim() : '';
   const suppliedName = typeof mapped.name === 'string' ? mapped.name.trim() : '';
 
-  if (!suppliedName && (firstName || lastName)) {
-    mapped.name = [firstName, lastName].filter(Boolean).join(' ');
-  }
-
+  if (!suppliedName && (firstName || lastName)) mapped.name = [firstName, lastName].filter(Boolean).join(' ');
   return mapped;
 };
 
 export const toSbCredit = (data: Partial<Credit>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbMileageLog = (data: Partial<MileageLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+/** mileage_logs has no client_id column; clientId is UI context only and must not be sent to Postgres. */
+export const toSbMileageLog = (data: Partial<MileageLog> & { clientId?: string | null }): Record<string, unknown> => {
+  const { clientId: _clientId, ...persistable } = data as Partial<MileageLog> & { clientId?: string | null };
+  return mapKeys(persistable as unknown as Record<string, unknown>, camelToSnakeKey);
+};
+
 export const toSbNotification = (data: Partial<Notification>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbVehicleAssignmentLog = (data: Partial<VehicleAssignmentLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbCompany = (data: Partial<Company>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
