@@ -22,7 +22,7 @@ export const categoryIdsByAffects = (
   affects: FinancialCategory['affects']
 ): Set<string> => new Set((categories ?? []).filter(c => c.affects === affects).map(c => c.id));
 
-/** Categoría de ingresos que NO se contabiliza como renta (depósito en garantía). */
+/** Categoría de ingresos que NO se contabiliza como renta/utilidad operativa. */
 export const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
 export const isActiveRecord = (r: FinancialRecord): boolean => !r.isDeleted;
@@ -88,7 +88,8 @@ export const sumRentalIncome = (
     !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
   ));
 
-export const calculateNetProfit = (records: FinancialRecord[]): number => sumIncome(records) - sumExpense(records);
+/** Utilidad operativa: renta/ingresos operativos menos gastos. */
+export const calculateNetProfit = (records: FinancialRecord[]): number => sumRentalIncome(records) - sumExpense(records);
 
 export const calculateProfitMargin = (income: number, expenses: number): number => {
   const net = income - expenses;
@@ -97,7 +98,7 @@ export const calculateProfitMargin = (income: number, expenses: number): number 
 };
 
 export const calculateAvgTransactionValue = (records: FinancialRecord[]): number => {
-  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r));
+  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r) && r.category !== SECURITY_DEPOSIT_CATEGORY);
   if (tx.length === 0) return 0;
   return sumAmount(tx) / tx.length;
 };
