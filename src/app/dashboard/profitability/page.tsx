@@ -35,9 +35,11 @@ export default function ProfitabilityPage() {
     return `${periodDays} días seleccionados`;
   };
 
+  const userDisplayName = currentUser?.name || currentUser?.email || '';
+
   return (
     <div className="space-y-6">
-      <DashboardHeader userName={currentUser?.name || ''} isConfigOpen={false} onOpenConfig={() => {}} onDateChange={() => {}} />
+      <DashboardHeader userName={userDisplayName} isConfigOpen={false} onOpenConfig={() => {}} onDateChange={() => {}} />
       <div>
         <h1 className="fe-section-title font-heading text-3xl font-bold tracking-tight">Rentabilidad por Vehículo</h1>
         <p className="text-muted-foreground mt-1">Identifica qué vehículos ganan dinero y cuáles pierden</p>
