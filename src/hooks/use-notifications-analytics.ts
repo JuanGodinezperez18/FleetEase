@@ -6,7 +6,6 @@ import { differenceInDays } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { useAuth } from '@/contexts/auth-provider';
 import { useQuery } from '@tanstack/react-query';
-import type { ClientMetric } from './use-client-analytics';
 import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -35,47 +34,95 @@ export const useNotificationsAnalytics = (
   vehicles: VehicleWithMileage[],
   partners: Partner[],
   financialRecords: FinancialRecord[],
-  clientBalances: { id: string; balance: number; }[]
+  clientBalances: { id: string; balance: number }[]
 ) => {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id;
 
-  // Las alertas automáticas no existen como filas en notifications.
-  // Su estado de lectura se persiste por usuario mediante una clave estable.
+  // UserProfile usa `uid`, no `id`. Antes se estaba consultando con undefined,
+  // por lo que las notificaciones automáticas siempre aparecían como no leídas.
+  const userId = currentUser?.uid;
+  const isSuperAdmin = currentUser?.role === 'superAdmin';
+  const companyId = currentUser?.companyId;
+
+  const companyVehicles = useMemo(
+    () => isSuperAdmin ? vehicles : vehicles.filter(v => v.companyId === companyId),
+    [isSuperAdmin, vehicles, companyId]
+  );
+  const companyClients = useMemo(
+    () => isSuperAdmin ? clients : clients.filter(c => c.companyId === companyId),
+    [isSuperAdmin, clients, companyId]
+  );
+  const companyBalances = useMemo(
+    () => clientBalances.filter(cb => companyClients.some(cc => cc.id === cb.id)),
+    [clientBalances, companyClients]
+  );
+
+  // Las alertas automáticas son virtuales: no tienen una fila propia en
+  // `notifications`. Solo necesitamos consultar los estados de las alertas
+  // que existen actualmente, no todo el historial acumulado del usuario.
+  const currentAutoNotificationKeys = useMemo(() => {
+    const keys = new Set<string>();
+    const now = new Date();
+
+    companyVehicles.forEach(vehicle => {
+      if (vehicle.status === 'sold' || vehicle.isDeleted) return;
+      const maintenanceInterval = vehicle.maintenanceInterval || 5000;
+      const currentMileage = vehicle.currentMileage || 0;
+      const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
+      const kmToMaint = maintenanceInterval - (currentMileage - lastMaintenanceMileage);
+      if (kmToMaint <= MAINTENANCE_HIGH_THRESHOLD_KM) keys.add(`maint_alert_${vehicle.id}`);
+
+      const insExpiryDate = infallibleNormalizeDate(vehicle.insuranceExpiryDate);
+      if (insExpiryDate) {
+        const daysLeft = differenceInDays(insExpiryDate, now);
+        if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) keys.add(`ins_alert_${vehicle.id}`);
+      }
+    });
+
+    companyClients.forEach(client => {
+      if (client.status === 'inactive' || client.isDeleted) return;
+      const licExpiryDate = infallibleNormalizeDate(client.licenseExpiry);
+      if (!licExpiryDate) return;
+      const daysLeft = differenceInDays(licExpiryDate, now);
+      if (daysLeft <= EXPIRY_HIGH_THRESHOLD_DAYS) keys.add(`lic_alert_${client.id}`);
+    });
+
+    companyBalances.forEach(client => {
+      if (client.balance > HIGH_BALANCE_THRESHOLD) keys.add(`balance_alert_${client.id}`);
+    });
+
+    return Array.from(keys);
+  }, [companyVehicles, companyClients, companyBalances]);
+
   const { data: readStateRows = [] } = useQuery<{ notification_key: string; read_at: string }[]>({
-    queryKey: ['notification-read-states', userId],
+    queryKey: ['notification-read-states', userId, currentAutoNotificationKeys],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId || currentAutoNotificationKeys.length === 0) return [];
       const { data, error } = await (supabase as any)
         .from('notification_read_states')
         .select('notification_key, read_at')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .in('notification_key', currentAutoNotificationKeys);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userId,
+    enabled: !!userId && currentAutoNotificationKeys.length > 0,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
-  // El intervalo de mantenimiento pertenece a la empresa. Las notificaciones
-  // no deben depender de una copia histórica del intervalo guardada en el
-  // vehículo (por ejemplo, 5,000 km después de cambiar la empresa a 10,000).
   const { data: companyMaintenanceIntervals = {} } = useQuery<Record<string, number>>({
-    queryKey: ['notification-company-maintenance-intervals', currentUser?.role, currentUser?.companyId],
+    queryKey: ['notification-company-maintenance-intervals', currentUser?.role, companyId],
     queryFn: async () => {
       let query = supabase
         .from('companies')
         .select('id, maintenance_interval')
         .eq('is_deleted', false);
 
-      if (currentUser?.role !== 'superAdmin' && currentUser?.companyId) {
-        query = query.eq('id', currentUser.companyId);
-      }
+      if (!isSuperAdmin && companyId) query = query.eq('id', companyId);
 
       const { data, error } = await query;
       if (error) throw error;
-
       return Object.fromEntries(
         (data || [])
           .filter(row => typeof row.maintenance_interval === 'number' && row.maintenance_interval > 0)
@@ -93,28 +140,16 @@ export const useNotificationsAnalytics = (
   );
 
   const analyzedNotifications = useMemo(() => {
-    const isSuperAdmin = currentUser?.role === 'superAdmin';
-    const companyId = currentUser?.companyId;
-    const companyVehicles = isSuperAdmin ? vehicles : vehicles.filter(v => v.companyId === companyId);
-    const companyClients = isSuperAdmin ? clients : clients.filter(c => c.companyId === companyId);
-    const companyBalances = clientBalances.filter(cb => companyClients.some(cc => cc.id === cb.id));
     const clientMap = new Map(companyClients.map(c => [c.id, c]));
     const now = new Date();
     const allGeneratedNotifications: AnalyzedNotification[] = [];
 
     companyVehicles.forEach(vehicle => {
       if (vehicle.status === 'sold' || vehicle.isDeleted) return;
-
-      // Fuente única de verdad: configuración de mantenimiento de la empresa.
-      // Solo usamos el intervalo almacenado en el vehículo como fallback para
-      // no romper vehículos/empresas que todavía no tengan configuración.
-      const maintenanceInterval = companyMaintenanceIntervals[vehicle.companyId || '']
-        || vehicle.maintenanceInterval
-        || 5000;
+      const maintenanceInterval = companyMaintenanceIntervals[vehicle.companyId || ''] || vehicle.maintenanceInterval || 5000;
       const currentMileage = vehicle.currentMileage || 0;
       const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
       const kmToMaint = maintenanceInterval - (currentMileage - lastMaintenanceMileage);
-
       let priority: AnalyzedNotification['priority'] | null = null;
       let urgencyScore = 0;
       let message = '';
@@ -179,7 +214,7 @@ export const useNotificationsAnalytics = (
     const processedExisting = (notifications || []).map(n => ({ ...n, priority: 'Baja', category: 'Operacional', urgencyScore: 10, entityType: 'Sistema', relatedEntityType: 'System', actionRequired: false, estimatedImpact: 'Bajo', isAutoGenerated: false } as AnalyzedNotification));
     const combined = [...allGeneratedNotifications, ...processedExisting];
     return Array.from(new Map(combined.map(n => [n.id, n])).values()).sort((a, b) => b.urgencyScore - a.urgencyScore);
-  }, [currentUser, notifications, clients, vehicles, partners, financialRecords, clientBalances, readStateKeys, companyMaintenanceIntervals]);
+  }, [companyClients, companyVehicles, companyBalances, notifications, readStateKeys, companyMaintenanceIntervals]);
 
   return { analyzedNotifications };
 };
