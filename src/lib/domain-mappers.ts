@@ -102,7 +102,13 @@ export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => 
 
 export const toSbCredit = (data: Partial<Credit>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbMileageLog = (data: Partial<MileageLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+
+/** mileage_logs no tiene columna client_id; clientId es contexto de UI y no debe persistirse. */
+export const toSbMileageLog = (data: Partial<MileageLog> & { clientId?: string | null }): Record<string, unknown> => {
+  const { clientId: _clientId, ...persistable } = data;
+  return mapKeys(persistable as Record<string, unknown>, camelToSnakeKey);
+};
+
 export const toSbNotification = (data: Partial<Notification>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbVehicleAssignmentLog = (data: Partial<VehicleAssignmentLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbCompany = (data: Partial<Company>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
