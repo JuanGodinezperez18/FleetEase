@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import type { Notification, Client, Vehicle, Partner, FinancialRecord, VehicleWithMileage } from '@/types';
 import { differenceInDays } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
@@ -28,15 +28,6 @@ const MAINTENANCE_HIGH_THRESHOLD_KM = 1500;
 const EXPIRY_URGENCY_THRESHOLD_DAYS = 0;
 const EXPIRY_HIGH_THRESHOLD_DAYS = 30;
 const HIGH_BALANCE_THRESHOLD = 5000;
-
-const useMemoDeep = <T,>(factory: () => T, deps: any[]): T => {
-  const ref = useRef<{ deps: any[], value: T } | undefined>(undefined);
-  const depsString = JSON.stringify(deps);
-  if (!ref.current || JSON.stringify(ref.current.deps) !== depsString) {
-    ref.current = { deps, value: factory() };
-  }
-  return ref.current.value;
-};
 
 export const useNotificationsAnalytics = (
   notifications: Notification[],
@@ -67,9 +58,14 @@ export const useNotificationsAnalytics = (
     refetchOnWindowFocus: true,
   });
 
-  const readStateKeys = useMemo(() => new Set(readStateRows.map(row => row.notification_key)), [readStateRows]);
+  const readStateKeys = useMemo(
+    () => new Set(readStateRows.map(row => row.notification_key)),
+    [readStateRows]
+  );
 
-  const analyzedNotifications = useMemoDeep(() => {
+  // Importante: usar useMemo aquí garantiza que un cambio en readStateRows
+  // reconstruya las notificaciones y actualice isRead en la UI.
+  const analyzedNotifications = useMemo(() => {
     const isSuperAdmin = currentUser?.role === 'superAdmin';
     const companyId = currentUser?.companyId;
     const companyVehicles = isSuperAdmin ? vehicles : vehicles.filter(v => v.companyId === companyId);
