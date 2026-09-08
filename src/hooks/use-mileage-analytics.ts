@@ -2,35 +2,26 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Vehicle, MileageLog, FinancialRecord } from '@/types';
+import type { Vehicle, MileageLog, FinancialRecord, Company } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { differenceInDays, addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const MAINTENANCE_INTERVAL_KM = 10000;
+const DEFAULT_MAINTENANCE_INTERVAL_KM = 10000;
 const MAINTENANCE_CATEGORY = "Mantenimiento";
 
 export type VehicleMileageMetric = {
-  // Basic Metrics
   vehicleId: string;
   currentMileage: number;
   lastMaintenanceMileage: number;
   kmSinceLastMaintenance: number;
-
-  // Predictive Analysis
   nextMaintenanceDue: number;
   kmToNextMaintenance: number;
   estimatedMaintenanceDate: Date | null;
-
-  // Usage Analysis
   dailyAverageKm: number;
-
-  // Financial Analysis
   totalMaintenanceCosts: number;
   costPerKm: number;
-
-  // Smart Evaluation
-  maintenanceScore: number; // 0-100 (100 = just serviced, 0 = overdue)
+  maintenanceScore: number;
   efficiencyRating: 'Eficiente' | 'Promedio' | 'Costoso';
   alerts: string[];
   recommendations: string[];
@@ -39,81 +30,82 @@ export type VehicleMileageMetric = {
 export const useMileageAnalytics = (
   vehicles: Vehicle[],
   mileageLogs: MileageLog[],
-  financialRecords: FinancialRecord[]
+  financialRecords: FinancialRecord[],
+  companies: Company[] = []
 ) => {
   const vehicleMetrics = useMemo(() => {
-    if (!vehicles.length) {
-      return [];
-    }
+    if (!vehicles.length) return [];
 
-    const metrics: VehicleMileageMetric[] = vehicles.map(vehicle => {
-      // --- Basic Metrics ---
+    const companyIntervals = new Map(
+      companies
+        .filter(company => typeof company.maintenanceInterval === 'number' && company.maintenanceInterval > 0)
+        .map(company => [company.id, company.maintenanceInterval as number])
+    );
+
+    return vehicles.map(vehicle => {
       const currentMileage = vehicle.currentMileage || 0;
       const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
-      const maintenanceInterval = vehicle.maintenanceInterval || MAINTENANCE_INTERVAL_KM;
-      const kmSinceLastMaintenance = Math.max(0, currentMileage - lastMaintenanceMileage);
 
-      // --- Predictive Analysis ---
+      // La configuración de la empresa es la fuente de verdad. El valor del
+      // vehículo solo se conserva como compatibilidad para registros antiguos
+      // y el default global se usa únicamente si no existe ninguna configuración.
+      const maintenanceInterval = companyIntervals.get(vehicle.companyId || '')
+        ?? vehicle.maintenanceInterval
+        ?? DEFAULT_MAINTENANCE_INTERVAL_KM;
+
+      const kmSinceLastMaintenance = Math.max(0, currentMileage - lastMaintenanceMileage);
       const nextMaintenanceDue = lastMaintenanceMileage + maintenanceInterval;
       const kmToNextMaintenance = nextMaintenanceDue - currentMileage;
 
-      // --- Usage Analysis ---
       const logsForVehicle = mileageLogs
-        .filter(log => log.vehicleId === vehicle.id)
+        .filter(log => log.vehicleId === vehicle.id && !log.isDeleted)
         .sort((a, b) => (infallibleNormalizeDate(a.date)?.getTime() || 0) - (infallibleNormalizeDate(b.date)?.getTime() || 0));
-      
-      let dailyAverageKm = 150; // Default assumption if no logs
+
+      let dailyAverageKm = 150;
       if (logsForVehicle.length > 1) {
-        const recentLogs = logsForVehicle.slice(-10); // Use last 10 logs for recent pattern
+        const recentLogs = logsForVehicle.slice(-10);
         let totalKmPerDay = 0;
         let validPairs = 0;
-
         for (let i = 1; i < recentLogs.length; i++) {
           const prevLog = recentLogs[i - 1];
           const currentLog = recentLogs[i];
           const daysDiff = differenceInDays(infallibleNormalizeDate(currentLog.date)!, infallibleNormalizeDate(prevLog.date)!);
           const kmDiff = currentLog.mileage - prevLog.mileage;
-          
           if (daysDiff > 0 && kmDiff >= 0) {
             totalKmPerDay += kmDiff / daysDiff;
             validPairs++;
           }
         }
-        if (validPairs > 0) {
-          dailyAverageKm = totalKmPerDay / validPairs;
-        }
+        if (validPairs > 0) dailyAverageKm = totalKmPerDay / validPairs;
       }
-      const estimatedMaintenanceDate = dailyAverageKm > 0 
+
+      const estimatedMaintenanceDate = dailyAverageKm > 0
         ? addDays(new Date(), Math.max(0, kmToNextMaintenance / dailyAverageKm))
         : null;
 
-      // --- Financial Analysis ---
       const maintenanceRecords = financialRecords.filter(
         r => r.vehicleId === vehicle.id && r.category === MAINTENANCE_CATEGORY && !r.isDeleted
       );
       const totalMaintenanceCosts = maintenanceRecords.reduce((sum, r) => sum + r.amount, 0);
       const costPerKm = currentMileage > 0 ? totalMaintenanceCosts / currentMileage : 0;
-
-      // --- Smart Evaluation ---
       const maintenanceScore = Math.max(0, Math.min(100, (kmToNextMaintenance / maintenanceInterval) * 100));
 
       let efficiencyRating: VehicleMileageMetric['efficiencyRating'];
       if (costPerKm < 0.5) efficiencyRating = 'Eficiente';
       else if (costPerKm < 1.5) efficiencyRating = 'Promedio';
       else efficiencyRating = 'Costoso';
-      
+
       const alerts: string[] = [];
       const recommendations: string[] = [];
-
       if (kmToNextMaintenance <= 0) {
         alerts.push("Mantenimiento Urgente Requerido");
         recommendations.push("Realizar servicio de mantenimiento inmediatamente para evitar daños mayores.");
       } else if (kmToNextMaintenance <= 1500) {
         alerts.push("Mantenimiento Próximo");
-        if(estimatedMaintenanceDate) {
-            recommendations.push(`Agendar servicio alrededor del ${format(estimatedMaintenanceDate, 'dd MMM yyyy', { locale: es })}.`);
+        if (estimatedMaintenanceDate) {
+          recommendations.push(`Agendar servicio alrededor del ${format(estimatedMaintenanceDate, 'dd MMM yyyy', { locale: es })}.`);
         } else {
-            recommendations.push(`Agendar servicio en los próximos ${Math.round(kmToNextMaintenance / dailyAverageKm)} días.`);
+          recommendations.push(`Agendar servicio en los próximos ${Math.round(kmToNextMaintenance / dailyAverageKm)} días.`);
         }
       }
 
@@ -139,9 +131,7 @@ export const useMileageAnalytics = (
         recommendations,
       };
     });
-
-    return metrics;
-  }, [vehicles, mileageLogs, financialRecords]);
+  }, [vehicles, mileageLogs, financialRecords, companies]);
 
   return { vehicleMetrics };
 };
