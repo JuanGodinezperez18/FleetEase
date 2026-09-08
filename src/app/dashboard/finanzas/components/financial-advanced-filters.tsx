@@ -1,8 +1,7 @@
-
-
 "use client";
 
 import React from 'react';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { NativeDateRangePicker } from '@/components/ui/native-date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,13 +26,16 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
   onPartnerChange,
 }) => {
   const { currentUser } = useAuth();
-  const [date, setDate] = React.useState<DateRange | undefined>();
+  const [date, setDate] = React.useState<DateRange | undefined>(() => {
+    const now = new Date();
+    return { from: startOfMonth(now), to: endOfMonth(now) };
+  });
 
   const handleDateChange = (newDate: DateRange | undefined) => {
     setDate(newDate);
     onDateChange(newDate);
   };
-  
+
   return (
     <div className="flex flex-wrap items-center gap-4">
       <NativeDateRangePicker date={date} onDateChange={handleDateChange} />
@@ -58,7 +60,7 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos los Socios</SelectItem>
-           <SelectItem value="none">Sin Socio (Interno)</SelectItem>
+          <SelectItem value="none">Sin Socio (Interno)</SelectItem>
           {partners.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
         </SelectContent>
       </Select>
