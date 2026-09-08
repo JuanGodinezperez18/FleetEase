@@ -5,7 +5,7 @@
  * Compatibilidad con las páginas que usan useVehicles().
  */
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useData } from '@/contexts/data-provider-supabase';
 import type { Vehicle, MileageLog, VehicleAssignmentLog } from '@/types';
 
@@ -36,8 +36,24 @@ interface Props {
 export const VehiclesProvider = ({ children }: Props) => {
   const data = useData();
 
+  // La configuración de mantenimiento pertenece a la empresa. Todas las
+  // páginas que usan el wrapper useVehicles() reciben el intervalo vigente,
+  // aunque el vehículo conserve un valor histórico.
+  const vehicles = useMemo(() => {
+    const companyIntervals = new Map(
+      data.companies
+        .filter(company => typeof company.maintenanceInterval === 'number' && company.maintenanceInterval > 0)
+        .map(company => [company.id, company.maintenanceInterval as number])
+    );
+
+    return data.allVehicles.map(vehicle => {
+      const companyInterval = companyIntervals.get(vehicle.companyId || '');
+      return companyInterval ? { ...vehicle, maintenanceInterval: companyInterval } : vehicle;
+    });
+  }, [data.allVehicles, data.companies]);
+
   const value: VehiclesContextValue = {
-    vehicles: data.allVehicles,
+    vehicles,
     vehiclesLoading: data.loadingData,
     refreshVehicles: data.refreshData,
     mileageLogs: data.mileageLogs,
