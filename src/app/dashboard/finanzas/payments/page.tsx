@@ -22,7 +22,7 @@ const PAYMENT_KINDS = [
   { value: "credit_payment", label: "Pago de Crédito", short: "Créditos", affects: "credit_payment", icon: CreditCard },
 ] as const;
 type PaymentKind = typeof PAYMENT_KINDS[number]["value"];
-type LinkRow = { target_financial_record_id: string; amount_applied: number | null; source_financial_record_id: string };
+type LinkRow = { target_financial_record_id: string; source_financial_record_id: string };
 
 export default function PaymentsPage() {
   const { financialRecords, financialCategories, clients, partners, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
@@ -51,7 +51,7 @@ export default function PaymentsPage() {
     let cancelled = false;
     if (!companyId || !financialRecords.length) { setLinks([]); return; }
     const targetIds = financialRecords.filter(r => !r.isDeleted).map(r => r.id);
-    void supabase.from("financial_record_links").select("target_financial_record_id,amount_applied,source_financial_record_id")
+    void supabase.from("financial_record_links").select("target_financial_record_id,source_financial_record_id")
       .eq("company_id", companyId).in("target_financial_record_id", targetIds.slice(0, 5000))
       .then(({ data }) => { if (!cancelled) setLinks((data || []) as LinkRow[]); });
     return () => { cancelled = true; };
@@ -76,11 +76,12 @@ export default function PaymentsPage() {
   const appliedByTarget = useMemo(() => {
     const map = new Map<string, number>();
     for (const link of links) {
-      const amountApplied = Number(link.amount_applied || 0);
+      const source = financialRecords.find(r => r.id === link.source_financial_record_id);
+      const amountApplied = Number(source?.amount || 0);
       if (amountApplied > 0) map.set(link.target_financial_record_id, (map.get(link.target_financial_record_id) || 0) + amountApplied);
     }
     return map;
-  }, [links]);
+  }, [links, financialRecords]);
 
   const targets = useMemo(() => {
     if (!entityId) return [];
