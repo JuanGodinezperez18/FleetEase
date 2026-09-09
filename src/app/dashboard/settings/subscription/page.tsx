@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  CheckCircle, 
-  XCircle, 
-  TrendingUp, 
-  Zap, 
-  Building2, 
+import {
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Zap,
+  Building2,
   CreditCard,
   Calendar,
   Users,
@@ -23,22 +23,36 @@ import {
 import { useAuth } from '@/contexts/auth-provider';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useData } from '@/hooks/use-data';
-import { plans, type PlanType } from '@/config/plans';
+import { plans, type PlanType, type PlanConfig } from '@/config/plans';
 import { isFeatureEnabled, type FeatureKey } from '@/config/feature-flags';
 import { toast } from 'sonner';
+
+const PLAN_ICONS: Record<PlanType, typeof Zap> = {
+  free: Zap,
+  starter: Zap,
+  pro: TrendingUp,
+  enterprise: Building2,
+};
+
+function getSafePlan(plan: unknown): PlanType {
+  if (typeof plan === 'string' && plan in plans) {
+    return plan as PlanType;
+  }
+  return 'free';
+}
 
 export default function SubscriptionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentUser } = useAuth();
   const { companies } = useData();
-  const { 
-    subscription, 
-    loading, 
-    processing, 
-    upgradePlan, 
+  const {
+    subscription,
+    loading,
+    processing,
+    upgradePlan,
     openPortal,
-    verifyUpgrade 
+    verifyUpgrade,
   } = useSubscription();
 
   const [verifying, setVerifying] = useState(false);
@@ -46,7 +60,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     const success = searchParams.get('success');
     const sessionId = searchParams.get('sessionId');
-    
+
     if (success && sessionId) {
       setVerifying(true);
       verifyUpgrade(sessionId).finally(() => {
@@ -68,16 +82,20 @@ export default function SubscriptionPage() {
   }
 
   const company = companies?.[0];
-  const currentPlan = subscription?.plan || 'starter';
-  const currentPlanConfig = plans[currentPlan];
+  const currentPlan = getSafePlan(subscription?.plan);
+  const currentPlanConfig: PlanConfig = plans[currentPlan];
 
-  const vehicleUsage = subscription?.vehicleCount || 0;
-  const vehicleLimit = subscription?.maxVehicles || 5;
-  const vehiclePercentage = vehicleLimit === -1 ? 100 : Math.min((vehicleUsage / vehicleLimit) * 100, 100);
+  const vehicleUsage = subscription?.vehicleCount ?? 0;
+  const vehicleLimit = subscription?.maxVehicles ?? currentPlanConfig.maxVehicles;
+  const vehiclePercentage = vehicleLimit === -1
+    ? 100
+    : Math.min((vehicleUsage / Math.max(vehicleLimit, 1)) * 100, 100);
 
   const userCount = 1; // TODO: Obtener count real de usuarios
-  const userLimit = subscription?.maxUsers || 1;
-  const userPercentage = userLimit === -1 ? 100 : Math.min((userCount / userLimit) * 100, 100);
+  const userLimit = subscription?.maxUsers ?? currentPlanConfig.maxUsers;
+  const userPercentage = userLimit === -1
+    ? 100
+    : Math.min((userCount / Math.max(userLimit, 1)) * 100, 100);
 
   const handleUpgrade = async (planId: PlanType) => {
     if (!company?.id) {
@@ -110,15 +128,10 @@ export default function SubscriptionPage() {
     }
   };
 
-  const PlanIcon = {
-    starter: Zap,
-    pro: TrendingUp,
-    enterprise: Building2,
-  }[currentPlan];
+  const PlanIcon = PLAN_ICONS[currentPlan];
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-2">Suscripción y Planes</h1>
         <p className="text-muted-foreground">
@@ -126,24 +139,21 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
-      {/* Current Plan Status */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <PlanIcon className="h-6 w-6 text-blue-600" />
             Plan Actual: {currentPlanConfig.name}
             <Badge variant={currentPlan === 'pro' ? 'default' : 'secondary'} className="ml-2">
-              {currentPlan === 'starter' ? 'Gratis' : `$${currentPlanConfig.price}/${currentPlanConfig.period}`}
+              {currentPlan === 'free'
+                ? 'Prueba gratis'
+                : `$${currentPlanConfig.price}/${currentPlanConfig.period}`}
             </Badge>
           </CardTitle>
-          <CardDescription>
-            {currentPlanConfig.description}
-          </CardDescription>
+          <CardDescription>{currentPlanConfig.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Usage Stats */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Vehicle Usage */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm">
@@ -156,13 +166,10 @@ export default function SubscriptionPage() {
               </div>
               <Progress value={vehiclePercentage} className="h-2" />
               {vehiclePercentage >= 90 && vehicleLimit !== -1 && (
-                <p className="text-xs text-amber-600">
-                  ⚠️ Estás por alcanzar el límite de vehículos
-                </p>
+                <p className="text-xs text-amber-600">⚠️ Estás por alcanzar el límite de vehículos</p>
               )}
             </div>
 
-            {/* User Usage */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm">
@@ -175,14 +182,11 @@ export default function SubscriptionPage() {
               </div>
               <Progress value={userPercentage} className="h-2" />
               {userPercentage >= 90 && userLimit !== -1 && (
-                <p className="text-xs text-amber-600">
-                  ⚠️ Estás por alcanzar el límite de usuarios
-                </p>
+                <p className="text-xs text-amber-600">⚠️ Estás por alcanzar el límite de usuarios</p>
               )}
             </div>
           </div>
 
-          {/* Subscription Details */}
           {subscription?.subscription && (
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
@@ -203,7 +207,6 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-3">
             <Button onClick={handleManageBilling} variant="outline" disabled={processing}>
               <CreditCard className="h-4 w-4 mr-2" />
@@ -219,20 +222,15 @@ export default function SubscriptionPage() {
         </CardContent>
       </Card>
 
-      {/* Available Plans */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Planes Disponibles</h2>
         <div className="grid md:grid-cols-3 gap-6">
-          {(Object.values(plans) as any[]).map((plan) => {
+          {(Object.values(plans) as PlanConfig[]).map((plan) => {
             const isCurrentPlan = plan.id === currentPlan;
-            const PlanIcon = ({
-              starter: Zap,
-              pro: TrendingUp,
-              enterprise: Building2,
-            } as Record<string, any>)[plan.id];
+            const PlanIcon = PLAN_ICONS[plan.id];
 
             return (
-              <Card 
+              <Card
                 key={plan.id}
                 className={`relative ${
                   plan.popular ? 'border-blue-600 shadow-lg' : ''
@@ -252,6 +250,7 @@ export default function SubscriptionPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${
+                      plan.id === 'free' ? 'bg-green-100 text-green-600' :
                       plan.id === 'starter' ? 'bg-green-100 text-green-600' :
                       plan.id === 'pro' ? 'bg-blue-100 text-blue-600' :
                       'bg-purple-100 text-purple-600'
@@ -285,17 +284,15 @@ export default function SubscriptionPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button 
+                  <Button
                     className="w-full"
                     variant={isCurrentPlan ? 'secondary' : plan.popular ? 'default' : 'outline'}
                     disabled={isCurrentPlan || processing}
                     onClick={() => handleUpgrade(plan.id)}
                   >
-                    {isCurrentPlan ? (
-                      'Plan Actual'
-                    ) : (
+                    {isCurrentPlan ? 'Plan Actual' : (
                       <>
-                        {plan.id === 'enterprise' ? 'Contactar' : 'Upgrade'}
+                        {plan.id === 'enterprise' ? 'Contactar' : plan.id === 'free' ? 'Prueba gratis' : 'Upgrade'}
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </>
                     )}
@@ -307,55 +304,35 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* Feature Comparison */}
       <Card>
         <CardHeader>
           <CardTitle>Comparación de Características</CardTitle>
-          <CardDescription>
-            Conoce todas las características disponibles en cada plan
-          </CardDescription>
+          <CardDescription>Conoce todas las características disponibles en cada plan</CardDescription>
         </CardHeader>
         <CardContent>
           <FeatureComparison currentPlan={currentPlan} />
         </CardContent>
       </Card>
 
-      {/* Contact Support */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             ¿Necesitas Ayuda?
           </CardTitle>
-          <CardDescription>
-            Nuestro equipo de soporte está aquí para ayudarte
-          </CardDescription>
+          <CardDescription>Nuestro equipo de soporte está aquí para ayudarte</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <h4 className="font-medium mb-2">Soporte Técnico</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Para problemas técnicos, preguntas sobre funcionalidades o reportar errores
-              </p>
-              <a 
-                href="mailto:soporte@fleetease.mx"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                soporte@fleetease.mx
-              </a>
+              <p className="text-sm text-muted-foreground mb-3">Para problemas técnicos, preguntas sobre funcionalidades o reportar errores</p>
+              <a href="mailto:soporte@fleetease.mx" className="text-sm text-blue-600 hover:underline">soporte@fleetease.mx</a>
             </div>
             <div className="flex-1">
               <h4 className="font-medium mb-2">Ventas y Planes Enterprise</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Para información sobre planes personalizados y enterprise
-              </p>
-              <a 
-                href="mailto:ventas@fleetease.mx"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                ventas@fleetease.mx
-              </a>
+              <p className="text-sm text-muted-foreground mb-3">Para información sobre planes personalizados y enterprise</p>
+              <a href="mailto:ventas@fleetease.mx" className="text-sm text-blue-600 hover:underline">ventas@fleetease.mx</a>
             </div>
           </div>
         </CardContent>
@@ -364,7 +341,6 @@ export default function SubscriptionPage() {
   );
 }
 
-// Componente de comparación de features
 function FeatureComparison({ currentPlan }: { currentPlan: PlanType }) {
   const features: { key: FeatureKey; label: string; category: string }[] = [
     { key: 'vehicles', label: 'Gestión de vehículos', category: 'Básico' },
@@ -406,25 +382,13 @@ function FeatureComparison({ currentPlan }: { currentPlan: PlanType }) {
                   <tr key={feature.key} className="border-b last:border-0">
                     <td className="py-3 px-4">{feature.label}</td>
                     <td className="text-center py-3 px-4">
-                      {isFeatureEnabled('starter', feature.key) ? (
-                        <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />
-                      )}
+                      {isFeatureEnabled('starter', feature.key) ? <CheckCircle className="h-5 w-5 text-green-600 mx-auto" /> : <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />}
                     </td>
                     <td className="text-center py-3 px-4">
-                      {isFeatureEnabled('pro', feature.key) ? (
-                        <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />
-                      )}
+                      {isFeatureEnabled('pro', feature.key) ? <CheckCircle className="h-5 w-5 text-green-600 mx-auto" /> : <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />}
                     </td>
                     <td className="text-center py-3 px-4">
-                      {isFeatureEnabled('enterprise', feature.key) ? (
-                        <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />
-                      )}
+                      {isFeatureEnabled('enterprise', feature.key) ? <CheckCircle className="h-5 w-5 text-green-600 mx-auto" /> : <XCircle className="h-5 w-5 text-muted-foreground mx-auto" />}
                     </td>
                   </tr>
                 ))}
