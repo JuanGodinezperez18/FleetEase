@@ -1,11 +1,12 @@
-
 "use client";
 
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Vehicle, MileageLog, FinancialRecord, Company } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { differenceInDays, addDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/lib/supabase';
 
 const DEFAULT_MAINTENANCE_INTERVAL_KM = 10000;
 const MAINTENANCE_CATEGORY = "Mantenimiento";
@@ -33,11 +34,39 @@ export const useMileageAnalytics = (
   financialRecords: FinancialRecord[],
   companies: Company[] = []
 ) => {
+  // Cuando el consumidor ya tiene las empresas, usamos esa fuente para evitar
+  // una consulta adicional. Si no las entrega (por ejemplo KPIs globales),
+  // consultamos la configuración vigente directamente para no caer en un
+  // intervalo fijo de mantenimiento.
+  const { data: companySettings = [] } = useQuery<{ id: string; maintenanceInterval: number }[]>({
+    queryKey: ['mileage-analytics-company-maintenance-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, maintenance_interval')
+        .eq('is_deleted', false);
+      if (error) throw error;
+      return (data || [])
+        .filter(row => typeof row.maintenance_interval === 'number' && row.maintenance_interval > 0)
+        .map(row => ({ id: row.id, maintenanceInterval: row.maintenance_interval as number }));
+    },
+    enabled: companies.length === 0,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const effectiveCompanies = companies.length > 0
+    ? companies
+    : companySettings.map(company => ({
+        id: company.id,
+        maintenanceInterval: company.maintenanceInterval,
+      } as Company));
+
   const vehicleMetrics = useMemo(() => {
     if (!vehicles.length) return [];
 
     const companyIntervals = new Map(
-      companies
+      effectiveCompanies
         .filter(company => typeof company.maintenanceInterval === 'number' && company.maintenanceInterval > 0)
         .map(company => [company.id, company.maintenanceInterval as number])
     );
@@ -46,9 +75,9 @@ export const useMileageAnalytics = (
       const currentMileage = vehicle.currentMileage || 0;
       const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
 
-      // La configuración de la empresa es la fuente de verdad. El valor del
-      // vehículo solo se conserva como compatibilidad para registros antiguos
-      // y el default global se usa únicamente si no existe ninguna configuración.
+      // La configuración vigente de la empresa es la fuente de verdad.
+      // El intervalo guardado en el vehículo solo es compatibilidad para datos
+      // antiguos cuando la empresa todavía no tiene una configuración válida.
       const maintenanceInterval = companyIntervals.get(vehicle.companyId || '')
         ?? vehicle.maintenanceInterval
         ?? DEFAULT_MAINTENANCE_INTERVAL_KM;
@@ -69,7 +98,10 @@ export const useMileageAnalytics = (
         for (let i = 1; i < recentLogs.length; i++) {
           const prevLog = recentLogs[i - 1];
           const currentLog = recentLogs[i];
-          const daysDiff = differenceInDays(infallibleNormalizeDate(currentLog.date)!, infallibleNormalizeDate(prevLog.date)!);
+          const prevDate = infallibleNormalizeDate(prevLog.date);
+          const currentDate = infallibleNormalizeDate(currentLog.date);
+          if (!prevDate || !currentDate) continue;
+          const daysDiff = differenceInDays(currentDate, prevDate);
           const kmDiff = currentLog.mileage - prevLog.mileage;
           if (daysDiff > 0 && kmDiff >= 0) {
             totalKmPerDay += kmDiff / daysDiff;
@@ -131,7 +163,7 @@ export const useMileageAnalytics = (
         recommendations,
       };
     });
-  }, [vehicles, mileageLogs, financialRecords, companies]);
+  }, [vehicles, mileageLogs, financialRecords, effectiveCompanies]);
 
   return { vehicleMetrics };
 };
