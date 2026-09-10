@@ -45,12 +45,6 @@ export default function FinancialAnalysisPage() {
 
   const analytics = useFinancialAnalytics(filteredRecords, clients, vehicles, partners, dateRange, financialCategories);
 
-  // Sin ingresos operativos no existe un margen significativo que alertar.
-  // Evita mostrar un falso "margen crítico: 0%" en períodos vacíos o con depósitos/gastos únicamente.
-  const analyticsForDisplay = analytics.totalIncome > 0
-    ? analytics
-    : { ...analytics, profitMargin: 10 };
-
   if (loadingData) return <GlobalLoader />;
 
   return (
@@ -74,7 +68,7 @@ export default function FinancialAnalysisPage() {
         </CardContent>
       </Card>
 
-      <FinancialDashboard analytics={analyticsForDisplay} />
+      <FinancialDashboard analytics={analytics} />
     </div>
   );
 }
