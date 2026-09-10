@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo, forwardRef, useImperativeHandle, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,27 +9,47 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Partner, Company } from '@/types';
 import { useAuth } from '@/contexts/auth-provider';
-import { Building, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useData } from '@/hooks/use-data';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/common/address-autocomplete';
 import { Separator } from '@/components/ui/separator';
 
-const basePartnerSchema = z.object({
+const normalizeEmail = (value: string) => value.trim().toLowerCase();
+const normalizePhone = (value: string) => value.replace(/\D/g, '');
+
+const createPartnerSchema = (partners: Partner[], editingPartnerId?: string) => z.object({
   firstname: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
   lastname: z.string().min(2, { message: "El apellido debe tener al menos 2 caracteres." }),
-  email: z.string().email({ message: "Dirección de correo electrónico inválida." }).optional().or(z.literal('')),
+  email: z.string().email({ message: "Dirección de correo electrónico inválida." }).optional().or(z.literal('')).refine((value) => {
+    if (!value) return true;
+    const normalized = normalizeEmail(value);
+    return !partners.some((partner) =>
+      partner.id !== editingPartnerId &&
+      !partner.isDeleted &&
+      normalizeEmail(partner.email || '') === normalized
+    );
+  }, { message: "Este correo electrónico ya está registrado para otro socio de esta empresa." }),
   phone: z.string()
     .optional()
     .or(z.literal(''))
     .refine((val) => {
       if (!val || val === '') return true;
-      const digitsOnly = val.replace(/[\s-()]/g, '');
+      const digitsOnly = normalizePhone(val);
       return /^\d{10,}$/.test(digitsOnly);
     }, {
       message: "El teléfono debe contener al menos 10 dígitos numéricos"
-    }),
+    })
+    .refine((value) => {
+      if (!value) return true;
+      const normalized = normalizePhone(value);
+      return !partners.some((partner) =>
+        partner.id !== editingPartnerId &&
+        !partner.isDeleted &&
+        normalizePhone(partner.phone || '') === normalized
+      );
+    }, { message: "Este número de teléfono ya está registrado para otro socio de esta empresa." }),
   street: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -42,7 +62,7 @@ const basePartnerSchema = z.object({
   companyId: z.string().optional().nullable(),
 });
 
-export type PartnerFormValues = z.infer<typeof basePartnerSchema>;
+export type PartnerFormValues = z.infer<ReturnType<typeof createPartnerSchema>>;
 
 interface PartnerFormProps {
   onSubmit: (data: PartnerFormValues) => void;
@@ -53,9 +73,20 @@ interface PartnerFormProps {
 }
 
 export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData, companies, isSubmitting, onClose }) => {
-  
   const { currentUser } = useAuth();
-  
+  const { partners } = useData();
+
+  const companyId = initialData?.companyId || currentUser?.companyId || null;
+  const companyPartners = useMemo(
+    () => partners.filter((partner) => !partner.isDeleted && (!companyId || partner.companyId === companyId)),
+    [partners, companyId]
+  );
+
+  const partnerSchema = useMemo(
+    () => createPartnerSchema(companyPartners, initialData?.id),
+    [companyPartners, initialData?.id]
+  );
+
   const defaultValues = useMemo(() => {
     return {
       firstname: initialData?.firstname || '',
@@ -68,13 +99,14 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
       zipCode: initialData?.zipCode || '',
       country: initialData?.country || 'México',
       initialBalance: initialData?.initialBalance || 0,
-      companyId: initialData?.companyId || currentUser?.companyId || null,
+      companyId,
     };
-  }, [initialData, currentUser]);
+  }, [initialData, companyId]);
 
   const form = useForm<PartnerFormValues>({
-    resolver: zodResolver(basePartnerSchema),
+    resolver: zodResolver(partnerSchema),
     defaultValues,
+    mode: 'onChange',
   });
 
   return (
@@ -87,7 +119,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Empresa</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={isSubmitting}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleccionar empresa" />
@@ -114,7 +146,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
                     <FormItem>
                     <FormLabel>Nombre(s) del Socio</FormLabel>
                     <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -127,7 +159,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
                     <FormItem>
                     <FormLabel>Apellidos del Socio</FormLabel>
                     <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -142,7 +174,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
               <FormItem>
                 <FormLabel>Correo Electrónico (Opcional)</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} value={field.value ?? ''} />
+                  <Input type="email" {...field} value={field.value ?? ''} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -155,7 +187,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
               <FormItem>
                 <FormLabel>Número de Teléfono (Opcional)</FormLabel>
                 <FormControl>
-                  <Input type="tel" {...field} value={field.value ?? ''} />
+                  <Input type="tel" {...field} value={field.value ?? ''} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -201,7 +233,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
             <FormItem>
               <FormLabel>Saldo Inicial (Opcional)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
+                <Input type="number" step="0.01" {...field} value={field.value ?? ''} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
