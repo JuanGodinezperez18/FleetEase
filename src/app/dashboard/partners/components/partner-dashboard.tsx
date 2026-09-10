@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
@@ -23,6 +22,7 @@ import { useData } from '@/hooks/use-data';
 import { useFinancialAnalytics } from '@/hooks/use-financial-analytics';
 import { useAuth } from '@/contexts/auth-provider';
 import { InteractiveMetricCard } from '@/components/dashboard/components/MetricCard';
+import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
 
 interface PartnerDashboardProps {
   partners: Partner[];
@@ -48,16 +48,16 @@ const CompanyComparisonDashboard = () => {
     const { companies, financialRecords, clients, vehicles, partners } = useData();
     const analyticsByCompany = useMemo(() => {
         return companies.map(company => {
-            const companyRecords = financialRecords.filter(r => r.companyId === company.id);
+            const companyRecords = financialRecords.filter(r => r.companyId === company.id && !r.isDeleted);
             const companyClients = clients.filter(c => c.companyId === company.id);
             const companyVehicles = vehicles.filter(v => v.companyId === company.id);
             const companyPartners = partners.filter(p => p.companyId === company.id);
-            
-            // This logic is simplified; a full-blown useFinancialAnalytics hook call here would be incorrect.
-            // We are performing the aggregation directly.
-            const totalIncome = companyRecords.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
-            const totalExpenses = companyRecords.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
-            
+
+            // Usar las mismas métricas financieras canónicas que el resto de FleetEase.
+            // Esto evita que esta vista tenga una definición distinta de ingreso/utilidad.
+            const totalIncome = sumRentalIncome(companyRecords);
+            const totalExpenses = sumExpense(companyRecords);
+
             return {
                 name: company.name,
                 ingresos: totalIncome,
@@ -105,7 +105,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
     const totalPartners = partners.filter(p => !p.isDeleted).length;
     const totalNetProfit = partnerMetrics.reduce((sum, metric) => sum + metric.netProfit, 0);
     const topPerformer = partnerMetrics.length > 0 ? partnerMetrics[0] : null;
-    
+
     const performanceDistribution = {
       Excelente: partnerMetrics.filter(p => p.performanceLevel === 'Excelente').length,
       Bueno: partnerMetrics.filter(p => p.performanceLevel === 'Bueno').length,
@@ -120,7 +120,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
       performanceDistribution
     };
   }, [partners, partnerMetrics]);
-  
+
   const chartData = Object.entries(overallStats.performanceDistribution).map(([name, value]) => ({ name, Socios: value }));
 
   const topFivePartners = useMemo(() => {
@@ -155,7 +155,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
             <p className="text-xs text-muted-foreground">Total de socios en el sistema.</p>
           </CardContent>
         </Card>
-        
+
         <InteractiveMetricCard
           title="Saldo Total con Socios"
           value={formatCurrency(totalPartnerBalance)}
@@ -209,7 +209,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Top 5 Socios por Rentabilidad</CardTitle>
@@ -237,7 +237,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
           </CardContent>
         </Card>
       </div>
-      
+
       {currentUser?.role === 'superAdmin' && <CompanyComparisonDashboard />}
 
       {/* Low Performance Alerts */}
