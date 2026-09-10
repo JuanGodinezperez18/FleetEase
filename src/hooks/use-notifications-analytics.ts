@@ -37,9 +37,6 @@ export const useNotificationsAnalytics = (
   clientBalances: { id: string; balance: number }[]
 ) => {
   const { currentUser } = useAuth();
-
-  // UserProfile usa `uid`, no `id`. Antes se estaba consultando con undefined,
-  // por lo que las notificaciones automáticas siempre aparecían como no leídas.
   const userId = currentUser?.uid;
   const isSuperAdmin = currentUser?.role === 'superAdmin';
   const companyId = currentUser?.companyId;
@@ -57,20 +54,44 @@ export const useNotificationsAnalytics = (
     [clientBalances, companyClients]
   );
 
-  // Las alertas automáticas son virtuales: no tienen una fila propia en
-  // `notifications`. Solo necesitamos consultar los estados de las alertas
-  // que existen actualmente, no todo el historial acumulado del usuario.
+  // Fuente única para el intervalo vigente. El vehículo no puede sobrescribir
+  // una configuración actual de la empresa.
+  const { data: companyMaintenanceIntervals = {} } = useQuery<Record<string, number>>({
+    queryKey: ['notification-company-maintenance-intervals', currentUser?.role, companyId],
+    queryFn: async () => {
+      let query = supabase
+        .from('companies')
+        .select('id, maintenance_interval')
+        .eq('is_deleted', false);
+
+      if (!isSuperAdmin && companyId) query = query.eq('id', companyId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return Object.fromEntries(
+        (data || [])
+          .filter(row => typeof row.maintenance_interval === 'number' && row.maintenance_interval > 0)
+          .map(row => [row.id, row.maintenance_interval as number])
+      );
+    },
+    enabled: !!currentUser,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
   const currentAutoNotificationKeys = useMemo(() => {
     const keys = new Set<string>();
     const now = new Date();
 
     companyVehicles.forEach(vehicle => {
       if (vehicle.status === 'sold' || vehicle.isDeleted) return;
-      const maintenanceInterval = vehicle.maintenanceInterval || 5000;
-      const currentMileage = vehicle.currentMileage || 0;
-      const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
-      const kmToMaint = maintenanceInterval - (currentMileage - lastMaintenanceMileage);
-      if (kmToMaint <= MAINTENANCE_HIGH_THRESHOLD_KM) keys.add(`maint_alert_${vehicle.id}`);
+      const maintenanceInterval = companyMaintenanceIntervals[vehicle.companyId || ''] ?? vehicle.maintenanceInterval;
+      if (typeof maintenanceInterval === 'number' && maintenanceInterval > 0) {
+        const currentMileage = vehicle.currentMileage || 0;
+        const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
+        const kmToMaint = maintenanceInterval - (currentMileage - lastMaintenanceMileage);
+        if (kmToMaint <= MAINTENANCE_HIGH_THRESHOLD_KM) keys.add(`maint_alert_${vehicle.id}`);
+      }
 
       const insExpiryDate = infallibleNormalizeDate(vehicle.insuranceExpiryDate);
       if (insExpiryDate) {
@@ -92,7 +113,7 @@ export const useNotificationsAnalytics = (
     });
 
     return Array.from(keys);
-  }, [companyVehicles, companyClients, companyBalances]);
+  }, [companyVehicles, companyClients, companyBalances, companyMaintenanceIntervals]);
 
   const { data: readStateRows = [] } = useQuery<{ notification_key: string; read_at: string }[]>({
     queryKey: ['notification-read-states', userId, currentAutoNotificationKeys],
@@ -111,29 +132,6 @@ export const useNotificationsAnalytics = (
     refetchOnWindowFocus: true,
   });
 
-  const { data: companyMaintenanceIntervals = {} } = useQuery<Record<string, number>>({
-    queryKey: ['notification-company-maintenance-intervals', currentUser?.role, companyId],
-    queryFn: async () => {
-      let query = supabase
-        .from('companies')
-        .select('id, maintenance_interval')
-        .eq('is_deleted', false);
-
-      if (!isSuperAdmin && companyId) query = query.eq('id', companyId);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return Object.fromEntries(
-        (data || [])
-          .filter(row => typeof row.maintenance_interval === 'number' && row.maintenance_interval > 0)
-          .map(row => [row.id, row.maintenance_interval])
-      );
-    },
-    enabled: !!currentUser,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
-  });
-
   const readStateKeys = useMemo(
     () => new Set(readStateRows.map(row => row.notification_key)),
     [readStateRows]
@@ -146,7 +144,9 @@ export const useNotificationsAnalytics = (
 
     companyVehicles.forEach(vehicle => {
       if (vehicle.status === 'sold' || vehicle.isDeleted) return;
-      const maintenanceInterval = companyMaintenanceIntervals[vehicle.companyId || ''] || vehicle.maintenanceInterval || 5000;
+      const maintenanceInterval = companyMaintenanceIntervals[vehicle.companyId || ''] ?? vehicle.maintenanceInterval;
+      if (typeof maintenanceInterval !== 'number' || maintenanceInterval <= 0) return;
+
       const currentMileage = vehicle.currentMileage || 0;
       const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
       const kmToMaint = maintenanceInterval - (currentMileage - lastMaintenanceMileage);
@@ -155,13 +155,17 @@ export const useNotificationsAnalytics = (
       let message = '';
       const assignedClient = vehicle.clientId ? clientMap.get(vehicle.clientId) : null;
       const clientNameStr = assignedClient ? ` (Asignado a: ${assignedClient.firstname} ${assignedClient.lastname})` : '';
+
       if (kmToMaint <= MAINTENANCE_URGENCY_THRESHOLD_KM) {
-        priority = 'Crítica'; urgencyScore = 95 - Math.min(Math.floor(kmToMaint / 1000), 5);
+        priority = 'Crítica';
+        urgencyScore = 95 - Math.min(Math.floor(kmToMaint / 1000), 5);
         message = `Mtto. Vencido: ${vehicle.plate} excedido por ${Math.abs(kmToMaint).toLocaleString()} km.${clientNameStr}`;
       } else if (kmToMaint <= MAINTENANCE_HIGH_THRESHOLD_KM) {
-        priority = 'Alta'; urgencyScore = 80 - Math.floor(kmToMaint / 200);
+        priority = 'Alta';
+        urgencyScore = 80 - Math.floor(kmToMaint / 200);
         message = `Próximo Mtto: ${vehicle.plate} en ${kmToMaint.toLocaleString()} km.${clientNameStr}`;
       }
+
       if (priority) {
         const id = `maint_alert_${vehicle.id}`;
         allGeneratedNotifications.push({ id, uid: id, type: 'maintenance_mileage', message, date: now.toISOString(), relatedId: vehicle.id, isRead: readStateKeys.has(id), priority, category: 'Mantenimiento', urgencyScore, entityType: 'Vehículo', relatedEntityType: 'Vehicle', actionRequired: true, estimatedImpact: priority === 'Crítica' ? 'Alto' : 'Medio', isAutoGenerated: true, companyId: vehicle.companyId });
