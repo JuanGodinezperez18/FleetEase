@@ -118,7 +118,6 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
-    "jest-environment-jsdom": "^30.3.0",
     "playwright-core": "^1.56.1",
     "puppeteer-core": "^24.30.0",
     "tailwindcss-animate": "^1.0.7",
