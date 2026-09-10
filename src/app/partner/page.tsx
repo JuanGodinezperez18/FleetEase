@@ -32,6 +32,7 @@ import type { DateRange } from 'react-day-picker';
 import { DashboardDateFilter } from '@/components/dashboard/components/DashboardDateFilter';
 import { isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
+import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
 
 type WidgetType = 'balance' | 'income-expense' | 'multas';
 
@@ -174,19 +175,11 @@ export default function PartnerDashboard() {
     });
   }, [financialRecords, partnerVehicleIds, customDateRange]);
 
-  // Calcular ingresos totales de sus vehículos
-  const totalIncome = useMemo(() => {
-    return filteredRecords
-      .filter(r => r.type === 'income')
-      .reduce((sum, r) => sum + r.amount, 0);
-  }, [filteredRecords]);
+  // Calcular ingresos totales de sus vehículos usando la definición contable canónica.
+  const totalIncome = useMemo(() => sumRentalIncome(filteredRecords), [filteredRecords]);
 
-  // Calcular gastos totales de sus vehículos
-  const totalExpenses = useMemo(() => {
-    return filteredRecords
-      .filter(r => r.type === 'expense')
-      .reduce((sum, r) => sum + r.amount, 0);
-  }, [filteredRecords]);
+  // Calcular gastos totales de sus vehículos usando la definición contable canónica.
+  const totalExpenses = useMemo(() => sumExpense(filteredRecords), [filteredRecords]);
 
   // Multas de los vehículos del socio
   const partnerMultas = useMemo(() => {
