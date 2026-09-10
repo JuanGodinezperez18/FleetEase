@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, TrendingDown, Clock, DollarSign, AlertCircle, CheckCircle, ArrowRight, TrendingUp } from 'lucide-react';
 import type { Vehicle, Client, FinancialRecord } from '@/types';
 import Link from 'next/link';
+import { getMaintenanceIntervalKm } from '@/lib/financial-metrics';
 
 interface BusinessAlert {
   id: string;
@@ -192,7 +193,8 @@ export function SmartBusinessAlerts({
     vehicles
       .filter(v => !v.isDeleted && v.status !== 'sold' && v.currentMileage)
       .forEach(vehicle => {
-        const nextMaintenance = (vehicle.lastMaintenanceMileage || 0) + (vehicle.maintenanceInterval || 10000);
+        const maintenanceInterval = getMaintenanceIntervalKm(vehicle);
+        const nextMaintenance = (vehicle.lastMaintenanceMileage || 0) + maintenanceInterval;
         const kmToMaintenance = nextMaintenance - vehicle.currentMileage;
 
         if (kmToMaintenance < 500 && kmToMaintenance > 0) {
