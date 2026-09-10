@@ -49,36 +49,24 @@ async function getAdminUsers(companyId: string): Promise<string[]> {
   return data?.map((u) => u.id) ?? [];
 }
 
-async function insertNotificationsBatched(
-  notifications: NotificationRecord[],
-): Promise<number> {
+async function insertNotificationsBatched(notifications: NotificationRecord[]): Promise<number> {
   let sent = 0;
-
   for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
     const batch = notifications.slice(i, i + BATCH_SIZE);
     const { error } = await supabase.from('notifications').insert(batch);
-
-    if (error) {
-      console.error('Error inserting notification batch:', error);
-    } else {
-      sent += batch.length;
-    }
+    if (error) console.error('Error inserting notification batch:', error);
+    else sent += batch.length;
   }
-
   return sent;
 }
 
 export async function GET(request: NextRequest) {
   if (!process.env.CRON_SECRET) {
     console.error('CRON_SECRET is not configured');
-    return NextResponse.json(
-      { error: 'Server configuration error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
-  const isAuthorized = await verifyAuth(request);
-  if (!isAuthorized) {
+  if (!(await verifyAuth(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -95,17 +83,13 @@ export async function GET(request: NextRequest) {
 
     if (fetchError) {
       console.error('Error fetching vehicles:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch vehicles', details: fetchError.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Failed to fetch vehicles', details: fetchError.message }, { status: 500 });
     }
 
     vehiclesChecked = vehicles?.length ?? 0;
 
-    // El intervalo vigente es propiedad de la empresa. No debemos usar un
-    // intervalo histórico guardado en el vehículo cuando la configuración de
-    // la empresa cambió (por ejemplo, de 5,000 a 10,000 km).
+    // El intervalo vigente es propiedad de la empresa. Nunca usamos un
+    // fallback fijo ni una copia histórica del vehículo para este cálculo.
     const { data: companies, error: companiesError } = await supabase
       .from('companies')
       .select('id, maintenance_interval')
@@ -113,10 +97,7 @@ export async function GET(request: NextRequest) {
 
     if (companiesError) {
       console.error('Error fetching company maintenance intervals:', companiesError);
-      return NextResponse.json(
-        { error: 'Failed to fetch company maintenance settings', details: companiesError.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Failed to fetch company maintenance settings', details: companiesError.message }, { status: 500 });
     }
 
     const companyIntervals = new Map<string, number>();
@@ -130,28 +111,24 @@ export async function GET(request: NextRequest) {
 
     for (const vehicle of vehicles as Vehicle[]) {
       try {
+        const interval = companyIntervals.get(vehicle.company_id);
+        if (!interval) {
+          console.warn(`Skipping maintenance check for vehicle ${vehicle.id}: company ${vehicle.company_id} has no valid maintenance interval configured.`);
+          continue;
+        }
+
         const lastMileage = vehicle.last_maintenance_mileage ?? 0;
-        const interval = companyIntervals.get(vehicle.company_id)
-          ?? vehicle.maintenance_interval
-          ?? 5000;
         const currentMileage = vehicle.current_mileage ?? 0;
         const kmToNext = lastMileage + interval - currentMileage;
 
-        const notificationTargets: string[] = [];
-
         if (kmToNext < 0) {
-          // Overdue - notify client, partner, and admins
-          notificationTargets.push(vehicle.client_id);
-          if (vehicle.partner_id) {
-            notificationTargets.push(vehicle.partner_id);
-          }
           const adminUsers = await getAdminUsers(vehicle.company_id);
-          notificationTargets.push(...adminUsers);
+          const message = `Mantenimiento vencido para el vehiculo ${vehicle.plate}. Kilometraje actual: ${currentMileage} km.`;
 
           allNotifications.push({
             uid: vehicle.client_id,
             type: 'vehicle_maintenance_due',
-            message: `Mantenimiento vencido para el vehiculo ${vehicle.plate}. Kilometraje actual: ${currentMileage} km.`,
+            message,
             date: new Date().toISOString(),
             is_read: false,
             company_id: vehicle.company_id,
@@ -161,7 +138,7 @@ export async function GET(request: NextRequest) {
             allNotifications.push({
               uid: vehicle.partner_id,
               type: 'vehicle_maintenance_due',
-              message: `Mantenimiento vencido para el vehiculo ${vehicle.plate}. Kilometraje actual: ${currentMileage} km.`,
+              message,
               date: new Date().toISOString(),
               is_read: false,
               company_id: vehicle.company_id,
@@ -181,16 +158,12 @@ export async function GET(request: NextRequest) {
 
           vehiclesNeedingAttention++;
         } else if (kmToNext < 500) {
-          // Upcoming - notify only client and partner
-          notificationTargets.push(vehicle.client_id);
-          if (vehicle.partner_id) {
-            notificationTargets.push(vehicle.partner_id);
-          }
+          const message = `Mantenimiento proximo para el vehiculo ${vehicle.plate}. Faltan ${kmToNext} km.`;
 
           allNotifications.push({
             uid: vehicle.client_id,
             type: 'vehicle_maintenance_due',
-            message: `Mantenimiento proximo para el vehiculo ${vehicle.plate}. Faltan ${kmToNext} km.`,
+            message,
             date: new Date().toISOString(),
             is_read: false,
             company_id: vehicle.company_id,
@@ -200,7 +173,7 @@ export async function GET(request: NextRequest) {
             allNotifications.push({
               uid: vehicle.partner_id,
               type: 'vehicle_maintenance_due',
-              message: `Mantenimiento proximo para el vehiculo ${vehicle.plate}. Faltan ${kmToNext} km.`,
+              message,
               date: new Date().toISOString(),
               is_read: false,
               company_id: vehicle.company_id,
@@ -210,11 +183,7 @@ export async function GET(request: NextRequest) {
           vehiclesNeedingAttention++;
         }
       } catch (vehicleError) {
-        console.error(
-          `Error processing vehicle ${vehicle.id}:`,
-          vehicleError,
-        );
-        // Continue with next vehicle
+        console.error(`Error processing vehicle ${vehicle.id}:`, vehicleError);
       }
     }
 
@@ -222,23 +191,9 @@ export async function GET(request: NextRequest) {
       notificationsSent = await insertNotificationsBatched(allNotifications);
     }
 
-    return NextResponse.json({
-      success: true,
-      vehiclesChecked,
-      vehiclesNeedingAttention,
-      notificationsSent,
-    });
+    return NextResponse.json({ success: true, vehiclesChecked, vehiclesNeedingAttention, notificationsSent });
   } catch (error) {
     console.error('Maintenance check cron job failed:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Internal server error',
-        vehiclesChecked,
-        vehiclesNeedingAttention,
-        notificationsSent,
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: 'Internal server error', vehiclesChecked, vehiclesNeedingAttention, notificationsSent }, { status: 500 });
   }
 }
