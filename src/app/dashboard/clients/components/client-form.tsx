@@ -192,23 +192,25 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
 
       setIsCheckingDuplicates(true);
 
-      const baseQuery = () => supabase
-        .from('clients')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('is_deleted', false)
-        .limit(1);
+      const baseQuery = () => {
+        const query = supabase
+          .from('clients')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('is_deleted', false)
+          .limit(1);
+        if (initialData?.id) query.neq('id', initialData.id);
+        return query;
+      };
+
+      const emailQuery = baseQuery();
+      const phoneQuery = baseQuery();
+      const licenseQuery = baseQuery();
 
       const checks = [
-        emailIsValid && email
-          ? baseQuery().ilike('email', email)
-          : Promise.resolve({ data: [], error: null }),
-        phoneIsValid
-          ? baseQuery().eq('phone', phone)
-          : Promise.resolve({ data: [], error: null }),
-        licenseIsValid
-          ? baseQuery().ilike('license_number', licenseNumber)
-          : Promise.resolve({ data: [], error: null }),
+        emailIsValid && email ? emailQuery.ilike('email', email) : Promise.resolve({ data: [], error: null }),
+        phoneIsValid ? phoneQuery.eq('phone', phone) : Promise.resolve({ data: [], error: null }),
+        licenseIsValid ? licenseQuery.ilike('license_number', licenseNumber) : Promise.resolve({ data: [], error: null }),
       ];
 
       const [emailResult, phoneResult, licenseResult] = await Promise.all(checks);
@@ -226,13 +228,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
       const duplicateEmail = emailIsValid && email ? (emailResult.data?.length ?? 0) > 0 : false;
       const duplicatePhone = phoneIsValid ? (phoneResult.data?.length ?? 0) > 0 : false;
       const duplicateLicense = licenseIsValid ? (licenseResult.data?.length ?? 0) > 0 : false;
-
-      if (initialData?.id) {
-        const currentId = initialData.id;
-        if (duplicateEmail && emailResult.data?.[0]?.id === currentId) {
-          // Current record is allowed when editing; the query is rechecked below only when needed.
-        }
-      }
 
       setDuplicateStatus({ email: duplicateEmail, phone: duplicatePhone, licenseNumber: duplicateLicense });
       setIsCheckingDuplicates(false);
@@ -261,7 +256,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
 
   const hasDuplicateData = Object.values(duplicateStatus).some(Boolean);
 
-  // Use intelligent assignment hook
   const intelligentAssignment = useIntelligentVehicleAssignment(
     initialData?.id,
     watchedVehicleId === NONE_SELECT_VALUE ? null : watchedVehicleId,
@@ -360,40 +354,23 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
                   Escanéala para llenar automáticamente nombre, apellidos y dirección
                 </p>
               </div>
-              <INEScanner
-                onDataExtracted={handleINEDataExtracted}
-                disabled={isSubmitting}
-              />
+              <INEScanner onDataExtracted={handleINEDataExtracted} disabled={isSubmitting} />
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentUser?.role === 'superAdmin' && (
-            <FormField
-              control={form.control}
-              name="companyId"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Empresa</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar empresa" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="companyId" render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Empresa</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger></FormControl>
+                  <SelectContent>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>)}</SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
           )}
           <FormField control={form.control} name="firstname" render={({ field }) => (
             <FormItem><FormLabel>Nombre(s)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -403,91 +380,40 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
           )} />
           <FormField control={form.control} name="createdAt" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <CalendarPlus className="h-4 w-4" />
-                Fecha de Creación
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  disabled={!!initialData}
-                  className={!!initialData ? "bg-muted cursor-not-allowed" : ""}
-                />
-              </FormControl>
-              {!!initialData && (
-                <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el cliente</p>
-              )}
+              <FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel>
+              <FormControl><Input type="date" {...field} disabled={!!initialData} className={!!initialData ? "bg-muted cursor-not-allowed" : ""} /></FormControl>
+              {!!initialData && <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el cliente</p>}
               <FormMessage />
             </FormItem>
           )} />
           <FormField control={form.control} name="vehicleAssignedAt" render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-2">
-                <CalendarCheck className="h-4 w-4" />
-                Fecha de Asignación de Vehículo
-                {intelligentAssignment.isCurrentAssignment && (
-                  <Badge variant="secondary" className="ml-2 text-xs">Asignación Actual</Badge>
-                )}
-                {intelligentAssignment.isReassignment && (
-                  <Badge variant="outline" className="ml-2 text-xs border-yellow-500 text-yellow-600">
-                    Reasignación ({intelligentAssignment.previousAssignmentsCount}x)
-                  </Badge>
-                )}
+              <FormLabel className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" />Fecha de Asignación de Vehículo
+                {intelligentAssignment.isCurrentAssignment && <Badge variant="secondary" className="ml-2 text-xs">Asignación Actual</Badge>}
+                {intelligentAssignment.isReassignment && <Badge variant="outline" className="ml-2 text-xs border-yellow-500 text-yellow-600">Reasignación ({intelligentAssignment.previousAssignmentsCount}x)</Badge>}
               </FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value || ''}
-                  disabled={intelligentAssignment.isDateLocked}
-                  className={intelligentAssignment.isDateLocked ? "bg-muted cursor-not-allowed" : ""}
-                />
-              </FormControl>
-              {intelligentAssignment.isDateLocked && (
-                <Alert className="mt-2 border-blue-500">
-                  <Info className="h-4 w-4 text-blue-500" />
-                  <AlertDescription className="text-xs">
-                    Esta es la asignación actual. La fecha está bloqueada para preservar el historial.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {!intelligentAssignment.isDateLocked && !watchedVehicleId && (
-                <p className="text-xs text-muted-foreground">
-                  Se llena automáticamente al asignar un vehículo por primera vez
-                </p>
-              )}
+              <FormControl><Input type="date" {...field} value={field.value || ''} disabled={intelligentAssignment.isDateLocked} className={intelligentAssignment.isDateLocked ? "bg-muted cursor-not-allowed" : ""} /></FormControl>
+              {intelligentAssignment.isDateLocked && <Alert className="mt-2 border-blue-500"><Info className="h-4 w-4 text-blue-500" /><AlertDescription className="text-xs">Esta es la asignación actual. La fecha está bloqueada para preservar el historial.</AlertDescription></Alert>}
+              {!intelligentAssignment.isDateLocked && !watchedVehicleId && <p className="text-xs text-muted-foreground">Se llena automáticamente al asignar un vehículo por primera vez</p>}
               <FormMessage />
             </FormItem>
           )} />
           <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem>
-              <FormLabel>Correo Electrónico</FormLabel>
-              <FormControl><Input type="email" {...field} /></FormControl>
-              <FormMessage />
-              {isCheckingDuplicates && watchedEmail?.trim() && (
-                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
-              )}
+              <FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage />
+              {isCheckingDuplicates && watchedEmail?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
             </FormItem>
           )} />
           <FormField control={form.control} name="phone" render={({ field }) => (
             <FormItem>
-              <FormLabel>Número de Teléfono</FormLabel>
-              <FormControl><Input type="tel" {...field} /></FormControl>
-              <FormMessage />
-              {isCheckingDuplicates && watchedPhone?.trim() && (
-                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
-              )}
+              <FormLabel>Número de Teléfono</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage />
+              {isCheckingDuplicates && watchedPhone?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
             </FormItem>
           )} />
           <FormField control={form.control} name="licenseNumber" render={({ field }) => (
             <FormItem>
-              <FormLabel>Número de Licencia</FormLabel>
-              <FormControl><Input {...field} /></FormControl>
-              <FormMessage />
-              {isCheckingDuplicates && watchedLicenseNumber?.trim() && (
-                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
-              )}
+              <FormLabel>Número de Licencia</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage />
+              {isCheckingDuplicates && watchedLicenseNumber?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}
             </FormItem>
           )} />
           <FormField control={form.control} name="licenseExpiry" render={({ field }) => (
@@ -498,31 +424,16 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
           )} />
           <FormItem>
             <FormLabel>Depósito en Garantía</FormLabel>
-            <div className="relative">
-              <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                type="text"
-                readOnly
-                value={formatCurrency(initialData?.securityDeposit || 0)}
-                className="pl-10 bg-muted/50 cursor-not-allowed"
-              />
-            </div>
+            <div className="relative"><ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" readOnly value={formatCurrency(initialData?.securityDeposit || 0)} className="pl-10 bg-muted/50 cursor-not-allowed" /></div>
             <p className="text-xs text-muted-foreground">Este campo se actualiza desde el módulo de ingresos.</p>
           </FormItem>
         </div>
 
         <Separator />
-
         <div>
           <h3 className="text-lg font-medium mb-4">Dirección del Cliente</h3>
           <AddressAutocomplete
-            values={{
-              street: form.watch('street'),
-              city: form.watch('city'),
-              state: form.watch('state'),
-              zipCode: form.watch('zipCode'),
-              country: form.watch('country'),
-            }}
+            values={{ street: form.watch('street'), city: form.watch('city'), state: form.watch('state'), zipCode: form.watch('zipCode'), country: form.watch('country') }}
             onChange={(address) => {
               form.setValue('street', address.street || '', { shouldValidate: true });
               form.setValue('city', address.city || '', { shouldValidate: true });
@@ -530,107 +441,56 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
               form.setValue('zipCode', address.zipCode || '', { shouldValidate: true });
               form.setValue('country', address.country || 'México', { shouldValidate: true });
             }}
-            errors={{
-              street: form.formState.errors.street?.message,
-              city: form.formState.errors.city?.message,
-              state: form.formState.errors.state?.message,
-              zipCode: form.formState.errors.zipCode?.message,
-            }}
+            errors={{ street: form.formState.errors.street?.message, city: form.formState.errors.city?.message, state: form.formState.errors.state?.message, zipCode: form.formState.errors.zipCode?.message }}
             disabled={isSubmitting}
           />
         </div>
 
         <Separator />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="assignedVehicleId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Asignar Vehículo (Opcional)</FormLabel>
-                <Select onValueChange={(value) => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={hasActiveCredit}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un vehículo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>
-                    {selectableVehicles.map(vehicle => (<SelectItem key={vehicle.id} value={vehicle.id}>{`${vehicle.make} ${vehicle.model} (${vehicle.plate})`}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                {hasActiveCredit && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <Info className="h-3 w-3" /> No se puede cambiar el vehículo mientras exista un crédito activo.
-                  </p>
-                )}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estado del Cliente</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un estado" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="inactive">Inactivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="assignedVehicleId" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Asignar Vehículo (Opcional)</FormLabel>
+              <Select onValueChange={(value) => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={hasActiveCredit}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl>
+                <SelectContent>
+                  <SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>
+                  {selectableVehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>{`${vehicle.make} ${vehicle.model} (${vehicle.plate})`}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {hasActiveCredit && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Info className="h-3 w-3" /> No se puede cambiar el vehículo mientras exista un crédito activo.</p>}
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="status" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado del Cliente</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl>
+                <SelectContent><SelectItem value="active">Activo</SelectItem><SelectItem value="inactive">Inactivo</SelectItem></SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
         </div>
 
         <div className="space-y-4 pt-4">
           <FormField control={form.control} name="photoUrl" render={({ field: { value } }) => (
-            <FormItem>
-              <FormLabel>Foto del Cliente</FormLabel>
-              <FormControl>
-                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'photoUrl')} initialValue={value ? [value] : []} accept="image/*" multiple={false} previewType="avatar" entityId={initialData?.id} folder="driver_documents" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <FormItem><FormLabel>Foto del Cliente</FormLabel><FormControl><MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'photoUrl')} initialValue={value ? [value] : []} accept="image/*" multiple={false} previewType="avatar" entityId={initialData?.id} folder="driver_documents" /></FormControl><FormMessage /></FormItem>
           )} />
           <FormField control={form.control} name="ineUrl" render={({ field: { value } }) => (
-            <FormItem>
-              <FormLabel>Foto del INE</FormLabel>
-              <FormControl>
-                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'ineUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <FormItem><FormLabel>Foto del INE</FormLabel><FormControl><MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'ineUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" /></FormControl><FormMessage /></FormItem>
           )} />
           <FormField control={form.control} name="licenseImageUrl" render={({ field: { value } }) => (
-            <FormItem>
-              <FormLabel>Foto de la Licencia</FormLabel>
-              <FormControl>
-                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'licenseImageUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <FormItem><FormLabel>Foto de la Licencia</FormLabel><FormControl><MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'licenseImageUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" /></FormControl><FormMessage /></FormItem>
           )} />
         </div>
         <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isCheckingDuplicates}>
-                Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting || isCheckingDuplicates || hasDuplicateData}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Guardando..." : isCheckingDuplicates ? "Verificando..." : "Guardar"}
-            </Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isCheckingDuplicates}>Cancelar</Button>
+          <Button type="submit" disabled={isSubmitting || isCheckingDuplicates || hasDuplicateData}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Guardando..." : isCheckingDuplicates ? "Verificando..." : "Guardar"}
+          </Button>
         </div>
       </form>
     </Form>
