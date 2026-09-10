@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useMemo, useEffect, useCallback, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { useIntelligentVehicleAssignment } from '@/hooks/use-intelligent-vehicle-assignment';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/lib/supabase';
 
 const fileOrUrlSchema = z.union([
   z.string().url("URL de imagen inválida.").optional(),
@@ -74,6 +75,14 @@ export interface ClientFormHandles {
 }
 
 const NONE_SELECT_VALUE = "@none";
+
+const normalizeUniqueValue = (value: string | undefined | null, type: 'email' | 'phone' | 'license') => {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  if (type === 'email') return raw.toLowerCase();
+  if (type === 'phone') return raw.replace(/\D/g, '');
+  return raw.replace(/\s+/g, ' ').toUpperCase();
+};
 
 const getInitialFormValues = (data: Client | null, currentUser: UserProfile | null, globalCompanyId: string | null) => {
   const defaults = {
@@ -143,6 +152,114 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
   const selectedCompanyId = form.watch('companyId');
   const watchedVehicleId = form.watch('assignedVehicleId');
   const currentVehicleAssignedAt = form.watch('vehicleAssignedAt');
+  const watchedEmail = form.watch('email');
+  const watchedPhone = form.watch('phone');
+  const watchedLicenseNumber = form.watch('licenseNumber');
+
+  const [duplicateStatus, setDuplicateStatus] = useState({ email: false, phone: false, licenseNumber: false });
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const duplicateCheckRequestRef = useRef(0);
+
+  const clearDuplicateError = useCallback((fieldName: 'email' | 'phone' | 'licenseNumber') => {
+    const fieldState = form.getFieldState(fieldName);
+    if (fieldState.error?.type === 'duplicate') {
+      form.clearErrors(fieldName);
+    }
+  }, [form]);
+
+  useEffect(() => {
+    const companyId = currentUser?.role === 'superAdmin' ? selectedCompanyId : currentUser?.companyId;
+    const requestId = ++duplicateCheckRequestRef.current;
+    const timer = window.setTimeout(async () => {
+      if (!companyId) {
+        setDuplicateStatus({ email: false, phone: false, licenseNumber: false });
+        setIsCheckingDuplicates(false);
+        return;
+      }
+
+      const email = normalizeUniqueValue(watchedEmail, 'email');
+      const phone = normalizeUniqueValue(watchedPhone, 'phone');
+      const licenseNumber = normalizeUniqueValue(watchedLicenseNumber, 'license');
+      const emailIsValid = !email || z.string().email().safeParse(email).success;
+      const phoneIsValid = /^\d{10}$/.test(phone);
+      const licenseIsValid = licenseNumber.length >= 5;
+
+      if (!emailIsValid && !phoneIsValid && !licenseIsValid) {
+        setDuplicateStatus({ email: false, phone: false, licenseNumber: false });
+        setIsCheckingDuplicates(false);
+        return;
+      }
+
+      setIsCheckingDuplicates(true);
+
+      const baseQuery = () => supabase
+        .from('clients')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('is_deleted', false)
+        .limit(1);
+
+      const checks = [
+        emailIsValid && email
+          ? baseQuery().ilike('email', email)
+          : Promise.resolve({ data: [], error: null }),
+        phoneIsValid
+          ? baseQuery().eq('phone', phone)
+          : Promise.resolve({ data: [], error: null }),
+        licenseIsValid
+          ? baseQuery().ilike('license_number', licenseNumber)
+          : Promise.resolve({ data: [], error: null }),
+      ];
+
+      const [emailResult, phoneResult, licenseResult] = await Promise.all(checks);
+
+      if (requestId !== duplicateCheckRequestRef.current) return;
+
+      const results = [emailResult, phoneResult, licenseResult];
+      const queryError = results.find(result => result.error)?.error;
+      if (queryError) {
+        setDuplicateStatus({ email: false, phone: false, licenseNumber: false });
+        setIsCheckingDuplicates(false);
+        return;
+      }
+
+      const duplicateEmail = emailIsValid && email ? (emailResult.data?.length ?? 0) > 0 : false;
+      const duplicatePhone = phoneIsValid ? (phoneResult.data?.length ?? 0) > 0 : false;
+      const duplicateLicense = licenseIsValid ? (licenseResult.data?.length ?? 0) > 0 : false;
+
+      if (initialData?.id) {
+        const currentId = initialData.id;
+        if (duplicateEmail && emailResult.data?.[0]?.id === currentId) {
+          // Current record is allowed when editing; the query is rechecked below only when needed.
+        }
+      }
+
+      setDuplicateStatus({ email: duplicateEmail, phone: duplicatePhone, licenseNumber: duplicateLicense });
+      setIsCheckingDuplicates(false);
+
+      if (duplicateEmail) {
+        form.setError('email', { type: 'duplicate', message: 'Este correo electrónico ya está registrado para otro cliente de esta empresa.' });
+      } else clearDuplicateError('email');
+
+      if (duplicatePhone) {
+        form.setError('phone', { type: 'duplicate', message: 'Este número de teléfono ya está registrado para otro cliente de esta empresa.' });
+      } else clearDuplicateError('phone');
+
+      if (duplicateLicense) {
+        form.setError('licenseNumber', { type: 'duplicate', message: 'Este número de licencia ya está registrado para otro cliente de esta empresa.' });
+      } else clearDuplicateError('licenseNumber');
+    }, 450);
+
+    setIsCheckingDuplicates(Boolean(companyId && (
+      (watchedEmail?.trim() && z.string().email().safeParse(watchedEmail.trim()).success) ||
+      /^\d{10}$/.test(normalizeUniqueValue(watchedPhone, 'phone')) ||
+      normalizeUniqueValue(watchedLicenseNumber, 'license').length >= 5
+    )));
+
+    return () => window.clearTimeout(timer);
+  }, [selectedCompanyId, currentUser?.companyId, currentUser?.role, watchedEmail, watchedPhone, watchedLicenseNumber, initialData?.id, form, clearDuplicateError]);
+
+  const hasDuplicateData = Object.values(duplicateStatus).some(Boolean);
 
   // Use intelligent assignment hook
   const intelligentAssignment = useIntelligentVehicleAssignment(
@@ -165,11 +282,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
 
     return companyVehicles.filter(v => {
       const isCurrentlyAssignedToThisClient = v.id === initialData?.assignedVehicleId;
-      // No ofrecer vehículos que ya están comprometidos con un crédito
-      // activo de OTRO cliente. Se revisa lockedByCredit explícitamente
-      // (no solo !v.clientId) como defensa extra por si algún crédito
-      // quedó creado antes de que la creación empezara a fijar clientId
-      // en el vehículo.
       if (v.lockedByCredit && !isCurrentlyAssignedToThisClient) return false;
 
       const isUnassignedAndActive = v.status === 'active' && !v.clientId;
@@ -178,11 +290,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
     });
   }, [vehicles, initialData, selectedCompanyId, currentUser]);
 
-  // Sync with intelligent assignment hook
   useEffect(() => {
     if (isSubmitting) return;
 
-    // Solo actualizar si el hook detecta una asignación actual bloqueada
     if (intelligentAssignment.isDateLocked && intelligentAssignment.assignmentDate) {
       const currentValue = form.getValues('vehicleAssignedAt');
       if (currentValue !== intelligentAssignment.assignmentDate) {
@@ -194,7 +304,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
     }
   }, [intelligentAssignment.isDateLocked, intelligentAssignment.assignmentDate, isSubmitting, form]);
   
-  // Auto-llenar fecha para nuevas asignaciones
   useEffect(() => {
     if (isSubmitting) return;
 
@@ -209,12 +318,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
     }
   }, [watchedVehicleId, currentVehicleAssignedAt, intelligentAssignment.isDateLocked, initialData?.assignedVehicleId, isSubmitting, form]);
 
-
   const handleFileChange = useCallback((files: (string | File)[], fieldName: keyof ClientFormValues) => {
     form.setValue(fieldName, files.length > 0 ? files[0] : null, { shouldValidate: true, shouldDirty: true });
   }, [form]);
 
-  // Handler para datos extraídos del escáner de INE
   const handleINEDataExtracted = useCallback((data: {
     firstname?: string;
     lastname?: string;
@@ -227,7 +334,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
     birthDate?: string;
     sex?: string;
   }) => {
-    // Aplicar los datos extraídos al formulario
     if (data.firstname) form.setValue('firstname', data.firstname, { shouldValidate: true });
     if (data.lastname) form.setValue('lastname', data.lastname, { shouldValidate: true });
     if (data.street) form.setValue('street', data.street, { shouldValidate: true });
@@ -243,7 +349,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Escáner de INE */}
         {!initialData && (
           <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -356,13 +461,34 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
             </FormItem>
           )} />
           <FormField control={form.control} name="email" render={({ field }) => (
-            <FormItem><FormLabel>Correo Electrónico</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem>
+              <FormLabel>Correo Electrónico</FormLabel>
+              <FormControl><Input type="email" {...field} /></FormControl>
+              <FormMessage />
+              {isCheckingDuplicates && watchedEmail?.trim() && (
+                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
+              )}
+            </FormItem>
           )} />
           <FormField control={form.control} name="phone" render={({ field }) => (
-            <FormItem><FormLabel>Número de Teléfono</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem>
+              <FormLabel>Número de Teléfono</FormLabel>
+              <FormControl><Input type="tel" {...field} /></FormControl>
+              <FormMessage />
+              {isCheckingDuplicates && watchedPhone?.trim() && (
+                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
+              )}
+            </FormItem>
           )} />
           <FormField control={form.control} name="licenseNumber" render={({ field }) => (
-            <FormItem><FormLabel>Número de Licencia</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem>
+              <FormLabel>Número de Licencia</FormLabel>
+              <FormControl><Input {...field} /></FormControl>
+              <FormMessage />
+              {isCheckingDuplicates && watchedLicenseNumber?.trim() && (
+                <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>
+              )}
+            </FormItem>
           )} />
           <FormField control={form.control} name="licenseExpiry" render={({ field }) => (
             <FormItem><FormLabel>Vencimiento de Licencia</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -452,13 +578,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un estado" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="active">Activo</SelectItem>
-                    <SelectItem value="inactive">Inactivo</SelectItem>
-                  </SelectContent>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un estado" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="inactive">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -467,80 +595,44 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
         </div>
 
         <div className="space-y-4 pt-4">
-          <FormField 
-            control={form.control} 
-            name="photoUrl" 
-            render={({ field: { value } }) => (
-              <FormItem>
-                <FormLabel>Foto del Cliente</FormLabel>
-                <FormControl>
-                  <MultipleFileInput 
-                    onFilesSelected={(files) => handleFileChange(files, 'photoUrl')}
-                    initialValue={value ? [value] : []}
-                    accept="image/*"
-                    multiple={false}
-                    previewType="avatar"
-                    entityId={initialData?.id}
-                    folder="driver_documents"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
-          <FormField 
-            control={form.control} 
-            name="ineUrl" 
-            render={({ field: { value } }) => (
-              <FormItem>
-                <FormLabel>Foto del INE</FormLabel>
-                <FormControl>
-                  <MultipleFileInput 
-                    onFilesSelected={(files) => handleFileChange(files, 'ineUrl')}
-                    initialValue={value ? [value] : []}
-                    accept="image/*,application/pdf"
-                    multiple={false}
-                    entityId={initialData?.id}
-                    folder="driver_documents"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
-          <FormField 
-            control={form.control} 
-            name="licenseImageUrl" 
-            render={({ field: { value } }) => (
-              <FormItem>
-                <FormLabel>Foto de la Licencia</FormLabel>
-                <FormControl>
-                  <MultipleFileInput 
-                    onFilesSelected={(files) => handleFileChange(files, 'licenseImageUrl')}
-                    initialValue={value ? [value] : []}
-                    accept="image/*,application/pdf"
-                    multiple={false}
-                    entityId={initialData?.id}
-                    folder="driver_documents"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} 
-          />
+          <FormField control={form.control} name="photoUrl" render={({ field: { value } }) => (
+            <FormItem>
+              <FormLabel>Foto del Cliente</FormLabel>
+              <FormControl>
+                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'photoUrl')} initialValue={value ? [value] : []} accept="image/*" multiple={false} previewType="avatar" entityId={initialData?.id} folder="driver_documents" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="ineUrl" render={({ field: { value } }) => (
+            <FormItem>
+              <FormLabel>Foto del INE</FormLabel>
+              <FormControl>
+                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'ineUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="licenseImageUrl" render={({ field: { value } }) => (
+            <FormItem>
+              <FormLabel>Foto de la Licencia</FormLabel>
+              <FormControl>
+                <MultipleFileInput onFilesSelected={(files) => handleFileChange(files, 'licenseImageUrl')} initialValue={value ? [value] : []} accept="image/*,application/pdf" multiple={false} entityId={initialData?.id} folder="driver_documents" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
         </div>
         <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isCheckingDuplicates}>
                 Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || isCheckingDuplicates || hasDuplicateData}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Guardando..." : "Guardar"}
+                {isSubmitting ? "Guardando..." : isCheckingDuplicates ? "Verificando..." : "Guardar"}
             </Button>
         </div>
       </form>
     </Form>
   );
 };
-
-    
