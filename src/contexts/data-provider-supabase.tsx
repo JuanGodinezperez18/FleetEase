@@ -628,6 +628,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     allFinancialRecords.forEach(record => {
       if (record.isDeleted || !record.clientId || !balances.has(record.clientId)) return;
 
+      // Depósito en Garantía es dinero retenido, no una cuenta por cobrar.
+      // Debe permanecer visible en transacciones y securityDeposit, pero no puede aumentar la deuda del cliente.
+      if (record.category === SECURITY_DEPOSIT_CATEGORY) return;
+
       let currentBalance = balances.get(record.clientId)!;
       if (record.type === 'income') {
         currentBalance += record.amount;
