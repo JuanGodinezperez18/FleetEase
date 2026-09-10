@@ -1,8 +1,38 @@
 import { supabase } from '@/lib/supabase-browser';
 
+/**
+ * create_credit_atomic recibe un objeto JSON con claves del dominio (camelCase),
+ * pero los mapeadores de persistencia producen snake_case para Supabase.
+ *
+ * Normalizamos aquí para que todas las rutas que reutilizan createCreditAtomic
+ * envíen el contrato que espera la función RPC, sin cambiar el mapper global.
+ */
+function normalizeCreditRpcPayload(credit: Record<string, unknown>): Record<string, unknown> {
+  const keyMap: Record<string, string> = {
+    client_id: 'clientId',
+    vehicle_id: 'vehicleId',
+    company_id: 'companyId',
+    total_amount: 'totalAmount',
+    paid_amount: 'paidAmount',
+    remaining_balance: 'remainingBalance',
+    weekly_payment: 'weeklyPayment',
+    number_of_payments: 'numberOfPayments',
+    payments_made: 'paymentsMade',
+    start_date: 'startDate',
+    end_date: 'endDate',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+    is_deleted: 'isDeleted',
+  };
+
+  return Object.fromEntries(
+    Object.entries(credit).map(([key, value]) => [keyMap[key] ?? key, value])
+  );
+}
+
 export async function createCreditAtomic(credit: Record<string, unknown>) {
   const { data, error } = await supabase.rpc('create_credit_atomic', {
-    p_credit: credit,
+    p_credit: normalizeCreditRpcPayload(credit),
   });
   if (error) throw error;
   return data as Record<string, unknown>;
