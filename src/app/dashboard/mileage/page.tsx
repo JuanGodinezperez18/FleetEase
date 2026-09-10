@@ -20,6 +20,7 @@ import { MileageHistoryModal } from './components/mileage-history-modal';
 import { MileageMobileCard } from './components/mileage-mobile-card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
+import { DEFAULT_MAINTENANCE_INTERVAL_KM } from '@/lib/financial-metrics';
 
 export default function MileageTrackingPage() {
   const router = useRouter();
@@ -164,7 +165,9 @@ export default function MileageTrackingPage() {
     [companies, selectedCompanyId]
   );
 
-  const maintenanceInterval = selectedCompany?.maintenanceInterval || 5000;
+  const maintenanceInterval = selectedCompany?.maintenanceInterval && selectedCompany.maintenanceInterval > 0
+    ? selectedCompany.maintenanceInterval
+    : DEFAULT_MAINTENANCE_INTERVAL_KM;
 
   const { vehicleMetrics } = useMileageAnalytics(activeVehicles, mileageLogs, financialRecords);
 
@@ -260,20 +263,14 @@ export default function MileageTrackingPage() {
       <FormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title="Nuevo Registro de Kilometraje"
-        description={
-          selectedVehicleForLog
-            ? `Registrar nuevo kilometraje para ${selectedVehicleForLog.make} ${selectedVehicleForLog.model} (${selectedVehicleForLog.plate})`
-            : "Registrar nuevo kilometraje para un vehículo."
-        }
+        title={selectedVehicleForLog ? `Registrar Kilometraje - ${selectedVehicleForLog.plate}` : 'Registrar Kilometraje'}
       >
         <MileageLogForm
-          key={selectedVehicleForLog?.id || 'new-log'}
+          vehicles={activeVehicles}
+          initialVehicle={selectedVehicleForLog}
           onSubmit={handleFormSubmit}
-          initialVehicleId={selectedVehicleForLog?.id}
-          companies={companies}
+          onCancel={handleCloseModal}
           isSubmitting={isSubmitting}
-          onClose={handleCloseModal}
         />
       </FormModal>
 
