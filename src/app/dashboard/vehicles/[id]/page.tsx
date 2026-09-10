@@ -217,3 +217,93 @@ export default function VehicleDetailPage() {
     if (!vehicle) {
         return <div>No se pudo encontrar el vehículo.</div>;
     }
+
+    const imageUrl = typeof vehicle.imageUrl === 'string' ? vehicle.imageUrl : 'https://placehold.co/600x400.png';
+
+    return (
+        <div className="space-y-6 p-6">
+            <div className="flex justify-between items-center">
+                <Button variant="ghost" onClick={() => router.push('/dashboard/vehicles')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver a Vehículos
+                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => window.print()}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Imprimir
+                    </Button>
+                    <Button variant="outline" onClick={handleShare}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Compartir
+                    </Button>
+                </div>
+            </div>
+
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={imageUrl}
+                                alt={`${vehicle.make} ${vehicle.model}`}
+                                className="w-full h-64 object-cover rounded-lg"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <h1 className="text-3xl font-bold">{vehicle.make} ${vehicle.model}</h1>
+                                <p className="text-xl text-muted-foreground">{vehicle.year}</p>
+                                <Badge variant={getStatusVariant(vehicle.status)}>
+                                    {statusTranslations[vehicle.status] || vehicle.status}
+                                </Badge>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <InfoItem icon={<Palette />} label="Color" value={vehicle.color || 'N/A'} />
+                                <InfoItem icon={<Calendar />} label="Fecha de Adquisición" value={formatDate(vehicle.acquisitionDate)} />
+                                <InfoItem icon={<DollarSign />} label="Costo del Vehículo" value={`$${(vehicle.cost || 0).toLocaleString()}`} valueClassName="text-green-500" />
+                                <InfoItem icon={<DollarSign />} label="Valor Renta/Semana (Sugerido)" value={`$${(vehicle.weeklyRentalValue || 0).toLocaleString()}`} />
+                                <InfoItem icon={<ShieldCheck />} label="Comisión por Administración" value={`${(vehicle.adminCommission || 0)}%`} />
+                                <InfoItem icon={<Gauge />} label="Kilometraje Actual" value={vehicle.displayCurrentMileage} />
+                                <InfoItem icon={<Wrench />} label="Último Mtto. (km)" value={vehicle.displayLastMaintMileage} />
+                                <InfoItem icon={<Calendar />} label="Próximo Mtto. (Fecha)" value="N/A" />
+                                <InfoItem icon={<User />} label="Conductor Asignado" value={assignedDriver.name} />
+                                <InfoItem icon={<Briefcase />} label="Socio Propietario" value={ownerPartner} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border-t pt-6">
+                        <h3 className="text-lg font-semibold mb-4">Información de Seguro</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InfoItem icon={<ShieldCheck />} label="No. de Póliza" value={vehicle.insurancePolicyNumber || 'N/A'} />
+                            <InfoItem icon={<Calendar />} label="Vencimiento de Póliza" value={formatDate(vehicle.insuranceExpiryDate)} />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border-t pt-6">
+                        <h3 className="text-lg font-semibold mb-4">Análisis Financiero</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InfoItem
+                                icon={<TrendingUp />}
+                                label="Ganancia / Pérdida Neta"
+                                value={`$${netProfit.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                valueClassName={netProfit >= 0 ? 'text-green-500' : 'text-red-500'}
+                            />
+                            <InfoItem
+                                icon={<TrendingUp />}
+                                label="ROI (Retorno de Inversión)"
+                                value={roi !== null ? `${roi}%` : 'N/A'}
+                                valueClassName={roi !== null && parseFloat(roi) >= 0 ? 'text-green-500' : 'text-red-500'}
+                            />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">(Ingresos - Gastos) / Costo</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <VehicleTimeline events={timelineEvents} />
+        </div>
+    );
+}
