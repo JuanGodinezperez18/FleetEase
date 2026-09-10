@@ -146,7 +146,7 @@ export function useDashboardActions({
       handleCloseQuickAction();
     } catch (error) {
       console.error('Error al registrar cliente:', error);
-      toast.error('Error al registrar el cliente');
+      toast.error(error instanceof Error ? error.message : 'Error al registrar el cliente');
     } finally {
       setIsSubmittingForm(false);
     }
