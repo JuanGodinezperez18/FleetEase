@@ -109,17 +109,38 @@ export async function POST(request: NextRequest) {
     }
 
     let companyId = userProfile.company_id;
+
+    // Super Admins may not have a company_id of their own. Resolve the tenant
+    // from the entity being uploaded instead of assuming every entityId is a
+    // vehicle. Client documents pass a client ID; vehicle images pass a vehicle ID.
     if (userProfile.role === 'super_admin' && entityId && entityId !== 'unassigned') {
+      if (folder === 'driver_documents') {
+        const { data: client, error: clientError } = await supabaseAdmin
+          .from('clients')
+          .select('company_id')
+          .eq('id', entityId)
+          .single();
+
+        if (clientError || !client?.company_id) {
+          return NextResponse.json({ error: 'No se pudo determinar la empresa del cliente para la subida.' }, { status: 400 });
+        }
+
+        companyId = client.company_id;
+      } else if (folder === 'vehicle_images') {
         const { data: vehicle, error: vehicleError } = await supabaseAdmin
           .from('vehicles')
           .select('company_id')
           .eq('id', entityId)
           .single();
-        
-        if (!vehicleError && vehicle) {
-            companyId = vehicle.company_id;
+
+        if (vehicleError || !vehicle?.company_id) {
+          return NextResponse.json({ error: 'No se pudo determinar la empresa del vehículo para la subida.' }, { status: 400 });
         }
+
+        companyId = vehicle.company_id;
+      }
     }
+
     if (!companyId) {
         return NextResponse.json({ error: 'No se pudo determinar la empresa para la subida.' }, { status: 400 });
     }
