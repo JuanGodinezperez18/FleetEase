@@ -79,7 +79,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
   const Icon = chart.icon;
   const isMoney = widget.dataKey === 'finance-summary-chart' || widget.dataKey === 'credit-portfolio-chart';
   const pieLabels = widget.dataKey === 'fleet-status-chart'
-    ? ['#d7ff3f', '#5f6675']
+    ? ['#d7ff3f', '#667085']
     : widget.dataKey === 'credit-portfolio-chart'
       ? ['#d7ff3f', '#f59e0b']
       : ['#d7ff3f', '#f59e0b', '#ef4444'];
@@ -93,39 +93,74 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? 'button' : 'article'}
       className={cn(
-        'group relative min-h-[300px] overflow-hidden rounded-[22px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-xl',
-        'transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:shadow-[0_24px_65px_rgba(0,0,0,.34)]',
+        'group relative min-h-[292px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d1016] p-5 shadow-[0_12px_40px_rgba(0,0,0,.18)]',
+        'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/[0.15] hover:shadow-[0_18px_48px_rgba(0,0,0,.28)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]',
         onClick && 'cursor-pointer'
       )}
     >
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">Analítica</p>
-          <h3 className="mt-1 text-base font-semibold text-white">{widget.title}</h3>
-          <p className="mt-1 text-xs text-white/35">{chart.description}</p></div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.07]"><Icon className="h-5 w-5 text-[#d7ff3f]" /></div>
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_rgba(215,255,63,.45)]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Analítica</p>
+          </div>
+          <h3 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-white">{widget.title}</h3>
+          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-white/40">{chart.description}</p>
+        </div>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] transition-colors group-hover:border-[#d7ff3f]/20 group-hover:bg-[#d7ff3f]/[0.06]">
+          <Icon className="h-[17px] w-[17px] text-white/60 transition-colors group-hover:text-[#d7ff3f]" />
+        </div>
       </div>
 
-      {!hasData ? <div className="flex h-[210px] items-center justify-center text-sm text-white/35">Sin datos para mostrar</div> : chart.kind === 'bar' ? (
-        <ResponsiveContainer width="100%" height={210}>
-          <BarChart data={chart.data} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
-            <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,.35)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={value => isMoney ? `$${money.format(value)}` : String(value)} />
-            <Tooltip cursor={{ fill: 'rgba(255,255,255,.04)' }} contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12 }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} labelStyle={{ color: 'rgba(255,255,255,.65)' }} />
-            <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#d7ff3f" isAnimationActive animationDuration={700} />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <div className="relative h-[210px]"><ResponsiveContainer width="100%" height="100%"><PieChart>
-          <Pie data={chart.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={82} paddingAngle={4} stroke="none" isAnimationActive animationDuration={700}>
-            {chart.data.map((item, index) => <Cell key={item.name} fill={pieLabels[index % pieLabels.length]} />)}
-          </Pie>
-          <Tooltip contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12 }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} />
-        </PieChart></ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-2xl font-semibold tabular-nums text-white">{isMoney ? `$${money.format(total)}` : total}</span><span className="text-[10px] uppercase tracking-wider text-white/30">{isMoney ? 'capital' : 'elementos'}</span></div>
-        </div>
-      )}
+      <div className="border-t border-white/[0.05] pt-2">
+        {!hasData ? (
+          <div className="flex h-[205px] flex-col items-center justify-center gap-2 text-center">
+            <Icon className="h-6 w-6 text-white/15" />
+            <span className="text-sm text-white/35">Sin datos para mostrar</span>
+            <span className="text-[11px] text-white/20">Prueba otro período o agrega registros.</span>
+          </div>
+        ) : chart.kind === 'bar' ? (
+          <ResponsiveContainer width="100%" height={205}>
+            <BarChart data={chart.data} margin={{ top: 14, right: 8, left: -18, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'rgba(255,255,255,.3)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={value => isMoney ? `$${money.format(value)}` : String(value)} />
+              <Tooltip
+                cursor={{ fill: 'rgba(255,255,255,.035)' }}
+                contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.3)' }}
+                formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']}
+                labelStyle={{ color: 'rgba(255,255,255,.65)' }}
+              />
+              <Bar dataKey="value" radius={[6, 6, 2, 2]} fill="#d7ff3f" isAnimationActive animationDuration={550} maxBarSize={52} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="relative h-[205px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={chart.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={57} outerRadius={79} paddingAngle={3} stroke="none" isAnimationActive animationDuration={550}>
+                  {chart.data.map((item, index) => <Cell key={item.name} fill={pieLabels[index % pieLabels.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.3)' }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-[25px] font-semibold tabular-nums tracking-tight text-white">{isMoney ? `$${money.format(total)}` : total}</span>
+              <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white/25">{isMoney ? 'capital' : 'elementos'}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/45">{chart.data.map((item, index) => <div key={item.name} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: pieLabels[index % pieLabels.length] }} /><span>{item.name}: <strong className="text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong></span></div>)}</div>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
+        {chart.data.map((item, index) => (
+          <div key={item.name} className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: pieLabels[index % pieLabels.length] }} />
+            <span>{item.name}</span>
+            <strong className="font-medium tabular-nums text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong>
+          </div>
+        ))}
+      </div>
     </article>
   );
 }
