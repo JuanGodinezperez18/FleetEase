@@ -16,17 +16,17 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative w-full">
         {isCurrencyAmount && (
-          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm font-medium text-muted-foreground" aria-hidden="true">
+          <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm font-medium text-white/40" aria-hidden="true">
             $
           </span>
         )}
         <input
           type={type}
           className={cn(
-            "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-colors",
+            "flex h-11 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-[14px] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] outline-none transition-[border-color,background-color,box-shadow] duration-150 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-white/30 hover:border-white/[0.13] hover:bg-white/[0.045] focus-visible:border-[#d7ff3f]/50 focus-visible:bg-white/[0.055] focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/10 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-white/[0.08] disabled:hover:bg-white/[0.035] md:text-sm",
             isCurrencyAmount && "pl-7 tabular-nums",
-            validationState === 'success' && "border-green-500 focus-visible:ring-green-500 pr-10",
-            validationState === 'error' && "border-red-500 focus-visible:ring-red-500 pr-10",
+            validationState === 'success' && "border-emerald-400/60 focus-visible:border-emerald-400 focus-visible:ring-emerald-400/10 pr-10",
+            validationState === 'error' && "border-red-400/70 focus-visible:border-red-400 focus-visible:ring-red-400/10 pr-10",
             className
           )}
           ref={ref}
@@ -34,10 +34,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {hasValidation && validationState === 'success' && (
-          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-in zoom-in duration-200" />
+          <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
         )}
         {hasValidation && validationState === 'error' && (
-          <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500 animate-in zoom-in duration-200" />
+          <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
         )}
       </div>
     )
