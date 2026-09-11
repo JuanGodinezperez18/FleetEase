@@ -23,14 +23,10 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
 
-  // Solo sincroniza el estado visual cuando cambia externamente el preset.
-  // No recalculamos el rango en un efecto dependiente del propio rango:
-  // eso provocaba ciclos que hacían saltar Semana/Año sin interacción del usuario.
   useEffect(() => {
     setActiveTab(dateFilterPreset);
   }, [dateFilterPreset]);
 
-  // Inicializar los valores desde un rango existente solo una vez por cambio real de preset.
   useEffect(() => {
     if (!dateRange?.from) return;
     const from = dateRange.from;
@@ -67,8 +63,16 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
     onDateChange(range);
   };
 
+  const fieldClassName =
+    'h-9 w-full min-w-[150px] rounded-xl border border-white/[0.08] bg-[#0b0e13] px-3 text-xs font-medium text-white/75 outline-none transition-colors hover:border-white/[0.14] focus:border-[#d7ff3f]/45 focus:ring-2 focus:ring-[#d7ff3f]/10';
+
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+    <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 p-1">
+      <div className="flex items-center gap-2 px-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_#d7ff3f]" aria-hidden="true" />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">Periodo</span>
+      </div>
+
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
@@ -78,30 +82,76 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
         }}
         className="w-full sm:w-auto"
       >
-        <TabsList className="grid w-full grid-cols-3 sm:w-auto">
-          <TabsTrigger value="week">Semana</TabsTrigger>
-          <TabsTrigger value="month">Mes</TabsTrigger>
-          <TabsTrigger value="year">Año</TabsTrigger>
+        <TabsList className="grid h-9 w-full grid-cols-3 gap-0.5 rounded-xl border border-white/[0.06] bg-white/[0.025] p-0.5 sm:w-[210px]">
+          <TabsTrigger value="week" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+            Semana
+          </TabsTrigger>
+          <TabsTrigger value="month" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+            Mes
+          </TabsTrigger>
+          <TabsTrigger value="year" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+            Año
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <div className="w-full sm:w-auto">
+      <div className="min-w-0 flex-1 sm:max-w-[190px]">
         {activeTab === 'week' && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="week-picker" className="text-xs text-muted-foreground">Seleccionar semana (Lunes - Domingo)</Label>
-            <input id="week-picker" type="week" value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); const [year, week] = e.target.value.split('-W').map(Number); const anchor = new Date(year, 0, 4); const from = startOfWeek(new Date(anchor.getTime() + (week - 1) * 7 * 86400000), { weekStartsOn: 1 }); const range = { from, to: endOfWeek(from, { weekStartsOn: 1 }) }; setDateRange(range); onDateChange(range); }} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="week-picker" className="sr-only">Seleccionar semana</Label>
+            <input
+              id="week-picker"
+              type="week"
+              value={selectedWeek}
+              onChange={(e) => {
+                setSelectedWeek(e.target.value);
+                const [year, week] = e.target.value.split('-W').map(Number);
+                const anchor = new Date(year, 0, 4);
+                const from = startOfWeek(new Date(anchor.getTime() + (week - 1) * 7 * 86400000), { weekStartsOn: 1 });
+                const range = { from, to: endOfWeek(from, { weekStartsOn: 1 }) };
+                setDateRange(range);
+                onDateChange(range);
+              }}
+              className={fieldClassName}
+            />
           </div>
         )}
         {activeTab === 'month' && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="month-picker" className="text-xs text-muted-foreground">Seleccionar mes completo</Label>
-            <input id="month-picker" type="month" value={selectedMonth} onChange={(e) => { setSelectedMonth(e.target.value); const date = parseISO(`${e.target.value}-01`); const range = { from: startOfMonth(date), to: endOfMonth(date) }; setDateRange(range); onDateChange(range); }} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="month-picker" className="sr-only">Seleccionar mes</Label>
+            <input
+              id="month-picker"
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                const date = parseISO(`${e.target.value}-01`);
+                const range = { from: startOfMonth(date), to: endOfMonth(date) };
+                setDateRange(range);
+                onDateChange(range);
+              }}
+              className={fieldClassName}
+            />
           </div>
         )}
         {activeTab === 'year' && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="year-picker" className="text-xs text-muted-foreground">Seleccionar año completo</Label>
-            <input id="year-picker" type="number" min="2020" max="2100" value={selectedYear} onChange={(e) => { setSelectedYear(e.target.value); const date = new Date(Number(e.target.value), 0, 1); const range = { from: startOfYear(date), to: endOfYear(date) }; setDateRange(range); onDateChange(range); }} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="year-picker" className="sr-only">Seleccionar año</Label>
+            <input
+              id="year-picker"
+              type="number"
+              min="2020"
+              max="2100"
+              value={selectedYear}
+              onChange={(e) => {
+                setSelectedYear(e.target.value);
+                const date = new Date(Number(e.target.value), 0, 1);
+                const range = { from: startOfYear(date), to: endOfYear(date) };
+                setDateRange(range);
+                onDateChange(range);
+              }}
+              className={fieldClassName}
+            />
           </div>
         )}
       </div>
