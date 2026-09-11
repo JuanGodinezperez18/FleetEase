@@ -92,41 +92,109 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={onClose}>
-          <motion.div initial={{ scale: 0.97, y: 16, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.97, y: -12, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }} onClick={e => e.stopPropagation()} className="fe-surface rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-black/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl border border-[color:var(--fe-lime)]/20 bg-[color:var(--fe-lime)]/10"><Settings className="w-5 h-5 text-[color:var(--fe-lime)]" /></div>
-                <div><h2 className="font-heading text-xl font-semibold text-foreground">Personalizar Dashboard</h2><p className="text-sm text-muted-foreground">{enabledCount} elemento{enabledCount !== 1 ? 's' : ''} activo{enabledCount !== 1 ? 's' : ''}</p></div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md sm:p-5"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.98, y: 14, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.98, y: -8, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dashboard-config-title"
+            className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)]"
+          >
+            <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
+
+            <div className="relative flex items-center justify-between border-b border-white/[0.07] px-5 py-4 sm:px-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07]">
+                  <Settings className="h-5 w-5 text-[#d7ff3f]" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="dashboard-config-title" className="truncate text-base font-semibold tracking-[-0.02em] sm:text-lg">Personalizar dashboard</h2>
+                  <p className="mt-0.5 text-[11px] text-white/35">Elige qué ves y arrastra para ordenar.</p>
+                </div>
               </div>
-              <button type="button" onClick={onClose} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={onClose} className="ml-3 rounded-xl p-2 text-white/35 transition-colors hover:bg-white/[0.05] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/40" aria-label="Cerrar personalización">
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <div className="px-6 py-4 border-b border-white/10 bg-black/5">
-              <div className="flex items-center gap-2 mb-3"><Filter className="w-4 h-4 text-[color:var(--fe-lime)]" /><span className="text-sm font-medium text-foreground">Filtrar por categoría:</span></div>
-              <div className="flex gap-2 flex-wrap">
+            <div className="relative border-b border-white/[0.07] px-5 py-4 sm:px-6">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+                  <Filter className="h-3.5 w-3.5 text-[#d7ff3f]" />
+                  Categoría
+                </div>
+                <span className="text-[10px] text-white/25">{enabledCount} activos</span>
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
                 {categories.map(cat => {
                   const count = cat === 'all' ? availableWidgets.length : availableWidgets.filter(k => k.category === cat).length;
-                  return <button type="button" key={cat} onClick={() => setSelectedCategory(cat)} className={cn('px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border', selectedCategory === cat ? 'bg-[color:var(--fe-lime)] text-black border-[color:var(--fe-lime)] shadow-[0_0_18px_rgba(215,255,63,0.18)]' : 'bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10 hover:text-foreground')}>{categoryTranslations[cat]} ({count})</button>;
+                  return (
+                    <button
+                      type="button"
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        'shrink-0 rounded-xl border px-3 py-1.5 text-[11px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/30',
+                        selectedCategory === cat
+                          ? 'border-[#d7ff3f]/30 bg-[#d7ff3f]/10 text-[#d7ff3f]'
+                          : 'border-white/[0.07] bg-white/[0.025] text-white/40 hover:border-white/[0.13] hover:bg-white/[0.045] hover:text-white/70'
+                      )}
+                    >
+                      {categoryTranslations[cat]} <span className="ml-0.5 opacity-45">{count}</span>
+                    </button>
+                  );
                 })}
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 {filteredWidgets.map(item => {
                   const widget = widgets.find(w => w.id === item.id);
                   const isEnabled = widget?.enabled || false;
                   const isChart = item.type === 'chart';
                   const Icon = isChart ? (item.id === 'finance-summary-chart' ? BarChart3 : PieChart) : (item.icon ? IconMap[item.icon as keyof typeof IconMap] : AreaChart);
                   return (
-                    <div key={item.id} draggable={isEnabled} onDragStart={e => handleDragStart(e, item.id)} onDragOver={e => handleDragOver(e, item.id)} onDrop={e => handleDrop(e, item.id)} onDragEnd={handleDragEnd} className={cn('p-4 rounded-xl border transition-all flex items-center gap-3 group', isEnabled ? 'bg-[color:var(--fe-lime)]/5 border-[color:var(--fe-lime)]/20 shadow-sm' : 'bg-white/[0.02] border-white/10 hover:border-white/20', draggedId === item.id && 'opacity-40 scale-95', overId === item.id && 'border-dashed border-[color:var(--fe-lime)]')}>
-                      {isEnabled && <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing flex-shrink-0" />}
-                      <div className={cn('p-2 rounded-lg flex-shrink-0 border', isEnabled ? 'bg-[color:var(--fe-lime)]/10 border-[color:var(--fe-lime)]/15' : 'bg-white/5 border-white/10')}><Icon className={cn('w-5 h-5', isEnabled ? 'text-[color:var(--fe-lime)]' : 'text-muted-foreground')} /></div>
-                      <button type="button" onClick={() => handleToggleWidget(item.id)} className="flex-1 text-left">
-                        <div className="flex justify-between items-start gap-2">
-                          <div><span className="font-semibold text-sm text-foreground block">{item.label ?? item.title}</span><p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">{isChart && <AreaChart className="w-3 h-3" />}{isChart ? 'Gráfico interactivo' : categoryTranslations[item.category]}</p></div>
-                          {isEnabled ? <Eye className="w-5 h-5 text-[color:var(--fe-lime)]" /> : <EyeOff className="w-5 h-5 text-muted-foreground" />}
+                    <div
+                      key={item.id}
+                      draggable={isEnabled}
+                      onDragStart={e => handleDragStart(e, item.id)}
+                      onDragOver={e => handleDragOver(e, item.id)}
+                      onDrop={e => handleDrop(e, item.id)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        'group flex items-center gap-3 rounded-2xl border p-3 transition-all',
+                        isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.035]' : 'border-white/[0.06] bg-white/[0.018] hover:border-white/[0.11] hover:bg-white/[0.03]',
+                        draggedId === item.id && 'scale-[0.98] opacity-40',
+                        overId === item.id && 'border-dashed border-[#d7ff3f]/60'
+                      )}
+                    >
+                      {isEnabled && <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-white/20 transition-colors group-hover:text-white/40 active:cursor-grabbing" aria-hidden="true" />}
+                      <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border', isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.07]' : 'border-white/[0.07] bg-white/[0.03]')}>
+                        <Icon className={cn('h-4 w-4', isEnabled ? 'text-[#d7ff3f]' : 'text-white/30')} />
+                      </div>
+                      <button type="button" onClick={() => handleToggleWidget(item.id)} className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#d7ff3f]/30">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className="block truncate text-xs font-semibold text-white/80">{item.label ?? item.title}</span>
+                            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-white/30">
+                              {isChart && <AreaChart className="h-3 w-3" />}
+                              {isChart ? 'Gráfico interactivo' : categoryTranslations[item.category]}
+                            </span>
+                          </div>
+                          <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors', isEnabled ? 'border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.06]' : 'border-white/[0.06] bg-white/[0.02]')}>
+                            {isEnabled ? <Eye className="h-3.5 w-3.5 text-[#d7ff3f]" /> : <EyeOff className="h-3.5 w-3.5 text-white/25" />}
+                          </span>
                         </div>
                       </button>
                     </div>
@@ -135,9 +203,18 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-white/10 bg-black/10 flex justify-between items-center gap-4">
-              <div className="text-sm text-muted-foreground"><span className="font-semibold text-[color:var(--fe-lime)]">{enabledCount}</span>{' '}de{' '}<span className="font-semibold text-foreground">{availableWidgets.length}</span>{' '}elementos activos</div>
-              <div className="flex gap-3"><Button type="button" onClick={onClose} variant="outline" disabled={isSaving}>Cancelar</Button><Button type="button" onClick={handleSave} disabled={isSaving} className="bg-[color:var(--fe-lime)] text-black hover:bg-[color:var(--fe-lime)]/90 shadow-[0_0_20px_rgba(215,255,63,0.16)]">{isSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><Save className="w-4 h-4 mr-2" />Guardar Cambios</>}</Button></div>
+            <div className="relative flex flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="text-[10px] text-white/30">
+                <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> elementos visibles
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-9 rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white">
+                  Cancelar
+                </Button>
+                <Button type="button" onClick={handleSave} disabled={isSaving} className="h-9 rounded-xl bg-[#d7ff3f] px-4 text-xs font-bold text-black hover:bg-[#d7ff3f]/90 shadow-[0_0_22px_rgba(215,255,63,.12)]">
+                  {isSaving ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Guardando</> : <><Save className="mr-2 h-3.5 w-3.5" />Guardar cambios</>}
+                </Button>
+              </div>
             </div>
           </motion.div>
         </motion.div>
