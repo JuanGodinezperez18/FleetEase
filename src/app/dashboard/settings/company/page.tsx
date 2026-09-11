@@ -43,7 +43,7 @@ export default function CompanySettingsPage() {
     if (company) {
       form.reset({
         defaultRentalDays: company.defaultRentalDays ?? 7,
-        maintenanceInterval: company.maintenanceInterval ?? 5000,
+        maintenanceInterval: company.maintenanceInterval ?? 10000,
         latePaymentFee: company.latePaymentFee ?? 50,
         gracePeriodDays: company.gracePeriodDays ?? 3,
         emailNotifications: company.emailNotifications ?? true,
