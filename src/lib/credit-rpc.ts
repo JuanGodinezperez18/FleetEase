@@ -30,11 +30,47 @@ function normalizeCreditRpcPayload(credit: Record<string, unknown>): Record<stri
   );
 }
 
+type SupabaseRpcError = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
+
+function normalizeRpcError(error: unknown): Error {
+  if (error instanceof Error) return error;
+
+  if (error && typeof error === 'object') {
+    const rpcError = error as SupabaseRpcError;
+    const parts = [
+      rpcError.message,
+      rpcError.code ? `Código: ${rpcError.code}` : undefined,
+      rpcError.details ? `Detalle: ${rpcError.details}` : undefined,
+      rpcError.hint ? `Sugerencia: ${rpcError.hint}` : undefined,
+    ].filter(Boolean);
+
+    if (parts.length > 0) return new Error(parts.join(' · '));
+  }
+
+  return new Error('No fue posible crear el crédito. Revisa los datos e inténtalo nuevamente.');
+}
+
 export async function createCreditAtomic(credit: Record<string, unknown>) {
   const { data, error } = await supabase.rpc('create_credit_atomic', {
     p_credit: normalizeCreditRpcPayload(credit),
   });
-  if (error) throw error;
+
+  if (error) {
+    const normalizedError = normalizeRpcError(error);
+    console.error('[Credits] create_credit_atomic failed', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw normalizedError;
+  }
+
   return data as Record<string, unknown>;
 }
 
@@ -57,6 +93,6 @@ export async function processCreditPaymentAtomic(params: {
     p_reference: params.reference ?? null,
     p_created_by: null,
   });
-  if (error) throw error;
+  if (error) throw normalizeRpcError(error);
   return data;
 }
