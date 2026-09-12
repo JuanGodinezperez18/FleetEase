@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { openSafeUrl } from '@/lib/security/safe-url';
 
 interface InspectionViewerModalProps {
   inspection: any;
@@ -65,7 +66,7 @@ export function InspectionViewerModal({
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => window.open(view.url, '_blank')}
+                      onClick={() => openSafeUrl(view.url)}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Descargar
@@ -83,6 +84,10 @@ export function InspectionViewerModal({
 
         {/* Información adicional */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+          <div>
+            <p className="text-sm text-muted-foreground">Cliente</p>
+            <p className="font-medium">{inspection.clientName}</p>
+          </div>
           <div>
             <p className="text-sm text-muted-foreground">Vehículo</p>
             <p className="font-medium">{inspection.vehicleModel}</p>
