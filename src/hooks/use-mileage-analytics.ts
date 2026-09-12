@@ -34,10 +34,6 @@ export const useMileageAnalytics = (
   financialRecords: FinancialRecord[],
   companies: Company[] = []
 ) => {
-  // Cuando el consumidor ya tiene las empresas, usamos esa fuente para evitar
-  // una consulta adicional. Si no las entrega (por ejemplo KPIs globales),
-  // consultamos la configuración vigente directamente para no caer en un
-  // intervalo fijo de mantenimiento.
   const { data: companySettings = [] } = useQuery<{ id: string; maintenanceInterval: number }[]>({
     queryKey: ['mileage-analytics-company-maintenance-settings'],
     queryFn: async () => {
@@ -51,7 +47,8 @@ export const useMileageAnalytics = (
         .map(row => ({ id: row.id, maintenanceInterval: row.maintenance_interval as number }));
     },
     enabled: companies.length === 0,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 
@@ -74,10 +71,6 @@ export const useMileageAnalytics = (
     return vehicles.map(vehicle => {
       const currentMileage = vehicle.currentMileage || 0;
       const lastMaintenanceMileage = vehicle.lastMaintenanceMileage || 0;
-
-      // La configuración vigente de la empresa es la fuente de verdad.
-      // El intervalo guardado en el vehículo solo es compatibilidad para datos
-      // antiguos cuando la empresa todavía no tiene una configuración válida.
       const maintenanceInterval = companyIntervals.get(vehicle.companyId || '')
         ?? vehicle.maintenanceInterval
         ?? DEFAULT_MAINTENANCE_INTERVAL_KM;
@@ -152,7 +145,6 @@ export const useMileageAnalytics = (
         lastMaintenanceMileage,
         kmSinceLastMaintenance,
         nextMaintenanceDue,
-        kmToNextMaintenance,
         estimatedMaintenanceDate,
         dailyAverageKm,
         totalMaintenanceCosts,
