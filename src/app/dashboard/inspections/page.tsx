@@ -1,4 +1,3 @@
-
 // app/(dashboard)/inspections/page.tsx
 'use client';
 
@@ -16,6 +15,7 @@ import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
+import { openSafeUrl } from '@/lib/security/safe-url';
 
 interface Inspection {
   id: string;
@@ -42,7 +42,6 @@ export default function InspectionsPage() {
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
 
-  // Cargar inspecciones
   useEffect(() => {
     async function loadInspections() {
       try {
@@ -53,7 +52,6 @@ export default function InspectionsPage() {
           .limit(100);
 
         if (error) throw error;
-        
         setInspections((data || []) as Inspection[]);
       } catch (error) {
         console.error('Error cargando inspecciones:', error);
@@ -65,7 +63,6 @@ export default function InspectionsPage() {
     loadInspections();
   }, []);
 
-  // Enriquecer inspecciones con datos de vehículos y clientes
   const enrichedInspections = useMemo(() => {
     return inspections.map(inspection => {
       const vehicle = rawVehicles.find(v => v.id === inspection.vehicle_id);
@@ -74,7 +71,7 @@ export default function InspectionsPage() {
       const expiresAt = inspection.expires_at ? new Date(inspection.expires_at) : null;
       const isExpired = expiresAt && expiresAt < new Date();
       const daysRemaining = expiresAt ? differenceInDays(expiresAt, new Date()) : 0;
-      
+
       return {
         ...inspection,
         vehicleName: vehicle?.alias || 'Desconocido',
@@ -89,11 +86,9 @@ export default function InspectionsPage() {
     });
   }, [inspections, rawVehicles, clients]);
 
-  // Filtrar inspecciones
   const filteredInspections = useMemo(() => {
     let filtered = enrichedInspections;
 
-    // Filtro por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(
         i =>
@@ -102,7 +97,6 @@ export default function InspectionsPage() {
       );
     }
 
-    // Filtro por estado
     if (filterStatus === 'active') {
       filtered = filtered.filter(i => !i.isExpired);
     } else if (filterStatus === 'expired') {
@@ -112,7 +106,6 @@ export default function InspectionsPage() {
     return filtered;
   }, [enrichedInspections, searchTerm, filterStatus]);
 
-  // Estadísticas
   const stats = useMemo(() => {
     return {
       total: enrichedInspections.length,
@@ -140,7 +133,6 @@ export default function InspectionsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Inspecciones de Vehículos</h1>
         <p className="text-muted-foreground mt-1">
@@ -148,7 +140,6 @@ export default function InspectionsPage() {
         </p>
       </div>
 
-      {/* Estadísticas */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -195,7 +186,6 @@ export default function InspectionsPage() {
         </Card>
       </div>
 
-      {/* Filtros */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -222,7 +212,6 @@ export default function InspectionsPage() {
         </CardHeader>
       </Card>
 
-      {/* Grid de inspecciones */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence mode="popLayout">
           {filteredInspections.map((inspection) => (
@@ -235,7 +224,6 @@ export default function InspectionsPage() {
               transition={{ duration: 0.2 }}
             >
               <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Thumbnail de la primera foto */}
                 <div className="relative h-48 bg-muted">
                   {inspection.photos.front && (
                     <img
@@ -304,7 +292,6 @@ export default function InspectionsPage() {
         </Card>
       )}
 
-      {/* Modal de visualización */}
       <InspectionViewerModal
         inspection={selectedInspection}
         isOpen={viewerOpen}
@@ -317,7 +304,6 @@ export default function InspectionsPage() {
   );
 }
 
-// Modal de visualización de fotos
 function InspectionViewerModal({
   inspection,
   isOpen,
@@ -372,7 +358,7 @@ function InspectionViewerModal({
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => window.open(view.url, '_blank')}
+                      onClick={() => openSafeUrl(view.url)}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Descargar
@@ -388,7 +374,6 @@ function InspectionViewerModal({
           ))}
         </Tabs>
 
-        {/* Información adicional */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
           <div>
             <p className="text-sm text-muted-foreground">Cliente</p>
@@ -407,9 +392,7 @@ function InspectionViewerModal({
           <div>
             <p className="text-sm text-muted-foreground">Expira en</p>
             <p className={`font-medium ${inspection.isExpired ? 'text-red-600' : ''}`}>
-              {inspection.isExpired
-                ? 'Expirada'
-                : `${inspection.daysRemaining} días`}
+              {inspection.isExpired ? 'Expirada' : `${inspection.daysRemaining} días`}
             </p>
           </div>
         </div>
