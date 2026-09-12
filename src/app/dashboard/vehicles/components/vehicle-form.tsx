@@ -72,7 +72,6 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   gpsPhoneCompany: z.string().optional().or(z.literal('')),
 });
 
-
 export type VehicleFormValues = z.infer<ReturnType<typeof createVehicleSchema>>;
 
 interface VehicleFormProps {
@@ -91,7 +90,7 @@ export interface VehicleFormHandles {
 export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, initialData, onOpenPartnerModal, isSubmitting, onClose }) => {
     const { clients, partners, credits, rawVehicles, addVehicle, updateVehicle } = useData();
     const { currentUser } = useAuth();
-    
+
     const vehicleSchema = useMemo(() => createVehicleSchema(rawVehicles, initialData?.id), [rawVehicles, initialData]);
 
     const initialValues: VehicleFormValues = useMemo(() => ({
@@ -125,7 +124,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
     const form = useForm<VehicleFormValues>({
         resolver: zodResolver(vehicleSchema),
         defaultValues: initialValues,
-        mode: 'onChange' // Validate on change to give real-time feedback
+        mode: 'onChange'
     });
 
     const hasActiveCredit = useMemo(() => {
@@ -133,7 +132,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
         return credits.some(c => c.vehicleId === initialData.id && c.status === 'active' && !c.isDeleted);
     }, [credits, initialData]);
 
-    // Handler para datos extraídos del escáner
     const handleDataExtracted = useCallback((data: {
       make?: string;
       model?: string;
@@ -143,7 +141,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       color?: string;
       registrationDate?: string;
     }) => {
-      // Aplicar los datos extraídos al formulario
       if (data.make) form.setValue('make', data.make, { shouldValidate: true });
       if (data.model) form.setValue('model', data.model, { shouldValidate: true });
       if (data.year) form.setValue('year', data.year, { shouldValidate: true });
@@ -151,10 +148,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       if (data.serialNumber) form.setValue('serialNumber', data.serialNumber.toUpperCase(), { shouldValidate: true });
       if (data.color) form.setValue('color', data.color, { shouldValidate: true });
       if (data.registrationDate) form.setValue('acquisitionDate', data.registrationDate, { shouldValidate: true });
-
-      toast.success('Datos del vehículo cargados', {
-        description: 'Revisa y completa la información faltante',
-      });
+      toast.success('Datos del vehículo cargados', { description: 'Revisa y completa la información faltante' });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -162,351 +156,134 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
         const partnersForCompany = partners.filter(p => !p.isDeleted);
         if (initialData?.partnerId) {
             const currentPartner = partners.find(p => p.id === initialData.partnerId);
-            if (currentPartner && !partnersForCompany.some(p => p.id === currentPartner.id)) {
-                partnersForCompany.push(currentPartner);
-            }
+            if (currentPartner && !partnersForCompany.some(p => p.id === currentPartner.id)) partnersForCompany.push(currentPartner);
         }
         return partnersForCompany;
     }, [partners, initialData?.partnerId]);
-    
+
     const assignableClients = useMemo(() => {
       const companyClients = clients.filter(c => c.status === 'active' && !c.isDeleted);
-      const assignedClientIds = new Set(
-        rawVehicles
-          .filter(v => v.clientId && v.id !== initialData?.id) // Excluir el vehículo actual de la lista de asignados
-          .map(v => v.clientId)
-      );
-      
+      const assignedClientIds = new Set(rawVehicles.filter(v => v.clientId && v.id !== initialData?.id).map(v => v.clientId));
       const available = companyClients.filter(c => !assignedClientIds.has(c.id));
-
-      // Si se está editando un vehículo, su cliente actual siempre debe estar en la lista
       if (initialData?.clientId) {
         const currentClient = companyClients.find(c => c.id === initialData.clientId);
-        if (currentClient && !available.some(c => c.id === currentClient.id)) {
-          available.push(currentClient);
-        }
+        if (currentClient && !available.some(c => c.id === currentClient.id)) available.push(currentClient);
       }
-
       return available;
     }, [clients, rawVehicles, initialData]);
 
     return (
-        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
-          <ScrollArea className="flex-grow pr-6 -mr-6">
-            <div className="space-y-6 p-1">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex h-full min-h-0 flex-col">
+          <div className="sticky top-0 z-20 -mx-1 mb-4 flex items-center justify-between gap-3 border-b border-white/[0.07] bg-[#0b0f14]/95 px-1 py-3 backdrop-blur-xl">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">{initialData ? "Editar vehículo" : "Nuevo vehículo"}</p>
+              <p className="mt-0.5 truncate text-sm font-medium text-white/90">{form.watch("alias") || "Completa la información del vehículo"}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="rounded-xl border-white/[0.09] bg-white/[0.025]">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90">
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Guardando..." : "Guardar vehículo"}
+              </Button>
+            </div>
+          </div>
 
-              {/* Escáner de Tarjeta de Circulación */}
+          <ScrollArea className="min-h-0 flex-grow pr-6 -mr-6">
+            <div className="space-y-6 p-1">
               {!initialData && (
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="rounded-2xl border border-[#d7ff3f]/10 bg-white/[0.025] p-5 shadow-[0_12px_35px_rgba(0,0,0,.14)]">
+                  <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-                        ¿Tienes la tarjeta de circulación?
-                      </h3>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                        Escanéala para llenar automáticamente los datos del vehículo
-                      </p>
+                      <h3 className="text-sm font-semibold text-white/90">¿Tienes la tarjeta de circulación?</h3>
+                      <p className="mt-1 text-xs text-white/50">Escanéala para llenar automáticamente los datos del vehículo</p>
                     </div>
-                    <CirculationCardScanner
-                      onDataExtracted={handleDataExtracted}
-                      disabled={isSubmitting}
-                    />
+                    <CirculationCardScanner onDataExtracted={handleDataExtracted} disabled={isSubmitting} />
                   </div>
                 </div>
               )}
 
-              {/* Vehicle Info Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                <FormField name="alias" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-2">
-                        <FormLabel>Alias del vehículo</FormLabel>
-                        <FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="make" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-2">
-                        <FormLabel>Marca</FormLabel>
-                        <FormControl><Input {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="model" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-2">
-                        <FormLabel>Modelo</FormLabel>
-                        <FormControl><Input {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="year" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-1">
-                        <FormLabel>Año</FormLabel>
-                        <FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="plate" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-1">
-                        <FormLabel>Placa</FormLabel>
-                        <FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="serialNumber" control={form.control} render={({field}) => (
-                    <FormItem className="sm:col-span-2 md:col-span-3 lg:grid-cols-4 xl:col-span-4">
-                        <FormLabel>No. Serie</FormLabel>
-                        <FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="color" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-1">
-                        <FormLabel>Color</FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="status" control={form.control} render={({field}) => (
-                    <FormItem className="xl:col-span-1">
-                        <FormLabel>Estado</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              {statusOptions.map(o=><SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Identificación</p><h3 className="text-base font-semibold text-white">Datos del vehículo</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  <FormField name="alias" control={form.control} render={({field}) => <FormItem className="xl:col-span-2"><FormLabel>Alias del vehículo</FormLabel><FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="make" control={form.control} render={({field}) => <FormItem className="xl:col-span-2"><FormLabel>Marca</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="model" control={form.control} render={({field}) => <FormItem className="xl:col-span-2"><FormLabel>Modelo</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="year" control={form.control} render={({field}) => <FormItem><FormLabel>Año</FormLabel><FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="plate" control={form.control} render={({field}) => <FormItem><FormLabel>Placa</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="serialNumber" control={form.control} render={({field}) => <FormItem className="sm:col-span-2 md:col-span-3 xl:col-span-4"><FormLabel>No. Serie</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="color" control={form.control} render={({field}) => <FormItem><FormLabel>Color</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="status" control={form.control} render={({field}) => <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger></FormControl><SelectContent>{statusOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+                </div>
+              </section>
 
-              {/* Fecha de Creación */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField name="createdAt" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <CalendarPlus className="h-4 w-4" />
-                          Fecha de Creación
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            {...field}
-                            disabled={!!initialData || isSubmitting}
-                            className={!!initialData ? "bg-muted cursor-not-allowed" : ""}
-                          />
-                        </FormControl>
-                        {!!initialData && (
-                          <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el vehículo</p>
-                        )}
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Registro</p><h3 className="text-base font-semibold text-white">Fecha de creación</h3></div></div>
+                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" {...field} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-muted cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
+              </section>
 
-              {/* GPS Info Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField name="gpsPhoneNumber" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Teléfono GPS (Opcional)</FormLabel>
-                        <FormControl><div className="relative"><Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="tel" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                 <FormField name="gpsPhoneCompany" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Compañía GPS (Opcional)</FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
-              
-              {/* Assignment Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField name="clientId" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Conductor Asignado</FormLabel>
-                          <Select onValueChange={(value) => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || hasActiveCredit}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>
-                              {assignableClients.map(c=><SelectItem key={c.id} value={c.id}>{`${c.firstname} ${c.lastname}`}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        {hasActiveCredit && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <Info className="h-3 w-3" /> No se puede cambiar el conductor, vehículo ligado a un crédito activo.
-                            </p>
-                        )}
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="partnerId" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Socio Propietario</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                                if (value === CREATE_NEW_PARTNER_VALUE) {
-                                    const currentCompanyId = form.getValues('companyId');
-                                    onOpenPartnerModal(currentCompanyId || '');
-                                } else {
-                                    field.onChange(value === NONE_SELECT_VALUE ? null : value);
-                                }
-                            }} 
-                            value={field.value ?? NONE_SELECT_VALUE} 
-                            disabled={isSubmitting}
-                          >
-                            <FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>
-                              {activePartners.map(p=><SelectItem key={p.id} value={p.id}>{`${p.firstname} ${p.lastname}`}</SelectItem>)}
-                              <SelectItem value={CREATE_NEW_PARTNER_VALUE} className="text-primary focus:bg-primary/10 focus:text-primary">
-                                <span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" /> Crear nuevo socio...</span>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Conectividad</p><h3 className="text-base font-semibold text-white">GPS</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField name="gpsPhoneNumber" control={form.control} render={({field}) => <FormItem><FormLabel>Teléfono GPS (Opcional)</FormLabel><FormControl><div className="relative"><Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="tel" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="gpsPhoneCompany" control={form.control} render={({field}) => <FormItem><FormLabel>Compañía GPS (Opcional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </section>
 
-              {/* Financials Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
-                <FormField name="cost" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Costo Adquisición</FormLabel>
-                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="weeklyRentalValue" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Renta por Semana</FormLabel>
-                        <FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                 <FormField name="adminCommission" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Comisión Admin.</FormLabel>
-                        <FormControl><div className="relative"><Input type="number" {...field} value={field.value ?? ''} className="pr-6" disabled={isSubmitting} /><span className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground">%</span></div></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="acquisitionDate" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Fecha Adquisición</FormLabel>
-                        <FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Operación</p><h3 className="text-base font-semibold text-white">Asignación</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField name="clientId" control={form.control} render={({field}) => <FormItem><FormLabel>Conductor Asignado</FormLabel><Select onValueChange={value => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || hasActiveCredit}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{assignableClients.map(c => <SelectItem key={c.id} value={c.id}>{`${c.firstname} ${c.lastname}`}</SelectItem>)}</SelectContent></Select>{hasActiveCredit && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Info className="h-3 w-3" />No se puede cambiar el conductor, vehículo ligado a un crédito activo.</p>}<FormMessage /></FormItem>} />
+                  <FormField name="partnerId" control={form.control} render={({field}) => <FormItem><FormLabel>Socio Propietario</FormLabel><Select onValueChange={value => { if (value === CREATE_NEW_PARTNER_VALUE) { onOpenPartnerModal(form.getValues('companyId') || ''); } else { field.onChange(value === NONE_SELECT_VALUE ? null : value); } }} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{activePartners.map(p => <SelectItem key={p.id} value={p.id}>{`${p.firstname} ${p.lastname}`}</SelectItem>)}<SelectItem value={CREATE_NEW_PARTNER_VALUE} className="text-primary focus:bg-primary/10 focus:text-primary"><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nuevo socio...</span></SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
+                </div>
+              </section>
 
-              {/* Mileage Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <FormField name="currentMileage" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Kilometraje Actual</FormLabel>
-                        <FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="lastMaintenanceMileage" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Último Mtto. (km)</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Finanzas</p><h3 className="text-base font-semibold text-white">Adquisición y renta</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  <FormField name="cost" control={form.control} render={({field}) => <FormItem><FormLabel>Costo Adquisición</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="weeklyRentalValue" control={form.control} render={({field}) => <FormItem><FormLabel>Renta por Semana</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="adminCommission" control={form.control} render={({field}) => <FormItem><FormLabel>Comisión Admin.</FormLabel><FormControl><div className="relative"><Input type="number" {...field} value={field.value ?? ''} className="pr-6" disabled={isSubmitting} /><span className="absolute right-2.5 top-2.5 text-xs text-muted-foreground">%</span></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="acquisitionDate" control={form.control} render={({field}) => <FormItem><FormLabel>Fecha Adquisición</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </section>
 
-              {/* Insurance Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>No. Póliza Seguro</FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-                <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Vencimiento Póliza</FormLabel>
-                        <FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-              </div>
-              
-              {/* Documents Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-4">
-                 <FormField name="imageUrl" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Imagen Vehículo</FormLabel>
-                        <FormControl>
-                            <MultipleFileInput 
-                                onFilesSelected={field.onChange} 
-                                initialValue={field.value} 
-                                accept="image/*" 
-                                multiple={false} 
-                                folder="vehicle_images"
-                                entityId={initialData?.id}
-                             />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                 )}/>
-                 <FormField name="circulationCardUrl" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Tarjeta Circulación</FormLabel>
-                        <FormControl>
-                            <MultipleFileInput 
-                                onFilesSelected={field.onChange} 
-                                initialValue={field.value} 
-                                accept="image/*,application/pdf" 
-                                multiple={false} 
-                                folder="driver_documents"
-                                entityId={initialData?.id}
-                            />
-                        </FormControl>
-                         <FormMessage />
-                    </FormItem>
-                 )}/>
-                 <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => (
-                    <FormItem>
-                        <FormLabel>Póliza Seguro</FormLabel>
-                        <FormControl>
-                            <MultipleFileInput 
-                                onFilesSelected={field.onChange} 
-                                initialValue={field.value} 
-                                accept="image/*,application/pdf" 
-                                multiple={false}
-                                folder="driver_documents"
-                                entityId={initialData?.id}
-                            />
-                        </FormControl>
-                         <FormMessage />
-                    </FormItem>
-                 )}/>
-              </div>
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Mantenimiento</p><h3 className="text-base font-semibold text-white">Kilometraje</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField name="currentMileage" control={form.control} render={({field}) => <FormItem><FormLabel>Kilometraje Actual</FormLabel><FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="lastMaintenanceMileage" control={form.control} render={({field}) => <FormItem><FormLabel>Último Mtto. (km)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Protección</p><h3 className="text-base font-semibold text-white">Seguro</h3></div></div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => <FormItem><FormLabel>No. Póliza Seguro</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => <FormItem><FormLabel>Vencimiento Póliza</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Archivos</p><h3 className="text-base font-semibold text-white">Documentos y fotografía</h3></div></div>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+                  <FormField name="imageUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Imagen Vehículo</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*" multiple={false} folder="vehicle_images" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Póliza Seguro</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </section>
             </div>
           </ScrollArea>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? 'Guardando...' : 'Guardar'}
+          <div className="flex justify-end gap-2 border-t border-white/[0.07] bg-[#0b0f14]/95 pt-4 backdrop-blur-xl">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="rounded-xl border-white/[0.09] bg-white/[0.025]">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting ? 'Guardando...' : 'Guardar vehículo'}
             </Button>
           </div>
         </form>
-        </Form>
+      </Form>
     );
 };
 
 VehicleForm.displayName = "VehicleForm";
-
-    
