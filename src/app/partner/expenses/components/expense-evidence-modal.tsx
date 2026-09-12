@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/utils';
 import type { FinancialRecord, Vehicle } from '@/types';
 import { useState } from 'react';
 import Image from 'next/image';
+import { openSafeUrl } from '@/lib/security/safe-url';
 
 interface ExpenseEvidenceModalProps {
   expense: FinancialRecord;
@@ -88,31 +89,26 @@ export function ExpenseEvidenceModal({
                 {format(new Date(expense.date), 'PPP', { locale: es })}
               </p>
             </div>
-            
             <div>
               <p className="text-sm text-muted-foreground">Categoría</p>
               <Badge variant="outline" className="mt-1">{expense.category}</Badge>
             </div>
-
             <div>
               <p className="text-sm text-muted-foreground">Vehículo</p>
               <p className="font-medium">{vehicle?.alias || 'N/A'}</p>
             </div>
-
             <div>
               <p className="text-sm text-muted-foreground">Monto</p>
               <p className="text-xl font-bold text-red-600">
                 {formatCurrency(expense.amount)}
               </p>
             </div>
-
             {expense.description && (
               <div className="md:col-span-2">
                 <p className="text-sm text-muted-foreground">Descripción</p>
                 <p className="font-medium mt-1">{expense.description}</p>
               </div>
             )}
-
             {expense.notes && (
               <div className="md:col-span-2">
                 <p className="text-sm text-muted-foreground">Notas</p>
@@ -175,7 +171,7 @@ export function ExpenseEvidenceModal({
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => window.open(evidence.url, '_blank')}
+                          onClick={() => openSafeUrl(evidence.url)}
                         >
                           <ImageIcon className="mr-2 h-4 w-4" />
                           Ver en Pantalla Completa
