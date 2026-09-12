@@ -115,7 +115,8 @@ export const useVehicleAnalytics = (
           .map(row => [row.id, row.maintenance_interval as number])
       );
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 
