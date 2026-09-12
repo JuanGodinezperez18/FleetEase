@@ -1,8 +1,10 @@
 // next.config.mjs
 //
 // Security headers that do not require a per-request value live here.
-// The Content-Security-Policy is intentionally generated in proxy.ts so
-// production can use a unique nonce and reject unsafe inline JavaScript.
+// The Content-Security-Policy is also emitted here as a fallback so that
+// platforms/security scanners that inspect the framework response headers
+// receive a CSP even if the per-request proxy is bypassed or unavailable.
+// proxy.ts still emits the stronger nonce-based CSP at request time.
 //
 // typescript.ignoreBuildErrors: TEMPORAL. El proyecto tiene errores de
 // TypeScript preexistentes; esto permite desplegar mientras se corrigen
@@ -19,7 +21,9 @@ const nextConfig = {
   },
 
   // Security: Headers HTTPS y protección del navegador.
-  // CSP se gestiona dinámicamente en proxy.ts para poder usar nonces.
+  // CSP también se gestiona dinámicamente en proxy.ts con nonce por petición.
+  // Este CSP estático funciona como fallback y las políticas CSP múltiples
+  // se aplican de forma acumulativa en el navegador.
   async headers() {
     return [
       {
@@ -52,6 +56,13 @@ const nextConfig = {
           {
             key: 'Cross-Origin-Embedder-Policy',
             value: 'require-corp',
+          },
+          {
+            // Fallback CSP for scanners and responses where proxy.ts is not
+            // executed. The request-level nonce policy remains authoritative
+            // for normal application responses.
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.googleapis.com https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests;",
           },
         ],
       },
