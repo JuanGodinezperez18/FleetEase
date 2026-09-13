@@ -39,6 +39,8 @@ export type MonthlyCashFlow = {
 export type FinancialAnalytics = {
   totalIncome: number;
   todayIncome: number;
+  totalCashIncome: number;
+  todayCashIncome: number;
   totalExpenses: number;
   todayExpenses: number;
   netProfit: number;
@@ -65,7 +67,7 @@ export const useFinancialAnalytics = (
   const analytics = useMemo(() => {
     const now = new Date();
     const defaultAnalytics: FinancialAnalytics = {
-      totalIncome: 0, todayIncome: 0, totalExpenses: 0, todayExpenses: 0, netProfit: 0, profitMargin: 0,
+      totalIncome: 0, todayIncome: 0, totalCashIncome: 0, todayCashIncome: 0, totalExpenses: 0, todayExpenses: 0, netProfit: 0, profitMargin: 0,
       avgTransactionValue: 0, avgRevenuePerClient: 0,
       monthlyGrowth: { income: 0, profit: 0, expenses: 0 },
       cashFlowAnalysis: [], expenseCategories: [], incomeCategories: [],
@@ -82,9 +84,13 @@ export const useFinancialAnalytics = (
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: todayStart, to: todayEnd });
     const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
 
+    // Ingreso operativo: renta/ingresos ganados. No incluye crédito otorgado ni depósitos.
     const todayIncome = sumRentalIncome(todayRecords, depositCategoryIds);
-    const todayExpenses = sumExpense(todayRecords);
     const totalIncome = sumRentalIncome(filteredRecords, depositCategoryIds);
+    // Flujo de entrada de efectivo: ingreso operativo + pagos de créditos cobrados.
+    const todayCashIncome = todayIncome + sumPayment(todayRecords);
+    const totalCashIncome = totalIncome + sumPayment(filteredRecords);
+    const todayExpenses = sumExpense(todayRecords);
     const totalExpenses = sumExpense(filteredRecords);
 
     const categoryMap = new Map<string, string>();
@@ -97,7 +103,7 @@ export const useFinancialAnalytics = (
     const clientsWithRevenueInPeriod = new Set<string>();
 
     filteredRecords.forEach(record => {
-      if (record.type === 'income' && !record.creditGranted && !depositCategoryIds.has(record.categoryId || '')) {
+      if (record.type === 'income' && !record.creditGranted && !depositCategoryIds.has(record.categoryId || '') && record.category !== 'Depósito en Garantía') {
         const categoryName = record.categoryId && categoryMap.has(record.categoryId) ? categoryMap.get(record.categoryId)! : (record.category || 'Sin Categoría');
         incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + record.amount;
         if (record.clientId) {
@@ -106,6 +112,9 @@ export const useFinancialAnalytics = (
         }
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + record.amount;
       } else if (record.type === 'payment') {
+        // Los pagos de crédito sí son entrada de efectivo y deben aparecer en Ingresos.
+        const categoryName = record.categoryId && categoryMap.has(record.categoryId) ? categoryMap.get(record.categoryId)! : (record.category || 'Pago de Crédito');
+        incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + record.amount;
         if (record.clientId) clientValueMap[record.clientId] = (clientValueMap[record.clientId] || 0) + record.amount;
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + record.amount;
       } else if (record.type === 'expense') {
@@ -138,7 +147,7 @@ export const useFinancialAnalytics = (
       const income = sumRentalIncome(monthRecords, depositCategoryIds);
       const expenses = sumExpense(monthRecords);
       const payments = sumPayment(monthRecords);
-      return { period: format(date, 'MMM yy', { locale: es }), income, expenses, payments, netFlow: income - expenses };
+      return { period: format(date, 'MMM yy', { locale: es }), income, expenses, payments, netFlow: income + payments - expenses };
     });
 
     const calculateChange = (current: number, previous: number) => {
@@ -150,10 +159,12 @@ export const useFinancialAnalytics = (
     const prevPeriodEnd = subDays(dateRange.from, 1);
     const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
     const prevMonthIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
+    const prevMonthPayments = sumPayment(prevMonthRecords);
+    const prevMonthCashIncome = prevMonthIncome + prevMonthPayments;
     const prevMonthExpenses = sumExpense(prevMonthRecords);
     const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
     const monthlyGrowth = {
-      income: calculateChange(totalIncome, prevMonthIncome),
+      income: calculateChange(totalCashIncome, prevMonthCashIncome),
       expenses: calculateChange(totalExpenses, prevMonthExpenses),
       profit: calculateChange(totalIncome - totalExpenses, prevMonthProfit),
     };
@@ -169,7 +180,7 @@ export const useFinancialAnalytics = (
     const vehicleMap = new Map((vehicles || []).map(v => [v.id, `${v.make} ${v.model} (${v.plate})`]));
     const topVehicles = Object.entries(vehicleValueMap).map(([id, netValue]) => ({ id, name: vehicleMap.get(id) || 'Vehículo Desconocido', netValue })).sort((a,b) => b.netValue - a.netValue).slice(0, 10);
 
-    return { totalIncome, todayIncome, totalExpenses, todayExpenses, netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth, cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis };
+    return { totalIncome, todayIncome, totalCashIncome, todayCashIncome, totalExpenses, todayExpenses, netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth, cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis };
   }, [financialRecords, clients, vehicles, dateRange, financialCategories]);
 
   return analytics;
