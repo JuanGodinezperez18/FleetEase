@@ -2,6 +2,7 @@
 -- public.payment_status does not contain 'partial'. Partial payments remain pending
 -- until the schedule is fully paid; overdue schedules are also eligible for payment.
 -- credit_payment_schedules also has no updated_at column in the live schema.
+-- credits.status uses public.credit_status, so status assignments are explicitly cast.
 
 create or replace function public.process_credit_payment_atomic(
   p_company_id uuid,
@@ -94,10 +95,9 @@ begin
     paid_amount=v_new_paid,
     remaining_balance=v_new_remaining,
     payments_made=v_payments_made,
-    status=case when v_completed then 'completed' else 'active' end,
+    status=(case when v_completed then 'completed' else 'active' end)::public.credit_status,
     last_payment_date=p_payment_date,
-    last_payment_amount=p_amount,
-    updated_at=now()
+    last_payment_amount=p_amount
   where id=p_credit_id and company_id=v_company_id;
 
   if v_completed then
