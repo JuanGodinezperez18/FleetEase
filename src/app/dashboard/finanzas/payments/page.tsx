@@ -28,6 +28,21 @@ type LinkRow = { target_financial_record_id: string; source_financial_record_id:
 
 const SECURITY_DEPOSIT_CATEGORY = "Depósito en Garantía";
 
+function getSupabaseErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const e = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const parts = [
+      typeof e.message === "string" ? e.message : "",
+      typeof e.code === "string" ? `Código: ${e.code}` : "",
+      typeof e.details === "string" ? e.details : "",
+      typeof e.hint === "string" ? `Ayuda: ${e.hint}` : "",
+    ].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
+  }
+  return "Error inesperado.";
+}
+
 export default function PaymentsPage() {
   const { financialRecords, financialCategories, clients, partners, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
   const { currentUser } = useAuth();
@@ -188,10 +203,15 @@ export default function PaymentsPage() {
         if (!data) throw new Error("La base de datos no devolvió el pago creado.");
         toast.success("Pago registrado", { description: "El movimiento quedó separado de Ingresos y con trazabilidad financiera." });
       }
-      await refreshData();
+
       reset();
+      try {
+        await refreshData();
+      } catch (refreshError) {
+        console.warn("Pago registrado correctamente, pero no se pudo actualizar la vista automáticamente.", refreshError);
+      }
     } catch (error) {
-      toast.error("No se pudo registrar la operación", { description: error instanceof Error ? error.message : "Error inesperado." });
+      toast.error("No se pudo registrar la operación", { description: getSupabaseErrorMessage(error) });
     } finally { setSaving(false); }
   };
 
