@@ -3,6 +3,7 @@
 -- until the schedule is fully paid; overdue schedules are also eligible for payment.
 -- credit_payment_schedules also has no updated_at column in the live schema.
 -- credits.status uses public.credit_status, so status assignments are explicitly cast.
+-- public.audit_action does not contain 'payment'; payment creation is logged as 'create'.
 
 create or replace function public.process_credit_payment_atomic(
   p_company_id uuid,
@@ -115,7 +116,7 @@ begin
     (v_company_id,p_client_id,v_credit.vehicle_id,v_category_id,v_category_name,'payment',p_amount,coalesce(p_payment_method,'transferencia'),coalesce(p_reference,'Pago de crédito'),p_payment_date,p_credit_id,true,v_payments_made,v_first_schedule_id,false,v_uid,now(),now());
 
   insert into public.audit_logs(action,entity_type,entity_id,entity_name,user_id,user_name,"timestamp",changes,company_id)
-  values ('payment','credit',p_credit_id,'Pago de crédito',v_uid,null,now(),jsonb_build_object('amount',p_amount,'remaining_balance',v_new_remaining,'completed',v_completed),v_company_id);
+  values ('create'::public.audit_action,'credit',p_credit_id,'Pago de crédito',v_uid,null,now(),jsonb_build_object('amount',p_amount,'remaining_balance',v_new_remaining,'completed',v_completed),v_company_id);
 
   return jsonb_build_object('success',true,'creditId',p_credit_id,'credit_id',p_credit_id,'newCreditBalance',v_new_remaining,'new_remaining_balance',v_new_remaining,'remaining_balance',v_new_remaining,'paymentScheduleId',v_first_schedule_id,'payment_schedule_id',v_first_schedule_id,'creditCompleted',v_completed,'credit_completed',v_completed,'paymentsMade',v_payments_made);
 end;
