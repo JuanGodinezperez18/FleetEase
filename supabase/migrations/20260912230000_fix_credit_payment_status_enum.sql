@@ -1,6 +1,7 @@
--- Fix production enum mismatch in process_credit_payment_atomic.
+-- Fix production enum/schema mismatches in process_credit_payment_atomic.
 -- public.payment_status does not contain 'partial'. Partial payments remain pending
 -- until the schedule is fully paid; overdue schedules are also eligible for payment.
+-- credit_payment_schedules also has no updated_at column in the live schema.
 
 create or replace function public.process_credit_payment_atomic(
   p_company_id uuid,
@@ -73,9 +74,8 @@ begin
 
     update public.credit_payment_schedules set
       paid_amount=round(coalesce(paid_amount,0)+v_applied,2),
-      status=case when round(coalesce(paid_amount,0)+v_applied,2)>=round(amount,2) then 'paid' else 'pending' end,
-      paid_date=case when round(coalesce(paid_amount,0)+v_applied,2)>=round(amount,2) then p_payment_date else paid_date end,
-      updated_at=now()
+      status=(case when round(coalesce(paid_amount,0)+v_applied,2)>=round(amount,2) then 'paid' else 'pending' end)::public.payment_status,
+      paid_date=case when round(coalesce(paid_amount,0)+v_applied,2)>=round(amount,2) then p_payment_date else paid_date end
     where id=v_schedule.id;
 
     if round(coalesce(v_schedule.paid_amount,0)+v_applied,2)>=round(v_schedule.amount,2) then
