@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useParams } from 'next/navigation';
@@ -46,8 +45,25 @@ export default function CreditDetailPage() {
   const scheduleColumns: ColumnDef<CreditPaymentSchedule>[] = [
     { accessorKey: 'paymentNumber', header: 'Pago #' },
     { accessorKey: 'dueDate', header: 'Fecha Vencimiento', cell: ({ row }) => format(new Date(row.original.dueDate), "PPP", { locale: es }) },
-    { accessorKey: 'status', header: 'Estado', cell: ({ row }) => { const status = row.original.status; if (status === 'paid') return <Badge className="bg-green-100 text-green-800"><Check className="mr-1 h-3 w-3" /> Pagado</Badge>; if (status === 'cancelled') return <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" />Cancelado</Badge>; return <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />Pendiente</Badge>; } },
-    { accessorKey: 'amount', header: 'Monto', cell: ({ row }) => formatCurrency(row.original.amount) },
+    { accessorKey: 'status', header: 'Estado', cell: ({ row }) => {
+      const schedulePayment = row.original;
+      const paidAmount = Number(schedulePayment.paidAmount || 0);
+      const amount = Number(schedulePayment.amount || 0);
+      const isPartial = paidAmount > 0 && paidAmount < amount && schedulePayment.status !== 'cancelled';
+      if (schedulePayment.status === 'paid') return <Badge className="bg-green-100 text-green-800"><Check className="mr-1 h-3 w-3" /> Pagado</Badge>;
+      if (schedulePayment.status === 'cancelled') return <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" />Cancelado</Badge>;
+      if (isPartial) return <Badge variant="outline" className="border-amber-500 text-amber-700"><Clock className="mr-1 h-3 w-3" />Abono parcial</Badge>;
+      return <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />Pendiente</Badge>;
+    } },
+    { accessorKey: 'amount', header: 'Cuota', cell: ({ row }) => formatCurrency(row.original.amount) },
+    { id: 'paidAmount', header: 'Abonado', cell: ({ row }) => {
+      const paidAmount = Number(row.original.paidAmount || 0);
+      return <span className={paidAmount > 0 ? 'font-semibold text-green-600' : 'text-muted-foreground'}>{formatCurrency(paidAmount)}</span>;
+    } },
+    { id: 'remainingAmount', header: 'Pendiente', cell: ({ row }) => {
+      const remaining = Math.max(Number(row.original.amount || 0) - Number(row.original.paidAmount || 0), 0);
+      return <span className={remaining > 0 ? 'font-semibold' : 'text-muted-foreground'}>{formatCurrency(remaining)}</span>;
+    } },
     { accessorKey: 'paidDate', header: 'Fecha de Pago', cell: ({ row }) => row.original.paidDate ? format(new Date(row.original.paidDate), "PPP", { locale: es }) : '-' },
   ];
 
@@ -105,7 +121,7 @@ export default function CreditDetailPage() {
           <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Fecha de Inicio</p><p className="font-semibold">{format(new Date(credit.startDate), "PPP", { locale: es })}</p></div>
         </div><div><p className="text-sm text-muted-foreground mb-1">Progreso del Crédito</p><Progress value={progress} className="h-2.5" /><p className="text-xs text-muted-foreground mt-1 text-right">{credit.paymentsMade} de {credit.numberOfPayments} pagos realizados ({progress.toFixed(1)}%)</p></div></CardContent>
       </Card>
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5"/> Calendario de Pagos</CardTitle><CardDescription>Plan de pagos completo para este crédito.</CardDescription></CardHeader><CardContent><DataTable columns={scheduleColumns} data={schedule} noResultsText="No hay calendario de pagos para este crédito." /></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5"/> Calendario de Pagos</CardTitle><CardDescription>Plan de pagos completo. Los abonos mayores a una cuota se aplican automáticamente a las siguientes cuotas.</CardDescription></CardHeader><CardContent><DataTable columns={scheduleColumns} data={schedule} noResultsText="No hay calendario de pagos para este crédito." /></DataTable></CardContent></Card>
       <Card><CardHeader><CardTitle>Historial de Pagos Registrados ({payments.length})</CardTitle><CardDescription>Lista de todas las transacciones de abono registradas para este crédito.</CardDescription></CardHeader><CardContent><div className="space-y-3">{payments.map(payment => { const categoryName = getCategoryName(payment.categoryId); return <div key={payment.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50"><div><p className="font-semibold text-green-600">{formatCurrency(payment.amount)}</p><p className="text-sm text-muted-foreground">{format(new Date(payment.date), "PPP", { locale: es })}</p></div><Badge variant={categoryName === "Pago de Crédito" ? 'default' : 'secondary'}>{categoryName}</Badge></div>; })}{payments.length === 0 && <p className="text-sm text-muted-foreground">No hay pagos registrados para este crédito.</p>}</div></CardContent></Card>
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Registrar Pago de Crédito</DialogTitle><DialogDescription>El pago se aplicará automáticamente a las cuotas pendientes en orden.</DialogDescription></DialogHeader><div className="space-y-4"><div><Label htmlFor="paymentAmount">Monto del pago</Label><Input id="paymentAmount" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Método de pago</Label><select className="w-full border rounded-md h-10 px-3 bg-background" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="cheque">Cheque</option></select></div></div><DialogFooter><Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} disabled={isSubmittingPayment}>Cancelar</Button><Button onClick={handleRegisterPayment} disabled={isSubmittingPayment}>{isSubmittingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}Registrar Pago</Button></DialogFooter></DialogContent></Dialog>
     </div>
