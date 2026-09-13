@@ -1,58 +1,66 @@
-
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState, useRef, useCallback } from "react";
-import { format, parseISO } from "date-fns";
-import { useFinances } from '@/contexts/providers/finances-provider';
-import { useVehicles } from '@/contexts/providers/vehicles-provider';
-import { useClients } from '@/contexts/providers/clients-provider';
-import { useData } from '@/contexts/data-provider';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
+import { format } from "date-fns";
+import { supabase } from "@/lib/supabase";
+import { useFinances } from "@/contexts/providers/finances-provider";
+import { useVehicles } from "@/contexts/providers/vehicles-provider";
+import { useClients } from "@/contexts/providers/clients-provider";
+import { useData } from "@/contexts/data-provider";
 import type { FinancialRecord, Company, FinancialCategory } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MultipleFileInput } from "@/components/common/multiple-file-input";
 import { infallibleNormalizeDate } from "@/lib/date-utils";
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/auth-provider';
-import { Building, PlusCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-provider";
+import { Loader2, Plus, PlusCircle, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FormModal } from '@/components/common/form-modal';
+import { FormModal } from "@/components/common/form-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useStorage } from "@/hooks/use-storage";
-import { PARTNER_PAYMENT_CATEGORY_ID } from '@/contexts/finance-constants';
+import { PARTNER_PAYMENT_CATEGORY_ID } from "@/contexts/finance-constants";
 
 const newCategoryValue = "createNewCategory";
+const NONE_SELECT_VALUE = "@none";
+
+const lineSchema = z.object({
+  concept: z.string().trim().min(1, "El concepto es obligatorio."),
+  amount: z.coerce.number({ invalid_type_error: "El importe debe ser un número." }).positive("El importe debe ser mayor que cero."),
+  catalogItemId: z.string().nullable().optional(),
+  quantity: z.coerce.number().positive().default(1),
+  unitAmount: z.coerce.number().nonnegative().optional(),
+  partNumber: z.string().nullable().optional(),
+  warrantyDays: z.coerce.number().int().nonnegative().nullable().optional(),
+  warrantyExpiresAt: z.string().nullable().optional(),
+});
 
 const expenseSchema = z.object({
   date: z.string().min(1, "La fecha es obligatoria."),
   clientId: z.string().optional().nullable(),
   vehicleId: z.string().min(1, "Debe seleccionar un vehículo."),
-  amount: z.coerce.number({
-    required_error: "El monto es obligatorio.",
-    invalid_type_error: "El monto debe ser un número."
-  }).positive("El monto debe ser mayor que cero."),
-  description: z.string().min(1, "La descripción es obligatoria."),
+  items: z.array(lineSchema).min(1, "Agrega al menos un concepto de gasto."),
+  description: z.string().optional(),
   categoryId: z.string().min(1, "La categoría es obligatoria."),
   mileageAtExpense: z.preprocess(
-    (val) => (val === '' || val === undefined) ? undefined : Number(String(val).replace(/\D/g, '')),
+    (val) => (val === "" || val === undefined) ? undefined : Number(String(val).replace(/\D/g, "")),
     z.number().optional(),
   ),
   evidenceUrls: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   companyId: z.string().optional().nullable(),
-  paymentMethod: z.enum(['company_pays_for_partner', 'partner_pays', 'company_absorbs']).default('company_pays_for_partner'),
+  paymentMethod: z.enum(["company_pays_for_partner", "partner_pays", "company_absorbs"]).default("company_pays_for_partner"),
 });
 
 export type ExpensesFormValues = z.infer<typeof expenseSchema>;
 
 const baseNewCategorySchema = z.object({
-    name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
-    affects: z.enum(['client_balance', 'partner_balance', 'none']),
-    description: z.string().optional(),
-    companyId: z.string().optional().nullable(),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
+  affects: z.enum(["client_balance", "partner_balance", "none"]),
+  description: z.string().optional(),
+  companyId: z.string().optional().nullable(),
 });
 type NewCategoryFormValues = z.infer<typeof baseNewCategorySchema>;
 
@@ -65,523 +73,228 @@ interface ExpensesFormProps {
   onClose: () => void;
 }
 
-export interface ExpensesFormHandles {
-  submit: () => void;
+export interface ExpensesFormHandles { submit: () => void; }
+
+interface CatalogItem {
+  id: string;
+  name: string;
+  part_number: string | null;
+  brand: string | null;
+  unit: string;
+  default_cost: number | null;
+  warranty_days: number | null;
+  compatibility: string | null;
 }
 
-interface NewCategoryFormHandles {
-  submit: () => void;
-}
+const emptyLine = () => ({
+  concept: "",
+  amount: 0,
+  catalogItemId: null,
+  quantity: 1,
+  unitAmount: undefined,
+  partNumber: null,
+  warrantyDays: null,
+  warrantyExpiresAt: null,
+});
 
-const NONE_SELECT_VALUE = "@none";
+const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated, type, companies }: { open: boolean; onOpenChange: (open: boolean) => void; onCategoryCreated: (category: FinancialCategory) => void; type: "income" | "expense"; companies: Company[] }) => {
+  const { addFinancialCategory } = useFinances();
+  const { currentUser } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [affects, setAffects] = useState<FinancialCategory["affects"]>("none");
+  const [description, setDescription] = useState("");
+  const [companyId, setCompanyId] = useState<string | null>(currentUser?.companyId || null);
 
-// Sub-component for new category modal
-const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated, type, companies }: { open: boolean, onOpenChange: (open: boolean) => void, onCategoryCreated: (category: FinancialCategory) => void, type: 'income' | 'expense', companies: Company[] }) => {
-    const { addFinancialCategory } = useFinances();
-    const { currentUser } = useAuth();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const formRef = useRef<NewCategoryFormHandles>(null);
+  useEffect(() => {
+    if (open) {
+      setName(""); setAffects("none"); setDescription(""); setCompanyId(currentUser?.companyId || null);
+    }
+  }, [open, currentUser?.companyId]);
 
-    const NewCategoryForm = forwardRef<NewCategoryFormHandles, { onSubmit: (data: NewCategoryFormValues) => void }>(({ onSubmit }, ref) => {
-        
-        const newCategorySchema = useMemo(() => {
-            const schema = baseNewCategorySchema;
-            if (currentUser?.role === 'superAdmin') {
-                return schema.superRefine((data, ctx) => {
-                    if (!data.companyId) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            message: "Como Super Admin, debe seleccionar una empresa.",
-                            path: ['companyId'],
-                        });
-                    }
-                });
-            }
-            return schema;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [currentUser?.role]);
+  const save = async () => {
+    if (name.trim().length < 2 || (currentUser?.role === "superAdmin" && !companyId)) return;
+    setSaving(true);
+    try {
+      const created = await addFinancialCategory({ name: name.trim(), type, affects, description: description.trim() || undefined, companyId: companyId || currentUser?.companyId }, true);
+      if (!created) throw new Error("No se pudo crear la categoría.");
+      toast.success(`Categoría "${created.name}" creada.`);
+      onCategoryCreated(created);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error("Error al crear categoría", { description: error instanceof Error ? error.message : "Error desconocido" });
+    } finally { setSaving(false); }
+  };
 
-        const form = useForm<NewCategoryFormValues>({
-            resolver: zodResolver(newCategorySchema),
-            defaultValues: { 
-                name: '', 
-                affects: 'none', 
-                description: '',
-                companyId: currentUser?.companyId || null
-            },
-        });
-        
-        const submitButtonRef = useRef<HTMLButtonElement>(null);
-
-        useImperativeHandle(ref, () => ({
-            submit: () => submitButtonRef.current?.click(),
-        }));
-
-        const affectsOptions: { value: FinancialCategory['affects']; label: string }[] = [
-            { value: 'client_balance', label: 'Balance de Cliente' },
-            { value: 'partner_balance', label: 'Balance de Socio' },
-            { value: 'none', label: 'Ninguno / Contabilidad Interna' }
-        ];
-
-        return (
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    {currentUser?.role === 'superAdmin' && (
-                        <FormField
-                            control={form.control}
-                            name="companyId"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Empresa</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar empresa..." />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {companies.map((company) => (
-                                            <SelectItem key={company.id} value={company.id}>
-                                                {company.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    )}
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nombre de la nueva categoría</FormLabel>
-                            <FormControl><Input {...field} placeholder="Ej: Gestoría Vehicular" /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                     <FormField
-                        control={form.control}
-                        name="affects"
-                        render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Afecta a</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Seleccione a quién afecta..." />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {affectsOptions.map(opt => (
-                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Descripción (Opcional)</FormLabel>
-                            <FormControl><Textarea {...field} placeholder="Explica cómo se usa esta categoría." /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <Button type="submit" ref={submitButtonRef} className="hidden" />
-                </form>
-            </Form>
-        );
-    });
-    NewCategoryForm.displayName = 'NewCategoryForm';
-    
-    const handleSubmit = async (data: NewCategoryFormValues) => {
-        setIsSubmitting(true);
-        try {
-            const newCategoryData: Omit<FinancialCategory, 'id'> = { 
-                name: data.name, 
-                type, 
-                affects: data.affects, 
-                description: data.description,
-                companyId: data.companyId || currentUser?.companyId,
-            };
-            const newCategory = await addFinancialCategory(newCategoryData, true); // true to get the object back
-            if (newCategory) {
-                toast.success(`Categoría "${newCategory.name}" creada.`);
-                onCategoryCreated(newCategory);
-            }
-            onOpenChange(false);
-        } catch (error) {
-            const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "Error desconocido");
-            toast.error("Error al crear categoría", { description: getErrorMessage(error) });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <FormModal isOpen={open} onClose={() => onOpenChange(false)} title={`Crear Nueva Categoría de ${type === 'income' ? 'Ingreso' : 'Gasto'}`}>
-            <NewCategoryForm ref={formRef} onSubmit={handleSubmit} />
-        </FormModal>
-    );
+  return (
+    <FormModal isOpen={open} onClose={() => onOpenChange(false)} title={`Crear Nueva Categoría de ${type === "income" ? "Ingreso" : "Gasto"}`}>
+      <div className="space-y-4">
+        {currentUser?.role === "superAdmin" && (
+          <div className="space-y-2"><FormLabel>Empresa</FormLabel><Select value={companyId || ""} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+        )}
+        <div className="space-y-2"><FormLabel>Nombre de la nueva categoría</FormLabel><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Taller de carrocería" /></div>
+        <div className="space-y-2"><FormLabel>Afecta a</FormLabel><Select value={affects} onValueChange={v => setAffects(v as FinancialCategory["affects"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="client_balance">Balance de Cliente</SelectItem><SelectItem value="partner_balance">Balance de Socio</SelectItem><SelectItem value="none">Ninguno / Empresa</SelectItem></SelectContent></Select></div>
+        <div className="space-y-2"><FormLabel>Descripción (Opcional)</FormLabel><Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe cómo se utiliza esta categoría." /></div>
+        <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button><Button onClick={() => void save()} disabled={saving || name.trim().length < 2 || (currentUser?.role === "superAdmin" && !companyId)}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear categoría</Button></div>
+      </div>
+    </FormModal>
+  );
 };
 
+const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSubmit, initialData, companies, expenseCategories, isSubmitting, onClose }, ref) => {
+  const { vehicles } = useVehicles();
+  const { clients } = useClients();
+  const { selectedCompanyId: globalCompanyId } = useData();
+  const { currentUser } = useAuth();
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
 
-const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(
-  ({ onSubmit, initialData, companies, expenseCategories, isSubmitting, onClose }, ref) => {
-    const { vehicles } = useVehicles();
-    const { clients } = useClients();
-    const { selectedCompanyId: globalCompanyId } = useData();
-    const { currentUser } = useAuth();
-    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
-    
-    const defaultValues = useMemo(() => {
-        const companyCtx = initialData?.companyId || (currentUser?.role !== 'superAdmin' ? currentUser?.companyId : globalCompanyId) || null;
-        
-        return {
-            date: initialData?.date ? format(infallibleNormalizeDate(initialData.date)!, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-            clientId: initialData?.clientId || NONE_SELECT_VALUE,
-            vehicleId: initialData?.vehicleId || '',
-            amount: initialData?.amount ?? undefined,
-            description: initialData?.description || '',
-            categoryId: initialData?.categoryId || '',
-            mileageAtExpense: initialData?.mileageAtExpense ?? undefined,
-            evidenceUrls: initialData?.evidenceUrls ?? [],
-            companyId: companyCtx,
-            paymentMethod: (initialData?.paymentMethod as any) || 'company_pays_for_partner',
-        };
-    }, [initialData, currentUser, globalCompanyId]);
+  const existingItems = useMemo(() => {
+    const raw = initialData?.items;
+    if (!Array.isArray(raw)) return [emptyLine()];
+    const mapped = raw.map((item: any) => ({
+      concept: String(item.concept || ""), amount: Number(item.amount || 0), catalogItemId: item.catalogItemId || null,
+      quantity: Number(item.quantity || 1), unitAmount: item.unitAmount != null ? Number(item.unitAmount) : Number(item.amount || 0),
+      partNumber: item.partNumber || null, warrantyDays: item.warrantyDays != null ? Number(item.warrantyDays) : null, warrantyExpiresAt: item.warrantyExpiresAt || null,
+    }));
+    return mapped.length ? mapped : [emptyLine()];
+  }, [initialData]);
 
-    const form = useForm<ExpensesFormValues>({
-        resolver: zodResolver(expenseSchema),
-        defaultValues,
+  const defaultValues = useMemo(() => {
+    const companyCtx = initialData?.companyId || (currentUser?.role !== "superAdmin" ? currentUser?.companyId : globalCompanyId) || null;
+    return {
+      date: initialData?.date ? format(infallibleNormalizeDate(initialData.date)!, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      clientId: initialData?.clientId || NONE_SELECT_VALUE,
+      vehicleId: initialData?.vehicleId || "",
+      items: existingItems,
+      description: initialData?.description || "",
+      categoryId: initialData?.categoryId || "",
+      mileageAtExpense: initialData?.mileageAtExpense ?? undefined,
+      evidenceUrls: initialData?.evidenceUrls ?? [],
+      companyId: companyCtx,
+      paymentMethod: (initialData?.paymentMethod as ExpensesFormValues["paymentMethod"]) || "company_pays_for_partner",
+    };
+  }, [initialData, currentUser, globalCompanyId, existingItems]);
+
+  const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema), defaultValues });
+  const { control, handleSubmit, watch, setValue, reset, formState: { isDirty } } = form;
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
+  useImperativeHandle(ref, () => ({ submit: () => void handleSubmit(onSubmit)() }), [handleSubmit, onSubmit]);
+
+  useEffect(() => { reset(defaultValues); }, [defaultValues, reset]);
+
+  const selectedClientId = watch("clientId");
+  const formCompanyId = watch("companyId");
+  const selectedVehicleId = watch("vehicleId");
+  const watchedItems = watch("items");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!formCompanyId) { setCatalogItems([]); return; }
+    setCatalogLoading(true);
+    void supabase.from("catalog_items").select("id,name,part_number,brand,unit,default_cost,warranty_days,compatibility").eq("company_id", formCompanyId).eq("is_deleted", false).eq("is_active", true).order("name").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) { toast.error("No se pudo cargar el catálogo de refacciones", { description: error.message }); setCatalogItems([]); }
+      else setCatalogItems((data || []) as CatalogItem[]);
+      setCatalogLoading(false);
     });
+    return () => { cancelled = true; };
+  }, [formCompanyId]);
 
-    const { control, handleSubmit, watch, setValue, reset, formState: { isDirty } } = form;
-    
-    useEffect(() => {
-        reset(defaultValues);
-    }, [defaultValues, reset]);
+  const activeClients = useMemo(() => {
+    if (currentUser?.role === "superAdmin") return formCompanyId ? clients.filter(c => c.companyId === formCompanyId && c.status === "active" && !c.isDeleted) : clients.filter(c => c.status === "active" && !c.isDeleted);
+    return clients.filter(c => c.companyId === currentUser?.companyId && c.status === "active" && !c.isDeleted);
+  }, [clients, currentUser, formCompanyId]);
 
-    const selectedClientId = watch('clientId');
-    const formCompanyId = watch('companyId');
-    const selectedVehicleId = watch('vehicleId');
+  const selectableVehicles = useMemo(() => {
+    const companyId = formCompanyId || currentUser?.companyId;
+    if (!companyId) return [];
+    return vehicles.filter(v => v.companyId === companyId && (v.status === "active" || v.status === "rented") && !v.isDeleted);
+  }, [vehicles, formCompanyId, currentUser?.companyId]);
 
-    // When client is selected, determine the company and update the form
-    useEffect(() => {
-        if (currentUser?.role === 'superAdmin' && selectedClientId && selectedClientId !== NONE_SELECT_VALUE) {
-            const client = clients.find(c => c.id === selectedClientId);
-            if (client && client.companyId && client.companyId !== formCompanyId) {
-                setValue('companyId', client.companyId);
-                // Reset vehicle if company changes due to client selection
-                if(vehicles.find(v => v.id === watch('vehicleId'))?.companyId !== client.companyId) {
-                    setValue('vehicleId', '');
-                }
-            }
-        }
-    }, [selectedClientId, clients, formCompanyId, setValue, currentUser?.role, vehicles, watch]);
-    
-    const activeClients = useMemo(() => {
-        if (currentUser?.role === 'superAdmin') {
-             // For superAdmins, show clients from the selected company context, or all if none selected
-            return formCompanyId ? clients.filter(c => c.companyId === formCompanyId && c.status === 'active' && !c.isDeleted) : clients.filter(c => c.status === 'active' && !c.isDeleted);
-        }
-        return clients.filter(c => c.companyId === currentUser?.companyId && c.status === 'active' && !c.isDeleted);
-    }, [clients, currentUser, formCompanyId]);
-    
-    const selectableVehicles = useMemo(() => {
-        const companyIdToFilter = formCompanyId || currentUser?.companyId;
-        if (!companyIdToFilter) return []; // No vehicles if no company context
-        return vehicles.filter(v => v.companyId === companyIdToFilter && (v.status === 'active' || v.status === 'rented') && !v.isDeleted);
-    }, [vehicles, formCompanyId, currentUser?.companyId]);
-    
-    const availableVehicles = useMemo(() => {
-        if (!selectedClientId || selectedClientId === NONE_SELECT_VALUE) {
-            return selectableVehicles;
-        }
-        // If a client is selected, show ONLY their assigned vehicles
-        return selectableVehicles.filter(v => v.clientId === selectedClientId);
-    }, [selectedClientId, selectableVehicles]);
-    
-    const selectableCategories = useMemo(() => {
-      const companyIdToFilter = formCompanyId || currentUser?.companyId;
-  
-      const categories = expenseCategories.filter(cat => {
-          if (cat.type !== 'expense' || cat.id === PARTNER_PAYMENT_CATEGORY_ID) {
-              return false;
-          }
-          if (currentUser?.role !== 'superAdmin') {
-              return cat.isDefault || cat.companyId === companyIdToFilter;
-          }
-          if (companyIdToFilter) {
-              return cat.isDefault || cat.companyId === companyIdToFilter;
-          }
-          return cat.isDefault;
-      });
-  
-      const categoryMap = new Map<string, FinancialCategory>();
-      categories.forEach(cat => {
-          if (!categoryMap.has(cat.name) || !cat.isDefault) {
-              categoryMap.set(cat.name, cat);
-          }
-      });
-  
-      return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [expenseCategories, formCompanyId, currentUser]);
+  const availableVehicles = useMemo(() => selectedClientId && selectedClientId !== NONE_SELECT_VALUE ? selectableVehicles.filter(v => v.clientId === selectedClientId) : selectableVehicles, [selectedClientId, selectableVehicles]);
 
+  const selectableCategories = useMemo(() => {
+    const companyId = formCompanyId || currentUser?.companyId;
+    const categories = expenseCategories.filter(cat => cat.type === "expense" && cat.id !== PARTNER_PAYMENT_CATEGORY_ID && (cat.isDefault || cat.companyId === companyId));
+    const map = new Map<string, FinancialCategory>();
+    categories.forEach(cat => { if (!map.has(cat.name) || !cat.isDefault) map.set(cat.name, cat); });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [expenseCategories, formCompanyId, currentUser?.companyId]);
 
-    const selectedVehicle = useMemo(() => {
-        return selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null;
-    }, [selectedVehicleId, vehicles]);
+  const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
 
-    useEffect(() => {
-        if (selectedVehicle && form.getValues('mileageAtExpense') === undefined) {
-            setValue('mileageAtExpense', selectedVehicle.currentMileage);
-        }
-    }, [selectedVehicle, setValue, form]);
+  useEffect(() => {
+    if (selectedVehicle && form.getValues("mileageAtExpense") === undefined) setValue("mileageAtExpense", selectedVehicle.currentMileage);
+  }, [selectedVehicle, setValue, form]);
 
-    return (
-        <>
-            <Form {...form}>
-                <form id="expenses-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-1">
-                    {currentUser?.role === 'superAdmin' && (
-                      <FormField
-                        control={form.control}
-                        name="companyId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Empresa</FormLabel>
-                                <Select 
-                                    onValueChange={field.onChange} 
-                                    value={field.value ?? ''} 
-                                    disabled={isSubmitting || (!!selectedClientId && selectedClientId !== NONE_SELECT_VALUE)}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seleccionar empresa..." />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {companies.map((company) => (
-                                        <SelectItem key={company.id} value={company.id}>
-                                            {company.name}
-                                        </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <FormField
-                            control={form.control}
-                            name="date"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Fecha del Gasto</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="date"
-                                            {...field}
-                                            disabled={isSubmitting}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
-                        <FormField 
-                            control={control} 
-                            name="amount" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Importe del Gasto</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} disabled={isSubmitting} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
+  const total = useMemo(() => watchedItems.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0), [watchedItems]);
 
-                        <FormField 
-                            control={control} 
-                            name="clientId" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Cliente (Opcional)</FormLabel>
-                                    <Select onValueChange={(value) => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="-- Ninguno --" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>
-                                            {activeClients.map(client => <SelectItem key={client.id} value={client.id}>{`${client.firstname} ${client.lastname}`}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
+  const applyCatalogItem = (index: number, item: CatalogItem) => {
+    const quantity = Number(form.getValues(`items.${index}.quantity`)) || 1;
+    const unitAmount = item.default_cost != null ? Number(item.default_cost) : Number(form.getValues(`items.${index}.unitAmount`) || 0);
+    setValue(`items.${index}.catalogItemId`, item.id, { shouldDirty: true });
+    setValue(`items.${index}.concept`, item.name, { shouldDirty: true });
+    setValue(`items.${index}.partNumber`, item.part_number, { shouldDirty: true });
+    setValue(`items.${index}.warrantyDays`, item.warranty_days, { shouldDirty: true });
+    setValue(`items.${index}.unitAmount`, unitAmount, { shouldDirty: true });
+    setValue(`items.${index}.amount`, quantity * unitAmount, { shouldDirty: true });
+  };
 
-                        <FormField 
-                            control={control} 
-                            name="vehicleId" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Vehículo</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={isSubmitting}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seleccione un vehículo" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {availableVehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>{`${vehicle.make} ${vehicle.model} (${vehicle.plate})`}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
+  return (
+    <>
+      <Form {...form}>
+        <form id="expenses-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5 p-1">
+          {currentUser?.role === "superAdmin" && <FormField control={control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting || (!!selectedClientId && selectedClientId !== NONE_SELECT_VALUE)}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
 
-                        <FormField 
-                            control={control} 
-                            name="description" 
-                            render={({ field }) => (
-                                <FormItem className="md:col-span-2">
-                                    <FormLabel>Descripción</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ej: Carga de gasolina" {...field} disabled={isSubmitting} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
-                        
-                        <FormField 
-                            control={control} 
-                            name="categoryId" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Categoría</FormLabel>
-                                    <Select
-                                        onValueChange={(value) => {
-                                            if (value === newCategoryValue) {
-                                                setIsNewCategoryModalOpen(true);
-                                            } else {
-                                                field.onChange(value);
-                                            }
-                                        }}
-                                        value={field.value ?? ''}
-                                        disabled={isSubmitting}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seleccione una categoría" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {selectableCategories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-                                            {(currentUser?.role === 'superAdmin' || currentUser?.role === 'admin') && (
-                                                <SelectItem value={newCategoryValue} className="text-primary focus:bg-primary/10 focus:text-primary">
-                                                   <span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" /> Crear nueva categoría...</span>
-                                                </SelectItem>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
-                         <FormField 
-                            control={control} 
-                            name="paymentMethod" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Pagado por</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={isSubmitting}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seleccionar método de pago" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="company_pays_for_partner">Empresa (Afecta a Socio)</SelectItem>
-                                            <SelectItem value="partner_pays">Socio (No afecta balance)</SelectItem>
-                                            <SelectItem value="company_absorbs">Empresa (Afecta a Empresa)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
-                        
-                        <FormField 
-                            control={control} 
-                            name="mileageAtExpense" 
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Kilometraje (Opcional)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ''} disabled={isSubmitting} />
-                                    </FormControl>
-                                    {selectedVehicle && <p className="text-xs text-muted-foreground mt-1">Último: {selectedVehicle.currentMileage.toLocaleString()} km</p>}
-                                    <FormMessage />
-                                </FormItem>
-                            )} 
-                        />
-                    </div>
-                    
-                    <FormField
-                        control={form.control}
-                        name="evidenceUrls"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Adjuntar Archivos (Facturas, Tickets, etc.)</FormLabel>
-                                <FormControl>
-                                    <MultipleFileInput
-                                        initialValue={field.value as (string | File)[]}
-                                        onFilesSelected={(files) => field.onChange(files)}
-                                        disabled={isSubmitting}
-                                        folder="financial_receipts"
-                                        entityId={initialData?.id || form.getValues('vehicleId')}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje</FormLabel><FormControl><Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ""} disabled={isSubmitting} /></FormControl>{selectedVehicle && <p className="text-xs text-muted-foreground">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
+            <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select></FormItem>} />
+            <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+            <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => v === newCategoryValue ? setIsNewCategoryModalOpen(true) : field.onChange(v)} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una categoría" /></SelectTrigger></FormControl><SelectContent>{selectableCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{(currentUser?.role === "superAdmin" || currentUser?.role === "admin") && <SelectItem value={newCategoryValue}><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nueva categoría...</span></SelectItem>}</SelectContent></Select><FormMessage /></FormItem>} />
+            <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Pagado por</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa (afecta a socio)</SelectItem><SelectItem value="partner_pays">Socio (no afecta balance)</SelectItem><SelectItem value="company_absorbs">Empresa (absorbe el gasto)</SelectItem></SelectContent></Select></FormItem>} />
+          </div>
 
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={isSubmitting || !isDirty}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isSubmitting ? 'Guardando...' : 'Guardar'}
-                        </Button>
-                    </div>
-                </form>
-          </Form>
-          <NewCategoryModal
-            open={isNewCategoryModalOpen}
-            onOpenChange={setIsNewCategoryModalOpen}
-            onCategoryCreated={(newCategory) => {
-              form.setValue('categoryId', newCategory.id, { shouldValidate: true });
-            }}
-            type="expense"
-            companies={companies}
-          />
-        </>
-    );
+          <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción general (opcional)</FormLabel><FormControl><Input placeholder="Ej: Servicio de suspensión delantera" {...field} disabled={isSubmitting} /></FormControl></FormItem>} />
+
+          <div className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3"><div><h3 className="font-semibold">Conceptos del gasto</h3><p className="text-xs text-muted-foreground">Puedes registrar refacciones, mano de obra y otros conceptos dentro del mismo gasto.</p></div><Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting}><Plus className="mr-1 h-4 w-4" />Agregar línea</Button></div>
+            <div className="space-y-3">
+              {fields.map((field, index) => {
+                const typed = watchedItems[index]?.concept || "";
+                const suggestions = typed.trim().length >= 2 ? catalogItems.filter(item => `${item.name} ${item.part_number || ""} ${item.brand || ""}`.toLowerCase().includes(typed.toLowerCase())).slice(0, 6) : [];
+                const quantity = Number(watchedItems[index]?.quantity) || 1;
+                return <div key={field.id} className="rounded-md bg-muted/30 p-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_100px_140px_40px] md:items-end">
+                    <Controller control={control} name={`items.${index}.concept`} render={({ field: conceptField }) => <div className="space-y-2"><FormLabel>Concepto / refacción</FormLabel><div className="relative"><Input {...conceptField} placeholder="Escribe: horquilla, balatas, aceite..." disabled={isSubmitting || catalogLoading} autoComplete="off" />{suggestions.length > 0 && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border bg-background shadow-lg">{suggestions.map(item => <button key={item.id} type="button" className="block w-full px-3 py-2 text-left hover:bg-muted" onMouseDown={e => e.preventDefault()} onClick={() => applyCatalogItem(index, item)}><div className="font-medium">{item.name}</div><div className="text-xs text-muted-foreground">{[item.brand, item.part_number, item.default_cost != null ? `$${Number(item.default_cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</div></button>)}</div>}</div></div>} />
+                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting} onChange={e => { quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, (Number(e.target.value) || 1) * unit, { shouldDirty: true }); }} /></div>} />
+                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting} onChange={e => { unitField.onChange(e); setValue(`items.${index}.amount`, quantity * (Number(e.target.value) || 0), { shouldDirty: true }); }} /></div>} />
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => fields.length > 1 ? remove(index) : form.setValue(`items.${index}`, emptyLine(), { shouldDirty: true })} disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-muted-foreground">Total de línea: <strong>${(Number(watchedItems[index]?.amount) || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-muted-foreground">Parte: {watchedItems[index].partNumber}</span>}</div>
+                  <input type="hidden" {...form.register(`items.${index}.amount`)} />
+                  <input type="hidden" {...form.register(`items.${index}.catalogItemId`)} />
+                  <input type="hidden" {...form.register(`items.${index}.partNumber`)} />
+                  <input type="hidden" {...form.register(`items.${index}.warrantyDays`)} />
+                  <input type="hidden" {...form.register(`items.${index}.warrantyExpiresAt`)} />
+                </div>;
+              })}
+            </div>
+            <div className="flex justify-end border-t pt-3"><div className="text-right"><div className="text-sm text-muted-foreground">Total del gasto</div><div className="text-2xl font-bold">${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</div></div></div>
+          </div>
+
+          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Adjuntar archivos (facturas, tickets, etc.)</FormLabel><FormControl><MultipleFileInput initialValue={field.value as (string | File)[]} onFilesSelected={files => field.onChange(files)} disabled={isSubmitting} folder="financial_receipts" entityId={initialData?.id || form.getValues("vehicleId")} /></FormControl></FormItem>} />
+
+          <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || !isDirty || total <= 0}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isSubmitting ? "Guardando..." : "Guardar gasto"}</Button></div>
+        </form>
+      </Form>
+      <NewCategoryModal open={isNewCategoryModalOpen} onOpenChange={setIsNewCategoryModalOpen} onCategoryCreated={category => form.setValue("categoryId", category.id, { shouldValidate: true, shouldDirty: true })} type="expense" companies={companies} />
+    </>
+  );
 });
 
 ExpensesForm.displayName = "ExpensesForm";
 export default ExpensesForm;
-
-    
