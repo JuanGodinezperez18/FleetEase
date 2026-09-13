@@ -15,7 +15,8 @@ import { useAuth } from '@/contexts/auth-provider';
 const ALL_QUICK_ACTIONS = [
   { icon: Gauge, label: 'Registrar Kilometraje', action: 'mileage', roles: ['superAdmin', 'super_admin', 'admin', 'editor', 'client'] },
   { icon: Wrench, label: 'Registrar Gasto', action: 'expense', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: DollarSign, label: 'Registrar Ingreso / Pago', action: 'income', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
+  { icon: DollarSign, label: 'Registrar Ingreso', action: 'income', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
+  { icon: DollarSign, label: 'Pagos', action: 'payments', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
   { icon: Landmark, label: 'Nuevo Crédito', action: 'credit', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
   { icon: Users, label: 'Nuevo Cliente', action: 'client', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
   { icon: Car, label: 'Nuevo Vehículo', action: 'vehicle', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
