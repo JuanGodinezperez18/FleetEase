@@ -97,7 +97,7 @@ export const useFinancialAnalytics = (
     const clientsWithRevenueInPeriod = new Set<string>();
 
     filteredRecords.forEach(record => {
-      if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '')) {
+      if (record.type === 'income' && !record.creditGranted && !depositCategoryIds.has(record.categoryId || '')) {
         const categoryName = record.categoryId && categoryMap.has(record.categoryId) ? categoryMap.get(record.categoryId)! : (record.category || 'Sin Categoría');
         incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + record.amount;
         if (record.clientId) {
@@ -118,7 +118,7 @@ export const useFinancialAnalytics = (
 
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
       const clientRecords = filteredRecords.filter(r => r.clientId === client.id);
-      const revenue = clientRecords.filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía').reduce((sum, r) => sum + r.amount, 0);
+      const revenue = clientRecords.filter(r => r.type === 'income' && !r.creditGranted && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía').reduce((sum, r) => sum + r.amount, 0);
       const expenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
       const netProfit = revenue - expenses;
       const profitMargin = calculateProfitMargin(revenue, expenses);
@@ -158,8 +158,6 @@ export const useFinancialAnalytics = (
       profit: calculateChange(totalIncome - totalExpenses, prevMonthProfit),
     };
 
-    // La utilidad neta debe usar exactamente la misma definición de ingreso que
-    // totalIncome: renta real, excluyendo depósitos en garantía.
     const netProfit = totalIncome - totalExpenses;
     const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
     const avgTransactionValue = calculateAvgTransactionValue(filteredRecords);
