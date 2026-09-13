@@ -39,8 +39,6 @@ export type MonthlyCashFlow = {
 export type FinancialAnalytics = {
   totalIncome: number;
   todayIncome: number;
-  totalCashIncome: number;
-  todayCashIncome: number;
   totalExpenses: number;
   todayExpenses: number;
   netProfit: number;
@@ -67,7 +65,7 @@ export const useFinancialAnalytics = (
   const analytics = useMemo(() => {
     const now = new Date();
     const defaultAnalytics: FinancialAnalytics = {
-      totalIncome: 0, todayIncome: 0, totalCashIncome: 0, todayCashIncome: 0, totalExpenses: 0, todayExpenses: 0, netProfit: 0, profitMargin: 0,
+      totalIncome: 0, todayIncome: 0, totalExpenses: 0, todayExpenses: 0, netProfit: 0, profitMargin: 0,
       avgTransactionValue: 0, avgRevenuePerClient: 0,
       monthlyGrowth: { income: 0, profit: 0, expenses: 0 },
       cashFlowAnalysis: [], expenseCategories: [], incomeCategories: [],
@@ -84,12 +82,12 @@ export const useFinancialAnalytics = (
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: todayStart, to: todayEnd });
     const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
 
-    // Ingreso operativo: renta/ingresos ganados. No incluye crédito otorgado ni depósitos.
-    const todayIncome = sumRentalIncome(todayRecords, depositCategoryIds);
-    const totalIncome = sumRentalIncome(filteredRecords, depositCategoryIds);
-    // Flujo de entrada de efectivo: ingreso operativo + pagos de créditos cobrados.
-    const todayCashIncome = todayIncome + sumPayment(todayRecords);
-    const totalCashIncome = totalIncome + sumPayment(filteredRecords);
+    // Ingreso operativo real: renta/ingresos ganados. No incluye créditos otorgados ni depósitos.
+    const todayOperationalIncome = sumRentalIncome(todayRecords, depositCategoryIds);
+    const totalOperationalIncome = sumRentalIncome(filteredRecords, depositCategoryIds);
+    // Ingresos del dashboard = flujo de entrada de efectivo: operación + pagos cobrados de créditos.
+    const todayIncome = todayOperationalIncome + sumPayment(todayRecords);
+    const totalIncome = totalOperationalIncome + sumPayment(filteredRecords);
     const todayExpenses = sumExpense(todayRecords);
     const totalExpenses = sumExpense(filteredRecords);
 
@@ -158,21 +156,22 @@ export const useFinancialAnalytics = (
     const prevPeriodStart = subDays(dateRange.from, daysInPeriod);
     const prevPeriodEnd = subDays(dateRange.from, 1);
     const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
-    const prevMonthIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
+    const prevMonthOperationalIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
     const prevMonthPayments = sumPayment(prevMonthRecords);
-    const prevMonthCashIncome = prevMonthIncome + prevMonthPayments;
+    const prevMonthCashIncome = prevMonthOperationalIncome + prevMonthPayments;
     const prevMonthExpenses = sumExpense(prevMonthRecords);
-    const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
+    const prevMonthProfit = prevMonthOperationalIncome - prevMonthExpenses;
     const monthlyGrowth = {
-      income: calculateChange(totalCashIncome, prevMonthCashIncome),
+      income: calculateChange(totalIncome, prevMonthCashIncome),
       expenses: calculateChange(totalExpenses, prevMonthExpenses),
-      profit: calculateChange(totalIncome - totalExpenses, prevMonthProfit),
+      profit: calculateChange(totalOperationalIncome - totalExpenses, prevMonthProfit),
     };
 
-    const netProfit = totalIncome - totalExpenses;
-    const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
+    // La utilidad no convierte el principal recuperado de un crédito en ganancia.
+    const netProfit = totalOperationalIncome - totalExpenses;
+    const profitMargin = calculateProfitMargin(totalOperationalIncome, totalExpenses);
     const avgTransactionValue = calculateAvgTransactionValue(filteredRecords);
-    const avgRevenuePerClient = clientsWithRevenueInPeriod.size > 0 ? totalIncome / clientsWithRevenueInPeriod.size : 0;
+    const avgRevenuePerClient = clientsWithRevenueInPeriod.size > 0 ? totalOperationalIncome / clientsWithRevenueInPeriod.size : 0;
     const expenseCategories = Object.entries(expenseCategoriesMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
     const incomeCategories = Object.entries(incomeCategoriesMap).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
     const clientMap = new Map((clients || []).map(c => [c.id, `${c.firstname} ${c.lastname}`]));
@@ -180,7 +179,7 @@ export const useFinancialAnalytics = (
     const vehicleMap = new Map((vehicles || []).map(v => [v.id, `${v.make} ${v.model} (${v.plate})`]));
     const topVehicles = Object.entries(vehicleValueMap).map(([id, netValue]) => ({ id, name: vehicleMap.get(id) || 'Vehículo Desconocido', netValue })).sort((a,b) => b.netValue - a.netValue).slice(0, 10);
 
-    return { totalIncome, todayIncome, totalCashIncome, todayCashIncome, totalExpenses, todayExpenses, netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth, cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis };
+    return { totalIncome, todayIncome, totalExpenses, todayExpenses, netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth, cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis };
   }, [financialRecords, clients, vehicles, dateRange, financialCategories]);
 
   return analytics;
