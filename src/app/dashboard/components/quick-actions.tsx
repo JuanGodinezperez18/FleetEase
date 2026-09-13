@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { FormModal } from '@/components/common/form-modal';
 import { FloatingActionButton } from '@/components/layout/floating-action-button';
 import type { QuickActionModal } from '../hooks/use-dashboard-page';
@@ -51,11 +52,24 @@ export function QuickActions({
   onMileageSubmit,
   modalTitles,
 }: QuickActionsProps) {
+  const router = useRouter();
   const handleSuccess = useCallback(() => onCloseModal(), [onCloseModal]);
+  const handleOpenAction = useCallback((action: string) => {
+    if (action === 'payments') {
+      router.push('/dashboard/finanzas/payments');
+      return;
+    }
+    onOpenModal(action);
+  }, [onOpenModal, router]);
+
+  const incomeCategories = useCallback(
+    () => incomeAndPaymentCategories.filter((category: any) => category.type === 'income'),
+    [incomeAndPaymentCategories]
+  );
 
   return (
     <>
-      <FloatingActionButton openModal={onOpenModal} />
+      <FloatingActionButton openModal={handleOpenAction} />
 
       {quickActionModal && quickActionModal !== 'vehicle-inspection' && (
         <FormModal
@@ -79,7 +93,7 @@ export function QuickActions({
                 onSubmit={onIncomeSubmit}
                 initialData={null}
                 companies={companies}
-                incomeAndPaymentCategories={incomeAndPaymentCategories}
+                incomeAndPaymentCategories={incomeCategories()}
                 isSubmitting={isSubmittingForm}
                 onClose={onCloseModal}
               />
