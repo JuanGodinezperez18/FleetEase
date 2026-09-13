@@ -78,12 +78,18 @@ export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filte
 export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filterExpense(records));
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
+/**
+ * Ingreso operativo real: renta/ingreso cobrado que sí representa operación.
+ * Los créditos otorgados son financiamiento/cartera, no ingreso ganado, aunque
+ * permanezcan como registros `income` para conservar su trazabilidad contable.
+ */
 export const sumRentalIncome = (
   records: FinancialRecord[],
   depositCategoryIds?: Set<string>
 ): number =>
   sumAmount(records.filter(r =>
     isActiveRecord(r) && isIncome(r) &&
+    !r.creditGranted &&
     r.category !== SECURITY_DEPOSIT_CATEGORY &&
     !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
   ));
@@ -98,7 +104,7 @@ export const calculateProfitMargin = (income: number, expenses: number): number 
 };
 
 export const calculateAvgTransactionValue = (records: FinancialRecord[]): number => {
-  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r) && r.category !== SECURITY_DEPOSIT_CATEGORY);
+  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r) && !r.creditGranted && r.category !== SECURITY_DEPOSIT_CATEGORY);
   if (tx.length === 0) return 0;
   return sumAmount(tx) / tx.length;
 };
