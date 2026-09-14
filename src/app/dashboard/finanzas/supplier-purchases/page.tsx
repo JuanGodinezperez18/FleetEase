@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-provider";
 import { useData } from "@/contexts/data-provider";
@@ -21,6 +22,7 @@ type PurchaseItem = { catalog_item_id: string; description: string; quantity: st
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
 export default function SupplierPurchasesPage() {
+  const router = useRouter();
   const { currentUser } = useAuth();
   const { selectedCompanyId } = useData();
   const companyId = selectedCompanyId || currentUser?.companyId || null;
@@ -68,7 +70,7 @@ export default function SupplierPurchasesPage() {
     if (!(total > 0)) return toast.error("El total debe ser mayor que cero.");
     setSaving(true);
     try {
-      const { error } = await supabase.rpc("create_supplier_purchase", {
+      const { error, data } = await supabase.rpc("create_supplier_purchase", {
         p_company_id: companyId,
         p_supplier_id: supplierId,
         p_purchase_date: date,
@@ -81,7 +83,12 @@ export default function SupplierPurchasesPage() {
         p_created_by: currentUser?.uid || null,
       } as any);
       if (error) throw error;
+      const purchase = data as any;
       toast.success("Compra registrada", { description: paymentMethod === "credit" ? "Se creó también la cuenta por pagar al proveedor." : "La compra quedó registrada como pagada." });
+      if (purchase?.id) {
+        router.push(`/dashboard/finanzas/supplier-purchases/${purchase.id}`);
+        return;
+      }
       setSupplierId(""); setReference(""); setNotes(""); setDueDate(""); setPaymentMethod("cash"); setItems([emptyItem()]);
     } catch (error) {
       toast.error("No se pudo registrar la compra", { description: error instanceof Error ? error.message : "Error inesperado." });
