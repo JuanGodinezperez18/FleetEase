@@ -230,7 +230,25 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     if (selectedVehicle && form.getValues("mileageAtExpense") === undefined) setValue("mileageAtExpense", selectedVehicle.currentMileage);
   }, [selectedVehicle, setValue, form]);
 
-  const total = useMemo(() => watchedItems.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0), [watchedItems]);
+  // El importe de la fila es derivado de cantidad x importe unitario.
+  // Esto evita que un campo oculto/registro duplicado deje el total visual en $0.
+  const normalizedItems = useMemo(() => watchedItems.map(item => {
+    const quantity = Number(item?.quantity) || 1;
+    const unitAmount = Number(item?.unitAmount) || 0;
+    const amount = quantity * unitAmount;
+    return { ...item, quantity, unitAmount, amount };
+  }), [watchedItems]);
+
+  const total = useMemo(() => normalizedItems.reduce((sum, item) => sum + item.amount, 0), [normalizedItems]);
+
+  const submitForm = (data: ExpensesFormValues) => {
+    const items = data.items.map(item => {
+      const quantity = Number(item.quantity) || 1;
+      const unitAmount = Number(item.unitAmount) || 0;
+      return { ...item, quantity, unitAmount, amount: quantity * unitAmount };
+    });
+    onSubmit({ ...data, items });
+  };
 
   const applyCatalogItem = (index: number, item: CatalogItem) => {
     const quantity = Number(form.getValues(`items.${index}.quantity`)) || 1;
@@ -240,20 +258,20 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     setValue(`items.${index}.partNumber`, item.part_number, { shouldDirty: true });
     setValue(`items.${index}.warrantyDays`, item.warranty_days, { shouldDirty: true });
     setValue(`items.${index}.unitAmount`, unitAmount, { shouldDirty: true });
-    setValue(`items.${index}.amount`, quantity * unitAmount, { shouldDirty: true });
+    setValue(`items.${index}.amount`, quantity * unitAmount, { shouldDirty: true, shouldValidate: true });
   };
 
   return (
     <>
       <Form {...form}>
-        <form id="expenses-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5 p-1">
+        <form id="expenses-form" onSubmit={handleSubmit(submitForm)} className="space-y-5 p-1">
           {currentUser?.role === "superAdmin" && <FormField control={control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting || (!!selectedClientId && selectedClientId !== NONE_SELECT_VALUE)}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
-            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje</FormLabel><FormControl><Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ""} disabled={isSubmitting} /></FormControl>{selectedVehicle && <p className="text-xs text-muted-foreground">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
             <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select></FormItem>} />
             <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje</FormLabel><FormControl><Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ""} disabled={isSubmitting} /></FormControl>{selectedVehicle && <p className="text-xs text-muted-foreground">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
             <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => v === newCategoryValue ? setIsNewCategoryModalOpen(true) : field.onChange(v)} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una categoría" /></SelectTrigger></FormControl><SelectContent>{selectableCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{(currentUser?.role === "superAdmin" || currentUser?.role === "admin") && <SelectItem value={newCategoryValue}><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nueva categoría...</span></SelectItem>}</SelectContent></Select><FormMessage /></FormItem>} />
             <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Pagado por</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa (afecta a socio)</SelectItem><SelectItem value="partner_pays">Socio (no afecta balance)</SelectItem><SelectItem value="company_absorbs">Empresa (absorbe el gasto)</SelectItem></SelectContent></Select></FormItem>} />
           </div>
@@ -270,12 +288,11 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
                 return <div key={field.id} className="rounded-md bg-muted/30 p-3">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_100px_140px_40px] md:items-end">
                     <Controller control={control} name={`items.${index}.concept`} render={({ field: conceptField }) => <div className="space-y-2"><FormLabel>Concepto / refacción</FormLabel><div className="relative"><Input {...conceptField} placeholder="Escribe: horquilla, balatas, aceite..." disabled={isSubmitting || catalogLoading} autoComplete="off" />{suggestions.length > 0 && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border bg-background shadow-lg">{suggestions.map(item => <button key={item.id} type="button" className="block w-full px-3 py-2 text-left hover:bg-muted" onMouseDown={e => e.preventDefault()} onClick={() => applyCatalogItem(index, item)}><div className="font-medium">{item.name}</div><div className="text-xs text-muted-foreground">{[item.brand, item.part_number, item.default_cost != null ? `$${Number(item.default_cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</div></button>)}</div>}</div></div>} />
-                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting} onChange={e => { quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, (Number(e.target.value) || 1) * unit, { shouldDirty: true }); }} /></div>} />
-                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting} onChange={e => { unitField.onChange(e); setValue(`items.${index}.amount`, quantity * (Number(e.target.value) || 0), { shouldDirty: true }); }} /></div>} />
+                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting} onChange={e => { quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, (Number(e.target.value) || 1) * unit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
+                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting} onChange={e => { unitField.onChange(e); setValue(`items.${index}.amount`, quantity * (Number(e.target.value) || 0), { shouldDirty: true, shouldValidate: true }); }} /></div>} />
                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => fields.length > 1 ? remove(index) : form.setValue(`items.${index}`, emptyLine(), { shouldDirty: true })} disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
                   </div>
-                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-muted-foreground">Total de línea: <strong>${(Number(watchedItems[index]?.amount) || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-muted-foreground">Parte: {watchedItems[index].partNumber}</span>}</div>
-                  <input type="hidden" {...form.register(`items.${index}.amount`)} />
+                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-muted-foreground">Total de línea: <strong>${normalizedItems[index]?.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 }) ?? "0.00"}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-muted-foreground">Parte: {watchedItems[index].partNumber}</span>}</div>
                   <input type="hidden" {...form.register(`items.${index}.catalogItemId`)} />
                   <input type="hidden" {...form.register(`items.${index}.partNumber`)} />
                   <input type="hidden" {...form.register(`items.${index}.warrantyDays`)} />
