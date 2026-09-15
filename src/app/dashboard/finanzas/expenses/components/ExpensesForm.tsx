@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { useForm, Controller, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
@@ -31,6 +31,7 @@ const lineSchema = z.object({
   concept: z.string().trim().min(1, "El concepto es obligatorio."),
   amount: z.coerce.number({ invalid_type_error: "El importe debe ser un número." }).positive("El importe debe ser mayor que cero."),
   catalogItemId: z.string().nullable().optional(),
+  supplierId: z.string().nullable().optional(),
   quantity: z.coerce.number().positive().default(1),
   unitAmount: z.coerce.number().nonnegative().optional(),
   partNumber: z.string().nullable().optional(),
@@ -40,7 +41,10 @@ const lineSchema = z.object({
 
 const expenseSchema = z.object({
   date: z.string().min(1, "La fecha es obligatoria."),
-  clientId: z.string().optional().nullable(),
+  clientId: z.preprocess(
+    value => value === NONE_SELECT_VALUE ? null : value,
+    z.string().uuid().nullable().optional(),
+  ),
   vehicleId: z.string().min(1, "Debe seleccionar un vehículo."),
   items: z.array(lineSchema).min(1, "Agrega al menos un concepto de gasto."),
   description: z.string().optional(),
@@ -55,14 +59,6 @@ const expenseSchema = z.object({
 });
 
 export type ExpensesFormValues = z.infer<typeof expenseSchema>;
-
-const baseNewCategorySchema = z.object({
-  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres."),
-  affects: z.enum(["client_balance", "partner_balance", "none"]),
-  description: z.string().optional(),
-  companyId: z.string().optional().nullable(),
-});
-type NewCategoryFormValues = z.infer<typeof baseNewCategorySchema>;
 
 interface ExpensesFormProps {
   onSubmit: (data: ExpensesFormValues) => void;
@@ -83,13 +79,20 @@ interface CatalogItem {
   unit: string;
   default_cost: number | null;
   warranty_days: number | null;
+  default_supplier_id: string | null;
   compatibility: string | null;
+}
+
+interface SupplierOption {
+  id: string;
+  name: string;
 }
 
 const emptyLine = () => ({
   concept: "",
   amount: 0,
   catalogItemId: null,
+  supplierId: null,
   quantity: 1,
   unitAmount: undefined,
   partNumber: null,
@@ -148,13 +151,16 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const { currentUser } = useAuth();
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [suppliersLoading, setSuppliersLoading] = useState(false);
 
   const existingItems = useMemo(() => {
     const raw = initialData?.items;
     if (!Array.isArray(raw)) return [emptyLine()];
     const mapped = raw.map((item: any) => ({
       concept: String(item.concept || ""), amount: Number(item.amount || 0), catalogItemId: item.catalogItemId || null,
+      supplierId: item.supplierId || null,
       quantity: Number(item.quantity || 1), unitAmount: item.unitAmount != null ? Number(item.unitAmount) : Number(item.amount || 0),
       partNumber: item.partNumber || null, warrantyDays: item.warrantyDays != null ? Number(item.warrantyDays) : null, warrantyExpiresAt: item.warrantyExpiresAt || null,
     }));
@@ -178,27 +184,54 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   }, [initialData, currentUser, globalCompanyId, existingItems]);
 
   const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema), defaultValues });
-  const { control, handleSubmit, watch, setValue, reset, formState: { isDirty } } = form;
+  const { control, handleSubmit, setValue, reset, formState: { isDirty } } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
-
-  useImperativeHandle(ref, () => ({ submit: () => void handleSubmit(onSubmit)() }), [handleSubmit, onSubmit]);
 
   useEffect(() => { reset(defaultValues); }, [defaultValues, reset]);
 
-  const selectedClientId = watch("clientId");
-  const formCompanyId = watch("companyId");
-  const selectedVehicleId = watch("vehicleId");
-  const watchedItems = watch("items");
+  const selectedClientId = useWatch({ control, name: "clientId" });
+  const formCompanyId = useWatch({ control, name: "companyId" });
+  const selectedVehicleId = useWatch({ control, name: "vehicleId" });
+  const watchedItems = useWatch({ control, name: "items", defaultValue: defaultValues.items });
+
+  const submitForm = (data: ExpensesFormValues) => {
+    const items = data.items.map(item => {
+      const quantity = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      const enteredUnitAmount = Number(item.unitAmount);
+      const enteredAmount = Number(item.amount);
+      const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
+        ? enteredUnitAmount
+        : Number.isFinite(enteredAmount) && enteredAmount > 0
+          ? enteredAmount / quantity
+          : 0;
+      const amount = unitAmount > 0 ? quantity * unitAmount : (Number.isFinite(enteredAmount) && enteredAmount > 0 ? enteredAmount : 0);
+      return { ...item, quantity, unitAmount, amount, supplierId: item.supplierId || null };
+    });
+    onSubmit({ ...data, clientId: data.clientId || null, items });
+  };
+
+  const handleInvalidSubmit = () => {
+    toast.error("No se puede guardar el gasto", { description: "Revisa que cada línea tenga concepto e importe mayor que cero, además de vehículo y categoría." });
+  };
+
+  useImperativeHandle(ref, () => ({ submit: () => void handleSubmit(submitForm, handleInvalidSubmit)() }), [handleSubmit, submitForm]);
 
   useEffect(() => {
     let cancelled = false;
-    if (!formCompanyId) { setCatalogItems([]); return; }
+    if (!formCompanyId) { setCatalogItems([]); setSuppliers([]); return; }
     setCatalogLoading(true);
-    void supabase.from("catalog_items").select("id,name,part_number,brand,unit,default_cost,warranty_days,compatibility").eq("company_id", formCompanyId).eq("is_deleted", false).eq("is_active", true).order("name").then(({ data, error }) => {
+    setSuppliersLoading(true);
+    void Promise.all([
+      supabase.from("catalog_items").select("id,name,part_number,brand,unit,default_cost,warranty_days,default_supplier_id,compatibility").eq("company_id", formCompanyId).eq("is_deleted", false).eq("is_active", true).order("name"),
+      supabase.from("suppliers").select("id,name").eq("company_id", formCompanyId).eq("is_deleted", false).eq("is_active", true).order("name"),
+    ]).then(([catalogResult, supplierResult]) => {
       if (cancelled) return;
-      if (error) { toast.error("No se pudo cargar el catálogo de refacciones", { description: error.message }); setCatalogItems([]); }
-      else setCatalogItems((data || []) as CatalogItem[]);
+      if (catalogResult.error) { toast.error("No se pudo cargar el catálogo de refacciones", { description: catalogResult.error.message }); setCatalogItems([]); }
+      else setCatalogItems((catalogResult.data || []) as CatalogItem[]);
+      if (supplierResult.error) { toast.error("No se pudieron cargar los proveedores", { description: supplierResult.error.message }); setSuppliers([]); }
+      else setSuppliers((supplierResult.data || []) as SupplierOption[]);
       setCatalogLoading(false);
+      setSuppliersLoading(false);
     });
     return () => { cancelled = true; };
   }, [formCompanyId]);
@@ -239,35 +272,11 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
       : Number.isFinite(enteredAmount) && enteredAmount > 0
         ? enteredAmount / quantity
         : 0;
-    const amount = unitAmount > 0
-      ? quantity * unitAmount
-      : Number.isFinite(enteredAmount) && enteredAmount > 0
-        ? enteredAmount
-        : 0;
+    const amount = unitAmount > 0 ? quantity * unitAmount : (Number.isFinite(enteredAmount) && enteredAmount > 0 ? enteredAmount : 0);
     return { ...item, quantity, unitAmount, amount };
   }), [watchedItems]);
 
   const total = useMemo(() => normalizedItems.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0), [normalizedItems]);
-
-  const submitForm = (data: ExpensesFormValues) => {
-    const items = data.items.map(item => {
-      const quantity = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
-      const enteredUnitAmount = Number(item.unitAmount);
-      const enteredAmount = Number(item.amount);
-      const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
-        ? enteredUnitAmount
-        : Number.isFinite(enteredAmount) && enteredAmount > 0
-          ? enteredAmount / quantity
-          : 0;
-      const amount = unitAmount > 0
-        ? quantity * unitAmount
-        : Number.isFinite(enteredAmount) && enteredAmount > 0
-          ? enteredAmount
-          : 0;
-      return { ...item, quantity, unitAmount, amount };
-    });
-    onSubmit({ ...data, items });
-  };
 
   const applyCatalogItem = (index: number, item: CatalogItem) => {
     const quantity = Number(form.getValues(`items.${index}.quantity`)) || 1;
@@ -276,6 +285,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     setValue(`items.${index}.concept`, item.name, { shouldDirty: true });
     setValue(`items.${index}.partNumber`, item.part_number, { shouldDirty: true });
     setValue(`items.${index}.warrantyDays`, item.warranty_days, { shouldDirty: true });
+    setValue(`items.${index}.supplierId`, item.default_supplier_id, { shouldDirty: true });
     setValue(`items.${index}.unitAmount`, unitAmount, { shouldDirty: true });
     setValue(`items.${index}.amount`, quantity * unitAmount, { shouldDirty: true, shouldValidate: true });
   };
@@ -283,12 +293,12 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   return (
     <>
       <Form {...form}>
-        <form id="expenses-form" onSubmit={handleSubmit(submitForm)} className="space-y-5 p-1">
+        <form id="expenses-form" onSubmit={handleSubmit(submitForm, handleInvalidSubmit)} className="space-y-5 p-1">
           {currentUser?.role === "superAdmin" && <FormField control={control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting || (!!selectedClientId && selectedClientId !== NONE_SELECT_VALUE)}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
-            <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select></FormItem>} />
+            <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
             <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
             <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje</FormLabel><FormControl><Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ""} disabled={isSubmitting} /></FormControl>{selectedVehicle && <p className="text-xs text-muted-foreground">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
             <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => v === newCategoryValue ? setIsNewCategoryModalOpen(true) : field.onChange(v)} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una categoría" /></SelectTrigger></FormControl><SelectContent>{selectableCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{(currentUser?.role === "superAdmin" || currentUser?.role === "admin") && <SelectItem value={newCategoryValue}><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nueva categoría...</span></SelectItem>}</SelectContent></Select><FormMessage /></FormItem>} />
@@ -298,20 +308,21 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
           <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción general (opcional)</FormLabel><FormControl><Input placeholder="Ej: Servicio de suspensión delantera" {...field} disabled={isSubmitting} /></FormControl></FormItem>} />
 
           <div className="rounded-lg border p-4 space-y-4">
-            <div className="flex items-center justify-between gap-3"><div><h3 className="font-semibold">Conceptos del gasto</h3><p className="text-xs text-muted-foreground">Puedes registrar refacciones, mano de obra y otros conceptos dentro del mismo gasto.</p></div><Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting}><Plus className="mr-1 h-4 w-4" />Agregar línea</Button></div>
+            <div className="flex items-center justify-between gap-3"><div><h3 className="font-semibold">Conceptos del gasto</h3><p className="text-xs text-muted-foreground">Cada línea conserva su proveedor, cantidad e importe dentro del mismo gasto.</p></div><Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting}><Plus className="mr-1 h-4 w-4" />Agregar línea</Button></div>
             <div className="space-y-3">
               {fields.map((field, index) => {
                 const typed = watchedItems[index]?.concept || "";
                 const suggestions = typed.trim().length >= 2 ? catalogItems.filter(item => `${item.name} ${item.part_number || ""} ${item.brand || ""}`.toLowerCase().includes(typed.toLowerCase())).slice(0, 6) : [];
                 const quantity = Number(watchedItems[index]?.quantity) || 1;
                 return <div key={field.id} className="rounded-md bg-muted/30 p-3">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_100px_140px_40px] md:items-end">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(180px,1.2fr)_90px_140px_40px] md:items-end">
                     <Controller control={control} name={`items.${index}.concept`} render={({ field: conceptField }) => <div className="space-y-2"><FormLabel>Concepto / refacción</FormLabel><div className="relative"><Input {...conceptField} placeholder="Escribe: horquilla, balatas, aceite..." disabled={isSubmitting || catalogLoading} autoComplete="off" />{suggestions.length > 0 && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border bg-background shadow-lg">{suggestions.map(item => <button key={item.id} type="button" className="block w-full px-3 py-2 text-left hover:bg-muted" onMouseDown={e => e.preventDefault()} onClick={() => applyCatalogItem(index, item)}><div className="font-medium">{item.name}</div><div className="text-xs text-muted-foreground">{[item.brand, item.part_number, item.default_cost != null ? `$${Number(item.default_cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</div></button>)}</div>}</div></div>} />
-                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting} onChange={e => { quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, (Number(e.target.value) || 1) * unit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
-                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting} onChange={e => { unitField.onChange(e); setValue(`items.${index}.amount`, quantity * (Number(e.target.value) || 0), { shouldDirty: true, shouldValidate: true }); }} /></div>} />
+                    <Controller control={control} name={`items.${index}.supplierId`} render={({ field: supplierField }) => <div className="space-y-2"><FormLabel>Proveedor</FormLabel><Select onValueChange={v => supplierField.onChange(v === NONE_SELECT_VALUE ? null : v)} value={supplierField.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || suppliersLoading}><FormControl><SelectTrigger><SelectValue placeholder={suppliersLoading ? "Cargando proveedores..." : "-- Sin proveedor --"} /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Sin proveedor --</SelectItem>{suppliers.map(supplier => <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>)}</SelectContent></Select></div>} />
+                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting} onChange={e => { const nextQuantity = Number(e.target.value) || 1; quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, nextQuantity * unit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
+                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting} onChange={e => { const nextUnit = Number(e.target.value) || 0; unitField.onChange(e); const currentQuantity = Number(form.getValues(`items.${index}.quantity`)) || 1; setValue(`items.${index}.amount`, currentQuantity * nextUnit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
                     <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => fields.length > 1 ? remove(index) : form.setValue(`items.${index}`, emptyLine(), { shouldDirty: true })} disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
                   </div>
-                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-muted-foreground">Total de línea: <strong>${normalizedItems[index]?.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 }) ?? "0.00"}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-muted-foreground">Parte: {watchedItems[index].partNumber}</span>}</div>
+                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-muted-foreground">Total de línea: <strong>${Number(normalizedItems[index]?.amount || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-muted-foreground">Parte: {watchedItems[index].partNumber}</span>}</div>
                   <input type="hidden" {...form.register(`items.${index}.catalogItemId`)} />
                   <input type="hidden" {...form.register(`items.${index}.partNumber`)} />
                   <input type="hidden" {...form.register(`items.${index}.warrantyDays`)} />
