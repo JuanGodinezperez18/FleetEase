@@ -5,9 +5,18 @@
  * Por defecto, todas las agregaciones excluyen registros soft-deleted (isDeleted)
  * y descartan fechas inválidas vía infallibleNormalizeDate.
  *
- * Reglas:
+ * Reglas de negocio financieras:
+ * - Un crédito otorgado representa cartera/financiamiento, NO dinero cobrado.
+ * - Un registro con creditGranted=true NUNCA se contabiliza como ingreso real.
+ * - Un pago real de crédito se registra como type='payment' y sí representa
+ *   efectivo cobrado; su importe es exactamente el importe pagado.
+ * - Las rentas y demás ingresos operativos se contabilizan por sus registros
+ *   income activos, excepto depósitos en garantía.
  * - Nunca modificar las fórmulas de negocio (margen, ROI, ocupación) sin aprobación explícita.
- * - Los helpers que devuelven montos siempre suman `r.amount || 0` para ser defensivos.
+ *
+ * Importante: el registro "Crédito Otorgado" puede permanecer en
+ * financial_records para trazabilidad/auditoría, pero no debe entrar en las
+ * métricas de ingreso cobrado ni de rentabilidad.
  */
 import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
 import { differenceInDays, isWithinInterval } from 'date-fns';
@@ -31,10 +40,22 @@ export const isExpense = (r: FinancialRecord): boolean => r.type === 'expense';
 export const isPayment = (r: FinancialRecord): boolean => r.type === 'payment';
 export const isTransaction = (r: FinancialRecord): boolean => r.type === 'income' || r.type === 'expense';
 
+/**
+ * Un crédito otorgado es un registro técnico de trazabilidad, no ingreso.
+ * Mantener esta regla en un helper único evita que nuevos dashboards vuelvan
+ * a sumar el principal del crédito por accidente.
+ */
+export const isCreditGranted = (r: FinancialRecord): boolean => r.creditGranted === true;
+
+/** Ingreso cobrado: income activo que NO representa un crédito otorgado. */
+export const isCollectedIncome = (r: FinancialRecord): boolean =>
+  isActiveRecord(r) && isIncome(r) && !isCreditGranted(r);
+
 export const filterActiveRecords = (records: FinancialRecord[]): FinancialRecord[] => records.filter(isActiveRecord);
 export const filterIncome = (records: FinancialRecord[]): FinancialRecord[] => records.filter(r => isActiveRecord(r) && isIncome(r));
 export const filterExpense = (records: FinancialRecord[]): FinancialRecord[] => records.filter(r => isActiveRecord(r) && isExpense(r));
 export const filterPayment = (records: FinancialRecord[]): FinancialRecord[] => records.filter(r => isActiveRecord(r) && isPayment(r));
+export const filterCollectedIncome = (records: FinancialRecord[]): FinancialRecord[] => records.filter(isCollectedIncome);
 
 export interface FilterOptions { excludeDeleted?: boolean; }
 
@@ -74,7 +95,13 @@ export const filterRecordsByVehicle = (
 };
 
 export const sumAmount = (records: FinancialRecord[]): number => records.reduce((sum, r) => sum + (r.amount || 0), 0);
-export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterIncome(records));
+
+/**
+ * Ingreso financiero cobrado. Excluye Crédito Otorgado aunque su registro
+ * técnico tenga type='income'. Los pagos de crédito viven como type='payment'
+ * y se consultan mediante sumPayment, no se duplican aquí.
+ */
+export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterCollectedIncome(records));
 export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filterExpense(records));
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
@@ -88,8 +115,7 @@ export const sumRentalIncome = (
   depositCategoryIds?: Set<string>
 ): number =>
   sumAmount(records.filter(r =>
-    isActiveRecord(r) && isIncome(r) &&
-    !r.creditGranted &&
+    isCollectedIncome(r) &&
     r.category !== SECURITY_DEPOSIT_CATEGORY &&
     !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
   ));
@@ -104,7 +130,7 @@ export const calculateProfitMargin = (income: number, expenses: number): number 
 };
 
 export const calculateAvgTransactionValue = (records: FinancialRecord[]): number => {
-  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r) && !r.creditGranted && r.category !== SECURITY_DEPOSIT_CATEGORY);
+  const tx = records.filter(r => isActiveRecord(r) && isTransaction(r) && !isCreditGranted(r) && r.category !== SECURITY_DEPOSIT_CATEGORY);
   if (tx.length === 0) return 0;
   return sumAmount(tx) / tx.length;
 };
