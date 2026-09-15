@@ -231,19 +231,40 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   }, [selectedVehicle, setValue, form]);
 
   const normalizedItems = useMemo(() => watchedItems.map(item => {
-    const quantity = Number(item?.quantity) || 1;
-    const unitAmount = Number(item?.unitAmount) || 0;
-    const amount = quantity * unitAmount;
+    const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
+    const enteredUnitAmount = Number(item?.unitAmount);
+    const enteredAmount = Number(item?.amount);
+    const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
+      ? enteredUnitAmount
+      : Number.isFinite(enteredAmount) && enteredAmount > 0
+        ? enteredAmount / quantity
+        : 0;
+    const amount = unitAmount > 0
+      ? quantity * unitAmount
+      : Number.isFinite(enteredAmount) && enteredAmount > 0
+        ? enteredAmount
+        : 0;
     return { ...item, quantity, unitAmount, amount };
   }), [watchedItems]);
 
-  const total = useMemo(() => normalizedItems.reduce((sum, item) => sum + item.amount, 0), [normalizedItems]);
+  const total = useMemo(() => normalizedItems.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0), [normalizedItems]);
 
   const submitForm = (data: ExpensesFormValues) => {
     const items = data.items.map(item => {
-      const quantity = Number(item.quantity) || 1;
-      const unitAmount = Number(item.unitAmount) || 0;
-      return { ...item, quantity, unitAmount, amount: quantity * unitAmount };
+      const quantity = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      const enteredUnitAmount = Number(item.unitAmount);
+      const enteredAmount = Number(item.amount);
+      const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
+        ? enteredUnitAmount
+        : Number.isFinite(enteredAmount) && enteredAmount > 0
+          ? enteredAmount / quantity
+          : 0;
+      const amount = unitAmount > 0
+        ? quantity * unitAmount
+        : Number.isFinite(enteredAmount) && enteredAmount > 0
+          ? enteredAmount
+          : 0;
+      return { ...item, quantity, unitAmount, amount };
     });
     onSubmit({ ...data, items });
   };
