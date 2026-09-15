@@ -130,11 +130,11 @@ const NewCategoryModal = ({ open, onOpenChange, onCategoryCreated, type, compani
     <FormModal isOpen={open} onClose={() => onOpenChange(false)} title={`Crear Nueva Categoría de ${type === "income" ? "Ingreso" : "Gasto"}`}>
       <div className="space-y-4">
         {currentUser?.role === "superAdmin" && (
-          <div className="space-y-2"><FormLabel>Empresa</FormLabel><Select value={companyId || ""} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-2"><label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Empresa</label><Select value={companyId || ""} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
         )}
-        <div className="space-y-2"><FormLabel>Nombre de la nueva categoría</FormLabel><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Taller de carrocería" /></div>
-        <div className="space-y-2"><FormLabel>Afecta a</FormLabel><Select value={affects} onValueChange={v => setAffects(v as FinancialCategory["affects"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="client_balance">Balance de Cliente</SelectItem><SelectItem value="partner_balance">Balance de Socio</SelectItem><SelectItem value="none">Ninguno / Empresa</SelectItem></SelectContent></Select></div>
-        <div className="space-y-2"><FormLabel>Descripción (Opcional)</FormLabel><Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe cómo se utiliza esta categoría." /></div>
+        <div className="space-y-2"><label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Nombre de la nueva categoría</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Taller de carrocería" /></div>
+        <div className="space-y-2"><label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Afecta a</label><Select value={affects} onValueChange={v => setAffects(v as FinancialCategory["affects"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="client_balance">Balance de Cliente</SelectItem><SelectItem value="partner_balance">Balance de Socio</SelectItem><SelectItem value="none">Ninguno / Empresa</SelectItem></SelectContent></Select></div>
+        <div className="space-y-2"><label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Descripción (Opcional)</label><Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe cómo se utiliza esta categoría." /></div>
         <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button><Button onClick={() => void save()} disabled={saving || name.trim().length < 2 || (currentUser?.role === "superAdmin" && !companyId)}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear categoría</Button></div>
       </div>
     </FormModal>
@@ -230,8 +230,6 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     if (selectedVehicle && form.getValues("mileageAtExpense") === undefined) setValue("mileageAtExpense", selectedVehicle.currentMileage);
   }, [selectedVehicle, setValue, form]);
 
-  // El importe de la fila es derivado de cantidad x importe unitario.
-  // Esto evita que un campo oculto/registro duplicado deje el total visual en $0.
   const normalizedItems = useMemo(() => watchedItems.map(item => {
     const quantity = Number(item?.quantity) || 1;
     const unitAmount = Number(item?.unitAmount) || 0;
