@@ -10,6 +10,8 @@ export { SkeletonShimmer, SkeletonCard } from "./skeleton-shimmer";
 export { StatusIndicator, statusVariants } from "./status-indicator";
 export { AnimatedToast } from "./animated-toast";
 export { EmptyState } from "./empty-state";
+export { Sparkline } from "./sparkline";
+export { PageTransition } from "./page-transition";
 
 // Re-export existing components with enhancements
 export * from "./card";

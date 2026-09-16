@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardDateProvider } from '@/contexts/dashboard-date-context';
+import { PageTransition } from '@/components/ui/page-transition';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
@@ -38,7 +39,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <VehiclesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
         <ClientsProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
           <FinancesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
-            <SidebarLayout>{children}</SidebarLayout>
+            <SidebarLayout>
+              <PageTransition>{children}</PageTransition>
+            </SidebarLayout>
           </FinancesProvider>
         </ClientsProvider>
       </VehiclesProvider>

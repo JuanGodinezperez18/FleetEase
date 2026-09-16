@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
+import { Sparkline } from '@/components/ui/sparkline';
 
 const iconMap = {
   DollarSign, TrendingUp, TrendingDown, Percent, Clock, Activity, Target,
@@ -33,6 +34,8 @@ interface AnimatedMetricCardProps {
   icon: IconName;
   color: string;
   delay?: number;
+  /** Optional historical values for sparkline (oldest → newest) */
+  sparklineData?: number[];
 }
 
 export function AnimatedMetricCard({
@@ -43,6 +46,7 @@ export function AnimatedMetricCard({
   icon,
   color: _color,
   delay = 0,
+  sparklineData,
 }: AnimatedMetricCardProps) {
   const IconComponent = iconMap[icon] || DollarSign;
 
@@ -66,7 +70,6 @@ export function AnimatedMetricCard({
         'transition-all duration-300 hover:border-white/[0.14] hover:shadow-[0_22px_60px_rgba(0,0,0,0.26)]'
       )}
     >
-      {/* Glow lime sutil al hover */}
       <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#d7ff3f]/[0.06] blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d7ff3f]/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -125,6 +128,21 @@ export function AnimatedMetricCard({
           >
             {subtitle}
           </motion.p>
+        )}
+
+        {sparklineData && sparklineData.length >= 2 && (
+          <motion.div
+            className="mt-4 opacity-90"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay + 0.35 }}
+          >
+            <Sparkline
+              data={sparklineData}
+              height={28}
+              negative={trend ? !trend.isPositive : false}
+            />
+          </motion.div>
         )}
       </div>
     </motion.div>

@@ -10,6 +10,7 @@ import { Share2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sparkline } from '@/components/ui/sparkline';
 
 type MetricCardVariant = "default" | "success" | "warning" | "danger";
 
@@ -27,6 +28,8 @@ interface MetricCardProps {
   variant?: MetricCardVariant;
   trend?: number;
   progress?: number;
+  /** Optional historical values for sparkline (oldest → newest) */
+  sparklineData?: number[];
 }
 
 const VARIANT_CLASSES: Record<MetricCardVariant, string> = {
@@ -51,7 +54,8 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
   valueClassName,
   variant = 'default',
   trend,
-  progress
+  progress,
+  sparklineData,
 }) => {
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -128,7 +132,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
           </CardTitle>
         </div>
         {icon && (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.06] text-[#d7ff3f] transition-colors group-hover:bg-[#d7ff3f]/[0.1]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.06] text-[#d7ff3f] transition-transform duration-200 group-hover:scale-105 group-hover:bg-[#d7ff3f]/[0.1]">
             {icon}
           </div>
         )}
@@ -139,16 +143,26 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
           <div className="space-y-3">
             <Skeleton className="h-9 w-28 bg-white/[0.07]" />
             <Skeleton className="h-3 w-36 bg-white/[0.05]" />
+            <Skeleton className="h-8 w-full bg-white/[0.04]" />
           </div>
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-2">
-              <div className={cn('text-[30px] font-semibold leading-none tracking-[-0.035em] tabular-nums', getVariantClass(variant), valueClassName)}>
+              <div className={cn('font-heading text-[30px] font-semibold leading-none tracking-[-0.035em] tabular-nums', getVariantClass(variant), valueClassName)}>
                 {value}
               </div>
               <TrendIndicator />
             </div>
             {description && <p className="mt-2 max-w-[90%] text-xs leading-5 text-white/35">{description}</p>}
+            {sparklineData && sparklineData.length >= 2 && (
+              <div className="mt-3 opacity-90">
+                <Sparkline
+                  data={sparklineData}
+                  height={28}
+                  negative={trend !== undefined && trend < 0}
+                />
+              </div>
+            )}
             {progress !== undefined && (
               <Progress value={progress} className="mt-4 h-1 bg-white/[0.06]" />
             )}
