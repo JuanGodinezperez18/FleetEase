@@ -4,6 +4,7 @@ import { Activity, BarChart3, Car, CreditCard, ShieldAlert, Users } from 'lucide
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { DashboardWidget, MetricKPIData } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface DashboardChartCardProps {
   widget: DashboardWidget;
@@ -105,21 +106,23 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_rgba(215,255,63,.45)]" />
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Analítica</p>
           </div>
-          <h3 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-white">{widget.title}</h3>
+          <h3 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-white">{widget.title}</h3>
           <p className="mt-1 max-w-[42rem] text-xs leading-5 text-white/40">{chart.description}</p>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] transition-colors group-hover:border-[#d7ff3f]/20 group-hover:bg-[#d7ff3f]/[0.06]">
-          <Icon className="h-[17px] w-[17px] text-white/60 transition-colors group-hover:text-[#d7ff3f]" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] transition-all duration-200 group-hover:border-[#d7ff3f]/25 group-hover:bg-[#d7ff3f]/[0.08] group-hover:scale-105">
+          <Icon className="h-[17px] w-[17px] text-white/55 transition-colors duration-200 group-hover:text-[#d7ff3f]" strokeWidth={1.7} />
         </div>
       </div>
 
       <div className="border-t border-white/[0.05] pt-2">
         {!hasData ? (
-          <div className="flex h-[205px] flex-col items-center justify-center gap-2 text-center">
-            <Icon className="h-6 w-6 text-white/15" />
-            <span className="text-sm text-white/35">Sin datos para mostrar</span>
-            <span className="text-[11px] text-white/20">Prueba otro período o agrega registros.</span>
-          </div>
+          <EmptyState
+            icon={Icon}
+            title="Sin datos para mostrar"
+            description="Prueba otro período o agrega registros para ver esta gráfica."
+            compact
+            className="h-[205px]"
+          />
         ) : chart.kind === 'bar' ? (
           <ResponsiveContainer width="100%" height={205}>
             <BarChart data={chart.data} margin={{ top: 14, right: 8, left: -18, bottom: 0 }}>
@@ -131,36 +134,59 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']}
                 labelStyle={{ color: 'rgba(255,255,255,.65)' }}
               />
-              <Bar dataKey="value" radius={[6, 6, 2, 2]} fill="#d7ff3f" isAnimationActive animationDuration={550} maxBarSize={52} />
+              <Bar
+                dataKey="value"
+                radius={[6, 6, 2, 2]}
+                fill="#d7ff3f"
+                isAnimationActive
+                animationDuration={650}
+                animationEasing="ease-out"
+                maxBarSize={52}
+              />
             </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="relative h-[205px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={chart.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={57} outerRadius={79} paddingAngle={3} stroke="none" isAnimationActive animationDuration={550}>
+                <Pie
+                  data={chart.data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={57}
+                  outerRadius={79}
+                  paddingAngle={3}
+                  stroke="none"
+                  isAnimationActive
+                  animationDuration={650}
+                  animationEasing="ease-out"
+                >
                   {chart.data.map((item, index) => <Cell key={item.name} fill={pieLabels[index % pieLabels.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.3)' }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-[25px] font-semibold tabular-nums tracking-tight text-white">{isMoney ? `$${money.format(total)}` : total}</span>
+              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-white">{isMoney ? `$${money.format(total)}` : total}</span>
               <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white/25">{isMoney ? 'capital' : 'elementos'}</span>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
-        {chart.data.map((item, index) => (
-          <div key={item.name} className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: pieLabels[index % pieLabels.length] }} />
-            <span>{item.name}</span>
-            <strong className="font-medium tabular-nums text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong>
-          </div>
-        ))}
-      </div>
+      {hasData && (
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
+          {chart.data.map((item, index) => (
+            <div key={item.name} className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: pieLabels[index % pieLabels.length] }} />
+              <span>{item.name}</span>
+              <strong className="font-medium tabular-nums text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong>
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

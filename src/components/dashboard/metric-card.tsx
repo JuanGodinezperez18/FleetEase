@@ -66,6 +66,7 @@ export function AnimatedMetricCard({
         'transition-all duration-300 hover:border-white/[0.14] hover:shadow-[0_22px_60px_rgba(0,0,0,0.26)]'
       )}
     >
+      {/* Glow lime sutil al hover */}
       <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#d7ff3f]/[0.06] blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d7ff3f]/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -73,10 +74,10 @@ export function AnimatedMetricCard({
         <div className="mb-5 flex items-start justify-between gap-3">
           <motion.div
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07] text-[#d7ff3f] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+            whileHover={{ scale: 1.08, rotate: 6 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 16 }}
           >
-            <IconComponent className="h-5 w-5" strokeWidth={1.8} />
+            <IconComponent className="h-5 w-5" strokeWidth={1.75} />
           </motion.div>
 
           {trend && (
