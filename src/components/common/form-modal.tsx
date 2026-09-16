@@ -14,12 +14,10 @@ interface FormModalProps {
 }
 
 export function FormModal({ isOpen, onClose, title, description, children }: FormModalProps) {
-  
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
         onClose();
-        // Forzar restauración del body 300ms después para asegurar que la animación del modal termine
         setTimeout(() => {
           restoreBodyInteraction();
         }, 300);
@@ -29,7 +27,6 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
   );
 
   useEffect(() => {
-    // Si el modal se cierra abruptamente, intentar limpiar
     return () => {
       if (!isOpen) {
         restoreBodyInteraction();
@@ -39,7 +36,7 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-[95vw] w-full sm:max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[92vh]">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
           {description && (
@@ -48,7 +45,7 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
             </DialogDescription>
           )}
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] sm:max-h-[70vh] pr-2">
+        <ScrollArea className="max-h-[72vh] pr-2 sm:max-h-[78vh]">
           {children}
         </ScrollArea>
       </DialogContent>
