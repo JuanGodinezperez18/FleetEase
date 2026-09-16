@@ -17,6 +17,7 @@ import { infallibleNormalizeDate } from '@/lib/date-utils';
 /**
  * Hook central que agrega todos los KPIs de los hooks especializados.
  * Devuelve un único objeto con todos los datos listos para consumir.
+ * Incluye trendData (sparklines) y trend (badge) automáticamente desde cashFlowAnalysis.
  */
 export function useDashboardKPIs(dateRange?: DateRange) {
   const dataContext = useData();
@@ -35,7 +36,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     financialCategories = []
   } = dataContext || {};
 
-  // Hooks de Analítica que consumen datos crudos
   const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, partners, dateRange, financialCategories);
   const { clientMetrics = [] } = useClientAnalytics(clients, financialRecords, vehicles) || {};
   const { vehicleMetrics = [] } = useVehicleAnalytics(vehicles, financialRecords, vehicleAssignmentLogs) || {};
@@ -55,7 +55,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
   const multasAnalytics = useMultasAnalytics(multas, vehicles, clients);
 
   return useMemo(() => {
-    // Filtrar transacciones financieras por el rango de fechas
     const filteredFinancialRecords = dateRange && dateRange.from && dateRange.to
       ? financialRecords.filter(r => {
           if (r.isDeleted) return false;
@@ -68,7 +67,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         })
       : financialRecords;
 
-    // Separar ingresos y gastos del período
     const incomeRecords = filteredFinancialRecords.filter(r => r.type === 'income');
     const expenseRecords = filteredFinancialRecords.filter(r => r.type === 'expense');
 
@@ -81,10 +79,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const partnerBalances = partnerBalancesFromData;
     const totalPartnerBalance = partnerBalances.reduce((sum, pb) => sum + pb.balance, 0);
 
-    // Cálculos para KPIs de Clientes
     const totalActiveClients = clients.filter(c => c.status === 'active' && !c.isDeleted).length;
 
-    // Transformar clientMetrics para incluir datos completos del cliente
     const enrichedClientMetrics = clientMetrics.map(metric => {
       const client = clients.find(c => c.id === metric.clientId);
       if (!client) return null;
@@ -92,7 +88,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       return {
         ...client,
         balance: metric.currentBalance || 0,
-        // Mantener las métricas adicionales
         ...metric
       };
     }).filter((cm): cm is NonNullable<typeof cm> => cm !== null);
@@ -102,7 +97,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const licensesExpiringClients = enrichedClientMetrics.filter(cm => cm.licenseStatus === 'Próxima a Vencer' || cm.licenseStatus === 'Vencida');
     const licensesExpiringSoon = licensesExpiringClients.length;
 
-    // Cálculos para KPIs de Vehículos
     const operationalVehicles = vehicles.filter(v => v.status !== 'sold' && !v.isDeleted);
     const totalRented = operationalVehicles.filter(v => v.status === 'rented' || v.clientId !== null).length;
     const availableVehiclesData = operationalVehicles.filter(v => v.status === 'active' && v.clientId === null);
@@ -118,15 +112,13 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       return expiry < thirtyDaysFromNow && expiry > now;
     }).length;
 
-    // Cálculos para KPIs de Créditos
     const activeCredits = credits.filter(c => c.status === 'active' && !c.isDeleted);
     const overdueCredits = creditMetrics.filter(cm => cm.paymentBehavior === 'Retraso Severo').length;
     const totalLent = portfolioAnalytics.totalPortfolioValue || 0;
     const totalRemaining = portfolioAnalytics.totalRemaining || 0;
-    const projectedIncome = activeCredits.reduce((sum, c) => sum + (c.weeklyPayment || 0), 0) * 4; // Estimación mensual
+    const projectedIncome = activeCredits.reduce((sum, c) => sum + (c.weeklyPayment || 0), 0) * 4;
     const recoveryRate = totalLent > 0 ? ((totalLent - totalRemaining) / totalLent) * 100 : 0;
 
-    // Transformar créditos activos para el modal (construir clientName y mapear campos)
     const activeCreditDetails = activeCredits.map(credit => {
       const client = clients.find(c => c.id === credit.clientId);
       const clientName = client ? `${client.firstname} ${client.lastname}`.trim() : 'Cliente Desconocido';
@@ -144,7 +136,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       };
     });
 
-    // Transformar créditos vencidos para el modal
     const overdueCreditDetails = creditMetrics
       .filter(cm => cm.paymentBehavior === 'Retraso Severo')
       .map(metric => {
@@ -165,11 +156,22 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         };
       });
     
-    // Vehículos que necesitan mantenimiento (próximo)
     const maintenanceSoon = mileageMetrics.filter(vm => {
       const kmToNext = vm.kmToNextMaintenance || 0;
       return kmToNext > 0 && kmToNext <= 1500;
     }).length;
+
+    // Series de 12 meses para sparklines (ya calculadas en financialAnalytics)
+    const cashFlow = financialAnalytics.cashFlowAnalysis || [];
+    const incomeTrendData = cashFlow.map(m => (m.income || 0) + (m.payments || 0));
+    const expenseTrendData = cashFlow.map(m => m.expenses || 0);
+    const netTrendData = cashFlow.map(m => m.netFlow || 0);
+
+    const incomeChange = financialAnalytics.monthlyGrowth?.income ?? 0;
+    const expenseChange = financialAnalytics.monthlyGrowth?.expenses ?? 0;
+    const profitChange = financialAnalytics.monthlyGrowth?.profit ?? 0;
+
+    const hasSpark = (arr: number[]) => arr.length >= 2 && arr.some(v => v !== 0);
 
     const allKPIs: Record<string, MetricKPIData> = {
       // ========== CLIENTES ==========
@@ -179,7 +181,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       },
       'client-balance-total': {
         value: totalClientBalance,
-        details: enrichedClientMetrics.filter(cm => (cm.currentBalance || 0) !== 0), // Todos los clientes con balance (positivo o negativo)
+        details: enrichedClientMetrics.filter(cm => (cm.currentBalance || 0) !== 0),
         loading: false
       },
       'clients-with-debt': { 
@@ -233,10 +235,12 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         loading: false
       },
 
-      // ========== FINANZAS ==========
+      // ========== FINANZAS (con sparkline + trend automáticos) ==========
       'income-month': {
         value: financialAnalytics.totalIncome || 0,
-        changePercent: financialAnalytics.monthlyGrowth?.income,
+        changePercent: incomeChange,
+        trend: incomeChange >= 0,
+        trendData: hasSpark(incomeTrendData) ? incomeTrendData : undefined,
         details: incomeRecords,
         loading: false
       },
@@ -246,7 +250,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       },
       'expenses-month': {
         value: financialAnalytics.totalExpenses || 0,
-        changePercent: financialAnalytics.monthlyGrowth?.expenses,
+        changePercent: expenseChange,
+        // Menos gasto = tendencia positiva (verde)
+        trend: expenseChange <= 0,
+        trendData: hasSpark(expenseTrendData) ? expenseTrendData : undefined,
         details: expenseRecords,
         loading: false
       },
@@ -256,17 +263,17 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       },
       'net-income': { 
         value: financialAnalytics.netProfit || 0, 
-        changePercent: financialAnalytics.monthlyGrowth?.profit,
+        changePercent: profitChange,
+        trend: profitChange >= 0,
+        trendData: hasSpark(netTrendData) ? netTrendData : undefined,
         loading: false 
       },
       'top-income-category': {
         value: (() => {
-          // Priorizar categorías reales, pero si solo hay "Sin Categoría", mostrarla
           const validCategories = financialAnalytics.incomeCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
           if (validCategories && validCategories.length > 0) {
             return validCategories[0].name;
           }
-          // Si no hay categorías válidas, usar la primera disponible (puede ser "Sin Categoría")
           return financialAnalytics.incomeCategories?.[0]?.name || 'Sin datos';
         })(),
         subtitle: (() => {
@@ -274,7 +281,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           if (validCategories && validCategories.length > 0 && validCategories[0].value) {
             return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           }
-          // Si no hay categorías válidas, usar la primera disponible
           return financialAnalytics.incomeCategories?.[0]?.value
             ? `$${financialAnalytics.incomeCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : undefined;
@@ -283,12 +289,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       },
       'top-expense-category': {
         value: (() => {
-          // Priorizar categorías reales, pero si solo hay "Sin Categoría", mostrarla
           const validCategories = financialAnalytics.expenseCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
           if (validCategories && validCategories.length > 0) {
             return validCategories[0].name;
           }
-          // Si no hay categorías válidas, usar la primera disponible (puede ser "Sin Categoría")
           return financialAnalytics.expenseCategories?.[0]?.name || 'Sin datos';
         })(),
         subtitle: (() => {
@@ -296,7 +300,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           if (validCategories && validCategories.length > 0 && validCategories[0].value) {
             return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           }
-          // Si no hay categorías válidas, usar la primera disponible
           return financialAnalytics.expenseCategories?.[0]?.value
             ? `$${financialAnalytics.expenseCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : undefined;
