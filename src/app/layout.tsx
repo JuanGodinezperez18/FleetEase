@@ -16,18 +16,22 @@ const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 export const metadata: Metadata = {
   metadataBase: new URL("https://fleetease.com.mx"),
   title: {
-    default: "FleetEase | Gestión inteligente de flotillas",
+    default: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
     template: "%s | FleetEase",
   },
-  description: "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar.",
+  description: "Gestiona tu flotilla de vehículos desde un solo lugar. Controla rentabilidad, mantenimiento, clientes y operaciones. Software para renta de vehículos y control de flotillas. Prueba gratis 14 días sin tarjeta.",
   applicationName: "FleetEase",
   keywords: [
     "gestión de flotillas",
     "software para flotillas",
+    "software gestión de flotillas",
     "administración de vehículos",
     "control de flotillas",
+    "control de flotillas México",
     "renta de vehículos",
+    "software para renta de vehículos",
     "mantenimiento de flotillas",
+    "software control de flotillas",
     "FleetEase",
   ],
   alternates: {
@@ -49,14 +53,14 @@ export const metadata: Metadata = {
     locale: "es_MX",
     url: "https://fleetease.com.mx/",
     siteName: "FleetEase",
-    title: "FleetEase | Gestión inteligente de flotillas",
-    description: "Controla clientes, vehículos, rentabilidad y mantenimiento de tu flotilla desde un solo lugar.",
-    images: [{ url: "/logo.png", width: 512, height: 512, alt: "FleetEase" }],
+    title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
+    description: "Controla clientes, vehículos, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "FleetEase - Software de gestión de flotillas" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FleetEase | Gestión inteligente de flotillas",
-    description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar.",
+    title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
+    description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
     images: ["/logo.png"],
   },
   manifest: "/manifest.json",
@@ -82,6 +86,8 @@ const structuredData = {
       name: "FleetEase",
       url: "https://fleetease.com.mx/",
       logo: "https://fleetease.com.mx/logo.png",
+      description: "Software de gestión de flotillas y renta de vehículos para operadores en México.",
+      sameAs: [],
     },
     {
       "@type": "SoftwareApplication",
@@ -90,13 +96,66 @@ const structuredData = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       url: "https://fleetease.com.mx/",
-      description: "Software para gestionar flotillas, vehículos, mantenimiento, clientes y rentabilidad desde un solo lugar.",
+      description: "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar. Ideal para renta de vehículos y control de flotillas en México.",
       offers: {
         "@type": "Offer",
         price: "0",
         priceCurrency: "MXN",
         description: "Prueba gratuita durante 14 días, con 1 usuario y hasta 2 vehículos, sin tarjeta.",
       },
+      featureList: [
+        "Rentabilidad por vehículo",
+        "Control de mantenimiento",
+        "Gestión de clientes y asignaciones",
+        "Seguimiento de ingresos y costos",
+        "Alertas de vencimientos",
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://fleetease.com.mx/#faq",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "¿Para quién es FleetEase?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Para empresas y operadores que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores y necesitan controlar operación y rentabilidad.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "¿Puedo probar FleetEase antes de pagar?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Sí. El plan Free te permite usar FleetEase durante 14 días con 1 usuario y hasta 2 vehículos, sin ingresar tarjeta ni información de pago.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "¿Los planes dependen del número de vehículos?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Sí. Los planes están pensados para crecer contigo y aumentar la capacidad conforme crece tu flotilla.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "¿FleetEase reemplaza mi GPS?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "No necesariamente. FleetEase está pensado como la capa de gestión de tu operación: centraliza información, costos, mantenimiento y rentabilidad.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "¿FleetEase sirve para control de flotillas en México?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Sí. FleetEase es un software de gestión de flotillas y renta de vehículos diseñado para operadores en México. Te permite controlar rentabilidad, mantenimiento y operación desde un solo lugar.",
+          },
+        },
+      ],
     },
   ],
 };
