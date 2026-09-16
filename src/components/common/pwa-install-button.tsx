@@ -16,19 +16,31 @@ declare global {
   }
 }
 
+const DISMISS_KEY = "fleetease-pwa-dismissed";
+const SHOW_DELAY_MS = 8000;
+
 export function PwaInstallButton() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [ios, setIos] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(true); // hide until delay + checks
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator &&
+        Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
     setInstalled(isStandalone);
 
     const isIosDevice = /iphone|ipad|ipod/i.test(navigator.userAgent);
     setIos(isIosDevice);
+
+    const wasDismissed = localStorage.getItem(DISMISS_KEY) === "1";
+    if (wasDismissed || isStandalone) {
+      setDismissed(true);
+      return;
+    }
 
     const syncInstallPrompt = () => {
       if (window.__fleetEaseInstallPrompt) {
@@ -58,14 +70,30 @@ export function PwaInstallButton() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
+    // Delay banner so it doesn't compete with first-view CTAs
+    const timer = window.setTimeout(() => {
+      setDismissed(false);
+      setReady(true);
+    }, SHOW_DELAY_MS);
+
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("fleetease-install-available", syncInstallPrompt);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
-  if (installed || dismissed) return null;
+  if (installed || dismissed || !ready) return null;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const handleInstall = async () => {
     const promptEvent = installPrompt ?? window.__fleetEaseInstallPrompt;
@@ -86,8 +114,6 @@ export function PwaInstallButton() {
       return;
     }
 
-    // Never send Android/desktop users to the browser menu. Direct PWA
-    // installation is controlled by the browser's native prompt.
     if (!ios) return;
 
     toast.info("Instalar FleetEase en iPhone/iPad", {
@@ -97,18 +123,28 @@ export function PwaInstallButton() {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="fixed bottom-20 left-4 right-4 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-[#0e1117]/95 p-3 shadow-xl backdrop-blur-xl sm:bottom-4 supports-[backdrop-filter]:bg-[#0e1117]/85">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/10 text-[#d7ff3f]">
         {ios ? <Smartphone className="h-5 w-5" /> : <Download className="h-5 w-5" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">Instala FleetEase</p>
-        <p className="text-xs text-muted-foreground">Acceso rápido desde tu teléfono.</p>
+        <p className="text-sm font-semibold text-white">Instala FleetEase</p>
+        <p className="text-xs text-white/45">Acceso rápido desde tu teléfono.</p>
       </div>
-      <Button size="sm" onClick={handleInstall}>
+      <Button
+        size="sm"
+        onClick={handleInstall}
+        className="bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-white"
+      >
         Instalar
       </Button>
-      <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setDismissed(true)} aria-label="Cerrar">
+      <Button
+        size="icon"
+        variant="ghost"
+        className="shrink-0 text-white/40 hover:text-white"
+        onClick={handleDismiss}
+        aria-label="Cerrar"
+      >
         <X className="h-4 w-4" />
       </Button>
     </div>
