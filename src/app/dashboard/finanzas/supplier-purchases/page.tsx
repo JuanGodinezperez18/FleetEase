@@ -17,6 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 
 type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null };
+type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
@@ -30,7 +31,7 @@ export default function SupplierPurchasesPage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [dueDate, setDueDate] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -67,6 +68,7 @@ export default function SupplierPurchasesPage() {
     if (!supplierId) return toast.error("Selecciona el proveedor.");
     if (!items.length || items.some(i => !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Completa correctamente todas las partidas.");
     if (paymentMethod === "credit" && !dueDate) return toast.error("Una compra a crédito requiere fecha de vencimiento.");
+    if (paymentMethod !== "credit" && dueDate) return toast.error("La fecha de vencimiento solo aplica a compras a crédito.");
     if (!(total > 0)) return toast.error("El total debe ser mayor que cero.");
     setSaving(true);
     try {
@@ -84,7 +86,8 @@ export default function SupplierPurchasesPage() {
       } as any);
       if (error) throw error;
       const purchase = data as any;
-      toast.success("Compra registrada", { description: paymentMethod === "credit" ? "Se creó también la cuenta por pagar al proveedor." : "La compra quedó registrada como pagada." });
+      const labels: Record<PaymentMethod, string> = { cash: "contado", transfer: "transferencia", card: "tarjeta", credit: "crédito" };
+      toast.success("Compra registrada", { description: paymentMethod === "credit" ? "Se creó también la cuenta por pagar al proveedor." : `La compra quedó registrada como pagada por ${labels[paymentMethod]}.` });
       if (purchase?.id) {
         router.push(`/dashboard/finanzas/supplier-purchases/${purchase.id}`);
         return;
@@ -95,16 +98,18 @@ export default function SupplierPurchasesPage() {
     } finally { setSaving(false); }
   };
 
+  const paymentLabels: Record<PaymentMethod, string> = { cash: "Contado / efectivo", transfer: "Transferencia", card: "Tarjeta", credit: "Crédito" };
+
   return <div className="space-y-6 p-4 md:p-6">
-    <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-3"><ShoppingCart className="h-6 w-6 text-primary" /></div><div><h1 className="text-2xl font-bold tracking-tight">Compras a proveedores</h1><p className="text-muted-foreground">Registra una compra independiente del gasto del vehículo y después distribúyela si corresponde.</p></div></div>
+    <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-3"><ShoppingCart className="h-6 w-6 text-primary" /></div><div><h1 className="text-2xl font-bold tracking-tight">Compras a proveedores</h1><p className="text-muted-foreground">Registra la compra del proveedor y después vincula sus partidas con las líneas exactas del gasto del vehículo.</p></div></div>
     <Card className="max-w-5xl">
-      <CardHeader><CardTitle>Nueva compra</CardTitle><CardDescription>Una compra puede contener múltiples partidas y no está obligada a pertenecer a un solo vehículo.</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Nueva compra</CardTitle><CardDescription>Una compra puede contener múltiples partidas y puede relacionarse con gastos de distintos vehículos.</CardDescription></CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2 lg:col-span-2"><Label>Proveedor</Label><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger><SelectValue placeholder="Seleccionar proveedor..." /></SelectTrigger><SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
           <div className="space-y-2"><Label>Referencia / factura</Label><Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Opcional" /></div>
-          <div className="space-y-2"><Label>Forma de pago</Label><Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as "cash" | "credit")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cash">Contado</SelectItem><SelectItem value="credit">Crédito</SelectItem></SelectContent></Select></div>
+          <div className="space-y-2"><Label>Forma de pago</Label><Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(paymentLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
           {paymentMethod === "credit" && <div className="space-y-2"><Label>Vencimiento</Label><Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></div>}
           <div className="space-y-2 lg:col-span-2"><Label>Notas</Label><Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional" /></div>
         </div>
