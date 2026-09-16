@@ -5,6 +5,8 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload } from '@/lib/credit-creation';
+import { sanitizeExpenseFormData } from '@/lib/sanitize-expense';
+import { formatCurrency } from '@/lib/utils';
 import type { QuickActionModal } from './use-dashboard-page';
 
 interface UseDashboardActionsProps {
@@ -79,16 +81,86 @@ export function useDashboardActions({
   const handleExpenseSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
-      await addExpense?.(data);
+
+      if (!addExpense) {
+        throw new Error('La función para registrar gastos no está disponible.');
+      }
+
+      // El formulario multilínea entrega el detalle en `items`. La página
+      // de gastos calcula el importe de cabecera antes de llamar a addExpense;
+      // la acción rápida debe aplicar exactamente la misma regla.
+      const rawItems = Array.isArray(data?.items) ? data.items : [];
+      const normalizedItems = rawItems.map((item: any) => {
+        const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
+        const enteredUnitAmount = Number(item?.unitAmount);
+        const enteredAmount = Number(item?.amount);
+        const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
+          ? enteredUnitAmount
+          : Number.isFinite(enteredAmount) && enteredAmount > 0
+            ? enteredAmount / quantity
+            : 0;
+        const amount = unitAmount > 0
+          ? quantity * unitAmount
+          : Number.isFinite(enteredAmount) && enteredAmount > 0
+            ? enteredAmount
+            : 0;
+
+        return {
+          ...item,
+          quantity,
+          unitAmount,
+          amount,
+        };
+      });
+
+      if (normalizedItems.length === 0) {
+        throw new Error('Agrega al menos un concepto de gasto.');
+      }
+
+      const sanitizedData = sanitizeExpenseFormData({
+        ...data,
+        items: normalizedItems,
+      });
+
+      const totalAmount = sanitizedData.items.reduce(
+        (sum, item) => sum + (Number(item.amount) || 0),
+        0
+      );
+
+      if (!(totalAmount > 0)) {
+        throw new Error('El total del gasto debe ser mayor que cero.');
+      }
+
+      const description =
+        sanitizedData.description ||
+        sanitizedData.items
+          .map(item => `${item.concept}: ${formatCurrency(item.amount)}`)
+          .join(' | ');
+
+      await addExpense({
+        ...sanitizedData,
+        amount: totalAmount,
+        description,
+        type: 'expense',
+        isDeleted: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['financialRecords'] }),
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+        queryClient.invalidateQueries({ queryKey: ['mileage'] }),
+      ]);
+
       toast.success('Gasto registrado exitosamente');
       handleCloseQuickAction();
     } catch (error) {
       console.error('Error al registrar gasto:', error);
-      toast.error('Error al registrar el gasto');
+      toast.error(error instanceof Error ? error.message : 'Error al registrar el gasto');
     } finally {
       setIsSubmittingForm(false);
     }
-  }, [addExpense, handleCloseQuickAction]);
+  }, [addExpense, queryClient, handleCloseQuickAction]);
 
   // Handler para créditos
   //
