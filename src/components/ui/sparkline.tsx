@@ -3,16 +3,36 @@
 import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 
+const COLOR_MAP: Record<string, string> = {
+  lime: "#d7ff3f",
+  green: "#34d399",
+  red: "#f87171",
+  blue: "#60a5fa",
+  amber: "#fbbf24",
+  orange: "#fb923c",
+};
+
 interface SparklineProps {
   /** Array of numeric values (oldest → newest). Empty = no render. */
   data?: number[];
   /** Height in px */
   height?: number;
-  /** Stroke / fill color (defaults to FleetEase lime) */
+  /** Hex color or named token: lime | green | red | blue | amber | orange */
   color?: string;
   className?: string;
-  /** When true, uses muted/negative tone */
+  /** When true, forces negative (red) tone */
   negative?: boolean;
+  /** Reserved for future dots; currently unused for performance */
+  showDots?: boolean;
+  /** Whether to animate the area (default true) */
+  animate?: boolean;
+}
+
+function resolveColor(color: string | undefined, negative: boolean): string {
+  if (negative) return COLOR_MAP.red;
+  if (!color) return COLOR_MAP.lime;
+  if (color.startsWith("#")) return color;
+  return COLOR_MAP[color] ?? COLOR_MAP.lime;
 }
 
 /**
@@ -22,18 +42,20 @@ interface SparklineProps {
 export function Sparkline({
   data = [],
   height = 32,
-  color = "#d7ff3f",
+  color = "lime",
   className,
   negative = false,
+  showDots: _showDots = false,
+  animate = true,
 }: SparklineProps) {
   if (!data || data.length < 2) return null;
 
   const chartData = data.map((value, index) => ({ index, value }));
-  const stroke = negative ? "#f87171" : color;
-  const gradientId = `spark-${negative ? "neg" : "pos"}-${data.length}`;
+  const stroke = resolveColor(color, negative);
+  const gradientId = `spark-${stroke.replace("#", "")}-${data.length}`;
 
   return (
-    <div className={cn("w-full", className)} style={{ height }}>
+    <div className={cn("w-full", className)} style={{ height }} aria-hidden="true">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
           <defs>
@@ -49,7 +71,7 @@ export function Sparkline({
             stroke={stroke}
             strokeWidth={1.5}
             fill={`url(#${gradientId})`}
-            isAnimationActive
+            isAnimationActive={animate}
             animationDuration={600}
             animationEasing="ease-out"
             dot={false}

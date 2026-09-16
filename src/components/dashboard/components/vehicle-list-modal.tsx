@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ModalTableSkeleton } from './modal-table-skeleton';
 import { ModalPagination } from './modal-pagination';
 import { StaggerTableRow } from '@/components/animations/modern-transitions';
+import { EmptyState } from '@/components/common/empty-state';
 
 interface VehicleData {
   id: string;
@@ -49,7 +50,6 @@ export function VehicleListModal({
   const router = useRouter();
   const { shareContent, isSharing } = useShareContent();
 
-  // ✅ Hook mejorado con paginación
   const {
     searchTerm,
     setSearchTerm,
@@ -73,7 +73,6 @@ export function VehicleListModal({
       vehicle.model || ''
     ],
     sortFn: (a, b) => {
-      // Priorizar por estado de mantenimiento
       const aStatus = getMaintenanceStatus(a);
       const bStatus = getMaintenanceStatus(b);
       const priority = { overdue: 0, soon: 1, ok: 2 };
@@ -82,22 +81,18 @@ export function VehicleListModal({
     initialPageSize: 20
   });
 
-  // ✅ Función para determinar estado de mantenimiento
   function getMaintenanceStatus(vehicle: VehicleData): 'overdue' | 'soon' | 'ok' {
     if (!vehicle.currentMileage || !vehicle.nextMaintenanceAt) return 'ok';
-    
     const remaining = vehicle.nextMaintenanceAt - vehicle.currentMileage;
     if (remaining <= 0) return 'overdue';
     if (remaining <= 500) return 'soon';
     return 'ok';
   }
 
-  // ✅ Estadísticas del modal
   const stats = useMemo(() => {
     const overdue = filteredData.filter(v => getMaintenanceStatus(v) === 'overdue').length;
     const soon = filteredData.filter(v => getMaintenanceStatus(v) === 'soon').length;
     const ok = filteredData.filter(v => getMaintenanceStatus(v) === 'ok').length;
-    
     return { overdue, soon, ok };
   }, [filteredData]);
 
@@ -112,22 +107,14 @@ export function VehicleListModal({
       month: 'long',
       day: 'numeric'
     });
-    
     const vehiclesText = filteredData
       .map(vehicle => {
         const status = getMaintenanceStatus(vehicle);
         const statusText = status === 'overdue' ? '⚠️ VENCIDO' : status === 'soon' ? '⏰ PRÓXIMO' : '✅ OK';
         return `${vehicle.alias || vehicle.plate} - ${statusText}`;
       })
-      .join('');
-    
-    const shareText = `${title}
-Fecha: ${date}
-
-${vehiclesText}
-
-Total: ${filteredData.length} vehículos`;
-    
+      .join('\n');
+    const shareText = `${title}\nFecha: ${date}\n\n${vehiclesText}\n\nTotal: ${filteredData.length} vehículos`;
     shareContent({
       title: `Reporte de Vehículos: ${title}`,
       text: shareText,
@@ -140,7 +127,7 @@ Total: ${filteredData.length} vehículos`;
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <Car className="w-5 h-5 text-[#d7ff3f]" />
               <div>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription className="mt-1">
@@ -149,7 +136,6 @@ Total: ${filteredData.length} vehículos`;
               </div>
             </div>
 
-            {/* Estadísticas rápidas */}
             <div className="flex gap-2">
               {stats.overdue > 0 && (
                 <Badge variant="destructive" className="text-xs">
@@ -173,7 +159,6 @@ Total: ${filteredData.length} vehículos`;
           </div>
         </DialogHeader>
 
-        {/* Barra de búsqueda */}
         <div className="relative shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -191,32 +176,44 @@ Total: ${filteredData.length} vehículos`;
           )}
         </div>
 
-        {/* Tabla con scroll */}
         <ScrollArea className="flex-1 -mx-6 min-h-0">
           <div className="min-w-[800px] px-6">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vehículo</TableHead>
-                <TableHead>Placa</TableHead>
-                <TableHead className="text-right">Kilometraje</TableHead>
-                <TableHead className="text-right">Próximo Mant.</TableHead>
-                <TableHead className="text-center">Estado</TableHead>
-                <TableHead className="text-right">Acción</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <ModalTableSkeleton rows={5} columns={6} />
-              ) : paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                    {searchTerm ? 'No se encontraron vehículos' : 'No hay vehículos para mostrar'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {/* React 19: StaggerContainer for animated rows */}
+            {loading ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vehículo</TableHead>
+                    <TableHead>Placa</TableHead>
+                    <TableHead className="text-right">Kilometraje</TableHead>
+                    <TableHead className="text-right">Próximo Mant.</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <ModalTableSkeleton rows={5} columns={6} />
+                </TableBody>
+              </Table>
+            ) : paginatedData.length === 0 ? (
+              <EmptyState
+                illustration={searchTerm ? 'search' : 'vehicles'}
+                title={searchTerm ? 'No se encontraron vehículos' : 'No hay vehículos para mostrar'}
+                description={searchTerm ? 'Prueba con otro término de búsqueda.' : 'Cuando agregues vehículos, aparecerán aquí con su estado de mantenimiento.'}
+                className="min-h-[280px] border-0 bg-transparent"
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vehículo</TableHead>
+                    <TableHead>Placa</TableHead>
+                    <TableHead className="text-right">Kilometraje</TableHead>
+                    <TableHead className="text-right">Próximo Mant.</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {paginatedData.map((vehicle) => {
                     const status = getMaintenanceStatus(vehicle);
                     const remaining = vehicle.nextMaintenanceAt && vehicle.currentMileage
@@ -294,16 +291,14 @@ Total: ${filteredData.length} vehículos`;
                       </StaggerTableRow>
                     );
                   })}
-                </>
-              )}
-            </TableBody>
-          </Table>
+                </TableBody>
+              </Table>
+            )}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Paginación */}
-        {!loading && (
+        {!loading && paginatedData.length > 0 && (
           <div className="shrink-0">
             <ModalPagination
               currentPage={currentPage}

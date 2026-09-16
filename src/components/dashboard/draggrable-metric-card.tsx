@@ -42,6 +42,7 @@ function MetricCardSkeleton() {
           <Skeleton className="h-3 w-28 bg-white/[0.08]" />
           <Skeleton className="h-9 w-32 bg-white/[0.08]" />
           <Skeleton className="h-3 w-20 bg-white/[0.08]" />
+          <Skeleton className="h-8 w-full bg-white/[0.05]" />
         </div>
         <Skeleton className="h-10 w-10 rounded-xl bg-white/[0.08]" />
       </div>
@@ -70,6 +71,9 @@ function DraggableMetricCardBase({
       ? ((Number(kpiData.value) - Number(kpiData.previousValue)) / Number(kpiData.previousValue)) * 100
       : undefined
   );
+
+  const sparkColor =
+    kpiData?.trend === true ? 'green' : kpiData?.trend === false ? 'red' : 'lime';
 
   return (
     <article
@@ -100,7 +104,7 @@ function DraggableMetricCardBase({
             </p>
           </div>
 
-          <h3 className="text-[34px] font-semibold leading-none tracking-[-0.045em] text-white tabular-nums" aria-live="polite">
+          <h3 className="font-heading text-[34px] font-semibold leading-none tracking-[-0.045em] text-white tabular-nums" aria-live="polite">
             {displayValue}
           </h3>
 
@@ -123,14 +127,13 @@ function DraggableMetricCardBase({
             </div>
           )}
 
-          {kpiData?.trendData && kpiData.trendData.length > 2 && (
+          {kpiData?.trendData && kpiData.trendData.length >= 2 && (
             <div className="mt-4 border-t border-white/[0.06] pt-3 opacity-80 transition-opacity group-hover:opacity-100">
               <Sparkline
                 data={kpiData.trendData}
                 height={34}
-                color={kpiData.trend ? 'green' : kpiData.trend === false ? 'red' : 'blue'}
-                showDots={false}
-                animate={true}
+                color={sparkColor}
+                animate
                 className="w-full"
               />
             </div>
@@ -139,7 +142,7 @@ function DraggableMetricCardBase({
 
         <div className="flex shrink-0 items-start gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.07] transition-transform duration-300 group-hover:scale-105">
-            <IconComponent className="h-5 w-5 text-[#d7ff3f]" aria-hidden="true" />
+            <IconComponent className="h-5 w-5 text-[#d7ff3f]" aria-hidden="true" strokeWidth={1.75} />
           </div>
           <button
             type="button"

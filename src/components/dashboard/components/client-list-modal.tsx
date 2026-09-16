@@ -18,6 +18,7 @@ import { ModalTableSkeleton } from './modal-table-skeleton';
 import { ModalPagination } from './modal-pagination';
 import type { ClientWithMetrics } from '@/types';
 import { StaggerTableRow } from '@/components/animations/modern-transitions';
+import { EmptyState } from '@/components/common/empty-state';
 
 interface ClientListModalProps {
   isOpen: boolean;
@@ -37,7 +38,6 @@ export function ClientListModal({
   const router = useRouter();
   const { shareContent, isSharing } = useShareContent();
 
-  // ✅ Hook mejorado con paginación
   const {
     searchTerm,
     setSearchTerm,
@@ -78,18 +78,10 @@ export function ClientListModal({
       month: 'long',
       day: 'numeric'
     });
-    
     const balancesText = filteredData
       .map(client => `${client.firstname} ${client.lastname}: ${formatCurrency(client.balance)}`)
-      .join('');
-    
-    const shareText = `${title}
-Fecha: ${date}
-
-${balancesText}
-
-Saldo Total: ${formatCurrency(totalBalance)}`;
-    
+      .join('\n');
+    const shareText = `${title}\nFecha: ${date}\n\n${balancesText}\n\nSaldo Total: ${formatCurrency(totalBalance)}`;
     shareContent({
       title: `Resumen de Clientes: ${title}`,
       text: shareText,
@@ -102,7 +94,7 @@ Saldo Total: ${formatCurrency(totalBalance)}`;
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <Users className="w-5 h-5 text-[#d7ff3f]" />
               <div>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription className="mt-1">
@@ -119,7 +111,6 @@ Saldo Total: ${formatCurrency(totalBalance)}`;
           </div>
         </DialogHeader>
 
-        {/* Barra de búsqueda */}
         <div className="relative shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -137,67 +128,75 @@ Saldo Total: ${formatCurrency(totalBalance)}`;
           )}
         </div>
 
-        {/* Tabla con scroll */}
         <ScrollArea className="flex-1 -mx-6 min-h-0">
           <div className="min-w-[600px] px-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-right">Saldo</TableHead>
-                  <TableHead className="text-right">Acción</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <ModalTableSkeleton rows={5} columns={4} />
-                ) : paginatedData.length === 0 ? (
+            {loading ? (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                      {searchTerm ? 'No se encontraron clientes' : 'No hay clientes para mostrar'}
-                    </TableCell>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
-                ) : (
-                  <>
-                    {/* React 19: Animated rows with StaggerTableRow */}
-                    {paginatedData.map((client) => (
-                      <StaggerTableRow key={client.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                        <TableCell className="font-medium">
-                          {client.firstname} {client.lastname}
-                        </TableCell>
-                        <TableCell className="text-gray-600 dark:text-gray-400">
-                          {client.email || 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={cn(
-                            'font-semibold',
-                            client.balance > 0 ? 'text-destructive' : 'text-green-600'
-                          )}>
-                            {formatCurrency(client.balance)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewClient(client.id)}
-                          >
-                            Ver Cliente
-                          </Button>
-                        </TableCell>
-                      </StaggerTableRow>
-                    ))}
-                  </>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  <ModalTableSkeleton rows={5} columns={4} />
+                </TableBody>
+              </Table>
+            ) : paginatedData.length === 0 ? (
+              <EmptyState
+                illustration={searchTerm ? 'search' : 'clients'}
+                title={searchTerm ? 'No se encontraron clientes' : 'No hay clientes para mostrar'}
+                description={searchTerm ? 'Prueba con otro nombre o email.' : 'Cuando registres clientes, verás aquí sus saldos y estado.'}
+                className="min-h-[280px] border-0 bg-transparent"
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedData.map((client) => (
+                    <StaggerTableRow key={client.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                      <TableCell className="font-medium">
+                        {client.firstname} {client.lastname}
+                      </TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">
+                        {client.email || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={cn(
+                          'font-semibold',
+                          client.balance > 0 ? 'text-destructive' : 'text-green-600'
+                        )}>
+                          {formatCurrency(client.balance)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewClient(client.id)}
+                        >
+                          Ver Cliente
+                        </Button>
+                      </TableCell>
+                    </StaggerTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Paginación */}
-        {!loading && (
+        {!loading && paginatedData.length > 0 && (
           <div className="shrink-0">
             <ModalPagination
               currentPage={currentPage}
