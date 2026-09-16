@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Trash2, Loader2, ShoppingCart, AlertCircle, Search, Wrench } from "lucide-react";
+import { Building2, Plus, Trash2, Loader2, ShoppingCart, AlertCircle, Search, Wrench, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
-type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; lines: { id: string; concept: string; amount: number }[] };
+type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; lines: { id: string; concept: string; amount: number; used: boolean }[] };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
@@ -33,6 +33,7 @@ export default function SupplierPurchasesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [expenses, setExpenses] = useState<VehicleExpense[]>([]);
+  const [usedExpenseLines, setUsedExpenseLines] = useState<Set<string>>(new Set());
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -56,20 +57,26 @@ export default function SupplierPurchasesPage() {
       supabase.from("suppliers").select("id,name").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name"),
       supabase.from("catalog_items").select("id,name,part_number,default_cost").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name").limit(2000),
       supabase.from("financial_records").select("id,description,date,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
-    ]).then(([supplierResult, catalogResult, expenseResult]) => {
+      supabase.from("supplier_purchase_allocations").select("financial_record_id,expense_item_id").eq("company_id", companyId).not("expense_item_id", "is", null),
+    ]).then(([supplierResult, catalogResult, expenseResult, allocationResult]) => {
       if (cancelled) return;
       if (supplierResult.error) toast.error("No se pudieron cargar los proveedores.", { description: supplierResult.error.message });
       if (catalogResult.error) toast.error("No se pudo cargar el catálogo.", { description: catalogResult.error.message });
       if (expenseResult.error) toast.error("No se pudieron cargar los gastos para vinculación.", { description: expenseResult.error.message });
+      if (allocationResult.error) toast.error("No se pudo comprobar qué líneas ya están utilizadas.", { description: allocationResult.error.message });
       setSuppliers((supplierResult.data || []) as Supplier[]);
       setCatalog((catalogResult.data || []) as CatalogItem[]);
+      setUsedExpenseLines(new Set(((allocationResult.data || []) as any[]).map(row => `${row.financial_record_id}:${row.expense_item_id}`)));
       setExpenses(((expenseResult.data || []) as any[]).map(row => ({
         id: row.id,
         description: row.description || "Gasto de vehículo",
         date: row.date,
         vehicleName: row.vehicles ? `${row.vehicles.make} ${row.vehicles.model} (${row.vehicles.plate})` : "Vehículo",
-        lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => ({ id: String(line.id || `legacy-${row.id}-${index}`), concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0) })).filter((line: { amount: number }) => line.amount > 0),
-      })).filter(expense => expense.lines.length > 0));
+        lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => {
+          const id = String(line.id || `legacy-${row.id}-${index}`);
+          return { id, concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0), used: usedExpenseLines.has(`${row.id}:${id}`) };
+        }).filter((line: { amount: number }) => line.amount > 0),
+      })).filter(expense => expense.lines.some(line => !line.used)));
     });
     return () => { cancelled = true; };
   }, [companyId]);
@@ -86,8 +93,10 @@ export default function SupplierPurchasesPage() {
 
   const loadExpenseLines = () => {
     if (!selectedExpense) return toast.error("Selecciona primero un gasto del vehículo.");
-    setItems(selectedExpense.lines.map(line => ({ catalog_item_id: "", description: line.concept, quantity: "1", unit_price: String(line.amount) })));
-    toast.success("Partidas del gasto cargadas", { description: "Ahora puedes seleccionar artículos del catálogo o ajustar cantidad y precio." });
+    const availableLines = selectedExpense.lines.filter(line => !usedExpenseLines.has(`${selectedExpense.id}:${line.id}`));
+    if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya fueron vinculadas a un proveedor.");
+    setItems(availableLines.map(line => ({ catalog_item_id: "", description: line.concept, quantity: "1", unit_price: String(line.amount) })));
+    toast.success("Partidas disponibles cargadas", { description: `${availableLines.length} línea(s) disponible(s). Las líneas ya vinculadas no se pueden reutilizar.` });
   };
 
   const createSupplierFromPurchase = async () => {
@@ -110,7 +119,7 @@ export default function SupplierPurchasesPage() {
   const save = async () => {
     setSaveError("");
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
-    if (!supplierId) return toast.error("Selecciona el proveedor.");
+    if (!supplierId || supplierId === "none") return toast.error("Selecciona el proveedor.");
     if (!items.length || items.some(i => !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Completa correctamente todas las partidas.");
     if (paymentMethod === "credit" && !dueDate) return toast.error("Una compra a crédito requiere fecha de vencimiento.");
     if (paymentMethod !== "credit" && dueDate) return toast.error("La fecha de vencimiento solo aplica a compras a crédito.");
@@ -154,7 +163,7 @@ export default function SupplierPurchasesPage() {
       <CardHeader><CardTitle>Nueva compra</CardTitle><CardDescription>Una compra puede contener múltiples partidas y puede relacionarse con gastos de distintos vehículos.</CardDescription></CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-2 sm:col-span-2 lg:col-span-2"><Label>Proveedor</Label><div className="flex gap-2"><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Seleccionar proveedor..." /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar...</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}{suppliers.length === 0 && <div className="px-2 py-3 text-sm text-muted-foreground">No hay proveedores en el catálogo.</div>}</SelectContent></Select>{canManage && <Button type="button" variant="outline" size="icon" title="Crear proveedor" onClick={() => setSupplierDialogOpen(true)}><Plus className="h-4 w-4" /></Button>}</div><p className="text-xs text-muted-foreground">¿No aparece? Usa + para crear el proveedor sin salir de la compra.</p></div>
+          <div className="space-y-2 sm:col-span-2 lg:col-span-2"><Label>Proveedor</Label><div className="flex gap-2"><Select value={supplierId} onValueChange={v => setSupplierId(v === "none" ? "" : v)}><SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Seleccionar proveedor..." /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar...</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}{suppliers.length === 0 && <div className="px-2 py-3 text-sm text-muted-foreground">No hay proveedores en el catálogo.</div>}</SelectContent></Select>{canManage && <Button type="button" variant="outline" size="icon" title="Crear proveedor" onClick={() => setSupplierDialogOpen(true)}><Plus className="h-4 w-4" /></Button>}</div><p className="text-xs text-muted-foreground">¿No aparece? Usa + para crear el proveedor sin salir de la compra.</p></div>
           <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
           <div className="space-y-2"><Label>Referencia / factura</Label><Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Opcional" /></div>
           <div className="space-y-2"><Label>Forma de pago</Label><Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(paymentLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
@@ -163,7 +172,7 @@ export default function SupplierPurchasesPage() {
         </div>
 
         <div className="rounded-xl border bg-muted/10 p-3 sm:p-4 space-y-3">
-          <div className="flex items-start gap-3"><Wrench className="h-5 w-5 text-primary mt-0.5 shrink-0" /><div className="min-w-0"><p className="font-medium">Cargar partidas desde un gasto de vehículo</p><p className="text-xs sm:text-sm text-muted-foreground">Busca un gasto existente y trae sus conceptos a esta compra. La vinculación contable exacta se confirma después de registrar la compra.</p></div></div>
+          <div className="flex items-start gap-3"><Wrench className="h-5 w-5 text-primary mt-0.5 shrink-0" /><div className="min-w-0"><p className="font-medium">Cargar partidas desde un gasto de vehículo</p><p className="text-xs sm:text-sm text-muted-foreground">Solo se pueden cargar líneas que todavía no estén vinculadas a otro proveedor.</p></div></div>
           <div className="flex flex-col sm:flex-row gap-2"><Select value={expenseId || "none"} onValueChange={v => setExpenseId(v === "none" ? "" : v)}><SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Seleccionar gasto del vehículo..." /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar gasto...</SelectItem>{expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId}><Search className="mr-2 h-4 w-4" />Cargar partidas</Button></div>
         </div>
 
