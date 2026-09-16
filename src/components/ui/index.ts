@@ -9,6 +9,7 @@ export { KPICard } from "./kpi-card";
 export { SkeletonShimmer, SkeletonCard } from "./skeleton-shimmer";
 export { StatusIndicator, statusVariants } from "./status-indicator";
 export { AnimatedToast } from "./animated-toast";
+export { EmptyState } from "./empty-state";
 
 // Re-export existing components with enhancements
 export * from "./card";
