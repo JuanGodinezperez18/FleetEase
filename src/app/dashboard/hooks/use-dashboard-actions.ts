@@ -24,8 +24,8 @@ interface UseDashboardActionsProps {
 }
 
 /**
- * Hook especializado para acciones del dashboard (formularios rápidos)
- * Centraliza todos los handlers de submit de formularios
+ * Hook especializado para acciones del dashboard (formularios rápidos).
+ * Centraliza los handlers de submit de formularios.
  */
 export function useDashboardActions({
   addIncome,
@@ -43,22 +43,12 @@ export function useDashboardActions({
   const queryClient = useQueryClient();
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
-  // Handler para ingresos
   const handleIncomeSubmit = useCallback(async (data: any, category?: any) => {
     try {
       setIsSubmittingForm(true);
       const recordType = category?.type || 'income';
       const successMessage = recordType === 'payment' ? 'Pago registrado exitosamente' : 'Ingreso registrado exitosamente';
-
-      await addIncome?.({
-        ...data,
-        type: recordType,
-        category: category?.name || '',
-        categoryId: data.categoryId,
-        uid: currentUser?.uid,
-        isDeleted: false,
-      });
-
+      await addIncome?.({ ...data, type: recordType, category: category?.name || '', categoryId: data.categoryId, uid: currentUser?.uid, isDeleted: false });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['financialRecords'] }),
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
@@ -66,7 +56,6 @@ export function useDashboardActions({
         queryClient.invalidateQueries({ queryKey: ['credits'] }),
         queryClient.invalidateQueries({ queryKey: ['creditPaymentSchedules'] }),
       ]);
-
       toast.success(successMessage);
       handleCloseQuickAction();
     } catch (error) {
@@ -77,18 +66,10 @@ export function useDashboardActions({
     }
   }, [addIncome, currentUser?.uid, queryClient, handleCloseQuickAction]);
 
-  // Handler para gastos
   const handleExpenseSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
-
-      if (!addExpense) {
-        throw new Error('La función para registrar gastos no está disponible.');
-      }
-
-      // El formulario multilínea entrega el detalle en `items`. La página
-      // de gastos calcula el importe de cabecera antes de llamar a addExpense;
-      // la acción rápida debe aplicar exactamente la misma regla.
+      if (!addExpense) throw new Error('La función para registrar gastos no está disponible.');
       const rawItems = Array.isArray(data?.items) ? data.items : [];
       const normalizedItems = rawItems.map((item: any) => {
         const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
@@ -96,62 +77,21 @@ export function useDashboardActions({
         const enteredAmount = Number(item?.amount);
         const unitAmount = Number.isFinite(enteredUnitAmount) && enteredUnitAmount > 0
           ? enteredUnitAmount
-          : Number.isFinite(enteredAmount) && enteredAmount > 0
-            ? enteredAmount / quantity
-            : 0;
-        const amount = unitAmount > 0
-          ? quantity * unitAmount
-          : Number.isFinite(enteredAmount) && enteredAmount > 0
-            ? enteredAmount
-            : 0;
-
-        return {
-          ...item,
-          quantity,
-          unitAmount,
-          amount,
-        };
+          : Number.isFinite(enteredAmount) && enteredAmount > 0 ? enteredAmount / quantity : 0;
+        const amount = unitAmount > 0 ? quantity * unitAmount : Number.isFinite(enteredAmount) && enteredAmount > 0 ? enteredAmount : 0;
+        return { ...item, quantity, unitAmount, amount };
       });
-
-      if (normalizedItems.length === 0) {
-        throw new Error('Agrega al menos un concepto de gasto.');
-      }
-
-      const sanitizedData = sanitizeExpenseFormData({
-        ...data,
-        items: normalizedItems,
-      });
-
-      const totalAmount = sanitizedData.items.reduce(
-        (sum, item) => sum + (Number(item.amount) || 0),
-        0
-      );
-
-      if (!(totalAmount > 0)) {
-        throw new Error('El total del gasto debe ser mayor que cero.');
-      }
-
-      const description =
-        sanitizedData.description ||
-        sanitizedData.items
-          .map(item => `${item.concept}: ${formatCurrency(item.amount)}`)
-          .join(' | ');
-
-      await addExpense({
-        ...sanitizedData,
-        amount: totalAmount,
-        description,
-        type: 'expense',
-        isDeleted: false,
-        createdAt: new Date().toISOString(),
-      });
-
+      if (normalizedItems.length === 0) throw new Error('Agrega al menos un concepto de gasto.');
+      const sanitizedData = sanitizeExpenseFormData({ ...data, items: normalizedItems });
+      const totalAmount = sanitizedData.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      if (!(totalAmount > 0)) throw new Error('El total del gasto debe ser mayor que cero.');
+      const description = sanitizedData.description || sanitizedData.items.map(item => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
+      await addExpense({ ...sanitizedData, amount: totalAmount, description, type: 'expense', isDeleted: false, createdAt: new Date().toISOString() });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['financialRecords'] }),
         queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
         queryClient.invalidateQueries({ queryKey: ['mileage'] }),
       ]);
-
       toast.success('Gasto registrado exitosamente');
       handleCloseQuickAction();
     } catch (error) {
@@ -162,36 +102,17 @@ export function useDashboardActions({
     }
   }, [addExpense, queryClient, handleCloseQuickAction]);
 
-  // Handler para créditos
-  //
-  // Antes: llamaba a addCredit(data) directo con el 'data' crudo del
-  // formulario (clientId, vehicleId, startDate, numberOfPayments,
-  // weeklyPayment) - eso es un insert crudo sin total_amount calculado
-  // (columna NOT NULL), sin cronograma de pagos, sin bloquear el vehículo
-  // y sin generar el ingreso "Crédito Otorgado". Esta acción rápida usaba
-  // una ruta completamente distinta a la de /dashboard/credits, que sí
-  // hace todo eso via createCreditWithFinancialRecord. Ahora replica
-  // exactamente esa misma lógica.
   const handleCreditSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
-
-      const availability = checkCreditAvailability(credits || [], {
-        vehicleId: data.vehicleId,
-        clientId: data.clientId,
-      });
+      const availability = checkCreditAvailability(credits || [], { vehicleId: data.vehicleId, clientId: data.clientId });
       if (!availability.available) {
         toast.error(availability.error);
         return;
       }
-
       const creditData = buildCreditData(data, currentUser?.companyId ?? selectedCompanyId);
       const creditId = await createCreditWithFinancialRecord?.(creditData, creditData.companyId);
-
-      if (creditId) {
-        await updateVehicle?.(data.vehicleId, buildVehicleCreditLockPayload(data.clientId, creditId));
-      }
-
+      if (creditId) await updateVehicle?.(data.vehicleId, buildVehicleCreditLockPayload(data.clientId, creditId));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['credits'] }),
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
@@ -208,11 +129,38 @@ export function useDashboardActions({
     }
   }, [createCreditWithFinancialRecord, updateVehicle, credits, selectedCompanyId, currentUser?.companyId, queryClient, handleCloseQuickAction]);
 
-  // Handler para clientes
+  // Clientes: el botón flotante NO debe tener una ruta de creación distinta.
+  // El ClientForm ya valida y normaliza los datos; aquí solamente se delega
+  // al mismo addClient usado por /dashboard/clients y se refresca la misma query.
   const handleClientSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
-      await addClient?.(data);
+
+      if (!addClient) {
+        throw new Error('La función para registrar clientes no está disponible.');
+      }
+
+      // El formulario rápido puede abrirse para un Super Admin. En ese caso,
+      // si el formulario recibió la empresa seleccionada, conservarla; si no,
+      // usar la empresa global seleccionada. Para usuarios normales usar la
+      // empresa de su sesión. Nunca enviar companyId vacío.
+      const companyId = data?.companyId || selectedCompanyId || currentUser?.companyId || null;
+      if (!companyId) {
+        throw new Error('No se pudo determinar la empresa del cliente. Selecciona una empresa e inténtalo nuevamente.');
+      }
+
+      const payload = {
+        ...data,
+        companyId,
+        assignedVehicleId: data?.assignedVehicleId === '@none' ? null : (data?.assignedVehicleId ?? null),
+        email: typeof data?.email === 'string' && data.email.trim() ? data.email.trim().toLowerCase() : undefined,
+        phone: typeof data?.phone === 'string' ? data.phone.replace(/\D/g, '') : data?.phone,
+        licenseNumber: typeof data?.licenseNumber === 'string' ? data.licenseNumber.trim().replace(/\s+/g, ' ').toUpperCase() : data?.licenseNumber,
+        initialBalance: Number(data?.initialBalance ?? 0),
+        securityDeposit: Number(data?.securityDeposit ?? 0),
+      };
+
+      await addClient(payload);
       await queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente registrado exitosamente');
       handleCloseQuickAction();
@@ -222,9 +170,8 @@ export function useDashboardActions({
     } finally {
       setIsSubmittingForm(false);
     }
-  }, [addClient, queryClient, handleCloseQuickAction]);
+  }, [addClient, selectedCompanyId, currentUser?.companyId, queryClient, handleCloseQuickAction]);
 
-  // Handler para vehículos
   const handleVehicleSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
@@ -240,7 +187,6 @@ export function useDashboardActions({
     }
   }, [addVehicle, queryClient, handleCloseQuickAction]);
 
-  // Handler para kilometraje
   const handleMileageSubmit = useCallback(async (data: any) => {
     try {
       setIsSubmittingForm(true);
