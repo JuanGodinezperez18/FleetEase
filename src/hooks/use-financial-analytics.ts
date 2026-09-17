@@ -85,12 +85,6 @@ function isPaymentCategory(record: FinancialRecord, categoryMap: Map<string, str
   return aliases.some(alias => alias === category);
 }
 
-/**
- * Obtiene el costo de la unidad vendida para calcular el margen bruto de una
- * venta financiada. Las ventas nuevas pueden llevar un snapshot en `items`
- * (`saleCost`); para registros históricos se usa el costo actual del vehículo
- * como fallback, sin modificar el registro histórico.
- */
 function getVehicleSaleCost(record: FinancialRecord, vehicles: Vehicle[]): number {
   const items = (record as FinancialRecord & { items?: unknown }).items;
   if (items && typeof items === 'object' && !Array.isArray(items)) {
@@ -162,12 +156,12 @@ export const useFinancialAnalytics = (
         && !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.supplier))
       .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
-    // Las ventas financiadas generan ingreso por venta y cartera, pero no efectivo.
-    // Los pagos posteriores del crédito son cobranzas contra esa cartera y NO
-    // vuelven a sumar ventas ni utilidad por segunda vez.
     const totalIncome = operationalIncome + vehicleSales;
     const cashInflow = customerCollections + creditCollections + securityDeposits;
-    const cashOutflow = totalExpenses + partnerPayments + supplierPayments + otherPayments;
+    // Cash flow uses only actual cash movements represented by payment records.
+    // Recognized expenses are excluded here so supplier credit/AP is not double-counted
+    // when its later payment is recorded.
+    const cashOutflow = partnerPayments + supplierPayments + otherPayments;
     const netCashFlow = cashInflow - cashOutflow;
     const creditRecovered = creditCollections;
     const netProfit = operationalIncome + vehicleSalesGrossProfit - totalExpenses;
@@ -209,8 +203,13 @@ export const useFinancialAnalytics = (
 
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
       const clientRecords = filteredRecords.filter(r => r.clientId === client.id);
-      const revenue = clientRecords.filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía').reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const expenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const financedSales = clientRecords.filter(r => r.type === 'income' && r.creditGranted === true);
+      const revenue = clientRecords
+        .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía')
+        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const operatingExpenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const financedSaleCosts = financedSales.reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
+      const expenses = operatingExpenses + financedSaleCosts;
       const netProfit = revenue - expenses;
       const profitMargin = calculateProfitMargin(revenue, expenses);
       const level: ProfitabilityLevel = netProfit <= 0 ? 'negative' : profitMargin > 25 ? 'high' : profitMargin > 10 ? 'medium' : 'low';
@@ -236,7 +235,7 @@ export const useFinancialAnalytics = (
       const monthSupplierPayments = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthOtherPayments = monthPayments.filter(r => !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.client) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.credit) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthCashIn = monthCustomerCollections + monthCreditCollections + monthDeposits;
-      const monthCashOut = monthExpenses + monthPartnerPayments + monthSupplierPayments + monthOtherPayments;
+      const monthCashOut = monthPartnerPayments + monthSupplierPayments + monthOtherPayments;
       return { period: format(date, 'MMM yy', { locale: es }), income: monthIncome, expenses: monthExpenses, payments: monthCustomerCollections + monthCreditCollections, netFlow: monthCashIn - monthCashOut };
     });
 
@@ -251,8 +250,11 @@ export const useFinancialAnalytics = (
     const prevMonthOperationalIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
     const prevMonthVehicleSales = sumVehicleSales(prevMonthRecords);
     const prevMonthIncome = prevMonthOperationalIncome + prevMonthVehicleSales;
+    const prevMonthVehicleSalesCost = prevMonthRecords
+      .filter(r => r.type === 'income' && r.creditGranted === true)
+      .reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
     const prevMonthExpenses = sumExpense(prevMonthRecords);
-    const prevMonthProfit = prevMonthIncome - prevMonthExpenses;
+    const prevMonthProfit = prevMonthOperationalIncome + (prevMonthVehicleSales - prevMonthVehicleSalesCost) - prevMonthExpenses;
     const monthlyGrowth = {
       income: calculateChange(totalIncome, prevMonthIncome),
       expenses: calculateChange(totalExpenses, prevMonthExpenses),
