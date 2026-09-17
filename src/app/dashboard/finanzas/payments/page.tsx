@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useData } from "@/contexts/data-provider";
+import { useData, calculatePartnerBalance } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ function getSupabaseErrorMessage(error: unknown): string {
 }
 
 export default function PaymentsPage() {
-  const { financialRecords, financialCategories, clients, partners, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
+  const { financialRecords, financialCategories, clients, partners, vehicles, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<OperationKind>("client_payment");
   const [entityId, setEntityId] = useState("");
@@ -81,12 +81,14 @@ export default function PaymentsPage() {
   const paymentCategory = useMemo(() => {
     const aliases: Record<PaymentKind, string[]> = {
       client_payment: ["Pago de Cliente", "Pago Cliente", "Abono de Cliente"],
-      partner_payment: ["Pago a Socio", "Pago de Socio", "Abono a Socio"],
+      partner_payment: ["Pago a Socio", "Pago de Socio", "Abono a Socio", "Comisión Socio", "Comision Socio"],
       supplier_payment: ["Pago a Proveedor", "Pago de Proveedor", "Abono a Proveedor"],
       credit_payment: ["Pago de Crédito", "Pago Credito", "Pago de Crédito Semanal"],
     };
     const exact = financialCategories.find(c => c.type === "payment" && aliases[kind as PaymentKind]?.some(n => n.toLowerCase() === c.name.trim().toLowerCase()));
-    return exact || financialCategories.find(c => c.type === "payment" && c.paymentKind === kind);
+    if (exact) return exact;
+    const expectedAffects = PAYMENT_KINDS.find(k => k.value === kind)?.affects;
+    return financialCategories.find(c => c.type === "payment" && c.affects === expectedAffects);
   }, [financialCategories, kind]);
 
   const refundCategory = useMemo(() => financialCategories.find(c => c.type === "expense" && c.name.trim().toLowerCase() === "devolución de depósito"), [financialCategories]);
@@ -130,18 +132,23 @@ export default function PaymentsPage() {
     if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY)
       .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
       .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    if (kind === "partner_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "expense" && r.partnerId === entityId)
-      .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
-      .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return [];
   }, [financialRecords, entityId, kind, appliedByTarget]);
 
   const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
   const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules.filter(s => s.creditId === selectedCredit.id && s.status === "pending").sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
+  const selectedPartner = useMemo(() => kind === "partner_payment" ? partners.find(p => p.id === entityId && !p.isDeleted) : null, [partners, entityId, kind]);
   const selectedTarget = targets.find(r => r.id === targetId);
   const depositAvailable = kind === "client_payment" ? (depositAvailableByClient.get(entityId) || 0) : 0;
+  const partnerBalance = useMemo(() => {
+    if (!selectedPartner) return 0;
+    const partnerVehicles = vehicles.filter(v => v.partnerId === selectedPartner.id && !v.isDeleted);
+    return calculatePartnerBalance(selectedPartner, partnerVehicles, financialRecords);
+  }, [selectedPartner, vehicles, financialRecords]);
   const targetOutstanding = selectedTarget?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
-  const maxAmount = kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0 : paymentSource === "security_deposit" && kind === "client_payment" ? Math.min(targetOutstanding, depositAvailable) : targetOutstanding;
+  const maxAmount = kind === "partner_payment" ? Math.max(0, partnerBalance)
+    : kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0
+    : paymentSource === "security_deposit" && kind === "client_payment" ? Math.min(targetOutstanding, depositAvailable) : targetOutstanding;
 
   const reset = () => { setEntityId(""); setTargetId(""); setAmount(""); setReference(""); setPaymentSource("direct"); };
 
@@ -155,8 +162,9 @@ export default function PaymentsPage() {
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
     } else {
       if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
-      if (kind !== "supplier_payment" && kind !== "credit_payment" && !targetId) return toast.error("Selecciona el registro al que se aplicará el pago.");
-      if (maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
+      if (kind === "client_payment" && !targetId) return toast.error("Selecciona el registro al que se aplicará el pago.");
+      if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
+      if (kind !== "partner_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
       if (kind === "client_payment" && paymentSource === "security_deposit" && depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
     }
 
@@ -196,12 +204,12 @@ export default function PaymentsPage() {
           p_client_id: kind === "client_payment" ? entityId : null,
           p_partner_id: kind === "partner_payment" ? entityId : null,
           p_supplier_id: kind === "supplier_payment" ? entityId : null,
-          p_target_financial_record_id: targetId || null, p_credit_id: null,
+          p_target_financial_record_id: kind === "partner_payment" ? null : (targetId || null), p_credit_id: null,
           p_credit_payment_schedule_id: null, p_created_by: currentUser?.uid || null,
         } as any);
         if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió el pago creado.");
-        toast.success("Pago registrado", { description: "El movimiento quedó separado de Ingresos y con trazabilidad financiera." });
+        toast.success("Pago registrado", { description: kind === "partner_payment" ? "El pago se aplicó al balance del socio, considerando sus ingresos, gastos y pagos anteriores." : "El movimiento quedó separado de Ingresos y con trazabilidad financiera." });
       }
 
       reset();
@@ -232,7 +240,7 @@ export default function PaymentsPage() {
           <Card className="max-w-4xl">
             <CardHeader>
               <CardTitle>{item.label}</CardTitle>
-              <CardDescription>{kind === "security_deposit_refund" ? "Devuelve al cliente una parte o la totalidad del depósito disponible. La devolución se registra como salida de la empresa." : "El movimiento se registra separado de Ingresos y se relaciona con la obligación que está liquidando."}</CardDescription>
+              <CardDescription>{kind === "partner_payment" ? "El pago se descuenta directamente del balance del socio: ingresos de sus vehículos menos gastos y pagos anteriores." : kind === "security_deposit_refund" ? "Devuelve al cliente una parte o la totalidad del depósito disponible. La devolución se registra como salida de la empresa." : "El movimiento se registra separado de Ingresos y se relaciona con la obligación que está liquidando."}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2"><Label>{kind === "client_payment" || kind === "credit_payment" || kind === "security_deposit_refund" ? "Cliente" : kind === "partner_payment" ? "Socio" : "Proveedor"}</Label>
@@ -243,7 +251,9 @@ export default function PaymentsPage() {
 
               {kind === "client_payment" && entityId && <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Depósito en garantía disponible</span><Badge variant="outline"><ShieldCheck className="mr-1 h-3 w-3" />Separado de deuda</Badge></div><p className="mt-1 text-xl font-semibold">{formatCurrency(depositAvailable)}</p></div>}
 
-              {kind !== "supplier_payment" && kind !== "credit_payment" && <div className="space-y-2"><Label>Aplicar a registro</Label><Select value={targetId} onValueChange={setTargetId} disabled={!entityId}><SelectTrigger><SelectValue placeholder="Seleccionar cargo pendiente..." /></SelectTrigger><SelectContent>{targets.map(r => <SelectItem key={r.id} value={r.id}>{r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select></div>}
+              {kind === "partner_payment" && entityId && <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Balance disponible del socio</span><Badge variant="outline"><Briefcase className="mr-1 h-3 w-3" />Ingresos − gastos − pagos</Badge></div><p className="mt-1 text-2xl font-semibold">{formatCurrency(Math.max(0, partnerBalance))}</p><p className="mt-1 text-xs text-muted-foreground">Este pago se descuenta del balance completo del socio. No se selecciona un gasto individual.</p></div>}
+
+              {kind === "client_payment" && <div className="space-y-2"><Label>Aplicar a registro</Label><Select value={targetId} onValueChange={setTargetId} disabled={!entityId}><SelectTrigger><SelectValue placeholder="Seleccionar cargo pendiente..." /></SelectTrigger><SelectContent>{targets.map(r => <SelectItem key={r.id} value={r.id}>{r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select></div>}
 
               {kind === "credit_payment" && selectedCredit && <div className="space-y-2 md:col-span-2"><Label>Cuota pendiente</Label><div className="rounded-lg border bg-muted/30 p-3 text-sm">{pendingSchedule.length ? <>{pendingSchedule.slice(0, 3).map(s => <div key={s.id} className="flex justify-between py-1"><span>Cuota #{s.paymentNumber}</span><span>{formatCurrency(Number(s.amount) - Number(s.paidAmount || 0))}</span></div>)}</> : <span className="text-muted-foreground">No hay cuotas pendientes.</span>}</div></div>}
 
@@ -254,7 +264,7 @@ export default function PaymentsPage() {
 
               {kind === "security_deposit_refund" && entityId && <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Disponible para devolución</span><Badge variant="outline"><RotateCcw className="mr-1 h-3 w-3" />Depósito en Garantía</Badge></div><p className="mt-1 text-xl font-semibold">{formatCurrency(depositAvailableByClient.get(entityId) || 0)}</p></div>}
 
-              {((selectedTarget || selectedCredit) || kind === "security_deposit_refund") && <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Resumen de operación</span><Badge variant="outline"><Link2 className="mr-1 h-3 w-3" />Trazabilidad FIN</Badge></div><div className="mt-2 grid gap-2 sm:grid-cols-3"><div><p className="text-xs text-muted-foreground">Máximo aplicable</p><p className="font-semibold">{formatCurrency(maxAmount)}</p></div><div><p className="text-xs text-muted-foreground">Este movimiento</p><p className="font-semibold">{formatCurrency(Number(amount) || 0)}</p></div><div><p className="text-xs text-muted-foreground">Restante</p><p className="font-semibold">{formatCurrency(Math.max(0, maxAmount - (Number(amount) || 0)))}</p></div></div></div>}
+              {((selectedTarget || selectedCredit) || kind === "security_deposit_refund" || kind === "partner_payment") && <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Resumen de operación</span><Badge variant="outline"><Link2 className="mr-1 h-3 w-3" />Trazabilidad FIN</Badge></div><div className="mt-2 grid gap-2 sm:grid-cols-3"><div><p className="text-xs text-muted-foreground">Máximo aplicable</p><p className="font-semibold">{formatCurrency(maxAmount)}</p></div><div><p className="text-xs text-muted-foreground">Este movimiento</p><p className="font-semibold">{formatCurrency(Number(amount) || 0)}</p></div><div><p className="text-xs text-muted-foreground">Restante</p><p className="font-semibold">{formatCurrency(Math.max(0, maxAmount - (Number(amount) || 0)))}</p></div></div></div>}
 
               <div className="md:col-span-2 flex justify-end"><Button onClick={savePayment} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : kind === "security_deposit_refund" ? <RotateCcw className="mr-2 h-4 w-4" /> : <HandCoins className="mr-2 h-4 w-4" />} {kind === "security_deposit_refund" ? "Devolver depósito" : "Registrar pago"}</Button></div>
             </CardContent>
