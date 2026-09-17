@@ -7,13 +7,23 @@ import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
 const dashboardCache = new Map<string, { data: UserDashboardConfig; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
+function mergeDefaultWidgets(config: UserDashboardConfig): UserDashboardConfig {
+  const existingIds = new Set(config.widgets.map(widget => widget.id));
+  const maxOrder = config.widgets.reduce((max, widget) => Math.max(max, widget.order), -1);
+  const missingWidgets: DashboardWidget[] = DEFAULT_DASHBOARD_CONFIG.widgets
+    .filter(widget => !existingIds.has(widget.id))
+    .map((widget, index) => ({ ...widget, order: maxOrder + index + 1 }));
+
+  if (missingWidgets.length === 0) return config;
+  return { ...config, widgets: [...config.widgets, ...missingWidgets] };
+}
+
 export class DashboardService {
   /**
    * Obtener configuracion del dashboard del usuario con cache
    */
   static async getUserDashboard(userId: string): Promise<UserDashboardConfig | null> {
     try {
-      // Verificar cache primero
       const cached = dashboardCache.get(userId);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         console.log('Dashboard cargado desde cache');
@@ -26,7 +36,8 @@ export class DashboardService {
         const stored = localStorage.getItem(`dashboard_${userId}`);
         if (stored) {
           try {
-            const data = JSON.parse(stored) as UserDashboardConfig;
+            const data = mergeDefaultWidgets(JSON.parse(stored) as UserDashboardConfig);
+            localStorage.setItem(`dashboard_${userId}`, JSON.stringify(data));
             dashboardCache.set(userId, { data, timestamp: Date.now() });
             return data;
           } catch {
@@ -35,7 +46,6 @@ export class DashboardService {
         }
       }
 
-      // Si no existe, crear configuracion por defecto
       const defaultConfig: UserDashboardConfig = {
         userId,
         ...DEFAULT_DASHBOARD_CONFIG,
@@ -43,25 +53,19 @@ export class DashboardService {
         updatedAt: new Date().toISOString(),
       };
 
-      // Guardar en localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem(`dashboard_${userId}`, JSON.stringify(defaultConfig));
       }
 
-      // Guardar en cache
       dashboardCache.set(userId, { data: defaultConfig, timestamp: Date.now() });
-
       return defaultConfig;
     } catch (error) {
       console.error('Error obteniendo dashboard config:', error);
-      
-      // Intentar retornar desde cache si falla la red
       const cached = dashboardCache.get(userId);
       if (cached) {
         console.warn('Usando dashboard desde cache por error de red');
         return cached.data;
       }
-      
       return null;
     }
   }
@@ -74,19 +78,16 @@ export class DashboardService {
     config: Partial<Omit<UserDashboardConfig, 'userId'>>
   ): Promise<void> {
     try {
-      // Guardar en localStorage
       const current = await this.getUserDashboard(userId);
       if (!current) throw new Error('Dashboard no encontrado');
-      
+
       const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
-      
+
       if (typeof window !== 'undefined') {
         localStorage.setItem(`dashboard_${userId}`, JSON.stringify(updated));
       }
 
-      // Invalidar cache
       dashboardCache.delete(userId);
-      
       console.log('Dashboard actualizado y cache invalidado');
     } catch (error) {
       console.error('Error actualizando dashboard config:', error);
@@ -98,7 +99,6 @@ export class DashboardService {
    * Guardar orden de widgets con optimistic update
    */
   static async saveWidgetOrder(userId: string, widgets: DashboardWidget[]): Promise<void> {
-    // Actualizar cache optimistamente
     const cached = dashboardCache.get(userId);
     if (cached) {
       cached.data.widgets = widgets;
@@ -135,7 +135,6 @@ export class DashboardService {
     } else {
       dashboardCache.clear();
       if (typeof window !== 'undefined') {
-        // Limpiar todos los dashboards
         Object.keys(localStorage).forEach(key => {
           if (key.startsWith('dashboard_')) {
             localStorage.removeItem(key);
