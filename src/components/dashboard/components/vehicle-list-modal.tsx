@@ -28,6 +28,9 @@ interface VehicleData {
   currentMileage?: number;
   nextMaintenanceAt?: number;
   lastMaintenanceDate?: string;
+  lastMaintenanceMileage?: number;
+  kmToNextMaintenance?: number;
+  maintenanceInterval?: number;
   insuranceExpiryDate?: string;
   verificationExpiryDate?: string;
 }
@@ -82,10 +85,15 @@ export function VehicleListModal({
   });
 
   function getMaintenanceStatus(vehicle: VehicleData): 'overdue' | 'soon' | 'ok' {
-    if (!vehicle.currentMileage || !vehicle.nextMaintenanceAt) return 'ok';
+    if (typeof vehicle.kmToNextMaintenance === 'number') {
+      if (vehicle.kmToNextMaintenance <= 0) return 'overdue';
+      if (vehicle.kmToNextMaintenance <= 1500) return 'soon';
+      return 'ok';
+    }
+    if (vehicle.currentMileage == null || vehicle.nextMaintenanceAt == null) return 'ok';
     const remaining = vehicle.nextMaintenanceAt - vehicle.currentMileage;
     if (remaining <= 0) return 'overdue';
-    if (remaining <= 500) return 'soon';
+    if (remaining <= 1500) return 'soon';
     return 'ok';
   }
 
@@ -216,9 +224,11 @@ export function VehicleListModal({
                 <TableBody>
                   {paginatedData.map((vehicle) => {
                     const status = getMaintenanceStatus(vehicle);
-                    const remaining = vehicle.nextMaintenanceAt && vehicle.currentMileage
-                      ? vehicle.nextMaintenanceAt - vehicle.currentMileage
-                      : null;
+                    const remaining = typeof vehicle.kmToNextMaintenance === 'number'
+                      ? vehicle.kmToNextMaintenance
+                      : vehicle.nextMaintenanceAt != null && vehicle.currentMileage != null
+                        ? vehicle.nextMaintenanceAt - vehicle.currentMileage
+                        : null;
 
                     return (
                       <StaggerTableRow key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
@@ -238,7 +248,7 @@ export function VehicleListModal({
                           {vehicle.plate}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {vehicle.currentMileage?.toLocaleString('es-MX') || 'N/A'} km
+                          {vehicle.currentMileage != null ? `${vehicle.currentMileage.toLocaleString('es-MX')} km` : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right">
                           {vehicle.nextMaintenanceAt ? (
