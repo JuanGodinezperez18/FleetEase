@@ -169,7 +169,7 @@ export default function MileageTrackingPage() {
     ? selectedCompany.maintenanceInterval
     : DEFAULT_MAINTENANCE_INTERVAL_KM;
 
-  const { vehicleMetrics } = useMileageAnalytics(activeVehicles, mileageLogs, financialRecords);
+  const { vehicleMetrics } = useMileageAnalytics(activeVehicles, mileageLogs, financialRecords, companies);
 
   const vehiclesWithAllMetrics: VehicleWithMileageAndMetrics[] = useMemo(() => {
     const metricsMap = new Map(vehicleMetrics.map(m => [m.vehicleId, m]));
