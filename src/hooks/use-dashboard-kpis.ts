@@ -33,7 +33,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     credits = [],
     partnerBalances: partnerBalancesFromData = [],
     multas = [],
-    financialCategories = []
+    financialCategories = [],
+    companies = []
   } = dataContext || {};
 
   const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, partners, dateRange, financialCategories);
@@ -49,7 +50,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     []
   ) || {};
 
-  const { vehicleMetrics: mileageMetrics = [] } = useMileageAnalytics(vehicles, mileageLogs, financialRecords) || {};
+  const { vehicleMetrics: mileageMetrics = [] } = useMileageAnalytics(vehicles, mileageLogs, financialRecords, companies) || {};
   const { partnerMetrics = [] } = usePartnerAnalytics(partners, vehicles, financialRecords) || {};
   const { creditMetrics = [], portfolioAnalytics = { totalPortfolioValue: 0, totalRemaining: 0 } } = useCreditAnalytics(credits, clients, vehicles, financialRecords) || {};
   const multasAnalytics = useMultasAnalytics(multas, vehicles, clients);
@@ -290,7 +291,14 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           return metric && metric.kmToNextMaintenance <= 0;
         }).map(v => {
           const metric = mileageMetrics.find(m => m.vehicleId === v.id);
-          return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
+          return {
+            ...v,
+            currentMileage: metric?.currentMileage,
+            nextMaintenanceAt: metric?.nextMaintenanceDue,
+            lastMaintenanceMileage: metric?.lastMaintenanceMileage,
+            kmToNextMaintenance: metric?.kmToNextMaintenance,
+            maintenanceInterval: metric ? metric.nextMaintenanceDue - metric.lastMaintenanceMileage : v.maintenanceInterval,
+          };
         }),
         loading: false
       },
@@ -301,7 +309,14 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           return metric && metric.kmToNextMaintenance > 0 && metric.kmToNextMaintenance <= 1500;
         }).map(v => {
           const metric = mileageMetrics.find(m => m.vehicleId === v.id);
-          return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
+          return {
+            ...v,
+            currentMileage: metric?.currentMileage,
+            nextMaintenanceAt: metric?.nextMaintenanceDue,
+            lastMaintenanceMileage: metric?.lastMaintenanceMileage,
+            kmToNextMaintenance: metric?.kmToNextMaintenance,
+            maintenanceInterval: metric ? metric.nextMaintenanceDue - metric.lastMaintenanceMileage : v.maintenanceInterval,
+          };
         }),
         loading: false
       },
