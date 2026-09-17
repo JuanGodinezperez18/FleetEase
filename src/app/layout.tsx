@@ -55,13 +55,20 @@ export const metadata: Metadata = {
     siteName: "FleetEase",
     title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
     description: "Controla clientes, vehículos, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
-    images: [{ url: "/logo.png", width: 512, height: 512, alt: "FleetEase - Software de gestión de flotillas" }],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FleetEase - Software de gestión de flotillas y renta de vehículos",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
     description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
-    images: ["/logo.png"],
+    images: ["/og-image.png"],
   },
   manifest: "/manifest.json",
   icons: {
