@@ -161,7 +161,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       return kmToNext > 0 && kmToNext <= 1500;
     }).length;
 
-    // Series de 12 meses para sparklines (ya calculadas en financialAnalytics)
     const cashFlow = financialAnalytics.cashFlowAnalysis || [];
     const incomeTrendData = cashFlow.map(m => (m.income || 0) + (m.payments || 0));
     const expenseTrendData = cashFlow.map(m => m.expenses || 0);
@@ -174,45 +173,19 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const hasSpark = (arr: number[]) => arr.length >= 2 && arr.some(v => v !== 0);
 
     const allKPIs: Record<string, MetricKPIData> = {
-      // ========== CLIENTES ==========
-      'total-clients': { 
-        value: totalActiveClients,
-        loading: false 
-      },
+      'total-clients': { value: totalActiveClients, loading: false },
       'client-balance-total': {
         value: totalClientBalance,
         details: enrichedClientMetrics.filter(cm => (cm.currentBalance || 0) !== 0),
         loading: false
       },
-      'clients-with-debt': { 
-        value: clientsWithDebt.length, 
-        details: clientsWithDebt,
-        loading: false 
-      },
-      'critical-clients': { 
-        value: criticalClients.length, 
-        details: criticalClients,
-        loading: false 
-      },
-      'avg-client-balance': { 
-        value: totalActiveClients > 0 ? totalClientBalance / totalActiveClients : 0,
-        loading: false 
-      },
-      'licenses-expiring': {
-        value: licensesExpiringSoon,
-        details: licensesExpiringClients,
-        loading: false
-      },
+      'clients-with-debt': { value: clientsWithDebt.length, details: clientsWithDebt, loading: false },
+      'critical-clients': { value: criticalClients.length, details: criticalClients, loading: false },
+      'avg-client-balance': { value: totalActiveClients > 0 ? totalClientBalance / totalActiveClients : 0, loading: false },
+      'licenses-expiring': { value: licensesExpiringSoon, details: licensesExpiringClients, loading: false },
 
-      // ========== FLOTA ==========
-      'total-vehicles': { 
-        value: operationalVehicles.length,
-        loading: false 
-      },
-      'vehicles-rented': { 
-        value: totalRented,
-        loading: false 
-      },
+      'total-vehicles': { value: operationalVehicles.length, loading: false },
+      'vehicles-rented': { value: totalRented, loading: false },
       'insurance-expiring': {
         value: insuranceExpiring,
         details: operationalVehicles.filter(v => {
@@ -226,16 +199,11 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         value: availableVehicles,
         details: availableVehiclesData.map(v => {
           const metric = mileageMetrics.find(m => m.vehicleId === v.id);
-          return {
-            ...v,
-            currentMileage: metric?.currentMileage,
-            nextMaintenanceAt: metric?.nextMaintenanceDue
-          };
+          return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
         }),
         loading: false
       },
 
-      // ========== FINANZAS (con sparkline + trend automáticos) ==========
       'income-month': {
         value: financialAnalytics.totalIncome || 0,
         changePercent: incomeChange,
@@ -244,70 +212,55 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         details: incomeRecords,
         loading: false
       },
-      'income-today': {
-        value: financialAnalytics.todayIncome || 0,
-        loading: false
-      },
+      'income-today': { value: financialAnalytics.todayIncome || 0, loading: false },
       'expenses-month': {
         value: financialAnalytics.totalExpenses || 0,
         changePercent: expenseChange,
-        // Menos gasto = tendencia positiva (verde)
         trend: expenseChange <= 0,
         trendData: hasSpark(expenseTrendData) ? expenseTrendData : undefined,
         details: expenseRecords,
         loading: false
       },
-      'expenses-today': {
-        value: financialAnalytics.todayExpenses || 0,
-        loading: false
-      },
-      'net-income': { 
-        value: financialAnalytics.netProfit || 0, 
+      'expenses-today': { value: financialAnalytics.todayExpenses || 0, loading: false },
+      'net-income': {
+        value: financialAnalytics.netProfit || 0,
         changePercent: profitChange,
         trend: profitChange >= 0,
         trendData: hasSpark(netTrendData) ? netTrendData : undefined,
-        loading: false 
+        loading: false
+      },
+      'cash-flow-month': {
+        value: financialAnalytics.netCashFlow || 0,
+        trend: (financialAnalytics.netCashFlow || 0) >= 0,
+        trendData: hasSpark(netTrendData) ? netTrendData : undefined,
+        subtitle: `Entradas $${(financialAnalytics.cashInflow || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Salidas $${(financialAnalytics.cashOutflow || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        loading: false
       },
       'top-income-category': {
         value: (() => {
           const validCategories = financialAnalytics.incomeCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
-          if (validCategories && validCategories.length > 0) {
-            return validCategories[0].name;
-          }
-          return financialAnalytics.incomeCategories?.[0]?.name || 'Sin datos';
+          return validCategories && validCategories.length > 0 ? validCategories[0].name : financialAnalytics.incomeCategories?.[0]?.name || 'Sin datos';
         })(),
         subtitle: (() => {
           const validCategories = financialAnalytics.incomeCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
-          if (validCategories && validCategories.length > 0 && validCategories[0].value) {
-            return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          }
-          return financialAnalytics.incomeCategories?.[0]?.value
-            ? `$${financialAnalytics.incomeCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : undefined;
+          if (validCategories && validCategories.length > 0 && validCategories[0].value) return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          return financialAnalytics.incomeCategories?.[0]?.value ? `$${financialAnalytics.incomeCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : undefined;
         })(),
         loading: false
       },
       'top-expense-category': {
         value: (() => {
           const validCategories = financialAnalytics.expenseCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
-          if (validCategories && validCategories.length > 0) {
-            return validCategories[0].name;
-          }
-          return financialAnalytics.expenseCategories?.[0]?.name || 'Sin datos';
+          return validCategories && validCategories.length > 0 ? validCategories[0].name : financialAnalytics.expenseCategories?.[0]?.name || 'Sin datos';
         })(),
         subtitle: (() => {
           const validCategories = financialAnalytics.expenseCategories?.filter(c => c.name !== 'Sin Categoría' && c.name !== 'Sin categoría');
-          if (validCategories && validCategories.length > 0 && validCategories[0].value) {
-            return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          }
-          return financialAnalytics.expenseCategories?.[0]?.value
-            ? `$${financialAnalytics.expenseCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : undefined;
+          if (validCategories && validCategories.length > 0 && validCategories[0].value) return `$${validCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          return financialAnalytics.expenseCategories?.[0]?.value ? `$${financialAnalytics.expenseCategories[0].value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : undefined;
         })(),
         loading: false
       },
-      
-      // ========== CRÉDITOS ==========
+
       'active-credits': {
         value: activeCredits.length,
         details: activeCreditDetails,
@@ -318,51 +271,18 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         details: overdueCreditDetails,
         loading: false
       },
-      'recovery-rate': { 
-        value: `${recoveryRate.toFixed(1)}%`,
-        loading: false 
-      },
-      'projected-income': { 
-        value: projectedIncome,
-        loading: false 
-      },
-      'total-lent': { 
-        value: totalLent,
-        loading: false 
-      },
-      'total-pending': { 
-        value: totalRemaining,
-        loading: false 
-      },
+      'recovery-rate': { value: `${recoveryRate.toFixed(1)}%`, loading: false },
+      'projected-income': { value: projectedIncome, loading: false },
+      'total-lent': { value: totalLent, loading: false },
+      'total-pending': { value: totalRemaining, loading: false },
 
-      // ========== SOCIOS ==========
-      'total-partners': { 
-        value: partnerMetrics.length,
-        loading: false 
-      },
-      'total-partner-balance': { 
-        value: totalPartnerBalance, 
-        details: partnerBalances,
-        loading: false 
-      },
-      'partners-positive-balance': { 
-        value: partnerBalances.filter(pb => pb.balance > 0).length,
-        loading: false 
-      },
-      'partners-negative-balance': { 
-        value: partnerBalances.filter(pb => pb.balance < 0).length,
-        loading: false 
-      },
-      'vehicles-by-partners': { 
-        value: vehicles.filter(v => !!v.partnerId).length,
-        loading: false 
-      },
-      'avg-partner-balance': { 
-        value: partnerMetrics.length > 0 ? totalPartnerBalance / partnerMetrics.length : 0,
-        loading: false 
-      },
-      
-      // ========== KILOMETRAJE ==========
+      'total-partners': { value: partnerMetrics.length, loading: false },
+      'total-partner-balance': { value: totalPartnerBalance, details: partnerBalances, loading: false },
+      'partners-positive-balance': { value: partnerBalances.filter(pb => pb.balance > 0).length, loading: false },
+      'partners-negative-balance': { value: partnerBalances.filter(pb => pb.balance < 0).length, loading: false },
+      'vehicles-by-partners': { value: vehicles.filter(v => !!v.partnerId).length, loading: false },
+      'avg-partner-balance': { value: partnerMetrics.length > 0 ? totalPartnerBalance / partnerMetrics.length : 0, loading: false },
+
       'maintenance-overdue': {
         value: maintenanceDue,
         details: vehicles.filter(v => {
@@ -370,11 +290,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           return metric && metric.kmToNextMaintenance <= 0;
         }).map(v => {
           const metric = mileageMetrics.find(m => m.vehicleId === v.id);
-          return {
-            ...v,
-            currentMileage: metric?.currentMileage,
-            nextMaintenanceAt: metric?.nextMaintenanceDue
-          };
+          return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
         }),
         loading: false
       },
@@ -385,62 +301,27 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           return metric && metric.kmToNextMaintenance > 0 && metric.kmToNextMaintenance <= 1500;
         }).map(v => {
           const metric = mileageMetrics.find(m => m.vehicleId === v.id);
-          return {
-            ...v,
-            currentMileage: metric?.currentMileage,
-            nextMaintenanceAt: metric?.nextMaintenanceDue
-          };
+          return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
         }),
         loading: false
       },
-      'avg-fleet-mileage': { 
-        value: vehicleMetrics.length > 0 
-          ? vehicleMetrics.reduce((sum, v) => sum + (v.currentMileage || 0), 0) / vehicleMetrics.length 
-          : 0,
-        loading: false 
-      },
-      'high-mileage-vehicles': { 
-        value: vehicleMetrics.filter(vm => (vm.currentMileage || 0) > 200000).length,
-        loading: false 
-      },
-      'avg-daily-km': { 
-        value: vehicleMetrics.length > 0 
-          ? vehicleMetrics.reduce((sum, v) => sum + (v.dailyAverageKm || 0), 0) / vehicleMetrics.length 
-          : 0,
-        loading: false 
-      },
-      'total-mileage-logs': {
-        value: mileageLogs.length,
+      'avg-fleet-mileage': {
+        value: vehicleMetrics.length > 0 ? vehicleMetrics.reduce((sum, v) => sum + (v.currentMileage || 0), 0) / vehicleMetrics.length : 0,
         loading: false
       },
+      'high-mileage-vehicles': { value: vehicleMetrics.filter(vm => (vm.currentMileage || 0) > 200000).length, loading: false },
+      'avg-daily-km': {
+        value: vehicleMetrics.length > 0 ? vehicleMetrics.reduce((sum, v) => sum + (v.dailyAverageKm || 0), 0) / vehicleMetrics.length : 0,
+        loading: false
+      },
+      'total-mileage-logs': { value: mileageLogs.length, loading: false },
 
-      // ========== MULTAS ==========
-      'total-multas': {
-        value: multasAnalytics.totalMultas,
-        loading: false
-      },
-      'multas-pendientes': {
-        value: multasAnalytics.multasPendientes,
-        details: multasAnalytics.multasPorVehiculo.filter(m => m.pendientes > 0),
-        loading: false
-      },
-      'multas-pagadas': {
-        value: multasAnalytics.multasPagadas,
-        loading: false
-      },
-      'monto-pendiente-multas': {
-        value: multasAnalytics.totalPendienteAmount,
-        loading: false
-      },
-      'vehiculos-con-multas': {
-        value: multasAnalytics.vehiculosConMultas,
-        details: multasAnalytics.multasPorVehiculo,
-        loading: false
-      },
-      'vehiculos-limpios': {
-        value: multasAnalytics.vehiculosLimpios,
-        loading: false
-      },
+      'total-multas': { value: multasAnalytics.totalMultas, loading: false },
+      'multas-pendientes': { value: multasAnalytics.multasPendientes, details: multasAnalytics.multasPorVehiculo.filter(m => m.pendientes > 0), loading: false },
+      'multas-pagadas': { value: multasAnalytics.multasPagadas, loading: false },
+      'monto-pendiente-multas': { value: multasAnalytics.totalPendienteAmount, loading: false },
+      'vehiculos-con-multas': { value: multasAnalytics.vehiculosConMultas, details: multasAnalytics.multasPorVehiculo, loading: false },
+      'vehiculos-limpios': { value: multasAnalytics.vehiculosLimpios, loading: false },
     };
 
     return allKPIs;
