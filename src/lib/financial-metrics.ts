@@ -79,9 +79,17 @@ export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filt
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
 /**
- * Ingreso operativo real: renta/ingreso cobrado que sí representa operación.
- * Los créditos otorgados son financiamiento/cartera, no ingreso ganado, aunque
- * permanezcan como registros `income` para conservar su trazabilidad contable.
+ * Ventas de vehículos financiadas.
+ *
+ * En FleetEase el registro `creditGranted` representa la operación de venta
+ * financiada asociada a un vehículo. No es efectivo cobrado: los pagos del
+ * crédito se registran posteriormente como cobranzas y NO vuelven a sumar venta.
+ */
+export const sumVehicleSales = (records: FinancialRecord[]): number =>
+  sumAmount(records.filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true));
+
+/**
+ * Ingreso operativo por renta/servicios. Excluye ventas financiadas y depósitos.
  */
 export const sumRentalIncome = (
   records: FinancialRecord[],
@@ -94,7 +102,7 @@ export const sumRentalIncome = (
     !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
   ));
 
-/** Utilidad operativa: renta/ingresos operativos menos gastos. */
+/** Utilidad operativa de renta/servicios: ingreso operativo menos gastos. */
 export const calculateNetProfit = (records: FinancialRecord[]): number => sumRentalIncome(records) - sumExpense(records);
 
 export const calculateProfitMargin = (income: number, expenses: number): number => {
