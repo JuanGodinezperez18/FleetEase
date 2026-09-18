@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useFinances } from '@/contexts/providers/finances-provider';
 import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useClients } from '@/contexts/providers/clients-provider';
@@ -12,55 +12,28 @@ import { DeleteConfirmationDialog } from '@/components/common/delete-confirmatio
 import { useAuth } from '@/contexts/auth-provider';
 import { getColumns, type IncomeData } from './columns';
 import { mapIncomes } from './data';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { DateRange } from 'react-day-picker';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast as sonnerToast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Download, MoreHorizontal, Edit, Trash2, Users } from 'lucide-react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { PlusCircle, Download, Users, TrendingUp, Hash, Banknote } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IncomeForm from './components/IncomeForm';
 import MassIncomeForm from './components/MassIncomeForm';
-
-const IncomeMobileCard = ({ record, onEdit, onDelete }: { record: IncomeData, onEdit: (r: IncomeData) => void, onDelete: (r: IncomeData) => void }) => {
-  const isCreditGranted = record.creditGranted === true;
-  const canDelete = record.canDelete !== false && !isCreditGranted;
-
-  return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium">{record.description}</h3>
-            <Badge variant="default">Ingreso/Cargo</Badge>
-            {isCreditGranted && <Badge variant="outline" className="text-blue-600 border-blue-300">Crédito</Badge>}
-          </div>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p className="font-bold text-lg">{formatCurrency(record.amount)}</p>
-            <p><strong>Categoría:</strong> {record.categoryName}</p>
-            <p><strong>Fecha:</strong> {formatDate(record.date)}</p>
-            {record.clientName !== 'N/A' && <p><strong>Cliente:</strong> {record.clientName}</p>}
-          </div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onEdit(record)}><Edit className="mr-2 h-4 w-4"/>Editar</DropdownMenuItem>
-            {canDelete ? <DropdownMenuItem onSelect={() => onDelete(record)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Eliminar</DropdownMenuItem> : <DropdownMenuItem disabled className="text-muted-foreground"><Trash2 className="mr-2 h-4 w-4"/>No eliminable</DropdownMenuItem>}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </Card>
-  );
-};
+import { MetricCard } from '@/components/dashboard/components/MetricCard';
+import { IncomeMobileCard } from './components/income-mobile-card';
 
 export default function IncomesPage() {
-  const { financialRecords, financialCategories, deleteFinancialRecord, addIncome, loading: loadingFinances } = useFinances();
+  const {
+    financialRecords,
+    financialCategories,
+    deleteFinancialRecord,
+    addIncome,
+    loading: loadingFinances,
+  } = useFinances();
   const { clients, loading: loadingClients } = useClients();
   const { vehicles, vehiclesLoading } = useVehicles();
   const { companies, selectedCompanyId } = useData();
@@ -76,21 +49,30 @@ export default function IncomesPage() {
   const [isMassIncomeFormOpen, setIsMassIncomeFormOpen] = useState(false);
 
   const incomes = useMemo(() => {
-    const companyFilteredRecords = selectedCompanyId ? financialRecords.filter(r => r.companyId === selectedCompanyId) : financialRecords;
-    let allIncomes = mapIncomes(companyFilteredRecords, clients, vehicles, financialCategories).filter(income => !income.isDeleted && income.type === 'income');
+    const companyFilteredRecords = selectedCompanyId
+      ? financialRecords.filter(r => r.companyId === selectedCompanyId)
+      : financialRecords;
+    let allIncomes = mapIncomes(companyFilteredRecords, clients, vehicles, financialCategories).filter(
+      income => !income.isDeleted && income.type === 'income'
+    );
 
     if (dateRange?.from) {
       const fromDate = startOfDay(dateRange.from).getTime();
-      allIncomes = allIncomes.filter(income => { const d = infallibleNormalizeDate(income.date); return d && d.getTime() >= fromDate; });
+      allIncomes = allIncomes.filter(income => {
+        const d = infallibleNormalizeDate(income.date);
+        return d && d.getTime() >= fromDate;
+      });
     }
     if (dateRange?.to) {
       const toDate = endOfDay(dateRange.to).getTime();
-      allIncomes = allIncomes.filter(income => { const d = infallibleNormalizeDate(income.date); return d && d.getTime() <= toDate; });
+      allIncomes = allIncomes.filter(income => {
+        const d = infallibleNormalizeDate(income.date);
+        return d && d.getTime() <= toDate;
+      });
     }
     return allIncomes.sort((a, b) => b.sortableDate - a.sortableDate);
   }, [financialRecords, clients, vehicles, dateRange, selectedCompanyId, financialCategories]);
 
-  // Pagos ya no pertenecen al flujo de Ingresos. Se administran exclusivamente en Finanzas > Pagos.
   const incomeCategories = useMemo(() => {
     if (!financialCategories) return [];
     return financialCategories
@@ -98,7 +80,17 @@ export default function IncomesPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [financialCategories]);
 
-  const handleDeleteRequest = useCallback((income: IncomeData) => { setRecordToDelete(income); setIsDeleteDialogOpen(true); }, []);
+  const stats = useMemo(() => {
+    const total = incomes.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const avg = incomes.length > 0 ? total / incomes.length : 0;
+    return { total, count: incomes.length, average: avg };
+  }, [incomes]);
+
+  const handleDeleteRequest = useCallback((income: IncomeData) => {
+    setRecordToDelete(income);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
   const handleCloseDeleteDialog = useCallback(() => {
     if (isSubmitting) return;
     setIsDeleteDialogOpen(false);
@@ -108,81 +100,224 @@ export default function IncomesPage() {
   const handleDelete = async () => {
     if (!recordToDelete) return;
     if (recordToDelete.creditGranted === true) {
-      sonnerToast.error("No se puede eliminar", { description: "Los registros de 'Crédito Otorgado' se gestionan desde Créditos." });
+      sonnerToast.error('No se puede eliminar', {
+        description: "Los registros de 'Crédito Otorgado' se gestionan desde Créditos.",
+      });
       handleCloseDeleteDialog();
       return;
     }
     setIsSubmitting(true);
-    const toastId = sonnerToast.loading("Eliminando registro...");
+    const toastId = sonnerToast.loading('Eliminando registro...');
     try {
       await deleteFinancialRecord(recordToDelete.id);
-      sonnerToast.success("Registro Eliminado", { id: toastId });
+      sonnerToast.success('Registro eliminado', { id: toastId });
       handleCloseDeleteDialog();
     } catch (error) {
-      sonnerToast.error("Error al eliminar", { id: toastId, description: error instanceof Error ? error.message : "No se pudo eliminar el registro." });
-    } finally { setIsSubmitting(false); }
+      sonnerToast.error('Error al eliminar', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'No se pudo eliminar el registro.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const exportData = useCallback(() => {
-    const dataToExport = incomes.map(item => ({ Fecha: formatDate(item.date), Descripción: item.description, Categoría: item.categoryName, Tipo: 'Ingreso/Cargo', Monto: item.amount, Cliente: item.clientName, Vehículo: item.vehicleName }));
+    const dataToExport = incomes.map(item => ({
+      Fecha: formatDate(item.date),
+      Descripción: item.description,
+      Categoría: item.categoryName,
+      Tipo: 'Ingreso/Cargo',
+      Monto: item.amount,
+      Cliente: item.clientName,
+      Vehículo: item.vehicleName,
+    }));
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ingresos");
+    XLSX.utils.book_append_sheet(wb, ws, 'Ingresos');
     XLSX.writeFile(wb, `ingresos_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   }, [incomes]);
 
   const handleIncomeSubmit = async (data: any, category?: FinancialCategory) => {
     setIsSubmitting(true);
     try {
-      if (data.type !== 'income' || category?.type !== 'income') throw new Error('Los pagos deben registrarse desde Finanzas > Pagos.');
+      if (data.type !== 'income' || category?.type !== 'income') {
+        throw new Error('Los pagos deben registrarse desde Finanzas > Pagos.');
+      }
       await addIncome(data);
       sonnerToast.success('Ingreso creado exitosamente');
       setIsIncomeFormOpen(false);
     } catch (error) {
-      sonnerToast.error('Error al crear ingreso', { description: error instanceof Error ? error.message : 'Intenta de nuevo.' });
-    } finally { setIsSubmitting(false); }
+      sonnerToast.error('Error al crear ingreso', {
+        description: error instanceof Error ? error.message : 'Intenta de nuevo.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const columns = useMemo(() => getColumns(() => {}, handleDeleteRequest, incomes), [incomes, handleDeleteRequest]);
+  const handleEdit = useCallback((record: IncomeData) => {
+    setEditingRecord(record);
+    setIsIncomeFormOpen(true);
+  }, []);
 
-  if (loadingData) return <p>Cargando ingresos...</p>;
+  const columns = useMemo(
+    () => getColumns(handleEdit, handleDeleteRequest, incomes),
+    [incomes, handleEdit, handleDeleteRequest]
+  );
+
+  if (loadingData) {
+    return (
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]"
+            />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Registros de Ingresos</CardTitle>
-                <CardDescription>Gestiona rentas, cargos, depósitos y otros ingresos. Los pagos se administran en el módulo Pagos.</CardDescription>
+      <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+
+        <div className="relative z-10 space-y-5 sm:space-y-6">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+                Finanzas
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button size="sm" onClick={() => setIsIncomeFormOpen(true)}><PlusCircle className="mr-2 h-4 w-4" />Nuevo Ingreso</Button>
-                <Button variant="outline" size="sm" onClick={() => setIsMassIncomeFormOpen(true)}><Users className="mr-2 h-4 w-4" />Ingreso Masivo</Button>
-                <Button variant="outline" size="sm" onClick={exportData} disabled={incomes.length === 0}><Download className="mr-2 h-4 w-4" />Exportar</Button>
-              </div>
+              <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+                Ingresos
+              </h1>
+              <p className="mt-1 text-sm text-white/40">
+                {stats.count} registro{stats.count === 1 ? '' : 's'} en esta vista
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveTable columns={columns} data={incomes} loading={loadingData} searchPlaceholder="Buscar por cliente, descripción, categoría..." noResultsText="No se encontraron ingresos para los filtros aplicados." mobileCardRenderer={(record) => <IncomeMobileCard record={record} onEdit={() => {}} onDelete={handleDeleteRequest} />} />
-          </CardContent>
-        </Card>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportData}
+                disabled={incomes.length === 0}
+                className="h-10 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Download className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Exportar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMassIncomeFormOpen(true)}
+                className="h-10 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Users className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Masivo
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingRecord(null);
+                  setIsIncomeFormOpen(true);
+                }}
+                className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Nuevo ingreso
+              </Button>
+            </div>
+          </header>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <MetricCard
+              title="Ingresos totales"
+              value={formatCurrency(stats.total)}
+              description={`${stats.count} registros`}
+              icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />}
+              variant="success"
+            />
+            <MetricCard
+              title="Registros"
+              value={stats.count}
+              description="Ingresos / cargos"
+              icon={<Hash className="h-5 w-5" strokeWidth={1.75} />}
+            />
+            <MetricCard
+              title="Promedio"
+              value={formatCurrency(stats.average)}
+              description="Por registro"
+              icon={<Banknote className="h-5 w-5" strokeWidth={1.75} />}
+            />
+          </div>
+
+          <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+            <div className="p-4 sm:p-5">
+              <ResponsiveTable
+                columns={columns}
+                data={incomes}
+                loading={loadingData}
+                searchPlaceholder="Buscar por cliente, descripción, categoría..."
+                noResultsText="No se encontraron ingresos."
+                mobileCardRenderer={record => (
+                  <IncomeMobileCard
+                    record={record}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteRequest}
+                  />
+                )}
+              />
+            </div>
+          </section>
+        </div>
       </div>
 
-      {recordToDelete && <DeleteConfirmationDialog isOpen={isDeleteDialogOpen} onClose={handleCloseDeleteDialog} onConfirm={handleDelete} itemName={recordToDelete.description ?? 'este registro'} isDeleting={isSubmitting} />}
+      {recordToDelete && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={handleCloseDeleteDialog}
+          onConfirm={handleDelete}
+          itemName={recordToDelete.description ?? 'este registro'}
+          isDeleting={isSubmitting}
+        />
+      )}
 
       <Dialog open={isIncomeFormOpen} onOpenChange={setIsIncomeFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nuevo Ingreso</DialogTitle></DialogHeader>
-          <IncomeForm onSubmit={handleIncomeSubmit} initialData={editingRecord} companies={companies} incomeAndPaymentCategories={incomeCategories} isSubmitting={isSubmitting} onClose={() => setIsIncomeFormOpen(false)} />
+          <DialogHeader>
+            <DialogTitle>{editingRecord ? 'Editar ingreso' : 'Nuevo ingreso'}</DialogTitle>
+          </DialogHeader>
+          <IncomeForm
+            onSubmit={handleIncomeSubmit}
+            initialData={editingRecord}
+            companies={companies}
+            incomeAndPaymentCategories={incomeCategories}
+            isSubmitting={isSubmitting}
+            onClose={() => {
+              setIsIncomeFormOpen(false);
+              setEditingRecord(null);
+            }}
+          />
         </DialogContent>
       </Dialog>
 
       <Dialog open={isMassIncomeFormOpen} onOpenChange={setIsMassIncomeFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Ingreso Masivo de Rentas</DialogTitle></DialogHeader>
-          <MassIncomeForm onSuccess={() => { setIsMassIncomeFormOpen(false); sonnerToast.success('Ingresos masivos creados exitosamente'); }} />
+          <DialogHeader>
+            <DialogTitle>Ingreso masivo de rentas</DialogTitle>
+          </DialogHeader>
+          <MassIncomeForm
+            onSuccess={() => {
+              setIsMassIncomeFormOpen(false);
+              sonnerToast.success('Ingresos masivos creados exitosamente');
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>
