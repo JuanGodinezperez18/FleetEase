@@ -1,28 +1,18 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import type { Partner, Company, FinancialRecord, Client, Vehicle } from '@/types';
+import type { Partner } from '@/types';
 import type { PartnerMetric } from '@/hooks/use-partner-analytics';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  Briefcase,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Award,
-  AlertTriangle,
-  UserCheck,
-} from 'lucide-react';
+import { Briefcase, DollarSign, Award, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useData } from '@/hooks/use-data';
-import { useFinancialAnalytics } from '@/hooks/use-financial-analytics';
 import { useAuth } from '@/contexts/auth-provider';
-import { InteractiveMetricCard } from '@/components/dashboard/components/MetricCard';
+import { MetricCard, InteractiveMetricCard } from '@/components/dashboard/components/MetricCard';
 import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
+import { PartnerPerformanceBadge } from '@/components/partners/partner-status-badges';
 
 interface PartnerDashboardProps {
   partners: Partner[];
@@ -33,10 +23,12 @@ interface PartnerDashboardProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-2 bg-background border rounded-lg shadow-sm">
-        <p className="font-bold">{label}</p>
+      <div className="rounded-xl border border-white/10 bg-[#0e1117] p-3 text-xs text-white shadow-xl">
+        <p className="mb-1 font-semibold text-white/80">{label}</p>
         {payload.map((p: any, index: number) => (
-            <p key={index} style={{ color: p.fill }}>{`${p.name}: ${formatCurrency(p.value)}`}</p>
+          <p key={index} className="text-white/60">
+            {p.name}: <span className="font-semibold text-white">{formatCurrency(p.value)}</span>
+          </p>
         ))}
       </div>
     );
@@ -45,61 +37,64 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const CompanyComparisonDashboard = () => {
-    const { companies, financialRecords, clients, vehicles, partners } = useData();
-    const analyticsByCompany = useMemo(() => {
-        return companies.map(company => {
-            const companyRecords = financialRecords.filter(r => r.companyId === company.id && !r.isDeleted);
-            const companyClients = clients.filter(c => c.companyId === company.id);
-            const companyVehicles = vehicles.filter(v => v.companyId === company.id);
-            const companyPartners = partners.filter(p => p.companyId === company.id);
+  const { companies, financialRecords, clients, vehicles, partners } = useData();
+  const analyticsByCompany = useMemo(() => {
+    return companies
+      .map(company => {
+        const companyRecords = financialRecords.filter(r => r.companyId === company.id && !r.isDeleted);
+        const totalIncome = sumRentalIncome(companyRecords);
+        const totalExpenses = sumExpense(companyRecords);
+        return {
+          name: company.name,
+          ingresos: totalIncome,
+          gastos: totalExpenses,
+          beneficio: totalIncome - totalExpenses,
+        };
+      })
+      .sort((a, b) => b.beneficio - a.beneficio);
+  }, [companies, financialRecords, clients, vehicles, partners]);
 
-            // Usar las mismas métricas financieras canónicas que el resto de FleetEase.
-            // Esto evita que esta vista tenga una definición distinta de ingreso/utilidad.
-            const totalIncome = sumRentalIncome(companyRecords);
-            const totalExpenses = sumExpense(companyRecords);
+  if (companies.length <= 1) return null;
 
-            return {
-                name: company.name,
-                ingresos: totalIncome,
-                gastos: totalExpenses,
-                beneficio: totalIncome - totalExpenses,
-            };
-        }).sort((a, b) => b.beneficio - a.beneficio);
-    }, [companies, financialRecords, clients, vehicles, partners]);
-
-    if (companies.length <= 1) return null;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Comparativa de Empresas</CardTitle>
-                <CardDescription>Análisis de ingresos, gastos y beneficio neto por empresa.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={analyticsByCompany} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${formatCurrency(value)}`} />
-                        <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{ fill: 'hsl(var(--muted))' }}/>
-                        <Legend />
-                        <Bar dataKey="ingresos" fill="#10b981" name="Ingresos" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="gastos" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="beneficio" fill="#3b82f6" name="Beneficio" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
-    );
+  return (
+    <Card className="hidden rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)] md:block">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+          Comparativa de empresas
+        </CardTitle>
+        <CardDescription className="text-xs text-white/40">
+          Ingresos, gastos y beneficio por empresa
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={analyticsByCompany} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+            <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} tickFormatter={(v) => formatCurrency(v)} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+            <Bar dataKey="ingresos" fill="#34d399" name="Ingresos" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="gastos" fill="#fb7185" name="Gastos" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="beneficio" fill="#d7ff3f" name="Beneficio" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
 };
 
-
-export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, partnerMetrics, onBalanceCardClick }) => {
+export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
+  partners,
+  partnerMetrics,
+  onBalanceCardClick,
+}) => {
   const { currentUser } = useAuth();
   const { partnerBalances } = useData();
 
-  const totalPartnerBalance = useMemo(() => {
-    return partnerBalances.reduce((sum, b) => sum + b.balance, 0);
-  }, [partnerBalances]);
+  const totalPartnerBalance = useMemo(
+    () => partnerBalances.reduce((sum, b) => sum + b.balance, 0),
+    [partnerBalances]
+  );
 
   const overallStats = useMemo(() => {
     const totalPartners = partners.filter(p => !p.isDeleted).length;
@@ -113,149 +108,142 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ partners, pa
       Bajo: partnerMetrics.filter(p => p.performanceLevel === 'Bajo').length,
     };
 
-    return {
-      totalPartners,
-      totalNetProfit,
-      topPerformer,
-      performanceDistribution
-    };
+    return { totalPartners, totalNetProfit, topPerformer, performanceDistribution };
   }, [partners, partnerMetrics]);
 
-  const chartData = Object.entries(overallStats.performanceDistribution).map(([name, value]) => ({ name, Socios: value }));
+  const chartData = Object.entries(overallStats.performanceDistribution).map(([name, value]) => ({
+    name,
+    Socios: value,
+  }));
 
-  const topFivePartners = useMemo(() => {
-    return partnerMetrics.slice(0, 5);
-  }, [partnerMetrics]);
-
-  const lowPerformancePartners = useMemo(() => {
-    return partnerMetrics.filter(p => p.performanceLevel === 'Bajo');
-  }, [partnerMetrics]);
-
-  const getPerformanceBadge = (level: PartnerMetric['performanceLevel']) => {
-    switch (level) {
-      case 'Excelente': return <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Excelente</Badge>;
-      case 'Bueno': return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Bueno</Badge>;
-      case 'Regular': return <Badge variant="secondary">Regular</Badge>;
-      case 'Bajo': return <Badge variant="destructive">Bajo</Badge>;
-      default: return <Badge variant="outline">{level}</Badge>;
-    }
-  };
+  const topFivePartners = useMemo(() => partnerMetrics.slice(0, 5), [partnerMetrics]);
+  const lowPerformancePartners = useMemo(
+    () => partnerMetrics.filter(p => p.performanceLevel === 'Bajo'),
+    [partnerMetrics]
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Metric Cards */}
+    <div className="space-y-5 sm:space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Socios Activos</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.totalPartners}</div>
-            <p className="text-xs text-muted-foreground">Total de socios en el sistema.</p>
-          </CardContent>
-        </Card>
-
-        <InteractiveMetricCard
-          title="Saldo Total con Socios"
-          value={formatCurrency(totalPartnerBalance)}
-          description={`${partnerBalances.length} socios con saldo`}
-          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
-          onClick={onBalanceCardClick}
-          variant={totalPartnerBalance >= 0 ? "success" : "danger"}
+        <MetricCard
+          title="Socios activos"
+          value={overallStats.totalPartners}
+          description="Total de socios en el sistema"
+          icon={<Briefcase className="h-5 w-5" strokeWidth={1.75} />}
         />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rentabilidad Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${overallStats.totalNetProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatCurrency(overallStats.totalNetProfit)}
-            </div>
-            <p className="text-xs text-muted-foreground">Beneficio neto combinado.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Performer</CardTitle>
-            <Award className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold truncate">{overallStats.topPerformer?.partnerName || 'N/A'}</div>
-            <p className="text-xs text-muted-foreground">
-              {overallStats.topPerformer ? `Beneficio: ${formatCurrency(overallStats.topPerformer.netProfit)}` : 'No hay datos'}
-            </p>
-          </CardContent>
-        </Card>
+        <InteractiveMetricCard
+          title="Saldo con socios"
+          value={formatCurrency(totalPartnerBalance)}
+          description={`${partnerBalances.length} socios con saldo`}
+          icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
+          onClick={onBalanceCardClick}
+          variant={totalPartnerBalance >= 0 ? 'success' : 'danger'}
+        />
+
+        <MetricCard
+          title="Rentabilidad total"
+          value={formatCurrency(overallStats.totalNetProfit)}
+          description="Beneficio neto combinado"
+          icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
+          variant={overallStats.totalNetProfit >= 0 ? 'success' : 'danger'}
+        />
+
+        <MetricCard
+          title="Top performer"
+          value={overallStats.topPerformer?.partnerName || 'N/A'}
+          description={
+            overallStats.topPerformer
+              ? `Beneficio: ${formatCurrency(overallStats.topPerformer.netProfit)}`
+              : 'Sin datos'
+          }
+          icon={<Award className="h-5 w-5" strokeWidth={1.75} />}
+        />
       </div>
 
-      {/* Charts and Tables */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución de Rendimiento</CardTitle>
-            <CardDescription>Clasificación de socios según su rentabilidad.</CardDescription>
+      {/* Analytics: desktop only */}
+      <div className="hidden gap-4 md:grid md:grid-cols-2">
+        <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+              Distribución de rendimiento
+            </CardTitle>
+            <CardDescription className="text-xs text-white/40">
+              Clasificación por rentabilidad
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
-                    <Tooltip content={<CustomTooltip />} cursor={{fill: 'hsl(var(--muted))'}}/>
-                    <Bar dataKey="Socios" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
+          <CardContent className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey="Socios" fill="#d7ff3f" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Socios por Rentabilidad</CardTitle>
-            <CardDescription>Los socios más rentables del período.</CardDescription>
+        <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+              Top 5 por rentabilidad
+            </CardTitle>
+            <CardDescription className="text-xs text-white/40">
+              Mayores beneficios netos
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Socio</TableHead>
-                  <TableHead>Vehículos</TableHead>
-                  <TableHead className="text-right">Beneficio Neto</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topFivePartners.map(p => (
-                  <TableRow key={p.partnerId}>
-                    <TableCell className="font-medium">{p.partnerName}</TableCell>
-                    <TableCell>{p.vehicleCount}</TableCell>
-                    <TableCell className="text-right font-mono text-emerald-600">{formatCurrency(p.netProfit)}</TableCell>
+            {topFivePartners.length === 0 ? (
+              <p className="py-8 text-center text-sm text-white/35">Sin datos de rentabilidad</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-white/40">Socio</TableHead>
+                    <TableHead className="text-white/40">Vehículos</TableHead>
+                    <TableHead className="text-right text-white/40">Beneficio</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {topFivePartners.map(p => (
+                    <TableRow key={p.partnerId} className="border-white/[0.06] hover:bg-white/[0.03]">
+                      <TableCell>
+                        <div className="font-medium text-white/90">{p.partnerName}</div>
+                        <div className="mt-0.5">
+                          <PartnerPerformanceBadge level={p.performanceLevel} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-white/60">{p.vehicleCount}</TableCell>
+                      <TableCell className="text-right font-mono text-emerald-300">
+                        {formatCurrency(p.netProfit)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {currentUser?.role === 'superAdmin' && <CompanyComparisonDashboard />}
 
-      {/* Low Performance Alerts */}
       {lowPerformancePartners.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Socios con Bajo Rendimiento</AlertTitle>
-          <AlertDescription>
-            <p>Los siguientes socios tienen una rentabilidad negativa. Se recomienda revisar los gastos de sus vehículos.</p>
-            <ul className="mt-2 list-disc list-inside">
-              {lowPerformancePartners.map(p => (
-                <li key={p.partnerId}>
-                  {p.partnerName}: <span className="font-semibold">{formatCurrency(p.netProfit)}</span>
-                </li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
+        <div className="hidden rounded-[20px] border border-amber-400/20 bg-amber-400/[0.06] p-4 md:block">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
+            Bajo rendimiento
+          </div>
+          <ul className="space-y-1 text-sm text-white/60">
+            {lowPerformancePartners.slice(0, 5).map(p => (
+              <li key={p.partnerId}>
+                {p.partnerName}
+                <span className="text-white/35"> · {formatCurrency(p.netProfit)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
