@@ -96,6 +96,17 @@ begin
   limit 1;
 
   if v_income_id is not null then
+    update public.financial_records
+    set amount = new.amount,
+        date = new.date,
+        vehicle_id = new.vehicle_id,
+        partner_id = v_vehicle.partner_id,
+        category_id = v_category_id,
+        category = v_category_name,
+        description = 'Ingreso por administración del vehículo ' || coalesce(v_vehicle.alias, ''),
+        is_deleted = new.is_deleted,
+        updated_at = now()
+    where id = v_income_id;
     return new;
   end if;
 
@@ -137,7 +148,7 @@ $$;
 drop trigger if exists trg_vehicle_admin_income on public.financial_records;
 
 create trigger trg_vehicle_admin_income
-after insert on public.financial_records
+after insert or update of amount, date, vehicle_id, partner_id, category, is_deleted on public.financial_records
 for each row
 execute function public.create_vehicle_admin_income();
 
