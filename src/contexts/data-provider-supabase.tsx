@@ -73,9 +73,31 @@ export function calculatePartnerBalance(partner: DomainPartner, partnerVehicles:
   const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
   const totalIncome = financialRecords.filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
   const totalExpenses = financialRecords.filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
+
+  // Los créditos de vehículos propiedad del socio forman parte de su balance:
+  // los pagos realizados reducen el saldo que la empresa le debe al socio.
+  const partnerVehicleCredits = new Set(
+    partnerVehicles
+      .filter(v => v.associatedCreditId)
+      .map(v => v.associatedCreditId as string)
+  );
+  const totalCreditPaymentsForPartnerVehicles = financialRecords
+    .filter(r =>
+      !r.isDeleted &&
+      r.type === 'payment' &&
+      r.creditId &&
+      partnerVehicleCredits.has(r.creditId)
+    )
+    .reduce((sum, r) => sum + r.amount, 0);
+
   const allPartnerPayments = financialRecords.filter(r => r.type === 'payment' && r.partnerId === partner.id && !r.isDeleted);
   const totalPaymentsAlreadyMade = allPartnerPayments.reduce((sum, r) => sum + r.amount, 0);
-  return (partner.initialBalance || 0) + totalIncome - totalExpenses - totalPaymentsAlreadyMade;
+
+  return (partner.initialBalance || 0)
+    + totalIncome
+    - totalExpenses
+    - totalPaymentsAlreadyMade
+    - totalCreditPaymentsForPartnerVehicles;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
