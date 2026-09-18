@@ -16,10 +16,10 @@ const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 export const metadata: Metadata = {
   metadataBase: new URL("https://fleetease.com.mx"),
   title: {
-    default: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
+    default: "FleetEase | Software de Gestión de Flotillas en México",
     template: "%s | FleetEase",
   },
-  description: "Gestiona tu flotilla de vehículos desde un solo lugar. Controla rentabilidad, mantenimiento, clientes y operaciones. Software para renta de vehículos y control de flotillas. Prueba gratis 14 días sin tarjeta.",
+  description: "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Prueba gratis 14 días, sin tarjeta.",
   applicationName: "FleetEase",
   keywords: [
     "gestión de flotillas",
@@ -53,8 +53,8 @@ export const metadata: Metadata = {
     locale: "es_MX",
     url: "https://fleetease.com.mx/",
     siteName: "FleetEase",
-    title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
-    description: "Controla clientes, vehículos, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
+    title: "FleetEase | Software de Gestión de Flotillas en México",
+    description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Prueba gratis 14 días, sin tarjeta.",
     images: [
       {
         url: "/og-image.png",
@@ -66,8 +66,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FleetEase | Software de Gestión de Flotillas y Renta de Vehículos",
-    description: "Controla operación, rentabilidad y mantenimiento de tu flotilla desde un solo lugar. Prueba gratis 14 días.",
+    title: "FleetEase | Software de Gestión de Flotillas en México",
+    description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Prueba gratis 14 días, sin tarjeta.",
     images: ["/og-image.png"],
   },
   manifest: "/manifest.json",
