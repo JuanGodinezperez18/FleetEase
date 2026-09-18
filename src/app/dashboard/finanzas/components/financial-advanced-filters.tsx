@@ -1,14 +1,13 @@
 "use client";
 
-import React from 'react';
-import { startOfMonth, endOfMonth } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { NativeDateRangePicker } from '@/components/ui/native-date-range-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, Briefcase } from 'lucide-react';
-import type { Company, Partner } from '@/types';
-import type { DateRange } from 'react-day-picker';
-import { useAuth } from '@/contexts/auth-provider';
+import React from "react";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { NativeDateRangePicker } from "@/components/ui/native-date-range-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building, Briefcase } from "lucide-react";
+import type { Company, Partner } from "@/types";
+import type { DateRange } from "react-day-picker";
+import { useAuth } from "@/contexts/auth-provider";
 
 interface FinancialAdvancedFiltersProps {
   companies: Company[];
@@ -37,31 +36,39 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-center gap-3">
       <NativeDateRangePicker date={date} onDateChange={handleDateChange} />
 
-      {currentUser?.role === 'superAdmin' && (
+      {currentUser?.role === "superAdmin" && (
         <Select onValueChange={onCompanyChange} defaultValue="all">
-          <SelectTrigger className="w-[220px]">
-            <Building className="mr-2 h-4 w-4" />
+          <SelectTrigger className="w-[220px] border-white/10 bg-white/[0.03] text-white">
+            <Building className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
             <SelectValue placeholder="Todas las Empresas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las Empresas</SelectItem>
-            {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            {companies.map(c => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
 
       <Select onValueChange={onPartnerChange} defaultValue="all">
-        <SelectTrigger className="w-[220px]">
-          <Briefcase className="mr-2 h-4 w-4" />
+        <SelectTrigger className="w-[220px] border-white/10 bg-white/[0.03] text-white">
+          <Briefcase className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
           <SelectValue placeholder="Todos los Socios" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos los Socios</SelectItem>
           <SelectItem value="none">Sin Socio (Interno)</SelectItem>
-          {partners.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+          {partners.map(p => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.name}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
