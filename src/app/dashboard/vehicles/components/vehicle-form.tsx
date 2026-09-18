@@ -51,7 +51,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   partnerId: z.string().nullable(),
   cost: z.coerce.number().optional(),
   weeklyRentalValue: z.coerce.number().optional(),
-  adminCommission: z.coerce.number().optional(),
+  adminCommission: z.coerce.number().min(0, "El costo de administración no puede ser negativo.").optional(),
   lastMaintenanceMileage: z.coerce.number().optional(),
   currentMileage: z.coerce.number().min(0, "El kilometraje no puede ser negativo."),
   acquisitionDate: z.string().min(1, "La fecha de adquisición es requerida."),
@@ -243,7 +243,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                   <FormField name="cost" control={form.control} render={({field}) => <FormItem><FormLabel>Costo Adquisición</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="weeklyRentalValue" control={form.control} render={({field}) => <FormItem><FormLabel>Renta por Semana</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="adminCommission" control={form.control} render={({field}) => <FormItem><FormLabel>Comisión Admin.</FormLabel><FormControl><div className="relative"><Input type="number" {...field} value={field.value ?? ''} className="pr-6" disabled={isSubmitting} /><span className="absolute right-2.5 top-2.5 text-xs text-muted-foreground">%</span></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="adminCommission" control={form.control} render={({field}) => <FormItem><FormLabel>Costo de Administración</FormLabel><FormControl><div className="relative"><span className="absolute left-2.5 top-2.5 text-sm text-muted-foreground">$</span><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-7 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="acquisitionDate" control={form.control} render={({field}) => <FormItem><FormLabel>Fecha Adquisición</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
