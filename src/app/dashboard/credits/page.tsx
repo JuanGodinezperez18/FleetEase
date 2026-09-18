@@ -1,108 +1,126 @@
-
 "use client";
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useData } from '@/hooks/use-data';
-import { getCreditColumns } from './columns';
-import { ResponsiveTable } from '@/components/common/ResponsiveTable';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Edit, Trash2, XCircle } from 'lucide-react';
-import { FormModal } from '@/components/common/form-modal';
-import { CreditForm, CreditFormValues } from './components/credit-form';
-import type { Credit, Client, Vehicle } from '@/types';
-import { toast as sonnerToast } from 'sonner';
-import { CreditCancellationDialog, type CreditCancellationResult } from '@/components/dashboard/credit-cancellation-dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useCreditAnalytics } from '@/hooks/use-credits-analytics';
-import { useCreditsSearch, type CreditWithMetrics } from '@/hooks/use-credits-search';
-import { CreditPortfolioDashboard } from './components/credit-portfolio-dashboard';
-import { CreditAdvancedFilters } from './components/credit-advanced-filters';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-provider';
-import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload } from '@/lib/credit-creation';
 
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useData } from "@/hooks/use-data";
+import { getCreditColumns } from "./columns";
+import { ResponsiveTable } from "@/components/common/ResponsiveTable";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, MoreHorizontal, CreditCard } from "lucide-react";
+import { FormModal } from "@/components/common/form-modal";
+import { CreditForm, CreditFormValues } from "./components/credit-form";
+import type { Credit } from "@/types";
+import { toast as sonnerToast } from "sonner";
+import { CreditCancellationDialog, type CreditCancellationResult } from "@/components/dashboard/credit-cancellation-dialog";
+import { useCreditAnalytics } from "@/hooks/use-credits-analytics";
+import { useCreditsSearch, type CreditWithMetrics } from "@/hooks/use-credits-search";
+import { CreditPortfolioDashboard } from "./components/credit-portfolio-dashboard";
+import { CreditAdvancedFilters } from "./components/credit-advanced-filters";
+import { Progress } from "@/components/ui/progress";
+import { formatCurrency } from "@/lib/utils";
+import { formatDate } from "@/lib/date-utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/auth-provider";
+import { checkCreditAvailability, buildCreditData, buildVehicleCreditLockPayload } from "@/lib/credit-creation";
 
-const CreditMobileCard = ({ credit, onEdit, onDelete, onDeactivate, onViewDetails }: { credit: CreditWithMetrics, onEdit: (c: Credit) => void, onDelete: (id: string) => void, onDeactivate: (id: string) => void, onViewDetails: (id: string) => void }) => {
-  
-  const getPaymentBehaviorBadge = (level: CreditWithMetrics['paymentBehavior']) => {
-      if (!level) return <Badge variant="outline">N/A</Badge>;
-      switch (level) {
-          case 'Puntual': return <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">Puntual</Badge>;
-          case 'Ligero Retraso': return <Badge variant="secondary" className="bg-amber-500 hover:bg-amber-600">Retraso Ligero</Badge>;
-          case 'Retraso Severo': return <Badge variant="destructive">Retraso Severo</Badge>;
-          default: return <Badge variant="outline">{level}</Badge>;
-      }
-  };
+const STATUS_STYLES: Record<string, string> = {
+  active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+  completed: "border-white/10 bg-white/[0.06] text-white/55",
+  defaulted: "border-rose-400/20 bg-rose-400/10 text-rose-300",
+  inactive: "border-white/10 bg-white/[0.06] text-white/40",
+  cancelled: "border-white/10 bg-white/[0.06] text-white/40",
+};
 
-  const status = credit.status;
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-  switch(status) {
-      case 'active': variant = 'default'; break;
-      case 'completed': variant = 'secondary'; break;
-      case 'defaulted': variant = 'destructive'; break;
-      case 'inactive': variant = 'outline'; break;
-  }
+const BEHAVIOR_STYLES: Record<string, string> = {
+  Puntual: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+  "Ligero Retraso": "border-amber-400/20 bg-amber-400/10 text-amber-300",
+  "Retraso Severo": "border-rose-400/20 bg-rose-400/10 text-rose-300",
+};
+
+const CreditMobileCard = ({
+  credit,
+  onEdit,
+  onDelete,
+  onDeactivate,
+  onViewDetails,
+}: {
+  credit: CreditWithMetrics;
+  onEdit: (c: Credit) => void;
+  onDelete: (id: string) => void;
+  onDeactivate: (id: string) => void;
+  onViewDetails: (id: string) => void;
+}) => {
   const progress = credit.totalAmount > 0 ? ((credit.paidAmount || 0) / credit.totalAmount) * 100 : 0;
+  const statusClass = STATUS_STYLES[credit.status] || STATUS_STYLES.inactive;
+  const behaviorClass = credit.paymentBehavior
+    ? BEHAVIOR_STYLES[credit.paymentBehavior] || "border-white/10 bg-white/[0.06] text-white/50"
+    : "border-white/10 bg-white/[0.06] text-white/50";
 
   return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold">{credit.clientName}</h3>
-            <Badge variant={variant} className={status === 'active' ? 'bg-green-500' : ''}>{status}</Badge>
+    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate font-semibold text-white/90">{credit.clientName}</h3>
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusClass}`}>
+              {credit.status}
+            </span>
           </div>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div><strong>Comportamiento:</strong> {getPaymentBehaviorBadge(credit.paymentBehavior)}</div>
-            <p><strong>Saldo:</strong> {formatCurrency(credit.remainingBalance || 0)}</p>
-            <div className="w-full">
-              <span className="text-xs">{formatCurrency(credit.paidAmount || 0)} / {formatCurrency(credit.totalAmount)}</span>
-              <Progress value={progress} className="h-2 mt-1" />
+          <p className="mt-1.5 font-heading text-lg font-semibold tabular-nums text-white">
+            {formatCurrency(credit.remainingBalance || 0)}
+            <span className="ml-1 text-xs font-normal text-white/35">saldo</span>
+          </p>
+          <div className="mt-2">
+            <div className="mb-1 flex justify-between text-[11px] text-white/40">
+              <span>{formatCurrency(credit.paidAmount || 0)}</span>
+              <span>{formatCurrency(credit.totalAmount)}</span>
             </div>
-            {credit.estimatedCompletionDate && <p><strong>Fin Est.:</strong> {formatDate(credit.estimatedCompletionDate)}</p>}
+            <Progress value={progress} className="h-1.5 bg-white/[0.08]" />
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${behaviorClass}`}>
+              {credit.paymentBehavior || "N/A"}
+            </span>
+            {credit.estimatedCompletionDate && (
+              <span className="text-[11px] text-white/35">Fin est. {formatDate(credit.estimatedCompletionDate)}</span>
+            )}
           </div>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-white/40 hover:bg-white/[0.06] hover:text-white">
+              <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onViewDetails(credit.id)}>Ver Detalles</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onViewDetails(credit.id)}>Ver detalles</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onEdit(credit)}>Editar</DropdownMenuItem>
-            {credit.status === 'active' && (
-              <DropdownMenuItem onSelect={() => onDeactivate(credit.id)} className="text-destructive focus:text-destructive">
+            {credit.status === "active" && (
+              <DropdownMenuItem onSelect={() => onDeactivate(credit.id)} className="text-rose-400 focus:text-rose-400">
                 Cancelar crédito
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </Card>
+    </div>
   );
 };
 
-
 export default function CreditsPage() {
-  const { 
-    credits, 
-    clients, 
-    vehicles, 
-    companies, 
-    financialRecords, 
-    loadingData, 
-    addCredit, 
-    updateCredit, 
-    cancelCredit, 
+  const {
+    credits,
+    clients,
+    vehicles,
+    financialRecords,
+    loadingData,
+    updateCredit,
     cancelCreditWithAdjustment,
-    updateVehicle, 
-    refreshData, 
-    createCreditWithFinancialRecord 
+    updateVehicle,
+    refreshData,
+    createCreditWithFinancialRecord,
   } = useData();
-  
+
   const { currentUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -111,11 +129,11 @@ export default function CreditsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [creditToAction, setCreditToAction] = useState<Credit | null>(null);
-  
+
   const { creditMetrics, portfolioAnalytics } = useCreditAnalytics(credits, clients, vehicles, financialRecords);
-  
-  const clientNames: Record<string, string> = useMemo(() => 
-    Object.fromEntries(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`])),
+
+  const clientNames: Record<string, string> = useMemo(
+    () => Object.fromEntries(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`])),
     [clients]
   );
 
@@ -126,18 +144,12 @@ export default function CreditsPage() {
       .map(credit => ({
         ...credit,
         ...metricsMap.get(credit.id),
-        clientName: clientNames[credit.clientId] || 'Cliente Desconocido',
+        clientName: clientNames[credit.clientId] || "Cliente Desconocido",
       }));
   }, [credits, creditMetrics, clientNames]);
-  
-  const {
-    filters,
-    filteredCredits,
-    updateFilter,
-    resetFilters,
-    debouncedSetQuery,
-    totalResults,
-  } = useCreditsSearch(creditsWithMetrics);
+
+  const { filters, filteredCredits, updateFilter, resetFilters, debouncedSetQuery, totalResults } =
+    useCreditsSearch(creditsWithMetrics);
 
   const handleCreateNew = useCallback(() => {
     setEditingCredit(null);
@@ -145,9 +157,9 @@ export default function CreditsPage() {
   }, []);
 
   useEffect(() => {
-    if (searchParams.get('action') === 'new') {
+    if (searchParams.get("action") === "new") {
       handleCreateNew();
-      router.replace('/dashboard/credits', { scroll: false });
+      router.replace("/dashboard/credits", { scroll: false });
     }
   }, [searchParams, router, handleCreateNew]);
 
@@ -155,62 +167,55 @@ export default function CreditsPage() {
     setEditingCredit(credit);
     setIsModalOpen(true);
   }, []);
-  
-  const handleViewDetails = useCallback((creditId: string) => {
-    router.push(`/dashboard/credits/${creditId}`);
-  }, [router]);
+
+  const handleViewDetails = useCallback(
+    (creditId: string) => {
+      router.push(`/dashboard/credits/${creditId}`);
+    },
+    [router]
+  );
 
   const handleCloseModal = useCallback(() => {
     if (isSubmitting) return;
-    // Primero cerrar el modal
     setIsModalOpen(false);
-    // Resetear el estado DESPUÉS de que la animación de cierre termine
-    setTimeout(() => {
-      setEditingCredit(null);
-    }, 300);
+    setTimeout(() => setEditingCredit(null), 300);
   }, [isSubmitting]);
 
-  const openCancellationDialog = useCallback((creditId: string) => {
-    const credit = credits.find(c => c.id === creditId);
-    if (credit) {
-      setCreditToAction(credit);
-      setIsDeactivateDialogOpen(true);
-    }
-  }, [credits]);
+  const openCancellationDialog = useCallback(
+    (creditId: string) => {
+      const credit = credits.find(c => c.id === creditId);
+      if (credit) {
+        setCreditToAction(credit);
+        setIsDeactivateDialogOpen(true);
+      }
+    },
+    [credits]
+  );
 
-  // Compat: rutas antiguas "eliminar" se redirigen a cancelación no destructiva
   const handleDelete = openCancellationDialog;
   const handleDeactivate = openCancellationDialog;
 
   const handleCancelCreditConfirm = async (reason: string): Promise<CreditCancellationResult> => {
-    if (!creditToAction) {
-      throw new Error('No hay crédito seleccionado.');
-    }
-
+    if (!creditToAction) throw new Error("No hay crédito seleccionado.");
     setIsSubmitting(true);
     const toastId = sonnerToast.loading("Cancelando crédito...");
-
     try {
       await cancelCreditWithAdjustment(creditToAction.id, reason);
-
       const result: CreditCancellationResult = {
         creditId: creditToAction.id,
         creditReferenceCode: (creditToAction as any).referenceCode ?? null,
-        status: 'cancelled',
+        status: "cancelled",
         remainingBalance: Number(creditToAction.remainingBalance || 0),
         vehicleReleased: Boolean(creditToAction.vehicleId),
         clientReleased: Boolean(creditToAction.clientId),
       };
-
       sonnerToast.success("Crédito cancelado", {
         id: toastId,
-        description: `Historial conservado. Ref: ${result.creditReferenceCode || '—'} · Saldo: ${formatCurrency(result.remainingBalance)}`,
+        description: `Historial conservado. Ref: ${result.creditReferenceCode || "—"} · Saldo: ${formatCurrency(result.remainingBalance)}`,
       });
-
       await refreshData();
       return result;
     } catch (error) {
-      console.error("Error cancelling credit:", error);
       const message = error instanceof Error ? error.message : "Hubo un error al cancelar el crédito.";
       sonnerToast.error("Error", { id: toastId, description: message });
       throw error;
@@ -220,23 +225,17 @@ export default function CreditsPage() {
   };
 
   const handleSubmit = async (data: CreditFormValues) => {
-    console.log('🚀 ========== INICIO handleSubmit ==========');
-    console.log('📦 Datos recibidos del formulario:', data);
-    
     setIsSubmitting(true);
     const toastId = sonnerToast.loading(editingCredit ? "Actualizando crédito..." : "Creando crédito...");
-    
     try {
-      // Validar disponibilidad (1 crédito activo por vehículo/cliente) con
-      // la misma regla que usa la acción rápida del dashboard.
       const availability = checkCreditAvailability(credits, {
         vehicleId: data.vehicleId,
         clientId: data.clientId,
         excludeCreditId: editingCredit?.id,
       });
       if (!availability.available) {
-        const isVehicleError = availability.error?.includes('vehículo');
-        sonnerToast.error(isVehicleError ? 'Vehículo No Disponible' : 'Cliente con Crédito Activo', {
+        const isVehicleError = availability.error?.includes("vehículo");
+        sonnerToast.error(isVehicleError ? "Vehículo no disponible" : "Cliente con crédito activo", {
           id: toastId,
           description: availability.error,
         });
@@ -244,51 +243,25 @@ export default function CreditsPage() {
         return;
       }
 
-      const creditData = buildCreditData(
-        data,
-        currentUser?.companyId,
-        editingCredit?.createdAt
-      );
+      const creditData = buildCreditData(data, currentUser?.companyId, editingCredit?.createdAt);
       const totalAmount = creditData.totalAmount;
 
       if (editingCredit?.id) {
-        console.log('✏️ Modo edición - Actualizando crédito:', editingCredit.id);
         await updateCredit(editingCredit.id, creditData);
-        sonnerToast.success("Crédito Actualizado", { id: toastId });
+        sonnerToast.success("Crédito actualizado", { id: toastId });
       } else {
-        console.log('➕ Modo creación - Llamando a createCreditWithFinancialRecord...');
-        console.log('📞 Argumentos:', { creditData, companyId: creditData.companyId });
-        
-        const creditId = await createCreditWithFinancialRecord(
-            creditData, 
-            creditData.companyId
-        );
-
-        console.log('✅ Crédito creado con ID:', creditId);
-
+        const creditId = await createCreditWithFinancialRecord(creditData, creditData.companyId);
         if (creditId) {
-          console.log('🔒 Bloqueando vehículo:', data.vehicleId);
           await updateVehicle(data.vehicleId, buildVehicleCreditLockPayload(data.clientId, creditId));
-          console.log('✅ Vehículo bloqueado correctamente');
         }
-        
-        sonnerToast.success("Crédito Creado", { 
-          id: toastId, 
-          description: `Se sumó ${formatCurrency(totalAmount)} al balance del cliente.` 
+        sonnerToast.success("Crédito creado", {
+          id: toastId,
+          description: `Se sumó ${formatCurrency(totalAmount)} al balance del cliente.`,
         });
       }
-      
-      console.log('🔄 Cerrando modal y refrescando datos...');
       handleCloseModal();
       await refreshData();
-      console.log('✅ Datos refrescados correctamente');
-      console.log('🎉 ========== FIN handleSubmit EXITOSO ==========');
-      
     } catch (error) {
-      console.error("❌ ========== ERROR EN handleSubmit ==========");
-      console.error("Error completo:", error);
-      console.error("Stack trace:", (error as Error).stack);
-      
       const errorMessage = error instanceof Error ? error.message : "Hubo un error al guardar el crédito.";
       sonnerToast.error("Error", { id: toastId, description: errorMessage });
     } finally {
@@ -297,85 +270,109 @@ export default function CreditsPage() {
   };
 
   const columns = useMemo(
-    () => getCreditColumns({ clients, vehicles, onEdit: handleEdit, onDelete: handleDelete, onDeactivate: handleDeactivate, onViewDetails: handleViewDetails }), 
+    () =>
+      getCreditColumns({
+        clients,
+        vehicles,
+        onEdit: handleEdit,
+        onDelete: handleDelete,
+        onDeactivate: handleDeactivate,
+        onViewDetails: handleViewDetails,
+      }),
     [clients, vehicles, handleEdit, handleDelete, handleDeactivate, handleViewDetails]
   );
 
-  const getCreditNameForDialog = (credit: Credit | null) => {
-    if (!credit) return '';
-    const client = clients.find(c => c.id === credit.clientId);
-    const vehicle = vehicles.find(v => v.id === credit.vehicleId);
-    const clientName = client ? `${client.firstname} ${client.lastname}` : 'Cliente desconocido';
-    return `el crédito de ${clientName} para el vehículo ${vehicle?.plate || 'desconocido'}`;
-  }
-
   return (
-    <div className="space-y-6">
-      <CreditPortfolioDashboard creditMetrics={creditMetrics} portfolioAnalytics={portfolioAnalytics} />
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
-      <CreditAdvancedFilters
-        filters={filters}
-        onFilterChange={updateFilter}
-        onReset={resetFilters}
-        onSearch={debouncedSetQuery}
-        totalResults={totalResults}
-        clients={clients}
-        vehicles={vehicles}
-        isLoading={loadingData}
-      />
-
-      <Card>
-        <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Gestión de Créditos</CardTitle>
-                <CardDescription>Administra, filtra y analiza todos los créditos activos.</CardDescription>
-              </div>
-              <Button data-add-button="true" onClick={handleCreateNew}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Agregar Crédito
-              </Button>
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              Operación
             </div>
-        </CardHeader>
-        <CardContent>
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">Créditos</h1>
+            <p className="mt-1 text-sm text-white/40">Portafolio, morosidad y gestión de créditos</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+              <CreditCard className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <Button
+              data-add-button="true"
+              onClick={handleCreateNew}
+              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Agregar crédito
+            </Button>
+          </div>
+        </header>
+
+        <CreditPortfolioDashboard creditMetrics={creditMetrics} portfolioAnalytics={portfolioAnalytics} />
+
+        <CreditAdvancedFilters
+          filters={filters}
+          onFilterChange={updateFilter}
+          onReset={resetFilters}
+          onSearch={debouncedSetQuery}
+          totalResults={totalResults}
+          clients={clients}
+          vehicles={vehicles}
+          isLoading={loadingData}
+        />
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-4">
+            <h2 className="font-heading text-base font-semibold text-white">Gestión de créditos</h2>
+            <p className="mt-0.5 text-xs text-white/40">
+              {totalResults} resultado{totalResults !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="p-4 sm:p-5">
             <ResponsiveTable
-                columns={columns}
-                data={filteredCredits}
-                searchPlaceholder="Buscar por cliente, vehículo, estado..."
-                noResultsText="No se encontraron créditos."
-                loading={loadingData}
-                mobileCardRenderer={(credit) => (
-                  <CreditMobileCard 
-                    credit={credit}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDeactivate={handleDeactivate}
-                    onViewDetails={handleViewDetails}
-                  />
-                )}
+              columns={columns}
+              data={filteredCredits}
+              searchPlaceholder="Buscar por cliente, vehículo, estado..."
+              noResultsText="No se encontraron créditos."
+              loading={loadingData}
+              mobileCardRenderer={credit => (
+                <CreditMobileCard
+                  credit={credit}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onDeactivate={handleDeactivate}
+                  onViewDetails={handleViewDetails}
+                />
+              )}
             />
-        </CardContent>
-      </Card>
+          </div>
+        </section>
+      </div>
 
       <FormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingCredit ? 'Editar Crédito' : 'Agregar Nuevo Crédito'}
-        description={editingCredit ? 'Actualiza los detalles del crédito.' : 'Sigue los pasos para configurar un nuevo crédito.'}
+        title={editingCredit ? "Editar crédito" : "Agregar crédito"}
+        description={
+          editingCredit ? "Actualiza los detalles del crédito." : "Configura un nuevo crédito paso a paso."
+        }
       >
         <CreditForm
-            key={editingCredit?.id || 'new-credit'}
-            onSubmit={handleSubmit}
-            initialData={editingCredit || undefined}
-            isSubmitting={isSubmitting}
-            onClose={handleCloseModal}
+          key={editingCredit?.id || "new-credit"}
+          onSubmit={handleSubmit}
+          initialData={editingCredit || undefined}
+          isSubmitting={isSubmitting}
+          onClose={handleCloseModal}
         />
       </FormModal>
 
       {creditToAction && (
         <CreditCancellationDialog
           open={isDeactivateDialogOpen}
-          onOpenChange={(open) => {
+          onOpenChange={open => {
             if (!open) {
               setIsDeactivateDialogOpen(false);
               setTimeout(() => setCreditToAction(null), 300);
@@ -383,19 +380,15 @@ export default function CreditsPage() {
               setIsDeactivateDialogOpen(true);
             }
           }}
-          clientName={
-            (() => {
-              const client = clients.find(c => c.id === creditToAction.clientId);
-              return client ? `${client.firstname} ${client.lastname}` : 'Cliente desconocido';
-            })()
-          }
+          clientName={(() => {
+            const client = clients.find(c => c.id === creditToAction.clientId);
+            return client ? `${client.firstname} ${client.lastname}` : "Cliente desconocido";
+          })()}
           creditReferenceCode={(creditToAction as any).referenceCode ?? null}
-          vehicleLabel={
-            (() => {
-              const vehicle = vehicles.find(v => v.id === creditToAction.vehicleId);
-              return vehicle?.plate || null;
-            })()
-          }
+          vehicleLabel={(() => {
+            const vehicle = vehicles.find(v => v.id === creditToAction.vehicleId);
+            return vehicle?.plate || null;
+          })()}
           outstandingBalance={Number(creditToAction.remainingBalance || 0)}
           creditStatus={creditToAction.status}
           onConfirm={handleCancelCreditConfirm}
