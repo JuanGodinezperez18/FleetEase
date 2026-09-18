@@ -1,92 +1,178 @@
 "use client";
 
-import { useParams } from 'next/navigation';
-import { useData } from '@/hooks/use-data';
-import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, Check, Ban, Clock, DollarSign, Loader2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { DataTable } from '@/components/common/data-table';
-import type { CreditPaymentSchedule } from '@/types';
-import type { ColumnDef } from '@tanstack/react-table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useParams, useRouter } from "next/navigation";
+import { useData } from "@/hooks/use-data";
+import { supabase } from "@/lib/supabase";
+import { Progress } from "@/components/ui/progress";
+import { formatCurrency } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { DataTable } from "@/components/common/data-table";
+import type { CreditPaymentSchedule } from "@/types";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Calendar, Check, Ban, Clock, DollarSign, Loader2, CreditCard } from "lucide-react";
+
+const STATUS_STYLES: Record<string, string> = {
+  active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+  completed: "border-white/10 bg-white/[0.06] text-white/55",
+  defaulted: "border-rose-400/20 bg-rose-400/10 text-rose-300",
+  inactive: "border-white/10 bg-white/[0.06] text-white/40",
+  cancelled: "border-white/10 bg-white/[0.06] text-white/40",
+};
 
 export default function CreditDetailPage() {
   const params = useParams();
   const creditId = params.id as string;
   const router = useRouter();
   const { toast } = useToast();
-  const { credits, clients, vehicles, financialRecords, creditPaymentSchedules, financialCategories, selectedCompanyId } = useData();
+  const { credits, clients, vehicles, financialRecords, creditPaymentSchedules, financialCategories, selectedCompanyId } =
+    useData();
 
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('transferencia');
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("transferencia");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const credit = useMemo(() => credits.find(c => c.id === creditId), [credits, creditId]);
   const client = useMemo(() => clients.find(c => c.id === credit?.clientId), [clients, credit]);
   const vehicle = useMemo(() => vehicles.find(v => v.id === credit?.vehicleId), [vehicles, credit]);
 
-  const payments = useMemo(() => financialRecords.filter(fr => fr.creditId === creditId && fr.type === 'payment' && !fr.isDeleted).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [financialRecords, creditId]);
-  const schedule = useMemo(() => creditPaymentSchedules.filter(s => s.creditId === creditId).sort((a, b) => a.paymentNumber - b.paymentNumber), [creditPaymentSchedules, creditId]);
+  const payments = useMemo(
+    () =>
+      financialRecords
+        .filter(fr => fr.creditId === creditId && fr.type === "payment" && !fr.isDeleted)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [financialRecords, creditId]
+  );
+  const schedule = useMemo(
+    () => creditPaymentSchedules.filter(s => s.creditId === creditId).sort((a, b) => a.paymentNumber - b.paymentNumber),
+    [creditPaymentSchedules, creditId]
+  );
 
-  const getCategoryName = (categoryId: string) => financialCategories.find(c => c.id === categoryId)?.name || 'Sin categoría';
+  const getCategoryName = (categoryId: string) => financialCategories.find(c => c.id === categoryId)?.name || "Sin categoría";
 
   const scheduleColumns: ColumnDef<CreditPaymentSchedule>[] = [
-    { accessorKey: 'paymentNumber', header: 'Pago #' },
-    { accessorKey: 'dueDate', header: 'Fecha Vencimiento', cell: ({ row }) => format(new Date(row.original.dueDate), "PPP", { locale: es }) },
-    { accessorKey: 'status', header: 'Estado', cell: ({ row }) => {
-      const schedulePayment = row.original;
-      const paidAmount = Number(schedulePayment.paidAmount || 0);
-      const amount = Number(schedulePayment.amount || 0);
-      const isPartial = paidAmount > 0 && paidAmount < amount && schedulePayment.status !== 'cancelled';
-      if (schedulePayment.status === 'paid') return <Badge className="bg-green-100 text-green-800"><Check className="mr-1 h-3 w-3" /> Pagado</Badge>;
-      if (schedulePayment.status === 'cancelled') return <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" />Cancelado</Badge>;
-      if (isPartial) return <Badge variant="outline" className="border-amber-500 text-amber-700"><Clock className="mr-1 h-3 w-3" />Abono parcial</Badge>;
-      return <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />Pendiente</Badge>;
-    } },
-    { accessorKey: 'amount', header: 'Cuota', cell: ({ row }) => formatCurrency(row.original.amount) },
-    { id: 'paidAmount', header: 'Abonado', cell: ({ row }) => {
-      const paidAmount = Number(row.original.paidAmount || 0);
-      return <span className={paidAmount > 0 ? 'font-semibold text-green-600' : 'text-muted-foreground'}>{formatCurrency(paidAmount)}</span>;
-    } },
-    { id: 'remainingAmount', header: 'Pendiente', cell: ({ row }) => {
-      const remaining = Math.max(Number(row.original.amount || 0) - Number(row.original.paidAmount || 0), 0);
-      return <span className={remaining > 0 ? 'font-semibold' : 'text-muted-foreground'}>{formatCurrency(remaining)}</span>;
-    } },
-    { accessorKey: 'paidDate', header: 'Fecha de Pago', cell: ({ row }) => row.original.paidDate ? format(new Date(row.original.paidDate), "PPP", { locale: es }) : '-' },
+    { accessorKey: "paymentNumber", header: "Pago #" },
+    {
+      accessorKey: "dueDate",
+      header: "Vencimiento",
+      cell: ({ row }) => format(new Date(row.original.dueDate), "PPP", { locale: es }),
+    },
+    {
+      accessorKey: "status",
+      header: "Estado",
+      cell: ({ row }) => {
+        const s = row.original;
+        const paidAmount = Number(s.paidAmount || 0);
+        const amount = Number(s.amount || 0);
+        const isPartial = paidAmount > 0 && paidAmount < amount && s.status !== "cancelled";
+        if (s.status === "paid")
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+              <Check className="h-3 w-3" strokeWidth={1.75} /> Pagado
+            </span>
+          );
+        if (s.status === "cancelled")
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[10px] font-semibold text-rose-300">
+              <Ban className="h-3 w-3" strokeWidth={1.75} /> Cancelado
+            </span>
+          );
+        if (isPartial)
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+              <Clock className="h-3 w-3" strokeWidth={1.75} /> Parcial
+            </span>
+          );
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
+            <Clock className="h-3 w-3" strokeWidth={1.75} /> Pendiente
+          </span>
+        );
+      },
+    },
+    { accessorKey: "amount", header: "Cuota", cell: ({ row }) => formatCurrency(row.original.amount) },
+    {
+      id: "paidAmount",
+      header: "Abonado",
+      cell: ({ row }) => {
+        const paidAmount = Number(row.original.paidAmount || 0);
+        return (
+          <span className={paidAmount > 0 ? "font-semibold tabular-nums text-emerald-300" : "text-white/35"}>
+            {formatCurrency(paidAmount)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "remainingAmount",
+      header: "Pendiente",
+      cell: ({ row }) => {
+        const remaining = Math.max(Number(row.original.amount || 0) - Number(row.original.paidAmount || 0), 0);
+        return (
+          <span className={remaining > 0 ? "font-semibold tabular-nums text-white" : "text-white/35"}>
+            {formatCurrency(remaining)}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "paidDate",
+      header: "Fecha pago",
+      cell: ({ row }) => (row.original.paidDate ? format(new Date(row.original.paidDate), "PPP", { locale: es }) : "—"),
+    },
   ];
 
-  if (!credit) return <div>Crédito no encontrado</div>;
+  if (!credit) {
+    return (
+      <div className="rounded-[30px] bg-[#080a0f] p-8 text-center text-white/50">Crédito no encontrado</div>
+    );
+  }
 
   const progress = credit.totalAmount > 0 ? ((credit.paidAmount || 0) / credit.totalAmount) * 100 : 0;
+  const statusClass = STATUS_STYLES[credit.status] || STATUS_STYLES.inactive;
 
   const handleOpenPaymentDialog = () => {
-    const nextPending = schedule.find(s => s.status === 'pending');
-    setPaymentAmount(nextPending ? String(Math.max(0, nextPending.amount - Number(nextPending.paidAmount || 0))) : credit.remainingBalance ? String(Math.min(credit.remainingBalance, credit.weeklyPayment || credit.remainingBalance)) : '');
-    setPaymentMethod('transferencia');
+    const nextPending = schedule.find(s => s.status === "pending");
+    setPaymentAmount(
+      nextPending
+        ? String(Math.max(0, nextPending.amount - Number(nextPending.paidAmount || 0)))
+        : credit.remainingBalance
+          ? String(Math.min(credit.remainingBalance, credit.weeklyPayment || credit.remainingBalance))
+          : ""
+    );
+    setPaymentMethod("transferencia");
     setIsPaymentDialogOpen(true);
   };
 
   const handleRegisterPayment = async () => {
     const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) { toast({ variant: 'destructive', title: 'Monto inválido', description: 'Ingresa un monto mayor a 0.' }); return; }
-    if (amount > (credit.remainingBalance || 0)) { toast({ variant: 'destructive', title: 'El monto excede el saldo', description: `El saldo restante es ${formatCurrency(credit.remainingBalance || 0)}.` }); return; }
-    if (!selectedCompanyId) { toast({ variant: 'destructive', title: 'Empresa no seleccionada', description: 'No se pudo determinar la empresa del crédito.' }); return; }
+    if (!amount || amount <= 0) {
+      toast({ variant: "destructive", title: "Monto inválido", description: "Ingresa un monto mayor a 0." });
+      return;
+    }
+    if (amount > (credit.remainingBalance || 0)) {
+      toast({
+        variant: "destructive",
+        title: "El monto excede el saldo",
+        description: `Saldo restante: ${formatCurrency(credit.remainingBalance || 0)}.`,
+      });
+      return;
+    }
+    if (!selectedCompanyId) {
+      toast({ variant: "destructive", title: "Empresa no seleccionada" });
+      return;
+    }
 
     setIsSubmittingPayment(true);
     try {
-      const { data, error } = await supabase.rpc('process_credit_payment_atomic', {
+      const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
         p_company_id: selectedCompanyId,
         p_credit_id: credit.id,
         p_client_id: credit.clientId,
@@ -97,33 +183,187 @@ export default function CreditDetailPage() {
         p_created_by: null,
       } as any);
       if (error) throw error;
-      if (!data) throw new Error('No se pudo registrar el pago.');
-      toast({ title: 'Pago registrado', description: amount >= (credit.remainingBalance || 0) ? '¡Crédito completado! El saldo llegó a $0.' : 'El pago fue aplicado a las cuotas pendientes y el saldo fue actualizado.' });
+      if (!data) throw new Error("No se pudo registrar el pago.");
+      toast({
+        title: "Pago registrado",
+        description:
+          amount >= (credit.remainingBalance || 0)
+            ? "Crédito completado."
+            : "Aplicado a cuotas pendientes.",
+      });
       setIsPaymentDialogOpen(false);
-      setPaymentAmount('');
+      setPaymentAmount("");
       router.refresh();
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error al registrar el pago', description: error?.message || 'No se pudo registrar el pago.' });
-    } finally { setIsSubmittingPayment(false); }
+      toast({
+        variant: "destructive",
+        title: "Error al registrar el pago",
+        description: error?.message || "No se pudo registrar el pago.",
+      });
+    } finally {
+      setIsSubmittingPayment(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <Button variant="outline" onClick={() => router.push('/dashboard/credits')}><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Créditos</Button>
-      <Card>
-        <CardHeader><div className="flex justify-between items-start"><div><CardTitle>Detalle del Crédito</CardTitle><CardDescription>Resumen del estado actual del crédito.</CardDescription></div><div className="flex items-center gap-2">{credit.status === 'active' && (credit.remainingBalance || 0) > 0 && <Button onClick={handleOpenPaymentDialog}><DollarSign className="mr-2 h-4 w-4" /> Registrar Pago</Button>}<Badge variant={credit.status === 'active' ? 'default' : (credit.status === 'completed' ? 'secondary' : 'destructive')}>{credit.status}</Badge></div></div></CardHeader>
-        <CardContent className="space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-          <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Cliente</p><p className="font-semibold">{client?.firstname} {client?.lastname}</p></div>
-          <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Vehículo</p><p className="font-semibold">{vehicle?.make} {vehicle?.model} ({vehicle?.plate})</p></div>
-          <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Monto Total del Crédito</p><p className="font-semibold text-lg">{formatCurrency(credit.totalAmount)}</p></div>
-          <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Monto Pagado</p><p className="font-semibold text-green-600 text-lg">{formatCurrency(credit.paidAmount || 0)}</p></div>
-          <div className="p-3 bg-destructive/10 rounded-lg"><p className="text-destructive font-medium">Saldo Pendiente</p><p className="font-semibold text-destructive text-lg">{formatCurrency(credit.remainingBalance || 0)}</p></div>
-          <div className="p-3 bg-muted rounded-lg"><p className="text-muted-foreground">Fecha de Inicio</p><p className="font-semibold">{format(new Date(credit.startDate), "PPP", { locale: es })}</p></div>
-        </div><div><p className="text-sm text-muted-foreground mb-1">Progreso del Crédito</p><Progress value={progress} className="h-2.5" /><p className="text-xs text-muted-foreground mt-1 text-right">{credit.paymentsMade} de {credit.numberOfPayments} pagos realizados ({progress.toFixed(1)}%)</p></div></CardContent>
-      </Card>
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5"/> Calendario de Pagos</CardTitle><CardDescription>Plan de pagos completo. Los abonos mayores a una cuota se aplican automáticamente a las siguientes cuotas.</CardDescription></CardHeader><CardContent><DataTable columns={scheduleColumns} data={schedule} noResultsText="No hay calendario de pagos para este crédito." /></CardContent></Card>
-      <Card><CardHeader><CardTitle>Historial de Pagos Registrados ({payments.length})</CardTitle><CardDescription>Lista de todas las transacciones de abono registradas para este crédito.</CardDescription></CardHeader><CardContent><div className="space-y-3">{payments.map(payment => { const categoryName = getCategoryName(payment.categoryId); return <div key={payment.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50"><div><p className="font-semibold text-green-600">{formatCurrency(payment.amount)}</p><p className="text-sm text-muted-foreground">{format(new Date(payment.date), "PPP", { locale: es })}</p></div><Badge variant={categoryName === "Pago de Crédito" ? 'default' : 'secondary'}>{categoryName}</Badge></div>; })}{payments.length === 0 && <p className="text-sm text-muted-foreground">No hay pagos registrados para este crédito.</p>}</div></CardContent></Card>
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Registrar Pago de Crédito</DialogTitle><DialogDescription>El pago se aplicará automáticamente a las cuotas pendientes en orden.</DialogDescription></DialogHeader><div className="space-y-4"><div><Label htmlFor="paymentAmount">Monto del pago</Label><Input id="paymentAmount" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} /></div><div><Label>Método de pago</Label><select className="w-full border rounded-md h-10 px-3 bg-background" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="cheque">Cheque</option></select></div></div><DialogFooter><Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} disabled={isSubmittingPayment}>Cancelar</Button><Button onClick={handleRegisterPayment} disabled={isSubmittingPayment}>{isSubmittingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}Registrar Pago</Button></DialogFooter></DialogContent></Dialog>
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-3">
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/dashboard/credits")}
+            className="h-9 w-fit rounded-xl px-3 text-white/50 hover:bg-white/[0.06] hover:text-white"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Volver a créditos
+          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+                Créditos
+              </div>
+              <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+                Detalle del crédito
+              </h1>
+              <p className="mt-1 text-sm text-white/40">
+                {client?.firstname} {client?.lastname}
+                {vehicle ? ` · ${vehicle.make} ${vehicle.model} (${vehicle.plate})` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${statusClass}`}>
+                {credit.status}
+              </span>
+              {credit.status === "active" && (credit.remainingBalance || 0) > 0 && (
+                <Button
+                  onClick={handleOpenPaymentDialog}
+                  className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+                >
+                  <DollarSign className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+                  Registrar pago
+                </Button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[11px] text-white/40">Monto total</p>
+              <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-white">{formatCurrency(credit.totalAmount)}</p>
+            </div>
+            <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[11px] text-white/40">Pagado</p>
+              <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-emerald-300">{formatCurrency(credit.paidAmount || 0)}</p>
+            </div>
+            <div className="rounded-[16px] border border-rose-400/15 bg-rose-400/[0.05] p-3">
+              <p className="text-[11px] text-rose-300/70">Saldo pendiente</p>
+              <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-rose-300">{formatCurrency(credit.remainingBalance || 0)}</p>
+            </div>
+            <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[11px] text-white/40">Inicio</p>
+              <p className="mt-0.5 text-sm font-medium text-white/90">{format(new Date(credit.startDate), "PPP", { locale: es })}</p>
+            </div>
+            <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3 sm:col-span-2">
+              <p className="mb-1.5 text-[11px] text-white/40">Progreso</p>
+              <Progress value={progress} className="h-1.5 bg-white/[0.08]" />
+              <p className="mt-1 text-right text-[11px] text-white/35">
+                {credit.paymentsMade} de {credit.numberOfPayments} pagos ({progress.toFixed(1)}%)
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-4">
+            <h2 className="flex items-center gap-2 font-heading text-base font-semibold text-white">
+              <Calendar className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+              Calendario de pagos
+            </h2>
+            <p className="mt-0.5 text-xs text-white/40">Abonos se aplican en orden a cuotas pendientes</p>
+          </div>
+          <div className="p-4 sm:p-5">
+            <DataTable columns={scheduleColumns} data={schedule} noResultsText="No hay calendario de pagos." />
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-4">
+            <h2 className="font-heading text-base font-semibold text-white">Historial de pagos ({payments.length})</h2>
+          </div>
+          <div className="space-y-2 p-4 sm:p-5">
+            {payments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-white/35">No hay pagos registrados.</p>
+            ) : (
+              payments.map(payment => {
+                const categoryName = getCategoryName(payment.categoryId);
+                return (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-3"
+                  >
+                    <div>
+                      <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(payment.amount)}</p>
+                      <p className="text-xs text-white/40">{format(new Date(payment.date), "PPP", { locale: es })}</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
+                      {categoryName}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
+
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar pago de crédito</DialogTitle>
+            <DialogDescription>Se aplicará a las cuotas pendientes en orden.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="paymentAmount">Monto</Label>
+              <Input
+                id="paymentAmount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={paymentAmount}
+                onChange={e => setPaymentAmount(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Método</Label>
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3"
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value)}
+              >
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} disabled={isSubmittingPayment}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRegisterPayment} disabled={isSubmittingPayment}>
+              {isSubmittingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+              Registrar pago
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
