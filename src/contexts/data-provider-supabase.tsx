@@ -74,19 +74,29 @@ export function calculatePartnerBalance(partner: DomainPartner, partnerVehicles:
   const totalIncome = financialRecords.filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
   const totalExpenses = financialRecords.filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
 
-  // Los créditos de vehículos propiedad del socio forman parte de su balance:
-  // los pagos realizados reducen el saldo que la empresa le debe al socio.
-  const partnerVehicleCredits = new Set(
-    partnerVehicles
-      .filter(v => v.associatedCreditId)
-      .map(v => v.associatedCreditId as string)
+  // Los pagos de crédito de vehículos del socio reducen lo que la empresa le debe.
+  // La fuente de verdad es credits.vehicle_id + financial_records.credit_id.
+  // No dependemos de vehicles.associatedCreditId, que es un campo legado/cacheable.
+  const partnerVehicleIdsForCredits = new Set(partnerVehicles.map(v => v.id));
+  const partnerCreditIds = new Set(
+    financialRecords
+      .filter(r =>
+        !r.isDeleted &&
+        r.type === 'payment' &&
+        r.creditId &&
+        r.vehicleId &&
+        partnerVehicleIdsForCredits.has(r.vehicleId)
+      )
+      .map(r => r.creditId as string)
   );
   const totalCreditPaymentsForPartnerVehicles = financialRecords
     .filter(r =>
       !r.isDeleted &&
       r.type === 'payment' &&
       r.creditId &&
-      partnerVehicleCredits.has(r.creditId)
+      partnerCreditIds.has(r.creditId) &&
+      r.vehicleId &&
+      partnerVehicleIdsForCredits.has(r.vehicleId)
     )
     .reduce((sum, r) => sum + r.amount, 0);
 
