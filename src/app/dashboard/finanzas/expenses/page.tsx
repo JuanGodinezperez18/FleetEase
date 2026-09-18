@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Download, FileText, Filter, X, MoreHorizontal, Edit, Trash2, Users } from 'lucide-react';
+import { PlusCircle, Receipt, Hash, TrendingDown } from 'lucide-react';
 import type { FinancialRecord } from '@/types';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { ExpensesForm, type ExpensesFormValues } from './components/ExpensesFormMultiLine';
@@ -12,130 +12,95 @@ import { useFinances } from '@/contexts/providers/finances-provider';
 import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useClients } from '@/contexts/providers/clients-provider';
 import { useData } from '@/contexts/data-provider';
-import { startOfDay, endOfDay, format } from 'date-fns';
 import { getColumns, type ExpenseData } from './columns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
 import { sanitizeExpenseFormData } from '@/lib/sanitize-expense';
-import type { DateRange } from 'react-day-picker';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/auth-provider';
-import { useStorage } from '@/hooks/use-storage';
-import { sanitizeAndFormatData } from '@/lib/utils';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { FormModal } from '@/components/common/form-modal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { GlobalLoader } from '@/components/common/GlobalLoader';
-
-
-const ExpenseMobileCard = ({ record, onEdit, onDelete }: { record: ExpenseData, onEdit: (r: ExpenseData) => void, onDelete: (r: ExpenseData) => void }) => (
-  <Card className="p-4">
-    <div className="flex items-start justify-between">
-      <div className="space-y-2">
-        <h3 className="font-semibold">{record.description}</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <p className="font-bold text-lg text-destructive">{formatCurrency(record.amount)}</p>
-          <p><strong>Categoría:</strong> {record.categoryName}</p>
-          <p><strong>Fecha:</strong> {formatDate(record.date)}</p>
-          {record.vehicleName !== 'N/A' && <p><strong>Vehículo:</strong> {record.vehicleName}</p>}
-        </div>
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => onEdit(record)}><Edit className="mr-2 h-4 w-4"/>Editar</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onDelete(record)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Eliminar</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  </Card>
-);
+import { MetricCard } from '@/components/dashboard/components/MetricCard';
+import { ExpenseMobileCard } from './components/expense-mobile-card';
 
 const ExpenseCategoryBreakdown: React.FC<{ expenses: ExpenseData[] }> = ({ expenses }) => {
   const categoryTotals = useMemo(() => {
     const totals = expenses.reduce((acc, exp) => {
-      const category = exp.categoryName || 'Sin Categoría';
+      const category = exp.categoryName || 'Sin categoría';
       acc[category] = (acc[category] || 0) + exp.amount;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return Object.entries(totals)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 5); // Top 5 categorías
+      .slice(0, 5);
   }, [expenses]);
-  
-  const totalAmount = useMemo(() => categoryTotals.reduce((sum, [, amount]) => sum + amount, 0), [categoryTotals]);
-  
+
+  const totalAmount = useMemo(
+    () => categoryTotals.reduce((sum, [, amount]) => sum + amount, 0),
+    [categoryTotals]
+  );
+
   return (
-    <Card className="md:col-span-2">
-      <CardHeader>
-        <CardTitle>Gastos por Categoría</CardTitle>
-        <CardDescription>
-          Top 5 categorías en el período seleccionado
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {categoryTotals.length > 0 ? (
-          <>
-            {categoryTotals.map(([category, amount]) => {
-              const percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
-              
-              return (
-                <div key={category} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{category}</span>
-                    <span className="font-semibold">{formatCurrency(amount)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Progress value={percentage} className="flex-1" />
-                    <span className="text-xs text-muted-foreground w-12 text-right">
-                      {percentage.toFixed(1)}%
-                    </span>
-                  </div>
+    <div className="hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] md:block md:col-span-2">
+      <div className="mb-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+          Gastos por categoría
+        </p>
+        <p className="mt-1 text-xs text-white/40">Top 5 en esta vista</p>
+      </div>
+
+      {categoryTotals.length > 0 ? (
+        <div className="space-y-3">
+          {categoryTotals.map(([category, amount]) => {
+            const percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+            return (
+              <div key={category} className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-white/80">{category}</span>
+                  <span className="font-semibold tabular-nums text-white/90">
+                    {formatCurrency(amount)}
+                  </span>
                 </div>
-              );
-            })}
-            
-            <Separator className="my-2" />
-            
-            <div className="flex justify-between font-bold">
-              <span>Total Top 5:</span>
-              <span>{formatCurrency(totalAmount)}</span>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">No hay gastos para mostrar en este período.</p>
-        )}
-      </CardContent>
-    </Card>
+                <div className="flex items-center gap-2">
+                  <Progress value={percentage} className="h-1.5 flex-1 bg-white/[0.06]" />
+                  <span className="w-12 text-right text-[11px] tabular-nums text-white/40">
+                    {percentage.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex justify-between border-t border-white/[0.06] pt-3 text-sm font-semibold">
+            <span className="text-white/50">Total top 5</span>
+            <span className="tabular-nums text-white">{formatCurrency(totalAmount)}</span>
+          </div>
+        </div>
+      ) : (
+        <p className="py-8 text-center text-sm text-white/35">Sin gastos en esta vista</p>
+      )}
+    </div>
   );
 };
 
-
 export default function ExpensesPage() {
-    const { financialRecords, financialCategories, addExpense, updateFinancialRecord, deleteFinancialRecord, loading: loadingFinances } = useFinances();
-    const { vehicles, vehiclesLoading } = useVehicles();
-    const { clients, loading: loadingClients } = useClients();
-    const { companies, selectedCompanyId } = useData();
+  const {
+    financialRecords,
+    financialCategories,
+    addExpense,
+    updateFinancialRecord,
+    deleteFinancialRecord,
+    loading: loadingFinances,
+  } = useFinances();
+  const { vehicles, vehiclesLoading } = useVehicles();
+  const { clients, loading: loadingClients } = useClients();
+  const { companies, selectedCompanyId } = useData();
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const loadingData = loadingFinances || vehiclesLoading || loadingClients;
-    const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    // Separated state for delete dialog
-    const [recordToDelete, setRecordToDelete] = useState<ExpenseData | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const loadingData = loadingFinances || vehiclesLoading || loadingClients;
+  const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<ExpenseData | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const expensesWithDetails: ExpenseData[] = useMemo(() => {
     const clientMap = new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`]));
@@ -147,8 +112,9 @@ export default function ExpensesPage() {
       : financialRecords;
 
     const expenses = companyFilteredRecords
-      .filter((r): r is FinancialRecord & { type: 'expense' } => 
-        r.type === 'expense' && !r.isDeleted
+      .filter(
+        (r): r is FinancialRecord & { type: 'expense' } =>
+          r.type === 'expense' && !r.isDeleted
       )
       .map(expense => ({
         ...expense,
@@ -158,155 +124,196 @@ export default function ExpensesPage() {
         categoryName: categoryMap.get(expense.categoryId || '') || expense.category || 'General',
       }));
 
-      // Ordenar por fecha descendente
-      return expenses.sort((a, b) => b.sortableDate - a.sortableDate);
+    return expenses.sort((a, b) => b.sortableDate - a.sortableDate);
   }, [financialRecords, clients, vehicles, selectedCompanyId, financialCategories]);
-  
+
   const stats = useMemo(() => {
     const totalExpenses = expensesWithDetails.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const avg =
+      expensesWithDetails.length > 0 ? totalExpenses / expensesWithDetails.length : 0;
     return {
       totalExpenses,
       totalRecords: expensesWithDetails.length,
+      average: avg,
     };
   }, [expensesWithDetails]);
-  
-    const handleOpenModal = useCallback((record?: FinancialRecord) => {
-        setEditingRecord(record || null);
-        setIsModalOpen(true);
-    }, []);
 
-    const handleCloseModal = useCallback(() => {
-      if (isSubmitting) return;
-      setIsModalOpen(false);
-      setTimeout(() => {
-          setEditingRecord(null);
-      }, 300);
-    }, [isSubmitting]);
+  const handleOpenModal = useCallback((record?: FinancialRecord) => {
+    setEditingRecord(record || null);
+    setIsModalOpen(true);
+  }, []);
 
-    const handleSubmit = async (data: ExpensesFormValues) => {
-        setIsSubmitting(true);
-        const toastId = toast.loading(editingRecord ? 'Actualizando gasto...' : 'Agregando gasto...');
-        try {
-            const sanitizedData = sanitizeExpenseFormData(data);
+  const handleCloseModal = useCallback(() => {
+    if (isSubmitting) return;
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setEditingRecord(null);
+    }, 300);
+  }, [isSubmitting]);
 
-            if (editingRecord) {
-                await updateFinancialRecord(editingRecord.id, sanitizedData);
-                toast.success('Gasto actualizado', { id: toastId });
-            } else {
-                // Calcular amount total de los items
-                const totalAmount = sanitizedData.items.reduce((sum, item) => sum + item.amount, 0);
-                const description = sanitizedData.items.map(item => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
+  const handleSubmit = async (data: ExpensesFormValues) => {
+    setIsSubmitting(true);
+    const toastId = toast.loading(editingRecord ? 'Actualizando gasto...' : 'Agregando gasto...');
+    try {
+      const sanitizedData = sanitizeExpenseFormData(data);
 
-                // Obtener nombre de la categoría
-                const category = financialCategories.find(c => c.id === data.categoryId)?.name || '';
+      if (editingRecord) {
+        await updateFinancialRecord(editingRecord.id, sanitizedData);
+        toast.success('Gasto actualizado', { id: toastId });
+      } else {
+        const totalAmount = sanitizedData.items.reduce((sum, item) => sum + item.amount, 0);
+        const description = sanitizedData.items
+          .map(item => `${item.concept}: ${formatCurrency(item.amount)}`)
+          .join(' | ');
 
-                await addExpense({
-                    ...sanitizedData,
-                    amount: totalAmount,
-                    description: sanitizedData.description || description,
-                    isDeleted: false,
-                    createdAt: new Date().toISOString(),
-                    category,
-                    partnerId: null,
-                    notes: '',
-                });
-                toast.success('Gasto agregado', { id: toastId });
-            }
-            handleCloseModal();
-        } catch (error) {
-            toast.error('Error al guardar', { id: toastId, description: error instanceof Error ? error.message : 'Error desconocido' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+        const category = financialCategories.find(c => c.id === data.categoryId)?.name || '';
 
-    const handleEdit = useCallback((record: ExpenseData) => {
-        handleOpenModal(record);
-    }, [handleOpenModal]);
-
-    const handleDeleteRequest = useCallback((record: ExpenseData) => {
-        setRecordToDelete(record);
-        setIsDeleteDialogOpen(true);
-    }, []);
-
-    const handleCloseDeleteDialog = useCallback(() => {
-      if (isSubmitting) return; // Prevent closing while an operation is in progress
-      setIsDeleteDialogOpen(false);
-      // Give time for modal animation to finish before clearing the data
-      setTimeout(() => setRecordToDelete(null), 300);
-    }, [isSubmitting]);
-    
-    // ✅ Flujo de borrado corregido
-    const confirmDelete = async () => {
-      if (!recordToDelete) return;
-    
-      const toastId = toast.loading("Eliminando gasto...");
-      setIsSubmitting(true); // Usar el estado `isSubmitting` general para bloquear la UI
-      
-      // Llamar a deleteFinancialRecord y pasar el callback onSuccess
-      await deleteFinancialRecord(recordToDelete.id, () => {
-        toast.success("Gasto eliminado", { id: toastId });
-        handleCloseDeleteDialog(); // Cerrar el modal solo cuando la operación es exitosa
+        await addExpense({
+          ...sanitizedData,
+          amount: totalAmount,
+          description: sanitizedData.description || description,
+          isDeleted: false,
+          createdAt: new Date().toISOString(),
+          category,
+          partnerId: null,
+          notes: '',
+        });
+        toast.success('Gasto agregado', { id: toastId });
+      }
+      handleCloseModal();
+    } catch (error) {
+      toast.error('Error al guardar', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'Error desconocido',
       });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      // La mutación se encargará del error y del `finally`, por lo que no es necesario aquí.
-      // Se resetea el estado isSubmitting en el modal de confirmación.
-    };
+  const handleEdit = useCallback(
+    (record: ExpenseData) => {
+      handleOpenModal(record);
+    },
+    [handleOpenModal]
+  );
+
+  const handleDeleteRequest = useCallback((record: ExpenseData) => {
+    setRecordToDelete(record);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    if (isSubmitting) return;
+    setIsDeleteDialogOpen(false);
+    setTimeout(() => setRecordToDelete(null), 300);
+  }, [isSubmitting]);
+
+  const confirmDelete = async () => {
+    if (!recordToDelete) return;
+
+    const toastId = toast.loading('Eliminando gasto...');
+    setIsSubmitting(true);
+
+    await deleteFinancialRecord(recordToDelete.id, () => {
+      toast.success('Gasto eliminado', { id: toastId });
+      handleCloseDeleteDialog();
+    });
+  };
 
   const columns = useMemo(
-      () => getColumns(handleEdit, handleDeleteRequest, expensesWithDetails),
-      [expensesWithDetails, handleEdit, handleDeleteRequest]
+    () => getColumns(handleEdit, handleDeleteRequest, expensesWithDetails),
+    [expensesWithDetails, handleEdit, handleDeleteRequest]
   );
-  
+
   if (loadingData) {
-    return <GlobalLoader />;
+    return (
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]"
+            />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gastos Totales</CardTitle>
-                <div className="h-4 w-4 text-red-600">↓</div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                    {formatCurrency(stats.totalExpenses)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    Total de {stats.totalRecords} gastos en el período seleccionado.
-                </p>
-              </CardContent>
-          </Card>
-          <ExpenseCategoryBreakdown expenses={expensesWithDetails} />
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              Finanzas
+            </div>
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+              Gastos
+            </h1>
+            <p className="mt-1 text-sm text-white/40">
+              {stats.totalRecords} registro{stats.totalRecords === 1 ? '' : 's'} en esta vista
+            </p>
+          </div>
+          <Button
+            onClick={() => handleOpenModal()}
+            className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Agregar gasto
+          </Button>
+        </header>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard
+            title="Gastos totales"
+            value={formatCurrency(stats.totalExpenses)}
+            description={`${stats.totalRecords} registros`}
+            icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />}
+            variant="danger"
+          />
+          <MetricCard
+            title="Registros"
+            value={stats.totalRecords}
+            description="Gastos operativos"
+            icon={<Hash className="h-5 w-5" strokeWidth={1.75} />}
+          />
+          <MetricCard
+            title="Promedio"
+            value={formatCurrency(stats.average)}
+            description="Por registro"
+            icon={<Receipt className="h-5 w-5" strokeWidth={1.75} />}
+          />
+        </div>
+
+        <ExpenseCategoryBreakdown expenses={expensesWithDetails} />
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="p-4 sm:p-5">
+            <ResponsiveTable
+              columns={columns}
+              data={expensesWithDetails}
+              loading={loadingData}
+              searchPlaceholder="Buscar por descripción, categoría, cliente..."
+              noResultsText="No se encontraron gastos."
+              mobileCardRenderer={record => (
+                <ExpenseMobileCard
+                  record={record}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteRequest}
+                />
+              )}
+            />
+          </div>
+        </section>
       </div>
 
-      <Card>
-          <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                      <CardTitle className="text-lg">Registro de Gastos Operativos</CardTitle>
-                      <CardDescription>Gestiona todos los gastos asociados a los vehículos y la operación.</CardDescription>
-                  </div>
-                  <Button onClick={() => handleOpenModal()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Agregar Gasto
-                  </Button>
-              </div>
-          </CardHeader>
-          <CardContent>
-              <ResponsiveTable
-                  columns={columns}
-                  data={expensesWithDetails}
-                  loading={loadingData}
-                  searchPlaceholder="Buscar por descripción, categoría, cliente..."
-                  noResultsText="No se encontraron gastos para el período seleccionado."
-                  mobileCardRenderer={(record) => (
-                    <ExpenseMobileCard record={record} onEdit={handleEdit} onDelete={handleDeleteRequest} />
-                  )}
-              />
-          </CardContent>
-      </Card>
       <FormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -329,7 +336,7 @@ export default function ExpensesPage() {
         onClose={handleCloseDeleteDialog}
         onConfirm={confirmDelete}
         titleText="Eliminar Gasto"
-        descriptionText={`¿Estás seguro de que deseas eliminar este gasto? Esta acción no se puede deshacer.`}
+        descriptionText="¿Estás seguro de que deseas eliminar este gasto? Esta acción no se puede deshacer."
         itemName={recordToDelete?.description || ''}
         isDeleting={isSubmitting}
       />
