@@ -74,7 +74,7 @@ export default function PaymentHistoryPage() {
 
   useEffect(() => {
     void loadLinks();
-  }, [companyId, financialRecords]);
+  }, [companyId, financialRecords.length]);
 
   const paymentRecords = useMemo(() => {
     return financialRecords
@@ -160,7 +160,6 @@ export default function PaymentHistoryPage() {
   };
 
   const closeEdit = () => {
-    if (saving) return;
     setEditing(null);
     setEditAmount("");
     setEditReference("");
