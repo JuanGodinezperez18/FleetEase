@@ -71,43 +71,25 @@ function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileage
 
 export function calculatePartnerBalance(partner: DomainPartner, partnerVehicles: DomainVehicle[], financialRecords: DomainFinancialRecord[]): number {
   const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
-  const totalIncome = financialRecords.filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
-  const totalExpenses = financialRecords.filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
-
-  // Los pagos de crédito de vehículos del socio reducen lo que la empresa le debe.
-  // La fuente de verdad es credits.vehicle_id + financial_records.credit_id.
-  // No dependemos de vehicles.associatedCreditId, que es un campo legado/cacheable.
-  const partnerVehicleIdsForCredits = new Set(partnerVehicles.map(v => v.id));
-  const partnerCreditIds = new Set(
-    financialRecords
-      .filter(r =>
-        !r.isDeleted &&
-        r.type === 'payment' &&
-        r.creditId &&
-        r.vehicleId &&
-        partnerVehicleIdsForCredits.has(r.vehicleId)
-      )
-      .map(r => r.creditId as string)
-  );
-  const totalCreditPaymentsForPartnerVehicles = financialRecords
-    .filter(r =>
-      !r.isDeleted &&
-      r.type === 'payment' &&
-      r.creditId &&
-      partnerCreditIds.has(r.creditId) &&
-      r.vehicleId &&
-      partnerVehicleIdsForCredits.has(r.vehicleId)
-    )
+  const totalIncome = financialRecords
+    .filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && !r.isDeleted)
+    .reduce((sum, r) => sum + r.amount, 0);
+  const totalExpenses = financialRecords
+    .filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted)
     .reduce((sum, r) => sum + r.amount, 0);
 
-  const allPartnerPayments = financialRecords.filter(r => r.type === 'payment' && r.partnerId === partner.id && !r.isDeleted);
-  const totalPaymentsAlreadyMade = allPartnerPayments.reduce((sum, r) => sum + r.amount, 0);
+  // Un pago recibido por un crédito NO es un pago directo al socio.
+  // Primero es un ingreso/pago que recibe la empresa. El saldo del socio
+  // solo disminuye cuando existe un registro separado de "Pago a Socio"
+  // asociado al socio (partnerId).
+  const allPartnerPayments = financialRecords
+    .filter(r => r.type === 'payment' && r.partnerId === partner.id && !r.isDeleted)
+    .reduce((sum, r) => sum + r.amount, 0);
 
   return (partner.initialBalance || 0)
     + totalIncome
     - totalExpenses
-    - totalPaymentsAlreadyMade
-    - totalCreditPaymentsForPartnerVehicles;
+    - allPartnerPayments;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
