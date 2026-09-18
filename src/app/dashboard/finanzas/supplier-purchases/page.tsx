@@ -17,10 +17,10 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
 type Supplier = { id: string; name: string };
-type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null };
+type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
-type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; lines: { id: string; concept: string; amount: number; used: boolean }[] };
+type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; used: boolean }[] };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
@@ -55,8 +55,8 @@ export default function SupplierPurchasesPage() {
     let cancelled = false;
     Promise.all([
       supabase.from("suppliers").select("id,name").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name"),
-      supabase.from("catalog_items").select("id,name,part_number,default_cost").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name").limit(2000),
-      supabase.from("financial_records").select("id,description,date,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
+      supabase.from("catalog_items").select("id,name,part_number,default_cost,category_id").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name").limit(2000),
+      supabase.from("financial_records").select("id,description,date,category_id,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
       supabase.from("supplier_purchase_allocations").select("financial_record_id,expense_item_id").eq("company_id", companyId).not("expense_item_id", "is", null),
     ]).then(([supplierResult, catalogResult, expenseResult, allocationResult]) => {
       if (cancelled) return;
@@ -72,6 +72,7 @@ export default function SupplierPurchasesPage() {
         description: row.description || "Gasto de vehículo",
         date: row.date,
         vehicleName: row.vehicles ? `${row.vehicles.make} ${row.vehicles.model} (${row.vehicles.plate})` : "Vehículo",
+        categoryId: row.category_id || null,
         lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => {
           const id = String(line.id || `legacy-${row.id}-${index}`);
           return { id, concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0), used: usedExpenseLines.has(`${row.id}:${id}`) };
@@ -83,6 +84,7 @@ export default function SupplierPurchasesPage() {
 
   const total = useMemo(() => items.reduce((sum, item) => sum + Math.round((Number(item.quantity) || 0) * (Number(item.unit_price) || 0) * 100) / 100, 0), [items]);
   const selectedExpense = expenses.find(expense => expense.id === expenseId);
+  const catalogForSelectedExpense = selectedExpense?.categoryId ? catalog.filter(item => item.category_id === selectedExpense.categoryId) : [];
 
   const updateItem = (index: number, patch: Partial<PurchaseItem>) => setItems(current => current.map((item, i) => i === index ? { ...item, ...patch } : item));
 
@@ -95,7 +97,10 @@ export default function SupplierPurchasesPage() {
     if (!selectedExpense) return toast.error("Selecciona primero un gasto del vehículo.");
     const availableLines = selectedExpense.lines.filter(line => !usedExpenseLines.has(`${selectedExpense.id}:${line.id}`));
     if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya fueron vinculadas a un proveedor.");
-    setItems(availableLines.map(line => ({ catalog_item_id: "", description: line.concept, quantity: "1", unit_price: String(line.amount) })));
+    setItems(availableLines.map(line => {
+      const matchingCatalog = catalogForSelectedExpense.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase());
+      return { catalog_item_id: matchingCatalog?.id || "", description: matchingCatalog?.name || line.concept, quantity: "1", unit_price: matchingCatalog?.default_cost != null ? String(matchingCatalog.default_cost) : String(line.amount) };
+    }));
     toast.success("Partidas disponibles cargadas", { description: `${availableLines.length} línea(s) disponible(s). Las líneas ya vinculadas no se pueden reutilizar.` });
   };
 
@@ -120,7 +125,9 @@ export default function SupplierPurchasesPage() {
     setSaveError("");
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
     if (!supplierId || supplierId === "none") return toast.error("Selecciona el proveedor.");
-    if (!items.length || items.some(i => !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Completa correctamente todas las partidas.");
+    if (!selectedExpense) return toast.error("Selecciona un gasto de vehículo y carga sus partidas antes de registrar la compra.");
+    if (!catalogForSelectedExpense.length) return toast.error("La categoría de este gasto no tiene artículos en el catálogo. Registra primero el artículo en el Catálogo de Artículos.");
+    if (!items.length || items.some(i => !i.catalog_item_id || !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Cada partida debe corresponder a un artículo del catálogo.");
     if (paymentMethod === "credit" && !dueDate) return toast.error("Una compra a crédito requiere fecha de vencimiento.");
     if (paymentMethod !== "credit" && dueDate) return toast.error("La fecha de vencimiento solo aplica a compras a crédito.");
     if (!(total > 0)) return toast.error("El total debe ser mayor que cero.");
@@ -172,14 +179,14 @@ export default function SupplierPurchasesPage() {
         </div>
 
         <div className="rounded-xl border bg-muted/10 p-3 sm:p-4 space-y-3">
-          <div className="flex items-start gap-3"><Wrench className="h-5 w-5 text-primary mt-0.5 shrink-0" /><div className="min-w-0"><p className="font-medium">Cargar partidas desde un gasto de vehículo</p><p className="text-xs sm:text-sm text-muted-foreground">Solo se pueden cargar líneas que todavía no estén vinculadas a otro proveedor.</p></div></div>
-          <div className="flex flex-col sm:flex-row gap-2"><Select value={expenseId || "none"} onValueChange={v => setExpenseId(v === "none" ? "" : v)}><SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Seleccionar gasto del vehículo..." /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar gasto...</SelectItem>{expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId}><Search className="mr-2 h-4 w-4" />Cargar partidas</Button></div>
+          <div className="flex items-start gap-3"><Wrench className="h-5 w-5 text-primary mt-0.5 shrink-0" /><div className="min-w-0"><p className="font-medium">Cargar partidas desde un gasto de vehículo</p><p className="text-xs sm:text-sm text-muted-foreground">Selecciona un gasto del vehículo. FleetEase mostrará únicamente los artículos del catálogo pertenecientes a la categoría de ese gasto y bloqueará artículos que no estén catalogados.</p></div></div>
+          <div className="flex flex-col sm:flex-row gap-2"><Select value={expenseId || "none"} onValueChange={v => setExpenseId(v === "none" ? "" : v)}><SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Seleccionar gasto del vehículo..." /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar gasto...</SelectItem>{expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId || !catalogForSelectedExpense.length}><Search className="mr-2 h-4 w-4" />Cargar partidas</Button></div>
         </div>
 
         <div className="space-y-3">
           <div className="hidden md:grid grid-cols-[1.7fr_.7fr_1fr_1fr_auto] gap-2 px-3 text-xs font-medium text-muted-foreground"><span>Concepto / catálogo</span><span>Cantidad</span><span>Precio unitario</span><span>Total</span><span /></div>
           {items.map((item, index) => <div key={index} className="rounded-xl border bg-background p-3 sm:p-4 md:rounded-none md:border-t md:border-x-0 md:border-b-0 md:p-3 md:grid md:grid-cols-[1.7fr_.7fr_1fr_1fr_auto] md:gap-2 md:items-end">
-            <div className="space-y-2 min-w-0"><div className="flex items-center justify-between gap-2 md:block"><Label className="md:hidden">Artículo / concepto</Label><Badge variant="outline" className="md:hidden">Partida {index + 1}</Badge></div><Select value={item.catalog_item_id || "none"} onValueChange={v => v === "none" ? updateItem(index, { catalog_item_id: "" }) : selectCatalog(index, v)}><SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Catálogo o captura manual" /></SelectTrigger><SelectContent><SelectItem value="none">Captura manual</SelectItem>{catalog.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.part_number ? ` · ${c.part_number}` : ""}</SelectItem>)}</SelectContent></Select><Input value={item.description} onChange={e => updateItem(index, { description: e.target.value })} placeholder="Descripción del artículo" /></div>
+            <div className="space-y-2 min-w-0"><div className="flex items-center justify-between gap-2 md:block"><Label className="md:hidden">Artículo / concepto</Label><Badge variant="outline" className="md:hidden">Partida {index + 1}</Badge></div><Select value={item.catalog_item_id || "none"} onValueChange={v => v === "none" ? updateItem(index, { catalog_item_id: "" }) : selectCatalog(index, v)}><SelectTrigger className="w-full min-w-0"><SelectValue placeholder={selectedExpense ? "Seleccionar artículo de la categoría..." : "Selecciona primero el gasto"} /></SelectTrigger><SelectContent><SelectItem value="none">Seleccionar artículo...</SelectItem>{catalogForSelectedExpense.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.part_number ? ` · ${c.part_number}` : ""}</SelectItem>)}</SelectContent></Select><Input value={item.description} onChange={e => updateItem(index, { description: e.target.value })} placeholder="Descripción del artículo" /></div>
             <div className="grid grid-cols-2 gap-3 md:contents"><div className="space-y-1 md:space-y-0"><Label className="md:hidden text-xs">Cantidad</Label><Input inputMode="decimal" value={item.quantity} onChange={e => updateItem(index, { quantity: e.target.value })} /></div><div className="space-y-1 md:space-y-0"><Label className="md:hidden text-xs">Precio unitario</Label><Input inputMode="decimal" value={item.unit_price} onChange={e => updateItem(index, { unit_price: e.target.value })} placeholder="0.00" /></div></div>
             <div className="flex items-center justify-between gap-3 pt-3 md:pt-0"><span className="text-xs text-muted-foreground md:hidden">Importe</span><span className="font-semibold">{formatCurrency((Number(item.quantity) || 0) * (Number(item.unit_price) || 0))}</span><Button type="button" variant="ghost" size="icon" className="md:hidden" onClick={() => setItems(current => current.length > 1 ? current.filter((_, i) => i !== index) : current)} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button></div>
             <div className="hidden md:flex justify-end"><Button type="button" variant="ghost" size="icon" onClick={() => setItems(current => current.length > 1 ? current.filter((_, i) => i !== index) : current)} disabled={items.length === 1}><Trash2 className="h-4 w-4" /></Button></div>
