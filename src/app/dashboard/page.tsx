@@ -110,11 +110,12 @@ export default function DashboardPage() {
 
       <LiveRegion message={announcementMessage} politeness="polite" clearAfter={5000} />
 
-      <div id="main-content" className="relative min-h-full space-y-6 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 text-white sm:p-6 lg:p-7">
+      {/* pb-24: espacio seguro para el FAB en móvil (safe-area + botón 56px) */}
+      <div id="main-content" className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
         <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
         <div className="pointer-events-none absolute -right-48 top-[-220px] h-[520px] w-[520px] rounded-full bg-[#d7ff3f]/[0.055] blur-[120px]" />
 
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 space-y-5 sm:space-y-6">
           <DashboardHeader
             userName={currentUser.name}
             isConfigOpen={isConfigOpen}
@@ -123,27 +124,17 @@ export default function DashboardPage() {
           />
 
           <section aria-label="Indicadores principales">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/25">Señales de negocio</span>
-                <p className="mt-1 text-xs text-white/35">La operación que merece tu atención ahora.</p>
-              </div>
-              <span className="hidden rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30 sm:inline-flex">Fleet intelligence</span>
-            </div>
             <KpiGrid
               enabledWidgets={enabledWidgets.length > 0 ? enabledWidgets : effectiveDashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) ?? []}
               kpiMap={KPI_MAP}
               allKPIs={allKPIs}
               onKpiClick={handleKpiClick}
               onDragEnd={handleDragEnd}
+              onOpenConfig={() => setIsConfigOpen(true)}
             />
           </section>
 
-          <section aria-label="Acciones rápidas" className="border-t border-white/[0.06] pt-6">
-            <div className="mb-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/25">Acción inmediata</span>
-              <p className="mt-1 text-xs text-white/35">Accede a las operaciones que más utilizas sin salir del contexto.</p>
-            </div>
+          <section aria-label="Acciones rápidas" className="border-t border-white/[0.06] pt-5 sm:pt-6">
             <QuickActions
               quickActionModal={quickActionModal}
               isSubmittingForm={isSubmittingForm}

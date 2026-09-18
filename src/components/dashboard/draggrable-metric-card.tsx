@@ -36,7 +36,7 @@ function formatNumber(value: string | number): string {
 
 function MetricCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[22px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+    <div className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-3">
           <Skeleton className="h-3 w-28 bg-white/[0.08]" />
@@ -50,6 +50,15 @@ function MetricCardSkeleton() {
   );
 }
 
+/**
+ * Canonical KPI card for the Dashboard grid.
+ * Tokens (keep in sync across the system):
+ * - radius: rounded-[20px]
+ * - title: text-[10px] uppercase tracking-[0.14em] text-white/35
+ * - value: text-[32px] sm:text-[34px] font-heading tracking-[-0.04em]
+ * - icon box: h-10 w-10, lime border/bg, strokeWidth 1.75
+ * - sparkline height: 32
+ */
 function DraggableMetricCardBase({
   widget,
   kpiData,
@@ -88,7 +97,7 @@ function DraggableMetricCardBase({
       role={onClick ? 'button' : 'article'}
       aria-label={`${widget.title}: ${displayValue}`}
       className={cn(
-        'group relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]',
+        'group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]',
         'select-none backdrop-blur-xl transition-all duration-300',
         'before:pointer-events-none before:absolute before:-right-12 before:-top-12 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.045] before:blur-3xl before:transition-opacity',
         'hover:-translate-y-1 hover:border-white/[0.14] hover:shadow-[0_24px_65px_rgba(0,0,0,.34)]',
@@ -104,23 +113,23 @@ function DraggableMetricCardBase({
             </p>
           </div>
 
-          <h3 className="font-heading text-[34px] font-semibold leading-none tracking-[-0.045em] text-white tabular-nums" aria-live="polite">
+          <h3 className="font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums sm:text-[34px]" aria-live="polite">
             {displayValue}
           </h3>
 
           {kpiData?.subtitle && (
-            <p className="mt-2 text-xs font-medium text-white/45">{kpiData.subtitle}</p>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-white/40">{kpiData.subtitle}</p>
           )}
 
           {kpiData?.trend !== undefined && changePercent !== undefined && (
             <div className="mt-4 flex items-center gap-2">
               <div className={cn(
-                'flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold',
+                'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold',
                 kpiData.trend
-                  ? 'bg-[#d7ff3f]/10 text-[#d7ff3f]'
-                  : 'bg-red-400/10 text-red-300'
+                  ? 'border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300'
+                  : 'border-rose-400/15 bg-rose-400/[0.07] text-rose-300'
               )}>
-                {kpiData.trend ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {kpiData.trend ? <TrendingUp className="h-3 w-3" strokeWidth={1.8} /> : <TrendingDown className="h-3 w-3" strokeWidth={1.8} />}
                 <span>{Math.abs(changePercent).toFixed(1)}%</span>
               </div>
               <span className="text-[10px] text-white/25">vs período anterior</span>
@@ -131,7 +140,7 @@ function DraggableMetricCardBase({
             <div className="mt-4 border-t border-white/[0.06] pt-3 opacity-80 transition-opacity group-hover:opacity-100">
               <Sparkline
                 data={kpiData.trendData}
-                height={34}
+                height={32}
                 color={sparkColor}
                 animate
                 className="w-full"
@@ -151,7 +160,7 @@ function DraggableMetricCardBase({
             aria-label="Arrastrar para reordenar métrica"
             tabIndex={0}
           >
-            <GripHorizontal className="h-4 w-4" />
+            <GripHorizontal className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
       </div>

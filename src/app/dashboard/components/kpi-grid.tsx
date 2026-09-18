@@ -12,6 +12,7 @@ interface KpiGridProps {
   allKPIs: Record<string, any>;
   onKpiClick: (widget: DashboardWidget) => void;
   onDragEnd: (event: any) => void;
+  onOpenConfig?: () => void;
 }
 
 const chartActionMap: Record<string, string> = {
@@ -23,16 +24,22 @@ const chartActionMap: Record<string, string> = {
   'client-risk-chart': 'clients-with-debt',
 };
 
-export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick }: KpiGridProps) {
+export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenConfig }: KpiGridProps) {
   const isEmpty = enabledWidgets.length === 0;
   const alwaysInteractive = new Set(['total-clients', 'total-vehicles', 'vehicles-rented']);
 
   return (
     <>
       {isEmpty ? (
-        <EmptyState icon={Settings} title="No tienes KPIs configurados" description="Personaliza tu dashboard agregando los indicadores que más te interesen." actionLabel="Configurar Dashboard" onAction={() => {}} />
+        <EmptyState
+          icon={Settings}
+          title="No tienes KPIs configurados"
+          description="Personaliza tu dashboard agregando los indicadores que más te interesen."
+          actionLabel="Configurar Dashboard"
+          onAction={onOpenConfig}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {enabledWidgets.map(widget => {
             if (widget.type === 'chart') {
               const actionId = chartActionMap[widget.id];
@@ -51,7 +58,15 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick }: KpiGrid
             const kpiConfig = kpiMap[widget.id];
             const kpiData = allKPIs[widget.id as keyof typeof allKPIs];
             const isInteractive = Boolean(kpiConfig?.isInteractive || alwaysInteractive.has(widget.id));
-            return <DraggableMetricCard key={widget.id} widget={widget} kpiData={kpiData as MetricKPIData} kpiConfig={kpiConfig} onClick={isInteractive ? () => onKpiClick(widget) : undefined} />;
+            return (
+              <DraggableMetricCard
+                key={widget.id}
+                widget={widget}
+                kpiData={kpiData as MetricKPIData}
+                kpiConfig={kpiConfig}
+                onClick={isInteractive ? () => onKpiClick(widget) : undefined}
+              />
+            );
           })}
         </div>
       )}
