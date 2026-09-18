@@ -264,7 +264,7 @@ export default function VehicleDetailPage() {
                                 <InfoItem icon={<Calendar />} label="Fecha de Adquisición" value={formatDate(vehicle.acquisitionDate)} />
                                 <InfoItem icon={<DollarSign />} label="Costo del Vehículo" value={`$${(vehicle.cost || 0).toLocaleString()}`} valueClassName="text-green-500" />
                                 <InfoItem icon={<DollarSign />} label="Valor Renta/Semana (Sugerido)" value={`$${(vehicle.weeklyRentalValue || 0).toLocaleString()}`} />
-                                <InfoItem icon={<ShieldCheck />} label="Comisión por Administración" value={`${(vehicle.adminCommission || 0)}%`} />
+                                <InfoItem icon={<ShieldCheck />} label="Costo de Administración" value={`${(vehicle.adminCommission || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`} />
                                 <InfoItem icon={<Gauge />} label="Kilometraje Actual" value={vehicle.displayCurrentMileage} />
                                 <InfoItem icon={<Wrench />} label="Último Mtto. (km)" value={vehicle.displayLastMaintMileage} />
                                 <InfoItem icon={<Calendar />} label="Próximo Mtto. (Fecha)" value="N/A" />
