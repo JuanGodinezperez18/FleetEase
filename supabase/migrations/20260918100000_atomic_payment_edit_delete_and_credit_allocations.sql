@@ -165,8 +165,7 @@ begin
     end if;
   end if;
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.process_credit_payment_atomic(p_company_id uuid, p_credit_id uuid, p_client_id uuid, p_amount numeric, p_payment_date date DEFAULT CURRENT_DATE, p_payment_method text DEFAULT NULL::text, p_reference text DEFAULT NULL::text, p_created_by uuid DEFAULT NULL::uuid)
  RETURNS jsonb
@@ -313,8 +312,7 @@ begin
 
   return jsonb_build_object('success',true,'creditId',v_credit.id,'credit_id',v_credit.id,'paymentId',v_payment_id,'payment_id',v_payment_id,'newCreditBalance',greatest(coalesce(v_credit.remaining_balance,0)-p_amount,0),'new_remaining_balance',greatest(coalesce(v_credit.remaining_balance,0)-p_amount,0),'paymentScheduleId',v_first_schedule_id,'payment_schedule_id',v_first_schedule_id,'creditCompleted',v_completed,'credit_completed',v_completed,'paymentsMade',v_payments_made);
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.delete_financial_payment_atomic(p_payment_id uuid)
  RETURNS jsonb
@@ -355,8 +353,7 @@ begin
 
   return jsonb_build_object('success',true,'paymentId',p_payment_id,'creditId',v_credit_id);
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.update_financial_payment_atomic(p_payment_id uuid, p_amount numeric, p_payment_date date, p_payment_method text DEFAULT NULL::text, p_reference text DEFAULT NULL::text, p_target_financial_record_id uuid DEFAULT NULL::uuid)
  RETURNS financial_records
@@ -574,8 +571,7 @@ begin
   select * into v_payment from public.financial_records where id=p_payment_id;
   return v_payment;
 end;
-$function$
-
+$function$;
 
 revoke all on function public.recalculate_credit_after_payment_change(uuid) from public, anon, authenticated;
 revoke all on function public.delete_financial_payment_atomic(uuid) from public, anon;
