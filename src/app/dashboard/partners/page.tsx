@@ -1,64 +1,27 @@
 
-
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
-import type { Partner, Company, FinancialRecord, Vehicle } from '@/types';
+import type { Partner } from '@/types';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { getColumns } from './columns';
 import { FormModal } from '@/components/common/form-modal';
 import { PartnerForm, type PartnerFormValues } from './components/partner-form';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Download } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/auth-provider';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { usePartnerAnalytics, type PartnerMetric } from '@/hooks/use-partner-analytics';
 import { PartnerDashboard } from './components/partner-dashboard';
 import { usePartnerSearch } from '@/hooks/use-partner-search';
 import { PartnerAdvancedFilters } from './components/partner-advanced-filters';
-import Link from 'next/link';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { PartnerBalancesModal } from './components/partner-balances-modal';
-
+import { PartnerMobileCard } from './components/partner-mobile-card';
 
 export type PartnerWithMetrics = Partner & Partial<PartnerMetric>;
-
-// React 19: No memo() needed - compiler handles optimization
-function PartnerMobileCard({ partner, onEdit, onDelete, onNavigate }: {
-  partner: PartnerWithMetrics;
-  onEdit: (c: Partner) => void;
-  onDelete: (c: Partner) => void;
-  onNavigate: (path: string) => void;
-}) {
-  return (
-    <Card className="p-4">
-        <div className="flex items-start justify-between">
-            <div className="space-y-2">
-                <h3 className="font-medium">{partner.firstname} {partner.lastname}</h3>
-                <div className="text-sm text-muted-foreground space-y-1">
-                    <p>📧 {partner.email || 'N/A'}</p>
-                    <p>📞 {partner.phone || 'N/A'}</p>
-                    <p>🚗 Vehículos: {partner.vehicleCount || 0}</p>
-                </div>
-            </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/partners/${partner.id}`)}>Ver Dashboard</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onEdit(partner)}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onDelete(partner)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-    </Card>
-  );
-}
 
 export default function PartnersPage() {
     const { partners, companies, vehicles, financialRecords, addPartner, updatePartner, deletePartner, loadingData, refreshData, partnerBalances } = useData();
@@ -67,7 +30,6 @@ export default function PartnersPage() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [partnerToDelete, setPartnerToDelete] = useState<Partner | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
@@ -104,9 +66,7 @@ export default function PartnersPage() {
 
     const handleCloseModal = useCallback(() => {
         if (isSubmitting) return;
-        // Primero cerrar el modal
         setIsModalOpen(false);
-        // Resetear el estado DESPUÉS de que la animación de cierre termine
         setTimeout(() => {
             setEditingPartner(null);
         }, 300);
@@ -152,7 +112,6 @@ export default function PartnersPage() {
             return;
         }
         setPartnerToDelete(partner);
-        setIsDeleteDialogOpen(true);
     }, [canManage, vehicles]);
 
     const handleDeleteConfirm = async () => {
@@ -165,7 +124,6 @@ export default function PartnersPage() {
             await deletePartner(partnerToDelete.id);
             sonnerToast.success("Socio Eliminado", { id: toastId });
             setPartnerToDelete(null);
-            setIsDeleteDialogOpen(false);
             refreshData();
         } catch (error) {
             console.error(error);
@@ -189,53 +147,84 @@ export default function PartnersPage() {
     }, [partnerBalances, partners]);
 
     if (loadingData && !partners.length) {
-        return <p>Cargando socios...</p>;
+        return (
+          <div className="space-y-4 p-4 sm:p-6">
+            <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+              ))}
+            </div>
+            <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+          </div>
+        );
     }
     
     return (
-        <div className="space-y-6">
-            <PartnerDashboard partners={partners} partnerMetrics={partnerMetrics} onBalanceCardClick={() => setIsBalanceModalOpen(true)} />
-            <PartnerAdvancedFilters 
-                filters={filters}
-                onFilterChange={updateFilter}
-                onReset={resetFilters}
-                onSearch={debouncedSetQuery}
-                totalResults={totalResults}
-                companies={companies}
-                isLoading={loadingData}
-            />
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>Socios de la Flota</CardTitle>
-                        {canManage && (
-                            <Button onClick={() => handleOpenModal()}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Agregar Socio
-                            </Button>
-                        )}
+        <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+            <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+
+            <div className="relative z-10 space-y-5 sm:space-y-6">
+                <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+                            Operación
+                        </div>
+                        <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+                            Socios
+                        </h1>
+                        <p className="mt-1 text-sm text-white/40">
+                            {totalResults} en esta vista
+                        </p>
                     </div>
-                    <CardDescription>
-                        Administra a los propietarios de los vehículos de tu flota.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveTable
-                        data={filteredPartners}
-                        columns={columns}
-                        loading={loadingData}
-                        searchPlaceholder="Buscar socio..."
-                        noResultsText="No se encontraron socios."
-                        mobileCardRenderer={(partner) => (
-                          <PartnerMobileCard 
-                            partner={partner}
-                            onEdit={handleOpenModal}
-                            onDelete={handleDeleteRequest}
-                            onNavigate={(path) => router.push(path)}
-                          />
-                        )}
-                    />
-                </CardContent>
-            </Card>
+                    {canManage && (
+                        <Button
+                            onClick={() => handleOpenModal()}
+                            className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+                        >
+                            <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                            Agregar socio
+                        </Button>
+                    )}
+                </header>
+
+                <PartnerDashboard
+                    partners={partners}
+                    partnerMetrics={partnerMetrics}
+                    onBalanceCardClick={() => setIsBalanceModalOpen(true)}
+                />
+
+                <PartnerAdvancedFilters 
+                    filters={filters}
+                    onFilterChange={updateFilter}
+                    onReset={resetFilters}
+                    onSearch={debouncedSetQuery}
+                    totalResults={totalResults}
+                    companies={companies}
+                    isLoading={loadingData}
+                />
+
+                <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+                    <div className="p-4 sm:p-5">
+                        <ResponsiveTable
+                            data={filteredPartners}
+                            columns={columns}
+                            loading={loadingData}
+                            searchPlaceholder="Buscar socio..."
+                            noResultsText="No se encontraron socios."
+                            mobileCardRenderer={(partner) => (
+                              <PartnerMobileCard 
+                                partner={partner}
+                                onEdit={handleOpenModal}
+                                onDelete={handleDeleteRequest}
+                                onNavigate={(path) => router.push(path)}
+                              />
+                            )}
+                        />
+                    </div>
+                </section>
+            </div>
             
             <PartnerBalancesModal
                 isOpen={isBalanceModalOpen}
