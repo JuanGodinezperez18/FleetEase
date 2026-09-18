@@ -4,60 +4,23 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
-import type { Vehicle, Client, Partner } from '@/types';
+import type { Vehicle } from '@/types';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { getVehicleColumns } from './columns';
 import { FormModal } from '@/components/common/form-modal';
 import { VehicleForm, type VehicleFormHandles, type VehicleFormValues } from './components/vehicle-form';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal, Eye, FileText, DollarSign, Edit, Trash2, Download } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { DeleteConfirmationDialog } from '@/components/common/delete-confirmation-dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-provider';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { useVehicleSearch, type VehicleWithMetrics } from '@/hooks/use-vehicle-search';
+import { useVehicleSearch } from '@/hooks/use-vehicle-search';
 import { FleetDashboard } from './components/fleet-dashboard';
 import { VehicleAdvancedFilters } from './components/vehicle-advanced-filters';
-import { Badge } from '@/components/ui/badge';
-import { formatCurrency, getStatusVariant } from '@/lib/utils';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { sanitizeAndFormatData } from '@/lib/utils';
 import { useStorage } from '@/hooks/use-storage';
 import { canAddVehicle, getVehicleLimitMessage, type PlanType } from '@/config/plans';
-
-
-const statusTranslations: Record<Vehicle['status'], string> = {
-  active: 'Activo',
-  rented: 'Rentado',
-  inactive: 'Inactivo',
-  maintenance: 'Mantenimiento',
-  sold: 'Vendido',
-};
-
-const VehicleMobileCard = ({ vehicle, onEdit, onDelete, onNavigate }: { vehicle: VehicleWithMetrics, onEdit: (v: Vehicle) => void, onDelete: (v: Vehicle) => void, onNavigate: (path: string) => void }) => (
-  <Card className="p-4">
-    <div className="flex items-start justify-between">
-      <div className="space-y-2">
-        <h3 className="font-semibold">{vehicle.plate} - {vehicle.make} {vehicle.model}</h3>
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div><strong>Rendimiento:</strong> <Badge variant="secondary">{vehicle.performanceRating || 'N/A'}</Badge></div>
-          <div><strong>Beneficio Neto:</strong> <span className="font-medium">{formatCurrency(vehicle.netProfit || 0)}</span></div>
-          <div><strong>Estado:</strong> <Badge variant={getStatusVariant(vehicle.status)}>{statusTranslations[vehicle.status] || vehicle.status}</Badge></div>
-        </div>
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}`)}><Eye className="mr-2 h-4 w-4"/>Ver Detalles</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onEdit(vehicle)}><Edit className="mr-2 h-4 w-4"/>Editar</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onDelete(vehicle)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Eliminar</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  </Card>
-);
+import { VehicleMobileCard } from './components/vehicle-mobile-card';
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -65,7 +28,7 @@ export default function VehiclesPage() {
   const {
     rawVehicles,
     rawCompanies,
-    vehicleMetrics, // Directly consume memoized metrics
+    vehicleMetrics,
     clients,
     partners,
     credits,
@@ -126,9 +89,7 @@ export default function VehiclesPage() {
 
   const handleCloseVehicleModal = useCallback(() => {
     if (isSubmitting) return;
-    // Primero cerrar el modal
     setIsVehicleModalOpen(false);
-    // Resetear el estado DESPUÉS de que la animación de cierre termine
     setTimeout(() => {
       setEditingVehicle(null);
     }, 300);
@@ -144,7 +105,6 @@ export default function VehiclesPage() {
     const toastId = toast.loading(editingVehicle ? "Actualizando vehículo..." : "Agregando vehículo...");
 
     try {
-        // Validar límite de vehículos según el plan (solo al crear, no al editar)
         if (!editingVehicle && rawCompanies && rawCompanies.length > 0) {
             const company = rawCompanies[0];
             const plan = (company.plan as PlanType) || 'starter';
@@ -161,13 +121,12 @@ export default function VehiclesPage() {
             }
         }
 
-        // Function to handle file upload and get URL
         const handleFileUpload = async (fileOrUrl: string | File | undefined | null, currentUrl?: string): Promise<string | null> => {
             if (fileOrUrl === null || fileOrUrl === undefined) {
                 if (currentUrl) await deleteFileByUrl(currentUrl).catch(console.warn);
                 return null;
             }
-            if (typeof fileOrUrl === 'string') return fileOrUrl; // It's an existing URL, no change
+            if (typeof fileOrUrl === 'string') return fileOrUrl;
             if (fileOrUrl instanceof File) {
                 const newUrl = await uploadFile(fileOrUrl, 'vehicle_images', true, editingVehicle?.id);
                 if (currentUrl) await deleteFileByUrl(currentUrl).catch(console.warn);
@@ -257,61 +216,97 @@ export default function VehiclesPage() {
       }),
     [router, clients, partners, handleOpenVehicleModal, handleDeleteRequest, rawVehicles]
   );
-  
 
+  const clientMap = useMemo(
+    () => new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`])),
+    [clients]
+  );
+  
   if (loadingData && rawVehicles.length === 0) {
-    return <p>Cargando vehículos...</p>;
+    return (
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operación</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Vehículos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Administra tu flota, asignaciones y rentabilidad.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => router.push('/dashboard/vehicles/assignments')}>Asignaciones</Button>
-          <Button data-add-button="true" onClick={() => handleOpenVehicleModal()}><PlusCircle className="mr-2 h-4 w-4" />Agregar Vehículo</Button>
-        </div>
-      </div>
-      <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />
-      <VehicleAdvancedFilters 
-        filters={filters}
-        onFilterChange={updateFilter}
-        onReset={resetFilters}
-        onSearch={debouncedSetQuery}
-        totalResults={totalResults}
-        partners={partners}
-        clients={clients}
-        isLoading={loadingData}
-      />
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <h2 className="text-2xl font-bold tracking-tight">Gestión de Flota</h2>
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              Operación
+            </div>
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+              Vehículos
+            </h1>
+            <p className="mt-1 text-sm text-white/40">
+              {totalResults} en esta vista
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable
-            data={filteredVehicles}
-            columns={columns}
-            loading={loadingData}
-            searchPlaceholder="Buscar por placa, marca, modelo..."
-            noResultsText="No se encontraron vehículos."
-            mobileCardRenderer={(vehicle) => (
-              <VehicleMobileCard
-                vehicle={vehicle}
-                onEdit={handleOpenVehicleModal}
-                onDelete={handleDeleteRequest}
-                onNavigate={(path) => router.push(path)}
-              />
-            )}
-          />
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard/vehicles/assignments')}
+              className="h-10 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+            >
+              Asignaciones
+            </Button>
+            <Button
+              data-add-button="true"
+              onClick={() => handleOpenVehicleModal()}
+              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Agregar vehículo
+            </Button>
+          </div>
+        </header>
+
+        <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />
+
+        <VehicleAdvancedFilters 
+          filters={filters}
+          onFilterChange={updateFilter}
+          onReset={resetFilters}
+          onSearch={debouncedSetQuery}
+          totalResults={totalResults}
+          partners={partners}
+          clients={clients}
+          isLoading={loadingData}
+        />
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="p-4 sm:p-5">
+            <ResponsiveTable
+              data={filteredVehicles}
+              columns={columns}
+              loading={loadingData}
+              searchPlaceholder="Buscar por placa, marca, modelo..."
+              noResultsText="No se encontraron vehículos."
+              mobileCardRenderer={(vehicle) => (
+                <VehicleMobileCard
+                  vehicle={vehicle}
+                  driverName={vehicle.clientId ? clientMap.get(vehicle.clientId) : undefined}
+                  onEdit={handleOpenVehicleModal}
+                  onDelete={handleDeleteRequest}
+                  onNavigate={(path) => router.push(path)}
+                />
+              )}
+            />
+          </div>
+        </section>
+      </div>
 
       <FormModal
         isOpen={isVehicleModalOpen}
