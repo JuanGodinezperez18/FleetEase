@@ -92,7 +92,7 @@ export default function PartnerDetailsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Saldo Inicial"
           value={formatCurrency(partner.initialBalance || 0)}
@@ -118,8 +118,17 @@ export default function PartnerDetailsPage() {
         <MetricCard
           title="RENTABILIDAD ACUMULADA"
           value={formatCurrency(metrics.netProfit)}
+          description="Después de recuperar inversión y gastos"
           icon={<DollarSign className="w-5 h-5" />}
           variant={metrics.netProfit >= 0 ? "success" : "danger"}
+        />
+
+        <MetricCard
+          title="SALDO A PAGAR AL SOCIO"
+          value={formatCurrency(metrics.partnerBalance)}
+          description="Después de pagos realizados"
+          icon={<DollarSign className="w-5 h-5" />}
+          variant={metrics.partnerBalance >= 0 ? "success" : "danger"}
         />
       </div>
       
