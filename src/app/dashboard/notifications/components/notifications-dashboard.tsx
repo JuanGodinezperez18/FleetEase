@@ -1,10 +1,7 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
 import type { AnalyzedNotification } from '@/hooks/use-notifications-analytics';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   BellRing,
   AlertTriangle,
@@ -15,27 +12,22 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { MetricCard } from '@/components/dashboard/components/MetricCard';
 
 interface NotificationsDashboardProps {
   analyzedNotifications: AnalyzedNotification[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="p-2 bg-background border rounded-lg shadow-sm">
-        <p className="font-bold">{label}</p>
-        {payload.map((p: any, index: number) => (
-            <p key={index} style={{ color: p.color }}>{`${p.name}: ${p.value}`}</p>
-        ))}
-      </div>
-    );
-  }
-  return null;
+const TOOLTIP_STYLE = {
+  backgroundColor: '#0e1117',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 12,
+  color: '#fff',
 };
 
-
-export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({ analyzedNotifications }) => {
+export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({
+  analyzedNotifications,
+}) => {
   const router = useRouter();
 
   const overallStats = useMemo(() => {
@@ -46,15 +38,18 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({ 
 
     const categoryDistribution: Record<string, number> = {};
     analyzedNotifications.forEach(n => {
-        categoryDistribution[n.category] = (categoryDistribution[n.category] || 0) + 1;
+      categoryDistribution[n.category] = (categoryDistribution[n.category] || 0) + 1;
     });
-    
+
     return {
       total,
       unread,
       critical,
       actionRequired,
-      categoryDistribution: Object.entries(categoryDistribution).map(([name, value]) => ({ name, Notificaciones: value })),
+      categoryDistribution: Object.entries(categoryDistribution).map(([name, value]) => ({
+        name,
+        Notificaciones: value,
+      })),
     };
   }, [analyzedNotifications]);
 
@@ -62,10 +57,6 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({ 
     return analyzedNotifications.filter(n => n.priority === 'Crítica' && !n.isRead);
   }, [analyzedNotifications]);
 
-  const handleNavigate = (path: string) => {
-    router.push(path);
-  };
-  
   const getRelatedEntityLink = (notification: AnalyzedNotification) => {
     switch (notification.type) {
       case 'maintenance_mileage':
@@ -76,7 +67,6 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({ 
       case 'driver_payment_pending':
         return `/dashboard/clients/${notification.relatedId}/transactions`;
       default:
-        // Fallback para otros tipos de notificaciones
         if (notification.relatedEntityType === 'Client') {
           return `/dashboard/clients/${notification.relatedId}`;
         }
@@ -87,108 +77,96 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({ 
     }
   };
 
-
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Notificaciones Sin Leer</CardTitle>
-            <BellRing className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.unread}</div>
-            <p className="text-xs text-muted-foreground">De {overallStats.total} notificaciones totales.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas Críticas</CardTitle>
-            <Siren className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{overallStats.critical}</div>
-            <p className="text-xs text-muted-foreground">Requieren atención inmediata.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Acción Requerida</CardTitle>
-            <Activity className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.actionRequired}</div>
-            <p className="text-xs text-muted-foreground">Notificaciones que necesitan una acción.</p>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Distribución</CardTitle>
-            <BarChartIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.categoryDistribution.length}</div>
-            <p className="text-xs text-muted-foreground">Categorías de alertas activas.</p>
-          </CardContent>
-        </Card>
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Sin leer"
+          value={String(overallStats.unread)}
+          description={`De ${overallStats.total} totales`}
+          icon={<BellRing className="h-5 w-5" strokeWidth={1.75} />}
+        />
+        <MetricCard
+          title="Críticas"
+          value={String(overallStats.critical)}
+          description="Atención inmediata"
+          icon={<Siren className="h-5 w-5" strokeWidth={1.75} />}
+          variant="danger"
+        />
+        <MetricCard
+          title="Acción requerida"
+          value={String(overallStats.actionRequired)}
+          description="Requieren respuesta"
+          icon={<Activity className="h-5 w-5" strokeWidth={1.75} />}
+        />
+        <MetricCard
+          title="Categorías"
+          value={String(overallStats.categoryDistribution.length)}
+          description="Áreas activas"
+          icon={<BarChartIcon className="h-5 w-5" strokeWidth={1.75} />}
+        />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-            <CardHeader>
-                <CardTitle>Distribución por Categoría</CardTitle>
-                <CardDescription>Volumen de notificaciones por área de operación.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={overallStats.categoryDistribution} layout="vertical">
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={100} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }}/>
-                        <Bar dataKey="Notificaciones" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center"><AlertTriangle className="mr-2 text-destructive"/> Alertas Críticas Activas</CardTitle>
-            <CardDescription>Notificaciones que requieren atención inmediata, priorizadas por urgencia.</CardDescription>
-          </CardHeader>
-          <CardContent>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Mensaje</TableHead>
-                        <TableHead className="text-right">Acción</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {criticalNotifications.length > 0 ? (
-                        criticalNotifications.slice(0, 5).map(n => (
-                            <TableRow key={n.id}>
-                                <TableCell>
-                                    <p className="font-medium truncate max-w-xs">{n.message}</p>
-                                    <span className="text-xs text-muted-foreground">{n.category} / Score: {n.urgencyScore}</span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="outline" size="sm" onClick={() => handleNavigate(getRelatedEntityLink(n))}>
-                                        Revisar
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                         <TableRow>
-                            <TableCell colSpan={2} className="h-24 text-center">No hay alertas críticas activas.</TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-3.5">
+            <h2 className="font-heading text-sm font-semibold text-white">Distribución por categoría</h2>
+            <p className="text-xs text-white/40">Volumen por área de operación</p>
+          </div>
+          <div className="p-4 sm:p-5">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={overallStats.categoryDistribution} layout="vertical">
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={100}
+                  tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                />
+                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey="Notificaciones" fill="#d7ff3f" radius={[0, 8, 8, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-3.5">
+            <h2 className="font-heading flex items-center gap-2 text-sm font-semibold text-white">
+              <AlertTriangle className="h-4 w-4 text-rose-400" strokeWidth={1.75} />
+              Críticas activas
+            </h2>
+            <p className="text-xs text-white/40">Sin leer, priorizadas por urgencia</p>
+          </div>
+          <div className="divide-y divide-white/[0.04] p-2 sm:p-3">
+            {criticalNotifications.length > 0 ? (
+              criticalNotifications.slice(0, 5).map(n => (
+                <div
+                  key={n.id}
+                  className="flex items-center justify-between gap-3 rounded-[12px] px-3 py-3 hover:bg-white/[0.02]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white/90">{n.message}</p>
+                    <p className="text-[11px] text-white/35">
+                      {n.category} · Score {n.urgencyScore}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+                    onClick={() => router.push(getRelatedEntityLink(n))}
+                  >
+                    Revisar
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="py-10 text-center text-sm text-white/35">No hay alertas críticas activas</p>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 };
