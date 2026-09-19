@@ -93,7 +93,7 @@ export default function PaymentsPage() {
   const refundCategory = useMemo(() => financialCategories.find(c => c.type === "expense" && c.name.trim().toLowerCase() === "devolución de depósito"), [financialCategories]);
 
   const creditEntities = useMemo(() => credits
-    .filter(c => c.status === "active" && !c.isDeleted)
+    .filter(c => c.status === "active" && !c.isDeleted && (!companyId || c.companyId === companyId))
     .map(c => {
       const client = clients.find(cl => cl.id === c.clientId);
       const clientName = client ? `${client.firstname || ""} ${client.lastname || ""}`.trim() : "Cliente sin nombre";
@@ -198,7 +198,9 @@ export default function PaymentsPage() {
         toast.success("Depósito devuelto", { description: "La devolución quedó registrada como salida de empresa y con trazabilidad." });
       } else if (kind === "credit_payment") {
         const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
-          p_company_id: companyId, p_credit_id: selectedCredit.id, p_client_id: selectedCredit.clientId,
+          // El RPC debe recibir exactamente la empresa del crédito que ya fue filtrado
+          // contra la empresa activa. No reutilizamos un companyId genérico de otra vista.
+          p_company_id: selectedCredit.companyId || companyId, p_credit_id: selectedCredit.id, p_client_id: selectedCredit.clientId,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
           p_reference: reference || null, p_created_by: currentUser?.uid || null,
         } as any);
