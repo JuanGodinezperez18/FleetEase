@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 const faqs: [string, string][] = [
@@ -46,38 +45,30 @@ export function LandingFaq() {
           </h2>
         </div>
         <div>
-          {faqs.map(([q, a], i) => (
-            <div key={q} className="border-b border-white/[0.08] first:border-t">
-              <button
-                type="button"
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="flex w-full items-center justify-between py-5 text-left text-sm font-semibold text-white/90"
-                aria-expanded={openFaq === i}
-              >
-                <span>{q}</span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-white/40 transition ${openFaq === i ? "rotate-180" : ""}`}
-                />
-              </button>
-              {/* Always render answer text in DOM for SEO; hide visually when closed */}
-              <div className={openFaq === i ? "block" : "sr-only"}>
-                <p className="pb-5 pr-8 text-sm leading-6 text-white/55">{a}</p>
+          {faqs.map(([q, a], i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div key={q} className="border-b border-white/[0.08] first:border-t">
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="flex w-full items-center justify-between py-5 text-left text-sm font-semibold text-white/90"
+                  aria-expanded={isOpen}
+                >
+                  <span>{q}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-white/40 transition ${isOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {/* Answer always in the HTML for crawlers; collapsed with CSS when closed */}
+                <div
+                  className={`overflow-hidden transition-all ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+                >
+                  <p className="pb-5 pr-8 text-sm leading-6 text-white/55">{a}</p>
+                </div>
               </div>
-              <AnimatePresence>
-                {openFaq === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                    aria-hidden
-                  >
-                    {/* Visual duplicate handled by sr-only block above for SSR/crawlers */}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
