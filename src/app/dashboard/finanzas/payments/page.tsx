@@ -46,7 +46,6 @@ export default function PaymentsPage() {
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<OperationKind>("client_payment");
   const [entityId, setEntityId] = useState("");
-  const [creditId, setCreditId] = useState("");
   const [targetId, setTargetId] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -148,7 +147,7 @@ export default function PaymentsPage() {
     return [];
   }, [financialRecords, entityId, kind, appliedByTarget]);
 
-  const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === creditId && c.status === "active" && !c.isDeleted) : null, [credits, creditId, kind]);
+  const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
   const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules
     .filter(s => s.creditId === selectedCredit.id && (s.status === "pending" || s.status === "overdue"))
     .sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
@@ -165,15 +164,14 @@ export default function PaymentsPage() {
     : kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0
     : paymentSource === "security_deposit" && kind === "client_payment" ? Math.min(targetOutstanding, depositAvailable) : targetOutstanding;
 
-  const reset = () => { setEntityId(""); setCreditId(""); setTargetId(""); setAmount(""); setReference(""); setPaymentSource("direct"); };
+  const reset = () => { setEntityId(""); setTargetId(""); setAmount(""); setReference(""); setPaymentSource("direct"); };
 
   const savePayment = async () => {
     const numericAmount = Number(amount);
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
-    if (!entityId && kind !== "credit_payment") return toast.error("Selecciona a quién corresponde la operación.");
+    if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
-    if (kind === "credit_payment" && !creditId) return toast.error("Selecciona un crédito activo.");
-    if (kind === "credit_payment" && !selectedCredit) return toast.error("El crédito seleccionado ya no está disponible.");
+    if (kind === "credit_payment" && !selectedCredit) return toast.error("Selecciona un crédito activo.");
     if (kind === "security_deposit_refund") {
       if (!refundCategory) return toast.error("No existe la categoría Devolución de Depósito.");
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
@@ -198,9 +196,7 @@ export default function PaymentsPage() {
         toast.success("Depósito devuelto", { description: "La devolución quedó registrada como salida de empresa y con trazabilidad." });
       } else if (kind === "credit_payment") {
         const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
-          // El RPC debe recibir exactamente la empresa del crédito que ya fue filtrado
-          // contra la empresa activa. No reutilizamos un companyId genérico de otra vista.
-          p_company_id: selectedCredit.companyId || companyId, p_credit_id: selectedCredit.id, p_client_id: selectedCredit.clientId,
+          p_company_id: companyId, p_credit_id: entityId, p_client_id: selectedCredit?.clientId || null,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
           p_reference: reference || null, p_created_by: currentUser?.uid || null,
         } as any);
@@ -310,7 +306,7 @@ export default function PaymentsPage() {
                         ? "Socio"
                         : "Proveedor"}
                     </Label>
-                    <Select value={kind === "credit_payment" ? creditId : entityId} onValueChange={v => { if (kind === "credit_payment") { setCreditId(v); setEntityId(""); } else { setEntityId(v); setCreditId(""); } setTargetId(""); }}>
+                    <Select value={entityId} onValueChange={v => { setEntityId(v); setTargetId(""); }}>
                       <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
                         <SelectValue placeholder="Seleccionar..." />
                       </SelectTrigger>
@@ -362,3 +358,157 @@ export default function PaymentsPage() {
                         <span className="text-xs text-white/40">Balance disponible del socio</span>
                         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
                           <Briefcase className="h-3 w-3" strokeWidth={1.75} />
+                          Ingresos − gastos − pagos
+                        </span>
+                      </div>
+                      <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
+                        {formatCurrency(Math.max(0, partnerBalance))}
+                      </p>
+                    </div>
+                  )}
+
+                  {kind === "client_payment" && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-white/50">Aplicar a registro</Label>
+                      <Select value={targetId} onValueChange={setTargetId} disabled={!entityId}>
+                        <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                          <SelectValue placeholder="Seleccionar cargo pendiente..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {targets.map(r => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {kind === "credit_payment" && selectedCredit && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-white/50">Cuota pendiente</Label>
+                      <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3 text-sm">
+                        {pendingSchedule.length ? (
+                          pendingSchedule.slice(0, 3).map(s => (
+                            <div key={s.id} className="flex justify-between py-1.5 text-white/80">
+                              <span>Cuota #{s.paymentNumber}</span>
+                              <span className="tabular-nums">{formatCurrency(Number(s.amount) - Number(s.paidAmount || 0))}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-white/40">No hay cuotas pendientes.</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-white/50">Importe</Label>
+                    <Input
+                      inputMode="decimal"
+                      value={amount}
+                      onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                      placeholder="0.00"
+                      className="border-white/10 bg-white/[0.03] text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/50">Fecha</Label>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={e => setDate(e.target.value)}
+                      className="border-white/10 bg-white/[0.03] text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/50">Método de pago</Label>
+                    <Select value={method} onValueChange={setMethod}>
+                      <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["Efectivo", "Transferencia", "Tarjeta", "Cheque"].map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/50">Referencia</Label>
+                    <Input
+                      value={reference}
+                      onChange={e => setReference(e.target.value)}
+                      placeholder="Opcional"
+                      className="border-white/10 bg-white/[0.03] text-white"
+                    />
+                  </div>
+
+                  {kind === "security_deposit_refund" && entityId && (
+                    <div className="md:col-span-2 rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Disponible para devolución</span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                          <RotateCcw className="h-3 w-3" strokeWidth={1.75} />
+                          Depósito
+                        </span>
+                      </div>
+                      <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-white">
+                        {formatCurrency(depositAvailableByClient.get(entityId) || 0)}
+                      </p>
+                    </div>
+                  )}
+
+                  {((selectedTarget || selectedCredit) || kind === "security_deposit_refund" || kind === "partner_payment") && (
+                    <div className="md:col-span-2 rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white/40">Resumen de operación</span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+                          <Link2 className="h-3 w-3" strokeWidth={1.75} />
+                          Trazabilidad
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <p className="text-[11px] text-white/35">Máximo aplicable</p>
+                          <p className="font-semibold tabular-nums text-white">{formatCurrency(maxAmount)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-white/35">Este movimiento</p>
+                          <p className="font-semibold tabular-nums text-[#d7ff3f]">{formatCurrency(Number(amount) || 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-white/35">Restante</p>
+                          <p className="font-semibold tabular-nums text-white">
+                            {formatCurrency(Math.max(0, maxAmount - (Number(amount) || 0)))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="md:col-span-2 flex justify-end pt-1">
+                    <Button
+                      onClick={savePayment}
+                      disabled={saving}
+                      className="h-11 rounded-xl bg-[#d7ff3f] px-5 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-60"
+                    >
+                      {saving ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} />
+                      ) : kind === "security_deposit_refund" ? (
+                        <RotateCcw className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                      ) : (
+                        <HandCoins className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                      )}
+                      {kind === "security_deposit_refund" ? "Devolver depósito" : "Registrar pago"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
+    </div>
+  );
