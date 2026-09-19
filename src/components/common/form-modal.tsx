@@ -35,7 +35,7 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[95dvh] w-[min(100vw-1rem,56rem)] max-w-[calc(100vw-1rem)] flex-col gap-3 overflow-hidden rounded-[20px] border-white/10 bg-[#0b0f14] p-4 text-white sm:max-h-[92vh] sm:w-full sm:max-w-xl sm:rounded-2xl sm:p-6 md:max-w-3xl lg:max-w-4xl">
+      <DialogContent className="flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(100vw-1rem,56rem)] max-w-[calc(100vw-1rem)] flex-col gap-3 overflow-hidden rounded-[20px] border-white/10 bg-[#0b0f14] p-4 text-white sm:max-h-[92vh] sm:w-full sm:max-w-xl sm:rounded-2xl sm:p-6 md:max-w-3xl lg:max-w-4xl">
         <DialogHeader className="shrink-0 space-y-1 pr-8">
           <DialogTitle className="font-heading text-base font-semibold tracking-tight text-white sm:text-lg">
             {title}
@@ -46,7 +46,7 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
             </DialogDescription>
           )}
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
+        <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain overscroll-contain pr-2 [scrollbar-gutter:stable] touch-pan-y">
           <div className="pb-2">{children}</div>
         </div>
       </DialogContent>
