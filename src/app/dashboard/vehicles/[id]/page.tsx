@@ -21,6 +21,9 @@ import {
   ArrowLeft,
   Car,
   Loader2,
+  FileText,
+  History,
+  Edit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfoItem } from './components/InfoItem';
@@ -266,6 +269,14 @@ export default function VehicleDetailPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
+              onClick={() => router.push(`/dashboard/vehicles?action=edit&vehicleId=${vehicle.id}`)}
+              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+            >
+              <Edit className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+              Editar
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => window.print()}
               className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
@@ -304,6 +315,34 @@ export default function VehicleDetailPage() {
             <Car className="h-5 w-5" strokeWidth={1.75} />
           </div>
         </header>
+
+        {/* Accesos rápidos */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}/documents`)}
+            className="h-11 justify-start rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+          >
+            <FileText className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+            Documentos
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}/transactions`)}
+            className="h-11 justify-start rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+          >
+            <DollarSign className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+            Transacciones
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}
+            className="h-11 justify-start rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white col-span-2 sm:col-span-1"
+          >
+            <History className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+            Asignaciones
+          </Button>
+        </div>
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="grid gap-6 p-4 sm:p-5 md:grid-cols-2">
