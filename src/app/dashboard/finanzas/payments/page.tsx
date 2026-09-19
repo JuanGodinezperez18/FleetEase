@@ -91,10 +91,18 @@ export default function PaymentsPage() {
 
   const refundCategory = useMemo(() => financialCategories.find(c => c.type === "expense" && c.name.trim().toLowerCase() === "devolución de depósito"), [financialCategories]);
 
+  const creditEntities = useMemo(() => credits
+    .filter(c => c.status === "active" && !c.isDeleted)
+    .map(c => {
+      const client = clients.find(cl => cl.id === c.clientId);
+      const clientName = client ? `${client.firstname || ""} ${client.lastname || ""}`.trim() : "Cliente sin nombre";
+      return { ...c, name: clientName };
+    }), [credits, clients]);
+
   const entities = kind === "client_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted)
     : kind === "partner_payment" ? partners.filter(p => !p.isDeleted)
     : kind === "supplier_payment" ? suppliers
-    : clients.filter(c => c.status === "active" && !c.isDeleted && credits.some(cr => cr.clientId === c.id && cr.status === "active" && !cr.isDeleted));
+    : creditEntities;
 
   const appliedByTarget = useMemo(() => {
     const map = new Map<string, number>();
@@ -140,7 +148,9 @@ export default function PaymentsPage() {
   }, [financialRecords, entityId, kind, appliedByTarget]);
 
   const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
-  const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules.filter(s => s.creditId === selectedCredit.id && s.status === "pending").sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
+  const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules
+    .filter(s => s.creditId === selectedCredit.id && (s.status === "pending" || s.status === "overdue"))
+    .sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
   const selectedPartner = useMemo(() => kind === "partner_payment" ? partners.find(p => p.id === entityId && !p.isDeleted) : null, [partners, entityId, kind]);
   const selectedTarget = targets.find(r => r.id === targetId);
   const depositAvailable = kind === "client_payment" ? (depositAvailableByClient.get(entityId) || 0) : 0;
@@ -161,6 +171,7 @@ export default function PaymentsPage() {
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
     if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
+    if (kind === "credit_payment" && !selectedCredit) return toast.error("Selecciona un crédito activo.");
     if (kind === "security_deposit_refund") {
       if (!refundCategory) return toast.error("No existe la categoría Devolución de Depósito.");
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
@@ -197,8 +208,7 @@ export default function PaymentsPage() {
           p_company_id: companyId, p_client_id: entityId, p_target_financial_record_id: targetId,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
           p_reference: reference || null, p_created_by: currentUser?.uid || null,
-        } as any);
-        if (error) throw error;
+        } as any);        if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió la aplicación del depósito.");
         toast.success("Depósito aplicado", { description: "El depósito disminuyó y el importe se aplicó al folio seleccionado sin generar un ingreso duplicado." });
       } else {
@@ -288,8 +298,10 @@ export default function PaymentsPage() {
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-white/50">
-                      {kind === "client_payment" || kind === "credit_payment" || kind === "security_deposit_refund"
+                      {kind === "client_payment" || kind === "security_deposit_refund"
                         ? "Cliente"
+                        : kind === "credit_payment"
+                        ? "Crédito / Cliente"
                         : kind === "partner_payment"
                         ? "Socio"
                         : "Proveedor"}
@@ -301,7 +313,9 @@ export default function PaymentsPage() {
                       <SelectContent>
                         {entities.map((e: any) => (
                           <SelectItem key={e.id} value={e.id}>
-                            {e.name || `${e.firstname || ""} ${e.lastname || ""}`.trim()}
+                            {kind === "credit_payment"
+                              ? `${e.name || "Cliente sin nombre"} · Saldo ${formatCurrency(Number(e.remainingBalance || 0))}`
+                              : e.name || `${e.firstname || ""} ${e.lastname || ""}`.trim()}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -498,4 +512,3 @@ export default function PaymentsPage() {
       </div>
     </div>
   );
-}
