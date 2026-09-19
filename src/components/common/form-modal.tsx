@@ -36,17 +36,19 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full sm:max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[92vh]">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">{title}</DialogTitle>
+      <DialogContent className="flex max-h-[95dvh] w-[min(100vw-1rem,56rem)] max-w-[calc(100vw-1rem)] flex-col gap-3 overflow-hidden rounded-[20px] border-white/10 bg-[#0b0f14] p-4 text-white sm:max-h-[92vh] sm:w-full sm:max-w-xl sm:rounded-2xl sm:p-6 md:max-w-3xl lg:max-w-4xl">
+        <DialogHeader className="shrink-0 space-y-1 pr-8">
+          <DialogTitle className="font-heading text-base font-semibold tracking-tight text-white sm:text-lg">
+            {title}
+          </DialogTitle>
           {description && (
-            <DialogDescription className="text-sm">
+            <DialogDescription className="text-xs text-white/45 sm:text-sm">
               {description}
             </DialogDescription>
           )}
         </DialogHeader>
-        <ScrollArea className="max-h-[72vh] pr-2 sm:max-h-[78vh]">
-          {children}
+        <ScrollArea className="min-h-0 flex-1 pr-2">
+          <div className="pb-2">{children}</div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
