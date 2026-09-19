@@ -2,7 +2,6 @@
 "use client";
 import React, { useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { restoreBodyInteraction } from "@/lib/cleanup-radix";
 
 interface FormModalProps {
@@ -47,9 +46,9 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
             </DialogDescription>
           )}
         </DialogHeader>
-        <ScrollArea className="min-h-0 flex-1 pr-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
           <div className="pb-2">{children}</div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
