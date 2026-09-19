@@ -99,7 +99,11 @@ export default function PaymentsPage() {
   const appliedByTarget = useMemo(() => {
     const map = new Map<string, number>();
     for (const link of links) {
-      const applied = Number(link.amount_applied ?? financialRecords.find(r => r.id === link.source_financial_record_id)?.amount ?? 0);
+      // Los vínculos históricos de un pago eliminado se conservan para trazabilidad,
+      // pero no deben seguir reduciendo el saldo pendiente del ingreso.
+      const sourceRecord = financialRecords.find(r => r.id === link.source_financial_record_id);
+      if (!sourceRecord || sourceRecord.isDeleted) continue;
+      const applied = Number(link.amount_applied ?? sourceRecord.amount ?? 0);
       if (applied > 0) map.set(link.target_financial_record_id, (map.get(link.target_financial_record_id) || 0) + applied);
     }
     return map;
@@ -117,7 +121,9 @@ export default function PaymentsPage() {
       if (link.relationship_type !== "security_deposit_application" && link.relationship_type !== "security_deposit_refund") continue;
       const deposit = financialRecords.find(r => r.id === link.target_financial_record_id);
       if (!deposit?.clientId || deposit.isDeleted || deposit.category !== SECURITY_DEPOSIT_CATEGORY) continue;
-      const applied = Number(link.amount_applied ?? financialRecords.find(r => r.id === link.source_financial_record_id)?.amount ?? 0);
+      const sourceRecord = financialRecords.find(r => r.id === link.source_financial_record_id);
+      if (!sourceRecord || sourceRecord.isDeleted) continue;
+      const applied = Number(link.amount_applied ?? sourceRecord.amount ?? 0);
       used.set(deposit.clientId, (used.get(deposit.clientId) || 0) + applied);
     }
     const result = new Map<string, number>();
