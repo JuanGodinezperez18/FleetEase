@@ -103,20 +103,70 @@ const structuredData = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       url: "https://www.fleetease.com.mx/",
-      description: "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar. Ideal para renta de vehículos y control de flotillas en México.",
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "MXN",
-        description: "Prueba gratuita durante 14 días, con 1 usuario y hasta 2 vehículos, sin tarjeta.",
-      },
+      description:
+        "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar. Ideal para renta de vehículos y control de flotillas en México.",
+      offers: [
+        {
+          "@type": "Offer",
+          name: "Free",
+          price: "0",
+          priceCurrency: "MXN",
+          description:
+            "Prueba gratuita durante 14 días. 1 usuario, hasta 2 vehículos, sin tarjeta ni compromiso.",
+          url: "https://www.fleetease.com.mx/registro",
+          availability: "https://schema.org/InStock",
+          priceValidUntil: "2027-12-31",
+        },
+        {
+          "@type": "Offer",
+          name: "Starter",
+          price: "299",
+          priceCurrency: "MXN",
+          description:
+            "Para flotillas pequeñas que comienzan. Hasta 5 vehículos, 1 usuario admin, gestión de clientes y vehículos, registro de ingresos y gastos, dashboard básico, soporte por email.",
+          url: "https://www.fleetease.com.mx/#pricing",
+          availability: "https://schema.org/InStock",
+          priceValidUntil: "2027-12-31",
+          billingDuration: "P1M",
+        },
+        {
+          "@type": "Offer",
+          name: "Pro",
+          price: "599",
+          priceCurrency: "MXN",
+          description:
+            "El más popular para renta de vehículos. Hasta 15 vehículos, 3 usuarios, rentabilidad por vehículo, alertas de mantenimiento, Client Score, reportes en Excel, soporte prioritario.",
+          url: "https://www.fleetease.com.mx/#pricing",
+          availability: "https://schema.org/InStock",
+          priceValidUntil: "2027-12-31",
+          billingDuration: "P1M",
+        },
+        {
+          "@type": "Offer",
+          name: "Enterprise",
+          price: "999",
+          priceCurrency: "MXN",
+          description:
+            "Para empresas que escalan. Vehículos y usuarios ilimitados, todas las features Pro, multi-empresa, API de integración, soporte 24/7, personalización de marca.",
+          url: "https://www.fleetease.com.mx/#pricing",
+          availability: "https://schema.org/InStock",
+          priceValidUntil: "2027-12-31",
+          billingDuration: "P1M",
+        },
+      ],
       featureList: [
         "Rentabilidad por vehículo",
         "Control de mantenimiento",
         "Gestión de clientes y asignaciones",
         "Seguimiento de ingresos y costos",
         "Alertas de vencimientos",
+        "Reportes en Excel",
+        "Client Score",
+        "Multi-empresa (Enterprise)",
       ],
+      provider: {
+        "@id": "https://www.fleetease.com.mx/#organization",
+      },
     },
     {
       "@type": "FAQPage",
@@ -143,7 +193,7 @@ const structuredData = {
           name: "¿Los planes dependen del número de vehículos?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Sí. Los planes están pensados para crecer contigo y aumentar la capacidad conforme crece tu flotilla.",
+            text: "Sí. Los planes están pensados para crecer contigo y aumentar la capacidad conforme crece tu flotilla. Free (2 vehículos), Starter (5), Pro (15), Enterprise (ilimitados).",
           },
         },
         {
