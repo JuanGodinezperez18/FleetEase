@@ -181,6 +181,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const selectedClientId = useWatch({ control, name: "clientId" });
   const formCompanyId = useWatch({ control, name: "companyId" });
   const selectedVehicleId = useWatch({ control, name: "vehicleId" });
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
   const watchedItems = useWatch({ control, name: "items", defaultValue: defaultValues.items });
 
   const handleInvalidSubmit = () => {
@@ -246,8 +247,8 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
 
   const selectedCategory = useMemo(
-    () => expenseCategories.find(category => category.id === form.getValues("categoryId")) || null,
-    [expenseCategories, form]
+    () => expenseCategories.find(category => category.id === selectedCategoryId) || null,
+    [expenseCategories, selectedCategoryId]
   );
 
   useEffect(() => {
