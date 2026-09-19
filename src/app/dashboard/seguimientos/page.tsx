@@ -1,22 +1,30 @@
-// app/dashboard/seguimientos/page.tsx
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
 import { useData } from '@/hooks/use-data';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Camera, MapPin, Calendar, User, Car, ChevronLeft, ChevronRight, Search, Download } from 'lucide-react';
+import {
+  Camera,
+  MapPin,
+  User,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Download,
+  RefreshCw,
+  ImageIcon,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MetricCard } from '@/components/dashboard/components/MetricCard';
 
 interface Seguimiento {
   id: string;
@@ -49,19 +57,15 @@ export default function SeguimientosPage() {
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
-
     try {
       setLoading(true);
-
       const { data, error } = await supabase
         .from('seguimientos')
         .select('*')
         .eq('company_id', currentUser.companyId)
         .order('timestamp', { ascending: false })
         .limit(100);
-
       if (error) throw error;
-
       setSeguimientos((data || []) as Seguimiento[]);
     } catch (error) {
       console.error('Error cargando seguimientos:', error);
@@ -72,9 +76,7 @@ export default function SeguimientosPage() {
   }, [currentUser?.companyId]);
 
   useEffect(() => {
-    if (currentUser?.companyId) {
-      loadSeguimientos();
-    }
+    if (currentUser?.companyId) loadSeguimientos();
   }, [loadSeguimientos, currentUser?.companyId]);
 
   const filteredSeguimientos = useMemo(() => {
@@ -83,25 +85,35 @@ export default function SeguimientosPage() {
       const client = clients?.find(c => c.id === seg.client_id);
       const vehicleAlias = vehicle?.alias || vehicle?.plate || 'Desconocido';
       const clientName = client ? `${client.firstname} ${client.lastname}` : 'Desconocido';
-
       const matchesSearch =
         clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vehicleAlias.toLowerCase().includes(searchTerm.toLowerCase()) ||
         seg.description?.toLowerCase().includes(searchTerm.toLowerCase());
-
       const matchesVehicle = selectedVehicle === 'all' || seg.vehicle_id === selectedVehicle;
-
       return matchesSearch && matchesVehicle;
     });
   }, [seguimientos, searchTerm, selectedVehicle, vehicles, clients]);
 
   const paginatedSeguimientos = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    return filteredSeguimientos.slice(start, end);
+    return filteredSeguimientos.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredSeguimientos, page]);
 
-  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
+
+  const stats = useMemo(() => {
+    const withLocation = seguimientos.filter(s => s.latitude && s.longitude).length;
+    const uniqueVehicles = new Set(seguimientos.map(s => s.vehicle_id)).size;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayCount = seguimientos.filter(s => new Date(s.timestamp) >= today).length;
+    return {
+      total: seguimientos.length,
+      withLocation,
+      uniqueVehicles,
+      todayCount,
+    };
+  }, [seguimientos]);
 
   const openGoogleMaps = (lat: number, lng: number) => {
     window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
@@ -117,191 +129,242 @@ export default function SeguimientosPage() {
       link.click();
       URL.revokeObjectURL(link.href);
       toast.success('Imagen descargada');
-    } catch (error) {
+    } catch {
       toast.error('Error al descargar imagen');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Seguimientos</h1>
-          <p className="text-muted-foreground">Historial fotográfico de vehículos</p>
-        </div>
-        <Button onClick={loadSeguimientos} variant="outline">
-          <Camera className="h-4 w-4 mr-2" />
-          Actualizar
-        </Button>
-      </div>
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cliente, vehículo o descripción..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-10"
-              />
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              Operación
             </div>
-            <Select value={selectedVehicle} onValueChange={(value) => {
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+              Seguimientos fotográficos
+            </h1>
+            <p className="mt-1 text-sm text-white/40">Historial de fotos de la flota</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+              <Camera className="h-5 w-5" strokeWidth={1.75} />
+            </div>
+            <Button
+              onClick={loadSeguimientos}
+              variant="outline"
+              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Actualizar
+            </Button>
+          </div>
+        </header>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            title="Total"
+            value={String(stats.total)}
+            description="Registros"
+            icon={<Camera className="h-5 w-5" strokeWidth={1.75} />}
+          />
+          <MetricCard
+            title="Hoy"
+            value={String(stats.todayCount)}
+            description="Capturas del día"
+            icon={<ImageIcon className="h-5 w-5" strokeWidth={1.75} />}
+          />
+          <MetricCard
+            title="Vehículos"
+            value={String(stats.uniqueVehicles)}
+            description="Con seguimiento"
+            icon={<Car className="h-5 w-5" strokeWidth={1.75} />}
+          />
+          <MetricCard
+            title="Con ubicación"
+            value={String(stats.withLocation)}
+            description="GPS disponible"
+            icon={<MapPin className="h-5 w-5" strokeWidth={1.75} />}
+          />
+        </div>
+
+        {/* Filtros */}
+        <div className="flex flex-col gap-3 rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 sm:flex-row sm:p-5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" strokeWidth={1.75} />
+            <Input
+              placeholder="Buscar cliente, vehículo o descripción..."
+              value={searchTerm}
+              onChange={e => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              className="border-white/10 bg-white/[0.03] pl-10 text-white"
+            />
+          </div>
+          <Select
+            value={selectedVehicle}
+            onValueChange={value => {
               setSelectedVehicle(value);
               setPage(1);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por vehículo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los vehículos</SelectItem>
-                {vehicles?.filter(v => !v.isDeleted).map(v => (
+            }}
+          >
+            <SelectTrigger className="w-full border-white/10 bg-white/[0.03] text-white sm:w-[220px]">
+              <SelectValue placeholder="Vehículo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los vehículos</SelectItem>
+              {vehicles
+                ?.filter(v => !v.isDeleted)
+                .map(v => (
                   <SelectItem key={v.id} value={v.id}>
                     {v.alias || v.plate}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Grid de Seguimientos */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i}>
-              <Skeleton className="h-64 w-full" />
-              <CardContent className="pt-4 space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </CardContent>
-            </Card>
-          ))}
+            </SelectContent>
+          </Select>
         </div>
-      ) : paginatedSeguimientos.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Camera className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-semibold mb-2">No se encontraron seguimientos</p>
-            <p className="text-muted-foreground text-center">
-              {searchTerm || selectedVehicle !== 'all'
-                ? 'Intenta ajustar los filtros de búsqueda'
-                : 'Los seguimientos fotográficos aparecerán aquí'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {paginatedSeguimientos.map((seg) => {
-              const vehicle = vehicles?.find(v => v.id === seg.vehicle_id);
-              const client = clients?.find(c => c.id === seg.client_id);
-              const vehicleAlias = vehicle?.alias || vehicle?.plate || 'Desconocido';
-              const clientName = client ? `${client.firstname} ${client.lastname}` : 'Desconocido';
-              return (
-                <Card key={seg.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                  <div
-                    className="relative h-48 bg-gray-100 group"
-                    onClick={() => setSelectedImage({ ...seg, vehicleAlias, clientName })}
-                  >
-                    <Image
-                      src={seg.photo_url}
-                      alt={`Seguimiento de ${vehicleAlias}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                      <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <CardContent className="pt-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs">
-                        <Car className="h-3 w-3 mr-1" />
-                        {vehicleAlias}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(seg.timestamp), 'dd MMM', { locale: es })}
-                      </span>
-                    </div>
 
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span className="truncate">{clientName}</span>
-                    </div>
-
-                    {seg.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {seg.description}
-                      </p>
-                    )}
-
-                    {seg.latitude && seg.longitude && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openGoogleMaps(seg.latitude!, seg.longitude!);
-                        }}
-                      >
-                        <MapPin className="h-3 w-3 mr-2" />
-                        Ver ubicación
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {/* Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0e1117]"
+              >
+                <div className="h-44 animate-pulse bg-white/[0.04]" />
+                <div className="space-y-2 p-4">
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-white/[0.06]" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-white/[0.04]" />
+                </div>
+              </div>
+            ))}
           </div>
-
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+        ) : paginatedSeguimientos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[20px] border border-white/[0.07] bg-[#0e1117] py-14 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.03] text-white/30">
+              <Camera className="h-7 w-7" strokeWidth={1.75} />
             </div>
-          )}
-        </>
-      )}
+            <h3 className="font-heading text-lg font-semibold text-white">Sin seguimientos</h3>
+            <p className="mt-1 max-w-sm text-sm text-white/40">
+              {searchTerm || selectedVehicle !== 'all'
+                ? 'Ajusta los filtros de búsqueda'
+                : 'Las fotos de seguimiento aparecerán aquí'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {paginatedSeguimientos.map(seg => {
+                const vehicle = vehicles?.find(v => v.id === seg.vehicle_id);
+                const client = clients?.find(c => c.id === seg.client_id);
+                const vehicleAlias = vehicle?.alias || vehicle?.plate || 'Desconocido';
+                const clientName = client
+                  ? `${client.firstname} ${client.lastname}`
+                  : 'Desconocido';
+                return (
+                  <article
+                    key={seg.id}
+                    className="group overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0e1117] transition-colors hover:border-white/[0.12]"
+                  >
+                    <button
+                      type="button"
+                      className="relative block h-44 w-full overflow-hidden bg-white/[0.03]"
+                      onClick={() => setSelectedImage({ ...seg, vehicleAlias, clientName })}
+                    >
+                      <Image
+                        src={seg.photo_url}
+                        alt={`Seguimiento de ${vehicleAlias}`}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+                        <Camera
+                          className="h-8 w-8 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          strokeWidth={1.75}
+                        />
+                      </div>
+                    </button>
+                    <div className="space-y-2 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
+                          <Car className="h-3 w-3" strokeWidth={1.75} />
+                          {vehicleAlias}
+                        </span>
+                        <span className="text-[11px] text-white/35">
+                          {format(new Date(seg.timestamp), 'dd MMM', { locale: es })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-white/45">
+                        <User className="h-3 w-3 shrink-0" strokeWidth={1.75} />
+                        <span className="truncate">{clientName}</span>
+                      </div>
+                      {seg.description && (
+                        <p className="line-clamp-2 text-xs text-white/35">{seg.description}</p>
+                      )}
+                      {seg.latitude != null && seg.longitude != null && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-full rounded-lg text-xs text-white/50 hover:bg-white/[0.06] hover:text-white"
+                          onClick={e => {
+                            e.stopPropagation();
+                            openGoogleMaps(seg.latitude!, seg.longitude!);
+                          }}
+                        >
+                          <MapPin className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
+                          Ver ubicación
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
 
-      {/* Modal de imagen */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
+                </Button>
+                <span className="text-sm text-white/50">
+                  Página {page} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl border-white/10 bg-[#0e1117] text-white">
           <DialogHeader>
-            <DialogTitle>Detalles del Seguimiento</DialogTitle>
+            <DialogTitle className="font-heading text-white">Detalle del seguimiento</DialogTitle>
           </DialogHeader>
           {selectedImage && (
             <div className="space-y-4">
-              <div className="relative h-96 bg-gray-100 rounded-lg overflow-hidden">
+              <div className="relative h-72 overflow-hidden rounded-[16px] bg-white/[0.03] sm:h-96">
                 <Image
                   src={selectedImage.photo_url}
                   alt="Seguimiento"
@@ -311,30 +374,40 @@ export default function SeguimientosPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Vehículo</p>
-                  <p className="text-lg font-semibold">{selectedImage.vehicleAlias}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cliente</p>
-                  <p className="text-lg font-semibold">{selectedImage.clientName}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fecha</p>
-                  <p className="text-lg font-semibold">
-                    {format(new Date(selectedImage.timestamp), "dd 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Vehículo</p>
+                  <p className="mt-0.5 font-heading text-base font-semibold text-white">
+                    {selectedImage.vehicleAlias}
                   </p>
                 </div>
-                {selectedImage.latitude && selectedImage.longitude && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Cliente</p>
+                  <p className="mt-0.5 font-heading text-base font-semibold text-white">
+                    {selectedImage.clientName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Fecha</p>
+                  <p className="mt-0.5 text-sm text-white/80">
+                    {format(new Date(selectedImage.timestamp), "dd 'de' MMMM, yyyy 'a las' HH:mm", {
+                      locale: es,
+                    })}
+                  </p>
+                </div>
+                {selectedImage.latitude != null && selectedImage.longitude != null && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Ubicación</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                      Ubicación
+                    </p>
                     <Button
                       variant="link"
-                      className="p-0 h-auto"
-                      onClick={() => openGoogleMaps(selectedImage.latitude!, selectedImage.longitude!)}
+                      className="h-auto p-0 text-[#d7ff3f] hover:text-[#d7ff3f]/80"
+                      onClick={() =>
+                        openGoogleMaps(selectedImage.latitude!, selectedImage.longitude!)
+                      }
                     >
-                      <MapPin className="h-4 w-4 mr-1" />
+                      <MapPin className="mr-1 h-4 w-4" strokeWidth={1.75} />
                       Ver en mapa
                     </Button>
                   </div>
@@ -343,29 +416,40 @@ export default function SeguimientosPage() {
 
               {selectedImage.description && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Descripción</p>
-                  <p className="text-sm bg-gray-50 p-3 rounded-lg">{selectedImage.description}</p>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                    Descripción
+                  </p>
+                  <p className="rounded-[12px] border border-white/[0.06] bg-white/[0.03] p-3 text-sm text-white/60">
+                    {selectedImage.description}
+                  </p>
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
-                  onClick={() => downloadImage(
-                    selectedImage.photo_url,
-                    `seguimiento_${selectedImage.vehicleAlias}_${format(new Date(selectedImage.timestamp), 'yyyyMMdd')}.jpg`
-                  )}
-                  className="flex-1"
+                  onClick={() =>
+                    downloadImage(
+                      selectedImage.photo_url,
+                      `seguimiento_${selectedImage.vehicleAlias}_${format(
+                        new Date(selectedImage.timestamp),
+                        'yyyyMMdd'
+                      )}.jpg`
+                    )
+                  }
+                  className="h-10 flex-1 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="mr-2 h-4 w-4" strokeWidth={1.75} />
                   Descargar
                 </Button>
-                {selectedImage.latitude && selectedImage.longitude && (
+                {selectedImage.latitude != null && selectedImage.longitude != null && (
                   <Button
                     variant="outline"
-                    onClick={() => openGoogleMaps(selectedImage.latitude!, selectedImage.longitude!)}
-                    className="flex-1"
+                    onClick={() =>
+                      openGoogleMaps(selectedImage.latitude!, selectedImage.longitude!)
+                    }
+                    className="h-10 flex-1 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
                   >
-                    <MapPin className="h-4 w-4 mr-2" />
+                    <MapPin className="mr-2 h-4 w-4" strokeWidth={1.75} />
                     Abrir en Maps
                   </Button>
                 )}
