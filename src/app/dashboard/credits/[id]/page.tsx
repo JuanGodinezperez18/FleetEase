@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useData } from "@/hooks/use-data";
-import { supabase } from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -12,11 +11,8 @@ import { useMemo, useState } from "react";
 import { DataTable } from "@/components/common/data-table";
 import type { CreditPaymentSchedule } from "@/types";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Check, Ban, Clock, DollarSign, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Ban, Clock } from "lucide-react";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -34,10 +30,6 @@ export default function CreditDetailPage() {
   const { credits, clients, vehicles, financialRecords, creditPaymentSchedules, financialCategories, selectedCompanyId } =
     useData();
 
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("transferencia");
-  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const credit = useMemo(() => credits.find(c => c.id === creditId), [credits, creditId]);
   const client = useMemo(() => clients.find(c => c.id === credit?.clientId), [clients, credit]);
@@ -138,73 +130,6 @@ export default function CreditDetailPage() {
   const progress = credit.totalAmount > 0 ? ((credit.paidAmount || 0) / credit.totalAmount) * 100 : 0;
   const statusClass = STATUS_STYLES[credit.status] || STATUS_STYLES.inactive;
 
-  const handleOpenPaymentDialog = () => {
-    const nextPending = schedule.find(s => s.status === "pending");
-    setPaymentAmount(
-      nextPending
-        ? String(Math.max(0, nextPending.amount - Number(nextPending.paidAmount || 0)))
-        : credit.remainingBalance
-          ? String(Math.min(credit.remainingBalance, credit.weeklyPayment || credit.remainingBalance))
-          : ""
-    );
-    setPaymentMethod("transferencia");
-    setIsPaymentDialogOpen(true);
-  };
-
-  const handleRegisterPayment = async () => {
-    const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) {
-      toast({ variant: "destructive", title: "Monto inválido", description: "Ingresa un monto mayor a 0." });
-      return;
-    }
-    if (amount > (credit.remainingBalance || 0)) {
-      toast({
-        variant: "destructive",
-        title: "El monto excede el saldo",
-        description: `Saldo restante: ${formatCurrency(credit.remainingBalance || 0)}.`,
-      });
-      return;
-    }
-    if (!selectedCompanyId) {
-      toast({ variant: "destructive", title: "Empresa no seleccionada" });
-      return;
-    }
-
-    setIsSubmittingPayment(true);
-    try {
-      const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
-        p_company_id: selectedCompanyId,
-        p_credit_id: credit.id,
-        p_client_id: credit.clientId,
-        p_amount: amount,
-        p_payment_date: new Date().toISOString().slice(0, 10),
-        p_payment_method: paymentMethod,
-        p_reference: null,
-        p_created_by: null,
-      } as any);
-      if (error) throw error;
-      if (!data) throw new Error("No se pudo registrar el pago.");
-      toast({
-        title: "Pago registrado",
-        description:
-          amount >= (credit.remainingBalance || 0)
-            ? "Crédito completado."
-            : "Aplicado a cuotas pendientes.",
-      });
-      setIsPaymentDialogOpen(false);
-      setPaymentAmount("");
-      router.refresh();
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error al registrar el pago",
-        description: error?.message || "No se pudo registrar el pago.",
-      });
-    } finally {
-      setIsSubmittingPayment(false);
-    }
-  };
-
   return (
     <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
@@ -239,11 +164,10 @@ export default function CreditDetailPage() {
               </span>
               {credit.status === "active" && (credit.remainingBalance || 0) > 0 && (
                 <Button
-                  onClick={handleOpenPaymentDialog}
+                  onClick={() => router.push("/dashboard/finanzas/payments")}
                   className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                 >
-                  <DollarSign className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
-                  Registrar pago
+                  Registrar pago en Pagos
                 </Button>
               )}
             </div>
@@ -321,49 +245,6 @@ export default function CreditDetailPage() {
         </section>
       </div>
 
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar pago de crédito</DialogTitle>
-            <DialogDescription>Se aplicará a las cuotas pendientes en orden.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="paymentAmount">Monto</Label>
-              <Input
-                id="paymentAmount"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={paymentAmount}
-                onChange={e => setPaymentAmount(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Método</Label>
-              <select
-                className="h-10 w-full rounded-md border border-input bg-background px-3"
-                value={paymentMethod}
-                onChange={e => setPaymentMethod(e.target.value)}
-              >
-                <option value="transferencia">Transferencia</option>
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta</option>
-                <option value="cheque">Cheque</option>
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} disabled={isSubmittingPayment}>
-              Cancelar
-            </Button>
-            <Button onClick={handleRegisterPayment} disabled={isSubmittingPayment}>
-              {isSubmittingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-              Registrar pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
