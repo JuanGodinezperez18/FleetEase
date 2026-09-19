@@ -14,7 +14,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fleetease.com.mx"),
+  metadataBase: new URL("https://www.fleetease.com.mx"),
   title: {
     default: "FleetEase | Software de Gestión de Flotillas en México",
     template: "%s | FleetEase",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_MX",
-    url: "https://fleetease.com.mx/",
+    url: "https://www.fleetease.com.mx/",
     siteName: "FleetEase",
     title: "FleetEase | Software de Gestión de Flotillas en México",
     description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Prueba gratis 14 días, sin tarjeta.",
@@ -89,20 +89,20 @@ const structuredData = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://fleetease.com.mx/#organization",
+      "@id": "https://www.fleetease.com.mx/#organization",
       name: "FleetEase",
-      url: "https://fleetease.com.mx/",
-      logo: "https://fleetease.com.mx/logo.png",
+      url: "https://www.fleetease.com.mx/",
+      logo: "https://www.fleetease.com.mx/logo.png",
       description: "Software de gestión de flotillas y renta de vehículos para operadores en México.",
       sameAs: [],
     },
     {
       "@type": "SoftwareApplication",
-      "@id": "https://fleetease.com.mx/#software",
+      "@id": "https://www.fleetease.com.mx/#software",
       name: "FleetEase",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
-      url: "https://fleetease.com.mx/",
+      url: "https://www.fleetease.com.mx/",
       description: "Software para gestionar flotillas de vehículos: clientes, rentabilidad, mantenimiento, créditos y operación desde un solo lugar. Ideal para renta de vehículos y control de flotillas en México.",
       offers: {
         "@type": "Offer",
@@ -120,7 +120,7 @@ const structuredData = {
     },
     {
       "@type": "FAQPage",
-      "@id": "https://fleetease.com.mx/#faq",
+      "@id": "https://www.fleetease.com.mx/#faq",
       mainEntity: [
         {
           "@type": "Question",
