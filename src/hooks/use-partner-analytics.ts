@@ -40,7 +40,9 @@ export const usePartnerAnalytics = (
 
       // Utilidad de negocio: solo ingresos reales de renta. Los depósitos en
       // garantía no son ingreso y no deben inflar la rentabilidad del socio.
-      const totalIncome = sumRentalIncome(recordsForPartner);
+      const totalIncome = sumRentalIncome(
+        recordsForPartner.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')
+      );
       const totalExpenses = sumExpense(recordsForPartner.filter(r => r.category !== PARTNER_PAYMENT_CATEGORY));
       const netProfit = totalIncome - totalExpenses;
       const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : (netProfit < 0 ? -100 : 0);
