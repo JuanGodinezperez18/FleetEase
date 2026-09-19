@@ -1,11 +1,10 @@
-
 "use client";
 
 import type { Partner } from '@/types';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Car } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Car, Eye, Edit, Trash2, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DataTableColumnHeader } from '@/components/common/data-table-column-header';
 import React from 'react';
@@ -20,6 +19,13 @@ type ActionsProps = {
   handleDeleteConfirm: (partner: Partner) => void;
 };
 
+const menuContentClass =
+  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
+const menuItemClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
+const menuItemDangerClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-rose-400 focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
+
 const PartnerActions: React.FC<ActionsProps> = ({ row, handleOpenModal, handleDeleteConfirm }) => {
     const item = row.original;
     const router = useRouter();
@@ -32,16 +38,25 @@ const PartnerActions: React.FC<ActionsProps> = ({ row, handleOpenModal, handleDe
                     <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => router.push(`/dashboard/partners/${item.id}`)}>
-                    Ver Dashboard
+            <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
+                <DropdownMenuLabel className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                  Acciones
+                </DropdownMenuLabel>
+                <DropdownMenuItem className={menuItemClass} onSelect={() => router.push(`/dashboard/partners/${item.id}`)}>
+                    <Eye className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                    Ver dashboard
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOpenModal(item)}>Editar</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(`/dashboard/finanzas?partnerId=${item.id}`)}>
-                    Ver Transacciones
+                <DropdownMenuItem className={menuItemClass} onSelect={() => handleOpenModal(item)}>
+                    <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                    Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDeleteConfirm(item)} className="text-destructive focus:text-destructive">
+                <DropdownMenuItem className={menuItemClass} onSelect={() => router.push(`/dashboard/finanzas?partnerId=${item.id}`)}>
+                    <DollarSign className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                    Transacciones
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1.5 bg-white/10" />
+                <DropdownMenuItem className={menuItemDangerClass} onSelect={() => handleDeleteConfirm(item)}>
+                    <Trash2 className="mr-2.5 h-4 w-4" strokeWidth={1.75} />
                     Eliminar
                 </DropdownMenuItem>
             </DropdownMenuContent>
