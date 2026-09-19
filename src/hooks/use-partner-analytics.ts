@@ -3,9 +3,7 @@
 
 import { useRef } from 'react';
 import type { Partner, Vehicle, FinancialRecord } from '@/types';
-import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
-
-const PARTNER_PAYMENT_CATEGORY = "Pago a Socio";
+import { calculatePartnerProfitability } from '@/lib/financial-metrics';
 
 export type PartnerMetric = {
   partnerId: string;
@@ -38,13 +36,10 @@ export const usePartnerAnalytics = (
       const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
       const recordsForPartner = financialRecords.filter(record => partnerVehicleIds.has(record.vehicleId || '') && !record.isDeleted);
 
-      // Utilidad de negocio: solo ingresos reales de renta. Los depósitos en
-      // garantía no son ingreso y no deben inflar la rentabilidad del socio.
-      const totalIncome = sumRentalIncome(
-        recordsForPartner.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')
-      );
-      const totalExpenses = sumExpense(recordsForPartner.filter(r => r.category !== PARTNER_PAYMENT_CATEGORY));
-      const netProfit = totalIncome - totalExpenses;
+      const profitability = calculatePartnerProfitability(partnerVehicles, recordsForPartner);
+      const totalIncome = profitability.totalIncome;
+      const totalExpenses = profitability.totalExpenses;
+      const netProfit = profitability.netProfit;
       const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : (netProfit < 0 ? -100 : 0);
 
       let performanceLevel: PartnerMetric['performanceLevel'];
