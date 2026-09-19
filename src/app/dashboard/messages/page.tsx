@@ -38,10 +38,10 @@ export default function MessagesPage() {
           <div>
             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Operaci\u00f3n
+              Operación
             </div>
             <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
-              Mensajer\u00eda
+              Mensajería
             </h1>
             <p className="mt-1 text-sm text-white/40">
               Comunicaciones personalizadas a clientes, socios y usuarios
