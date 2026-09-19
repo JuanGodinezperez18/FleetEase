@@ -1,4 +1,3 @@
-// components/layout/header.tsx
 'use client';
 
 import { useAuth } from '@/contexts/auth-provider';
@@ -15,7 +14,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, LogOut, Settings, User, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { useData } from '@/hooks/use-data';
 import { useState } from 'react';
 import { NotificationsPopover } from '@/components/notifications/notifications-popover';
@@ -34,10 +32,10 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success('Sesión cerrada exitosamente');
+      toast.success('Sesi\u00f3n cerrada exitosamente');
       router.push('/login');
-    } catch (error) {
-      toast.error('Error al cerrar sesión');
+    } catch {
+      toast.error('Error al cerrar sesi\u00f3n');
     }
   };
 
@@ -56,6 +54,7 @@ export function Header() {
       partner: 'Socio',
       client: 'Cliente',
       superAdmin: 'Super Admin',
+      viewer: 'Visualizador',
     };
     return labels[role] || role;
   };
@@ -74,51 +73,55 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/[0.07] bg-[#080a0f]/85 px-4 backdrop-blur-xl md:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#080a0f]/90 px-4 backdrop-blur-2xl sm:h-16 md:px-6">
+      {/* Mobile menu trigger (partner/client layouts) */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild className="md:hidden">
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-10 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            aria-label="Abrir men\u00fa"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" strokeWidth={1.75} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 border-white/[0.07] bg-[#0e1117] p-0 text-white">
-          <div className="p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/40">Navegación</p>
-            <p className="mt-2 text-sm text-white/60">El menú principal está disponible en la navegación del dashboard.</p>
+        <SheetContent side="left" className="w-72 border-white/[0.06] bg-[#080a0f] p-0 text-white">
+          <div className="border-b border-white/[0.06] px-5 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              FleetEase
+            </div>
+            <p className="font-heading text-base font-semibold text-white">Navegaci\u00f3n</p>
+            <p className="mt-1 text-xs text-white/40">Usa el men\u00fa lateral para moverte entre m\u00f3dulos.</p>
           </div>
         </SheetContent>
       </Sheet>
 
+      {/* Brand */}
       <div className="flex items-center gap-3">
-        <div className="hidden h-8 w-1 rounded-full bg-[#d7ff3f] shadow-[0_0_18px_rgba(215,255,63,0.35)] md:block" />
+        <div className="hidden h-7 w-1 rounded-full bg-[#d7ff3f] shadow-[0_0_14px_rgba(215,255,63,0.4)] sm:block" />
         <div>
-          <h1 className="hidden font-heading text-lg font-semibold tracking-tight text-white md:block">
-            FleetEase <span className="text-[#d7ff3f]">Manager</span>
-          </h1>
-          <h1 className="font-heading text-base font-semibold tracking-tight text-white md:hidden">
+          <h1 className="font-heading text-base font-semibold tracking-[-0.03em] text-white sm:text-lg">
             FleetEase <span className="text-[#d7ff3f]">Manager</span>
           </h1>
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-2">
         <NotificationsPopover>
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-10 w-10 rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/65 transition-all hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white"
+            className="relative h-10 w-10 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/65 transition-all hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white"
+            aria-label="Notificaciones"
           >
-            <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
             {unreadCount > 0 && (
-              <Badge
-                className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-[#080a0f] bg-[#d7ff3f] p-0 px-1 text-[10px] font-bold text-[#080a0f] shadow-[0_0_12px_rgba(215,255,63,0.35)]"
-              >
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-[#080a0f] bg-[#d7ff3f] px-1 text-[10px] font-bold text-[#080a0f] shadow-[0_0_12px_rgba(215,255,63,0.35)]">
                 {unreadCount > 9 ? '9+' : unreadCount}
-              </Badge>
+              </span>
             )}
           </Button>
         </NotificationsPopover>
@@ -127,10 +130,10 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-10 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2 text-white hover:border-white/[0.12] hover:bg-white/[0.06]"
+              className="relative h-10 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-2 text-white hover:border-white/[0.12] hover:bg-white/[0.06]"
             >
-              <Avatar className="h-8 w-8 border border-[#d7ff3f]/30">
-                <AvatarFallback className="bg-[#151a21] text-xs font-semibold text-[#d7ff3f]">
+              <Avatar className="h-8 w-8 border border-[#d7ff3f]/25">
+                <AvatarFallback className="bg-[#d7ff3f]/[0.12] text-xs font-semibold text-[#d7ff3f]">
                   {currentUser?.name ? getInitials(currentUser.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -159,23 +162,23 @@ export function Header() {
               onClick={() => router.push('/profile')}
               className="cursor-pointer rounded-lg text-white/70 focus:bg-white/[0.06] focus:text-white"
             >
-              <User className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.8} />
+              <User className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
               <span>Mi Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSettingsClick}
               className="cursor-pointer rounded-lg text-white/70 focus:bg-white/[0.06] focus:text-white"
             >
-              <Settings className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.8} />
-              <span>Configuración</span>
+              <Settings className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+              <span>Configuraci\u00f3n</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/[0.07]" />
             <DropdownMenuItem
               onClick={handleLogout}
               className="cursor-pointer rounded-lg text-rose-400 focus:bg-rose-500/10 focus:text-rose-300"
             >
-              <LogOut className="mr-2 h-4 w-4" strokeWidth={1.8} />
-              <span>Cerrar Sesión</span>
+              <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              <span>Cerrar Sesi\u00f3n</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
