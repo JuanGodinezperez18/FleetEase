@@ -1,52 +1,46 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useData } from '@/hooks/use-data';
-import { useAuth } from '@/contexts/auth-provider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Building } from 'lucide-react';
+import React, { useMemo } from "react";
+import { useData } from "@/hooks/use-data";
+import { useAuth } from "@/contexts/auth-provider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building } from "lucide-react";
 
 export function CompanySwitcher() {
   const { companies, selectedCompanyId, setSelectedCompanyId } = useData();
   const { currentUser } = useAuth();
-  
+
   const sortedCompanies = useMemo(() => {
     return [...companies].sort((a, b) => a.name.localeCompare(b.name));
   }, [companies]);
 
   const handleValueChange = (value: string) => {
-    setSelectedCompanyId(value === 'all' ? null : value);
+    setSelectedCompanyId(value === "all" ? null : value);
   };
-  
+
   const selectedCompanyName = useMemo(() => {
-    if (!selectedCompanyId) return 'Todas las Empresas';
-    return companies.find(c => c.id === selectedCompanyId)?.name || 'Seleccionar Empresa';
+    if (!selectedCompanyId) return "Todas las empresas";
+    return companies.find(c => c.id === selectedCompanyId)?.name || "Seleccionar empresa";
   }, [selectedCompanyId, companies]);
 
-  if (currentUser?.role !== 'superAdmin') {
+  if (currentUser?.role !== "superAdmin") {
     return null;
   }
 
   return (
     <div className="w-full">
-      <Select value={selectedCompanyId || 'all'} onValueChange={handleValueChange}>
-        <SelectTrigger className="w-full h-11 bg-sidebar-accent border-sidebar-border focus:ring-sidebar-ring">
+      <Select value={selectedCompanyId || "all"} onValueChange={handleValueChange}>
+        <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30">
           <div className="flex items-center gap-2 truncate">
-              <Building className="h-4 w-4 shrink-0" />
-              <SelectValue asChild>
-                <span className="truncate">{selectedCompanyName}</span>
-              </SelectValue>
+            <Building className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} />
+            <SelectValue asChild>
+              <span className="truncate text-sm">{selectedCompanyName}</span>
+            </SelectValue>
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas las Empresas</SelectItem>
-          {sortedCompanies.map((company) => (
+          <SelectItem value="all">Todas las empresas</SelectItem>
+          {sortedCompanies.map(company => (
             <SelectItem key={company.id} value={company.id}>
               {company.name}
             </SelectItem>
