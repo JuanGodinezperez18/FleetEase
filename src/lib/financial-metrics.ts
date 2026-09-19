@@ -88,6 +88,74 @@ export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filt
 export const sumVehicleSales = (records: FinancialRecord[]): number =>
   sumAmount(records.filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true));
 
+export interface PartnerProfitability {
+  rentalIncome: number;
+  vehicleSales: number;
+  vehicleSalesCost: number;
+  operatingExpenses: number;
+  rentalVehicleAcquisitionCost: number;
+  totalIncome: number;
+  totalExpenses: number;
+  netProfit: number;
+}
+
+/**
+ * Rentabilidad acumulada de un socio.
+ *
+ * - Vehículos de renta: las rentas generan ingreso, los gastos reducen la
+ *   rentabilidad y el costo de adquisición se considera inversión pendiente
+ *   de recuperar. Por eso un vehículo nuevo puede mostrar rentabilidad negativa
+ *   durante su etapa inicial de recuperación.
+ * - Vehículos vendidos a crédito: se reconoce la venta una sola vez y se resta
+ *   el costo de adquisición para obtener la utilidad de la venta. Los cobros
+ *   posteriores del crédito NO vuelven a generar rentabilidad.
+ * - Los pagos al socio no reducen la rentabilidad; reducen su saldo pendiente.
+ */
+export const calculatePartnerProfitability = (
+  partnerVehicles: Vehicle[],
+  records: FinancialRecord[]
+): PartnerProfitability => {
+  const activeRecords = records.filter(isActiveRecord);
+  const rentalIncome = sumRentalIncome(
+    activeRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')
+  );
+  const saleRecords = activeRecords.filter(r => isIncome(r) && r.creditGranted === true && r.vehicleId);
+  const vehicleSales = sumAmount(saleRecords);
+
+  const soldVehicleIds = new Set(saleRecords.map(r => r.vehicleId).filter(Boolean) as string[]);
+  const vehicleById = new Map(partnerVehicles.map(v => [v.id, v]));
+
+  // El costo de cada vehículo vendido se reconoce una sola vez, aunque exista
+  // más de un registro relacionado con la operación.
+  const vehicleSalesCost = Array.from(soldVehicleIds).reduce(
+    (sum, vehicleId) => sum + (Number(vehicleById.get(vehicleId)?.cost) || 0),
+    0
+  );
+
+  // Para vehículos que siguen siendo de renta, el costo de adquisición es la
+  // inversión que todavía debe recuperarse con las rentas acumuladas.
+  const rentalVehicleAcquisitionCost = partnerVehicles
+    .filter(v => !soldVehicleIds.has(v.id))
+    .reduce((sum, v) => sum + (Number(v.cost) || 0), 0);
+
+  const operatingExpenses = sumExpense(
+    activeRecords.filter(r => r.category !== 'Pago a Socio')
+  );
+  const totalIncome = rentalIncome + vehicleSales;
+  const totalExpenses = operatingExpenses + vehicleSalesCost + rentalVehicleAcquisitionCost;
+
+  return {
+    rentalIncome,
+    vehicleSales,
+    vehicleSalesCost,
+    operatingExpenses,
+    rentalVehicleAcquisitionCost,
+    totalIncome,
+    totalExpenses,
+    netProfit: totalIncome - totalExpenses,
+  };
+};
+
 /**
  * Ingreso operativo por renta/servicios. Excluye ventas financiadas y depósitos.
  */
