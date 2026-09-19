@@ -72,7 +72,9 @@ function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileage
 export function calculatePartnerBalance(partner: DomainPartner, partnerVehicles: DomainVehicle[], financialRecords: DomainFinancialRecord[]): number {
   const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
   const totalIncome = financialRecords
-    .filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && !r.isDeleted)
+    // El ingreso generado automáticamente por administración pertenece a la
+    // empresa; no forma parte del saldo económico del socio.
+    .filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.sourceRecordType !== 'vehicle_admin_fee' && !r.isDeleted)
     .reduce((sum, r) => sum + r.amount, 0);
   const totalExpenses = financialRecords
     .filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted)
