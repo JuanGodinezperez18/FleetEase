@@ -192,11 +192,11 @@ export default function ReportsPageImproved() {
       case 'financial':
         return 'Reporte Financiero';
       case 'vehicle':
-        return 'Reporte de Rentabilidad por Veh\u00edculo';
+        return 'Reporte de Rentabilidad por Vehículo';
       case 'client':
-        return 'Reporte de An\u00e1lisis de Clientes';
+        return 'Reporte de Análisis de Clientes';
       case 'partner':
-        return 'Reporte de An\u00e1lisis de Socios';
+        return 'Reporte de Análisis de Socios';
       case 'executive':
         return 'Reporte Ejecutivo Integral';
       default:
@@ -207,15 +207,15 @@ export default function ReportsPageImproved() {
   const getReportSubtitle = (): string => {
     switch (reportType) {
       case 'financial':
-        return 'An\u00e1lisis de ingresos, gastos y rentabilidad';
+        return 'Análisis de ingresos, gastos y rentabilidad';
       case 'vehicle':
-        return 'An\u00e1lisis de rendimiento y rentabilidad de la flota';
+        return 'Análisis de rendimiento y rentabilidad de la flota';
       case 'client':
-        return 'An\u00e1lisis de comportamiento de pago y balances';
+        return 'Análisis de comportamiento de pago y balances';
       case 'partner':
-        return 'An\u00e1lisis de rendimiento y balance de socios';
+        return 'Análisis de rendimiento y balance de socios';
       case 'executive':
-        return 'Resumen ejecutivo de todas las m\u00e9tricas clave';
+        return 'Resumen ejecutivo de todas las métricas clave';
       default:
         return '';
     }
@@ -303,12 +303,12 @@ export default function ReportsPageImproved() {
           <div>
             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Operaci\u00f3n
+              Operación
             </div>
             <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
               Reporte ejecutivo
             </h1>
-            <p className="mt-1 text-sm text-white/40">An\u00e1lisis con exportaci\u00f3n PDF y Excel</p>
+            <p className="mt-1 text-sm text-white/40">Análisis con exportación PDF y Excel</p>
           </div>
 
           <div className="flex flex-wrap items-end gap-2">
@@ -318,7 +318,7 @@ export default function ReportsPageImproved() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="financial">Financiero</SelectItem>
-                <SelectItem value="vehicle">Veh\u00edculos</SelectItem>
+                <SelectItem value="vehicle">Vehículos</SelectItem>
                 <SelectItem value="client">Clientes</SelectItem>
                 <SelectItem value="partner">Socios</SelectItem>
                 <SelectItem value="executive">Ejecutivo</SelectItem>
@@ -429,7 +429,7 @@ export default function ReportsPageImproved() {
                 {tab === 'overview' && 'Resumen'}
                 {tab === 'trends' && 'Tendencias'}
                 {tab === 'details' && 'Detalles'}
-                {tab === 'analysis' && 'An\u00e1lisis'}
+                {tab === 'analysis' && 'Análisis'}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -457,7 +457,7 @@ export default function ReportsPageImproved() {
                 </ResponsiveContainer>
               </ChartPanel>
 
-              <ChartPanel title="Top 5 categor\u00edas de gasto">
+              <ChartPanel title="Top 5 categorías de gasto">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={categoryChartData} layout="vertical">
                     <XAxis type="number" hide />
@@ -498,8 +498,8 @@ export default function ReportsPageImproved() {
           <TabsContent value="details" className="space-y-4">
             {(reportType === 'vehicle' || reportType === 'executive') && (
               <MetricsList
-                title="Rentabilidad por veh\u00edculo"
-                empty="Sin datos de veh\u00edculos"
+                title="Rentabilidad por vehículo"
+                empty="Sin datos de vehículos"
                 items={vehicleMetrics.slice(0, 10).map((m: any) => ({
                   id: m.vehicle.id,
                   primary: m.vehicle.alias || m.vehicle.plate,
@@ -512,7 +512,7 @@ export default function ReportsPageImproved() {
             )}
             {(reportType === 'client' || reportType === 'executive') && (
               <MetricsList
-                title="An\u00e1lisis de clientes"
+                title="Análisis de clientes"
                 empty="Sin datos de clientes"
                 items={clientMetrics.slice(0, 10).map((m: any) => ({
                   id: m.client.id,
@@ -526,12 +526,12 @@ export default function ReportsPageImproved() {
             )}
             {(reportType === 'partner' || reportType === 'executive') && (
               <MetricsList
-                title="An\u00e1lisis de socios"
+                title="Análisis de socios"
                 empty="Sin datos de socios"
                 items={partnerMetrics.map((m: any) => ({
                   id: m.partner.id,
                   primary: `${m.partner.firstname} ${m.partner.lastname}`,
-                  secondary: `${m.activeVehicles} veh\u00edculos`,
+                  secondary: `${m.activeVehicles} vehículos`,
                   value: formatCurrency(m.netBalance),
                   meta: `Ing. ${formatCurrency(m.totalIncome)}`,
                   positive: m.netBalance >= 0,
@@ -566,7 +566,7 @@ export default function ReportsPageImproved() {
             <div className="grid gap-4 md:grid-cols-2">
               {(reportType === 'vehicle' || reportType === 'executive') && (
                 <MetricsList
-                  title="Top veh\u00edculos por utilidad"
+                  title="Top vehículos por utilidad"
                   empty="Sin datos"
                   items={(
                     ReportAnalyticsService.getTopVehicles?.(vehicleMetrics, 5) || vehicleMetrics.slice(0, 5)
@@ -597,10 +597,10 @@ export default function ReportsPageImproved() {
                 />
               )}
               {reportType === 'financial' && (
-                <ChartPanel title="Distribuci\u00f3n">
+                <ChartPanel title="Distribución">
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/40">
                     <BarChart3 className="h-5 w-5 text-[#d7ff3f]" strokeWidth={1.75} />
-                    Usa la pesta\u00f1a Resumen para gr\u00e1ficos del periodo.
+                    Usa la pestaña Resumen para gráficos del periodo.
                   </div>
                 </ChartPanel>
               )}
