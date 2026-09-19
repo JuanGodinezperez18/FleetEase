@@ -245,9 +245,38 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
 
   const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
 
+  const selectedCategory = useMemo(
+    () => expenseCategories.find(category => category.id === form.getValues("categoryId")) || null,
+    [expenseCategories, form]
+  );
+
   useEffect(() => {
-    if (selectedVehicle && form.getValues("mileageAtExpense") === undefined) setValue("mileageAtExpense", selectedVehicle.currentMileage);
+    if (selectedVehicle && form.getValues("mileageAtExpense") === undefined) {
+      setValue("mileageAtExpense", selectedVehicle.currentMileage);
+    }
   }, [selectedVehicle, setValue, form]);
+
+  // La categoría de Administración de Vehículo representa un cargo automático
+  // definido en la ficha del vehículo. Al crear un gasto nuevo, precargamos
+  // una sola línea con cantidad 1 y el costo configurado para ese vehículo.
+  useEffect(() => {
+    if (initialData?.id || !selectedVehicle || !selectedCategory) return;
+    if (selectedCategory.name.trim().toLowerCase() !== "administración de vehículo") return;
+
+    const adminAmount = Number(selectedVehicle.adminCommission ?? 0);
+    if (!Number.isFinite(adminAmount) || adminAmount <= 0) return;
+
+    setValue("items", [{
+      concept: "Costo por administración",
+      quantity: 1,
+      unitAmount: adminAmount,
+      amount: adminAmount,
+      catalogItemId: null,
+      partNumber: null,
+      warrantyDays: null,
+      warrantyExpiresAt: null,
+    }], { shouldDirty: true, shouldValidate: true });
+  }, [initialData?.id, selectedVehicle, selectedCategory, setValue]);
 
   const normalizedItems = useMemo(() => watchedItems.map(item => {
     const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
