@@ -1,9 +1,8 @@
-
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
 import type { Vehicle, Client, Partner } from "@/types";
-import { MoreHorizontal, Eye, FileText, DollarSign, Users } from "lucide-react";
+import { MoreHorizontal, Eye, FileText, DollarSign, Users, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +30,13 @@ type GetVehicleColumnsProps = {
   clients: Client[];
   partners: Partner[];
 };
+
+const menuContentClass =
+  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1 text-white shadow-[0_18px_50px_rgba(0,0,0,.45)]';
+const menuItemClass =
+  'cursor-pointer rounded-lg px-2.5 py-2 text-sm text-white/80 focus:bg-white/[0.06] focus:text-white';
+const menuItemDangerClass =
+  'cursor-pointer rounded-lg px-2.5 py-2 text-sm text-rose-400 focus:bg-rose-500/10 focus:text-rose-300';
 
 export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partners }: GetVehicleColumnsProps): ColumnDef<VehicleWithMetrics>[] => {
   const clientMap = new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`]));
@@ -120,29 +126,33 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}`)}>
+            <DropdownMenuContent align="end" className={menuContentClass}>
+              <DropdownMenuLabel className="px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                Acciones
+              </DropdownMenuLabel>
+              <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}`)}>
                 <Eye className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Detalles
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/documents`)}>
+              <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/documents`)}>
                 <FileText className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Documentos
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/transactions`)}>
+              <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/transactions`)}>
                 <DollarSign className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Transacciones
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onNavigate(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}>
+              <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}>
                 <Users className="mr-2 h-4 w-4" strokeWidth={1.75} />
-                Historial de Asignaciones
+                Historial de asignaciones
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => onEdit(vehicle)}>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem className={menuItemClass} onSelect={() => onEdit(vehicle)}>
+                <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onDelete(vehicle.id)} className="text-destructive focus:text-destructive">
+              <DropdownMenuItem className={menuItemDangerClass} onSelect={() => onDelete(vehicle.id)}>
+                <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Eliminar
               </DropdownMenuItem>
             </DropdownMenuContent>
