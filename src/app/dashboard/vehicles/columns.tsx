@@ -32,11 +32,11 @@ type GetVehicleColumnsProps = {
 };
 
 const menuContentClass =
-  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1 text-white shadow-[0_18px_50px_rgba(0,0,0,.45)]';
+  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
 const menuItemClass =
-  'cursor-pointer rounded-lg px-2.5 py-2 text-sm text-white/80 focus:bg-white/[0.06] focus:text-white';
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
 const menuItemDangerClass =
-  'cursor-pointer rounded-lg px-2.5 py-2 text-sm text-rose-400 focus:bg-rose-500/10 focus:text-rose-300';
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-rose-400 focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
 
 export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partners }: GetVehicleColumnsProps): ColumnDef<VehicleWithMetrics>[] => {
   const clientMap = new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`]));
@@ -126,33 +126,33 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={menuContentClass}>
-              <DropdownMenuLabel className="px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+            <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
+              <DropdownMenuLabel className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
                 Acciones
               </DropdownMenuLabel>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}`)}>
-                <Eye className="mr-2 h-4 w-4" strokeWidth={1.75} />
-                Detalles
+                <Eye className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                Ver detalles
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/documents`)}>
-                <FileText className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                <FileText className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
                 Documentos
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/transactions`)}>
-                <DollarSign className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                <DollarSign className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
                 Transacciones
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}>
-                <Users className="mr-2 h-4 w-4" strokeWidth={1.75} />
-                Historial de asignaciones
+                <Users className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                Asignaciones
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuSeparator className="my-1.5 bg-white/10" />
               <DropdownMenuItem className={menuItemClass} onSelect={() => onEdit(vehicle)}>
-                <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemDangerClass} onSelect={() => onDelete(vehicle.id)}>
-                <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                <Trash2 className="mr-2.5 h-4 w-4" strokeWidth={1.75} />
                 Eliminar
               </DropdownMenuItem>
             </DropdownMenuContent>
