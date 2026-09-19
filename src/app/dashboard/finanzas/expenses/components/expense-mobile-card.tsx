@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   MoreHorizontal,
@@ -25,6 +26,13 @@ interface ExpenseMobileCardProps {
   onEdit: (r: ExpenseData) => void;
   onDelete: (r: ExpenseData) => void;
 }
+
+const menuContentClass =
+  'min-w-[180px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
+const menuItemClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
+const menuItemDangerClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-rose-400 focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
 
 export function ExpenseMobileCard({
   record,
@@ -68,15 +76,16 @@ export function ExpenseMobileCard({
                   <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[160px]">
-                <DropdownMenuItem onSelect={() => onEdit(record)}>
-                  <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} /> Editar
+              <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
+                <DropdownMenuItem className={menuItemClass} onSelect={() => onEdit(record)}>
+                  <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Editar
                 </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1.5 bg-white/10" />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className={menuItemDangerClass}
                   onSelect={() => onDelete(record)}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.75} /> Eliminar
+                  <Trash2 className="mr-2.5 h-4 w-4" strokeWidth={1.75} /> Eliminar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
