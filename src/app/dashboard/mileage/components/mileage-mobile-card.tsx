@@ -1,49 +1,76 @@
-
-
 "use client";
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, History } from 'lucide-react';
-import type { VehicleWithMileageAndMetrics } from '@/hooks/use-mileage-search';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Edit, History, Gauge } from "lucide-react";
+import type { VehicleWithMileageAndMetrics } from "@/hooks/use-mileage-search";
 
 interface MileageMobileCardProps {
-    vehicle: VehicleWithMileageAndMetrics;
-    onOpenModal: (id: string) => void;
-    onOpenHistory: (id: string) => void;
+  vehicle: VehicleWithMileageAndMetrics;
+  onOpenModal: (id: string) => void;
+  onOpenHistory: (id: string) => void;
 }
 
 export const MileageMobileCard: React.FC<MileageMobileCardProps> = ({ vehicle, onOpenModal, onOpenHistory }) => {
-    const kmRemaining = vehicle.kmToNextMaintenance;
-    const isOverdue = typeof kmRemaining === 'number' && kmRemaining <= 0;
-    
-    return (
-      <Card className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h3 className="font-semibold">{vehicle.plate} - {vehicle.make} {vehicle.model}</h3>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p><strong>Kilometraje:</strong> {(vehicle.currentMileage || 0).toLocaleString()} km</p>
-              <p><strong>Próximo Servicio:</strong> 
-                <span className={isOverdue ? 'text-destructive font-semibold' : ''}>
-                  {isOverdue ? ` Vencido por ${Math.abs(kmRemaining!).toLocaleString()} km` : ` en ${kmRemaining?.toLocaleString()} km`}
-                </span>
-              </p>
-            </div>
+  const kmRemaining = vehicle.kmToNextMaintenance;
+  const isOverdue = typeof kmRemaining === "number" && kmRemaining <= 0;
+  const isUpcoming = typeof kmRemaining === "number" && kmRemaining > 0 && kmRemaining <= 1500;
+
+  const statusClass = isOverdue
+    ? "border-rose-400/20 bg-rose-400/10 text-rose-300"
+    : isUpcoming
+      ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
+      : "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
+
+  const statusLabel = isOverdue
+    ? `Vencido ${Math.abs(kmRemaining!).toLocaleString()} km`
+    : isUpcoming
+      ? `En ${kmRemaining?.toLocaleString()} km`
+      : `En ${kmRemaining?.toLocaleString() ?? "—"} km`;
+
+  return (
+    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+            <Gauge className="h-5 w-5" strokeWidth={1.75} />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onOpenModal(vehicle.id)}><Edit className="mr-2 h-4 w-4"/>Registrar Kilometraje</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onOpenHistory(vehicle.id)}><History className="mr-2 h-4 w-4"/>Ver Historial</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="min-w-0">
+            <h3 className="truncate font-semibold text-white/90">{vehicle.plate}</h3>
+            <p className="truncate text-xs text-white/40">
+              {vehicle.make} {vehicle.model}
+            </p>
+            <p className="mt-1.5 font-heading text-base font-semibold tabular-nums text-white">
+              {(vehicle.currentMileage || 0).toLocaleString()} km
+            </p>
+            <span className={`mt-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass}`}>
+              {statusLabel}
+            </span>
+          </div>
         </div>
-      </Card>
-    );
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-white/40 hover:bg-white/[0.06] hover:text-white"
+            >
+              <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => onOpenModal(vehicle.id)}>
+              <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Registrar kilometraje
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onOpenHistory(vehicle.id)}>
+              <History className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Ver historial
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
 };
