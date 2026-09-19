@@ -1,19 +1,13 @@
-/**
- * Página de Alertas de Negocio Inteligentes
- */
+"use client";
 
-'use client';
-
-import React from 'react';
-import { useVehicles } from '@/contexts/providers/vehicles-provider';
-import { useClients } from '@/contexts/providers/clients-provider';
-import { useFinances } from '@/contexts/providers/finances-provider';
-import { SmartBusinessAlerts } from '@/components/dashboard/smart-business-alerts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Bell, InfoIcon } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React from "react";
+import { useVehicles } from "@/contexts/providers/vehicles-provider";
+import { useClients } from "@/contexts/providers/clients-provider";
+import { useFinances } from "@/contexts/providers/finances-provider";
+import { SmartBusinessAlerts } from "@/components/dashboard/smart-business-alerts";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Bell } from "lucide-react";
 
 export default function AlertsPage() {
   const { vehicles = [] } = useVehicles();
@@ -23,105 +17,100 @@ export default function AlertsPage() {
   const hasData = vehicles.length > 0 && clients.length > 0 && financialRecords.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="fe-section-title font-heading text-3xl font-bold tracking-tight">Alertas de Negocio</h1>
-        <p className="text-muted-foreground mt-1">
-          Notificaciones inteligentes sobre tu operación
-        </p>
-      </div>
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
-      <Alert className="fe-surface border-[color:var(--fe-lime)]/20 bg-[color:var(--fe-lime)]/5">
-        <Bell className="h-5 w-5 text-[color:var(--fe-lime)]" />
-        <AlertTitle className="font-heading text-foreground">Alertas Inteligentes</AlertTitle>
-        <AlertDescription className="text-muted-foreground mt-2">
-          El sistema analiza automáticamente tu operación y te notifica sobre:
-          clientes morosos, vehículos sin renta, gastos atípicos, mantenimientos vencidos,
-          y oportunidades de mejora.
-        </AlertDescription>
-      </Alert>
+      <div className="relative z-10 space-y-5 sm:space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              Operación
+            </div>
+            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+              Alertas de negocio
+            </h1>
+            <p className="mt-1 text-sm text-white/40">Notificaciones inteligentes sobre tu operación</p>
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+            <Bell className="h-5 w-5" strokeWidth={1.75} />
+          </div>
+        </header>
 
-      {hasData ? (
-        <SmartBusinessAlerts
-          vehicles={vehicles}
-          clients={clients}
-          financialRecords={financialRecords}
-          periodDays={30}
-        />
-      ) : (
-        <Card className="fe-surface">
-          <CardHeader>
-            <CardTitle className="font-heading">Insuficientes Datos para Alertas</CardTitle>
-            <CardDescription>
-              El sistema necesita más información para generar alertas inteligentes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                Para activar las alertas, necesitas registrar:
+        <section className="rounded-[20px] border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.04] p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <Bell className="mt-0.5 h-5 w-5 shrink-0 text-[#d7ff3f]" strokeWidth={1.75} />
+            <div>
+              <h2 className="font-heading text-sm font-semibold text-white">Análisis automático</h2>
+              <p className="mt-1 text-sm text-white/50">
+                Clientes morosos, vehículos sin renta, gastos atípicos, mantenimientos vencidos y oportunidades de mejora.
               </p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Al menos 1 vehículo</li>
-                <li>Al menos 1 cliente</li>
-                <li>Al menos 1 registro financiero (ingreso o gasto)</li>
-              </ul>
-              <div className="flex flex-wrap gap-3 mt-4">
-                <Button asChild>
-                  <Link href="/dashboard/vehicles">Registrar Vehículo</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/clients">Registrar Cliente</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/finanzas">Registrar Ingreso/Gasto</Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="fe-surface">
-        <CardHeader>
-          <CardTitle className="font-heading flex items-center gap-2">
-            <InfoIcon className="h-5 w-5 text-[color:var(--fe-lime)]" />
-            Tipos de Alertas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-red-600 dark:text-red-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
-                Críticas
-              </div>
-              <p className="text-muted-foreground">Problemas graves que requieren atención inmediata: clientes con deuda &gt;$5,000, mantenimientos vencidos, pérdidas significativas.</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-yellow-600 dark:text-yellow-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-yellow-600" />
-                Advertencias
-              </div>
-              <p className="text-muted-foreground">Problemas moderados que debes monitorear: deuda entre $2,000-$5,000, vehículos sin renta, gastos atípicos.</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-slate-500 dark:text-slate-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
-                Informativas
-              </div>
-              <p className="text-muted-foreground">Información útil para tu operación: mantenimientos próximos, vehículos con baja ocupación, recordatorios.</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-[color:var(--fe-lime)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--fe-lime)]" />
-                Oportunidades
-              </div>
-              <p className="text-muted-foreground">Oportunidades para mejorar ganancias: vehículos muy rentables (sugerencia de aumento de precio), clientes confiables para créditos.</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </section>
+
+        {hasData ? (
+          <SmartBusinessAlerts
+            vehicles={vehicles}
+            clients={clients}
+            financialRecords={financialRecords}
+            periodDays={30}
+          />
+        ) : (
+          <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+            <h2 className="font-heading text-base font-semibold text-white">Datos insuficientes</h2>
+            <p className="mt-1 text-sm text-white/40">Registra al menos un vehículo, un cliente y un movimiento financiero.</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-white/50">
+              <li>· Al menos 1 vehículo</li>
+              <li>· Al menos 1 cliente</li>
+              <li>· Al menos 1 registro financiero</li>
+            </ul>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button asChild className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90">
+                <Link href="/dashboard/vehicles">Registrar vehículo</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Link href="/dashboard/clients">Registrar cliente</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
+                <Link href="/dashboard/finanzas">Registrar movimiento</Link>
+              </Button>
+            </div>
+          </section>
+        )}
+
+        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <div className="border-b border-white/[0.06] px-5 py-4">
+            <h2 className="font-heading text-base font-semibold text-white">Tipos de alertas</h2>
+          </div>
+          <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+            {(
+              [
+                ["Críticas", "Problemas graves: deuda alta, mantenimientos vencidos, pérdidas.", "bg-rose-400", "text-rose-300"],
+                ["Advertencias", "Monitorear: deuda moderada, vehículos sin renta, gastos atípicos.", "bg-amber-400", "text-amber-300"],
+                ["Informativas", "Útiles: mantenimientos próximos, baja ocupación.", "bg-sky-400", "text-sky-300"],
+                ["Oportunidades", "Mejorar ganancias: vehículos muy rentables, clientes confiables.", "bg-[#d7ff3f]", "text-[#d7ff3f]"],
+              ] as const
+            ).map(([title, desc, dot, text]) => (
+              <div key={title} className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+                <div className={`mb-2 flex items-center gap-2 text-xs font-semibold ${text}`}>
+                  <span className={`h-2 w-2 rounded-full ${dot}`} />
+                  {title}
+                </div>
+                <p className="text-sm text-white/40">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
