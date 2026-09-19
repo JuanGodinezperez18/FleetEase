@@ -12,6 +12,11 @@ interface MileageMobileCardProps {
   onOpenHistory: (id: string) => void;
 }
 
+const menuContentClass =
+  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
+const menuItemClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
+
 export const MileageMobileCard: React.FC<MileageMobileCardProps> = ({ vehicle, onOpenModal, onOpenHistory }) => {
   const kmRemaining = vehicle.kmToNextMaintenance;
   const isOverdue = typeof kmRemaining === "number" && kmRemaining <= 0;
@@ -54,18 +59,18 @@ export const MileageMobileCard: React.FC<MileageMobileCardProps> = ({ vehicle, o
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0 text-white/40 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 w-11 shrink-0 rounded-xl text-white/40 hover:bg-white/[0.06] hover:text-white"
             >
               <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onOpenModal(vehicle.id)}>
-              <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} />
+          <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
+            <DropdownMenuItem className={menuItemClass} onSelect={() => onOpenModal(vehicle.id)}>
+              <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
               Registrar kilometraje
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onOpenHistory(vehicle.id)}>
-              <History className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            <DropdownMenuItem className={menuItemClass} onSelect={() => onOpenHistory(vehicle.id)}>
+              <History className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
               Ver historial
             </DropdownMenuItem>
           </DropdownMenuContent>
