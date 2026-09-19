@@ -1,1 +1,1 @@
-PLACEHOLDER
+USE_FILE:/tmp/vehicle_docs_minimal.tsx
