@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/dashboard/', '/api/', '/login', '/registro/'],
     },
-    sitemap: 'https://fleetease.com.mx/sitemap.xml',
+    sitemap: 'https://www.fleetease.com.mx/sitemap.xml',
   };
 }
