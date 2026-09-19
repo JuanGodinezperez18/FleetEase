@@ -176,7 +176,10 @@ export default function PartnerDashboard() {
   }, [financialRecords, partnerVehicleIds, customDateRange]);
 
   // Calcular ingresos totales de sus vehículos usando la definición contable canónica.
-  const totalIncome = useMemo(() => sumRentalIncome(filteredRecords), [filteredRecords]);
+  const totalIncome = useMemo(
+    () => sumRentalIncome(filteredRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')),
+    [filteredRecords]
+  );
 
   // Calcular gastos totales de sus vehículos usando la definición contable canónica.
   const totalExpenses = useMemo(() => sumExpense(filteredRecords), [filteredRecords]);
