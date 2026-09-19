@@ -2,13 +2,14 @@ import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
+  const base = 'https://www.fleetease.com.mx';
   return [
-    { url: 'https://fleetease.com.mx/', lastModified: now, changeFrequency: 'weekly', priority: 1 },
-    { url: 'https://fleetease.com.mx/soluciones', lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: 'https://fleetease.com.mx/funciones', lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: 'https://fleetease.com.mx/software-para-flotillas', lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: 'https://fleetease.com.mx/software-para-renta-de-vehiculos', lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: 'https://fleetease.com.mx/control-de-mantenimiento-de-flotillas', lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: 'https://fleetease.com.mx/registro', lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${base}/`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
+    { url: `${base}/soluciones`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${base}/funciones`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${base}/software-para-flotillas`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${base}/software-para-renta-de-vehiculos`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${base}/control-de-mantenimiento-de-flotillas`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${base}/registro`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
   ];
 }
