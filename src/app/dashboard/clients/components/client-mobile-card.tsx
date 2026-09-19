@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Edit, Trash2, FileText, User, Car, Phone, Banknote } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -21,6 +22,13 @@ interface ClientMobileCardProps {
   onDelete: (c: Client) => void;
   onNavigate: (path: string) => void;
 }
+
+const menuContentClass =
+  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
+const menuItemClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
+const menuItemDangerClass =
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-rose-400 focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
 
 export function ClientMobileCard({
   client,
@@ -83,28 +91,31 @@ export function ClientMobileCard({
                   <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[180px]">
-                <DropdownMenuItem onSelect={() => onEdit(client)} onClick={(e) => e.stopPropagation()}>
-                  <Edit className="mr-2 h-4 w-4" strokeWidth={1.75} /> Editar
+              <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
+                <DropdownMenuItem className={menuItemClass} onSelect={() => onEdit(client)} onClick={(e) => e.stopPropagation()}>
+                  <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  className={menuItemClass}
                   onSelect={() => onNavigate(`/dashboard/clients/${client.id}/documents`)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FileText className="mr-2 h-4 w-4" strokeWidth={1.75} /> Documentos
+                  <FileText className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Documentos
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  className={menuItemClass}
                   onSelect={() => onNavigate(`/dashboard/clients/${client.id}/transactions`)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Eye className="mr-2 h-4 w-4" strokeWidth={1.75} /> Transacciones
+                  <Eye className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Transacciones
                 </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1.5 bg-white/10" />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className={menuItemDangerClass}
                   onSelect={() => onDelete(client)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.75} /> Dar de baja
+                  <Trash2 className="mr-2.5 h-4 w-4" strokeWidth={1.75} /> Dar de baja
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
