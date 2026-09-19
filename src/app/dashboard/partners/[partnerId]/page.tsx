@@ -14,7 +14,8 @@ import { DataTable } from '@/components/common/data-table';
 import { getVehicleColumns } from '@/app/dashboard/vehicles/columns';
 import type { Vehicle, Partner, Client, FinancialRecord } from '@/types';
 import Link from 'next/link';
-import { PARTNER_PAYMENT_CATEGORY_ID, calculatePartnerBalance } from '@/contexts/data-provider';
+import { calculatePartnerBalance } from '@/contexts/data-provider';
+import { calculatePartnerProfitability } from '@/lib/financial-metrics';
 
 export default function PartnerDetailsPage() {
   const router = useRouter();
@@ -34,26 +35,16 @@ export default function PartnerDetailsPage() {
   const metrics = useMemo(() => {
     if (!partner) return { totalIncome: 0, totalExpenses: 0, netProfit: 0, profitMargin: 0, vehicleCount: 0 };
     
-    // Usar el balance pre-calculado del contexto
+    const profitability = calculatePartnerProfitability(partnerVehicles, financialRecords);
     const partnerBalanceData = partnerBalances.find(pb => pb.id === partnerId);
-    const netProfit = partnerBalanceData?.balance || 0;
-    
-    const vehicleIds = new Set(partnerVehicles.map(v => v.id));
-    const transactions = financialRecords.filter(fr => vehicleIds.has(fr.vehicleId || '') && !fr.isDeleted);
-    
-    const totalIncome = transactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-    
-    const totalExpenses = transactions
-        .filter(t => t.type === 'expense' && t.paymentMethod !== 'partner_pays' && t.categoryId !== PARTNER_PAYMENT_CATEGORY_ID)
-        .reduce((sum, t) => sum + t.amount, 0);
-    
+    const partnerBalance = partnerBalanceData?.balance ?? 0;
+
     return {
-      totalIncome,
-      totalExpenses,
-      netProfit: netProfit - (partner.initialBalance || 0), // Ajustar por saldo inicial si es necesario para la vista
-      profitMargin: totalIncome > 0 ? ((netProfit - (partner.initialBalance || 0)) / totalIncome) * 100 : 0,
+      totalIncome: profitability.totalIncome,
+      totalExpenses: profitability.totalExpenses,
+      netProfit: profitability.netProfit,
+      partnerBalance,
+      profitMargin: profitability.totalIncome > 0 ? (profitability.netProfit / profitability.totalIncome) * 100 : 0,
       vehicleCount: partnerVehicles.length,
     };
 }, [partner, partnerVehicles, financialRecords, partnerId, partnerBalances]);
@@ -109,26 +100,26 @@ export default function PartnerDetailsPage() {
         />
 
         <MetricCard
-          title="Total de Ingresos (Flota)"
+          title="Ingresos económicos (Flota)"
           value={formatCurrency(metrics.totalIncome)}
-          description="+Ingresos"
+          description="Rentas + ventas a crédito"
           icon={<TrendingUp className="w-5 h-5 text-green-500" />}
           variant="success"
         />
 
         <MetricCard
-          title="Total de Gastos (Flota)"
+          title="Inversión y gastos (Flota)"
           value={formatCurrency(metrics.totalExpenses)}
-          description="-Gastos"
+          description="Gastos + costo de adquisición"
           icon={<TrendingDown className="w-5 h-5 text-red-500" />}
           variant="danger"
         />
 
         <MetricCard
-          title="SALDO FINAL (A PAGAR AL SOCIO)"
-          value={formatCurrency((partner.initialBalance || 0) + metrics.netProfit)}
+          title="RENTABILIDAD ACUMULADA"
+          value={formatCurrency(metrics.netProfit)}
           icon={<DollarSign className="w-5 h-5" />}
-          variant={(partner.initialBalance || 0) + metrics.netProfit >= 0 ? "success" : "danger"}
+          variant={metrics.netProfit >= 0 ? "success" : "danger"}
         />
       </div>
       
