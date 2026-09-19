@@ -78,12 +78,12 @@ export default function ReportHistoryPage() {
           <div>
             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Operaci\u00f3n
+              Operación
             </div>
             <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
               Historial de reportes
             </h1>
-            <p className="mt-1 text-sm text-white/40">\u00daltimos 50 reportes generados</p>
+            <p className="mt-1 text-sm text-white/40">Últimos 50 reportes generados</p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
             <History className="h-5 w-5" strokeWidth={1.75} />
@@ -156,12 +156,12 @@ export default function ReportHistoryPage() {
                           {format(new Date(report.created_at), 'PPP p', { locale: es })}
                         </TableCell>
                         <TableCell className="text-white/50">
-                          {typeof report.date_range === 'string' ? report.date_range : '\u2014'}
+                          {typeof report.date_range === 'string' ? report.date_range : '—'}
                         </TableCell>
                         <TableCell>
                           <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70">
                             {report.type}
-                            {report.format ? ` \u00b7 ${report.format}` : ''}
+                            {report.format ? ` · ${report.format}` : ''}
                           </span>
                         </TableCell>
                         <TableCell className="text-white/60">
