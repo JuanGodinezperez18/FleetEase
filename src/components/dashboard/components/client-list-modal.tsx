@@ -1,10 +1,23 @@
-
 // components/dashboard/components/client-list-modal.tsx
 'use client';
 
 import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
@@ -13,7 +26,6 @@ import { useShareContent } from '@/hooks/use-share-content';
 import { useModalData } from '@/hooks/use-modal-data';
 import { Share2, Search, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ModalTableSkeleton } from './modal-table-skeleton';
 import { ModalPagination } from './modal-pagination';
 import type { ClientWithMetrics } from '@/types';
@@ -33,7 +45,7 @@ export function ClientListModal({
   onClose,
   title,
   clients = [],
-  loading = false
+  loading = false,
 }: ClientListModalProps) {
   const router = useRouter();
   const { shareContent, isSharing } = useShareContent();
@@ -51,15 +63,12 @@ export function ClientListModal({
     hasNextPage,
     totalResults,
     showingFrom,
-    showingTo
+    showingTo,
   } = useModalData({
     data: clients,
-    searchFields: (client) => [
-      `${client.firstname} ${client.lastname}`,
-      client.email || ''
-    ],
+    searchFields: client => [`${client.firstname} ${client.lastname}`, client.email || ''],
     sortFn: (a, b) => b.balance - a.balance,
-    initialPageSize: 20
+    initialPageSize: 20,
   });
 
   const totalBalance = useMemo(
@@ -76,7 +85,7 @@ export function ClientListModal({
     const date = new Date().toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
     const balancesText = filteredData
       .map(client => `${client.firstname} ${client.lastname}: ${formatCurrency(client.balance)}`)
@@ -89,12 +98,14 @@ export function ClientListModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col gap-4 overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="flex h-[85vh] max-w-4xl flex-col gap-4 overflow-hidden sm:max-w-4xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-[#d7ff3f]" />
+          <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+                <Users className="h-5 w-5" strokeWidth={1.75} />
+              </div>
               <div>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription className="mt-1">
@@ -104,40 +115,48 @@ export function ClientListModal({
             </div>
 
             {totalBalance !== 0 && (
-              <Badge variant={totalBalance > 0 ? 'destructive' : 'default'} className="text-sm">
+              <span
+                className={cn(
+                  'inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold tabular-nums',
+                  totalBalance > 0
+                    ? 'border-rose-400/20 bg-rose-400/10 text-rose-300'
+                    : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
+                )}
+              >
                 Total: {formatCurrency(totalBalance)}
-              </Badge>
+              </span>
             )}
           </div>
         </DialogHeader>
 
         <div className="relative shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+            strokeWidth={1.75}
+          />
           <Input
             placeholder="Buscar por nombre o email..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] pl-9 text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30"
           />
           {filteredData.length !== clients.length && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Badge variant="secondary" className="text-xs">
-                {filteredData.length} de {clients.length}
-              </Badge>
-            </div>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
+              {filteredData.length} de {clients.length}
+            </span>
           )}
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 min-h-0">
-          <div className="min-w-[600px] px-6">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-w-[560px]">
             {loading ? (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-white/40">Cliente</TableHead>
+                    <TableHead className="text-white/40">Email</TableHead>
+                    <TableHead className="text-right text-white/40">Saldo</TableHead>
+                    <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,43 +167,51 @@ export function ClientListModal({
               <EmptyState
                 illustration={searchTerm ? 'search' : 'clients'}
                 title={searchTerm ? 'No se encontraron clientes' : 'No hay clientes para mostrar'}
-                description={searchTerm ? 'Prueba con otro nombre o email.' : 'Cuando registres clientes, verás aquí sus saldos y estado.'}
+                description={
+                  searchTerm
+                    ? 'Prueba con otro nombre o email.'
+                    : 'Cuando registres clientes, verás aquí sus saldos y estado.'
+                }
                 className="min-h-[280px] border-0 bg-transparent"
               />
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-white/40">Cliente</TableHead>
+                    <TableHead className="text-white/40">Email</TableHead>
+                    <TableHead className="text-right text-white/40">Saldo</TableHead>
+                    <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.map((client) => (
-                    <StaggerTableRow key={client.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                      <TableCell className="font-medium">
+                  {paginatedData.map(client => (
+                    <StaggerTableRow
+                      key={client.id}
+                      className="border-white/[0.06] hover:bg-white/[0.03]"
+                    >
+                      <TableCell className="font-medium text-white/90">
                         {client.firstname} {client.lastname}
                       </TableCell>
-                      <TableCell className="text-gray-600 dark:text-gray-400">
-                        {client.email || 'N/A'}
-                      </TableCell>
+                      <TableCell className="text-white/50">{client.email || 'N/A'}</TableCell>
                       <TableCell className="text-right">
-                        <span className={cn(
-                          'font-semibold',
-                          client.balance > 0 ? 'text-destructive' : 'text-green-600'
-                        )}>
+                        <span
+                          className={cn(
+                            'font-semibold tabular-nums',
+                            client.balance > 0 ? 'text-rose-300' : 'text-emerald-300'
+                          )}
+                        >
                           {formatCurrency(client.balance)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewClient(client.id)}
+                          className="h-8 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
                         >
-                          Ver Cliente
+                          Ver cliente
                         </Button>
                       </TableCell>
                     </StaggerTableRow>
@@ -212,16 +239,22 @@ export function ClientListModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
-            <Share2 className="w-4 h-4 mr-2" />
-            Compartir Lista
+            <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Compartir lista
           </Button>
-          <Button onClick={onClose}>Cerrar</Button>
+          <Button
+            onClick={onClose}
+            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+          >
+            Cerrar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
