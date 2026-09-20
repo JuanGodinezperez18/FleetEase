@@ -18,7 +18,8 @@ type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
-type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; used: boolean }[] };
+type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; allocated: number }[] };
+type AllocationSummary = { financialRecordId: string; expenseItemId: string; amount: number; purchaseId: string; supplierName: string; purchaseDate: string; reference: string | null };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
@@ -31,7 +32,8 @@ export function SupplierPurchasesForm() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [expenses, setExpenses] = useState<VehicleExpense[]>([]);
-  const [usedExpenseLines, setUsedExpenseLines] = useState<Set<string>>(new Set());
+  const [expenseAllocations, setExpenseAllocations] = useState<Map<string, number>>(new Map());
+  const [allocationSummary, setAllocationSummary] = useState<AllocationSummary[]>([]);
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -55,7 +57,8 @@ export function SupplierPurchasesForm() {
       supabase.from("suppliers").select("id,name").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name"),
       supabase.from("catalog_items").select("id,name,part_number,default_cost,category_id").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name").limit(2000),
       supabase.from("financial_records").select("id,description,date,category_id,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
-      supabase.from("supplier_purchase_allocations").select("financial_record_id,expense_item_id").eq("company_id", companyId).not("expense_item_id", "is", null),
+      supabase.from("supplier_purchase_allocations").select("purchase_id,financial_record_id,expense_item_id,amount").eq("company_id", companyId).not("expense_item_id", "is", null),
+      supabase.from("supplier_purchases").select("id,supplier_id,purchase_date,reference,suppliers(name)").eq("company_id", companyId).eq("is_deleted", false),
     ]).then(([supplierResult, catalogResult, expenseResult, allocationResult]) => {
       if (cancelled) return;
       if (supplierResult.error) toast.error("No se pudieron cargar los proveedores.", { description: supplierResult.error.message });
@@ -64,8 +67,20 @@ export function SupplierPurchasesForm() {
       if (allocationResult.error) toast.error("No se pudo comprobar qué líneas ya están utilizadas.", { description: allocationResult.error.message });
       setSuppliers((supplierResult.data || []) as Supplier[]);
       setCatalog((catalogResult.data || []) as CatalogItem[]);
-      const usedLines = new Set(((allocationResult.data || []) as any[]).map(row => `${row.financial_record_id}:${row.expense_item_id}`));
-      setUsedExpenseLines(usedLines);
+      const purchaseRows = (allocationResult.data || []) as any[];
+      const purchaseById = new Map(((purchaseResult.data || []) as any[]).map(row => [row.id, row]));
+      const allocatedByLine = new Map<string, number>();
+      const summaries: AllocationSummary[] = [];
+      purchaseRows.forEach(row => {
+        if (!row.financial_record_id || !row.expense_item_id) return;
+        const key = `${row.financial_record_id}:${row.expense_item_id}`;
+        const amount = Number(row.amount || 0);
+        allocatedByLine.set(key, (allocatedByLine.get(key) || 0) + amount);
+        const purchase = purchaseById.get(row.purchase_id);
+        summaries.push({ financialRecordId: row.financial_record_id, expenseItemId: row.expense_item_id, amount, purchaseId: row.purchase_id, supplierName: purchase?.suppliers?.name || "Proveedor", purchaseDate: purchase?.purchase_date || "", reference: purchase?.reference || null });
+      });
+      setExpenseAllocations(allocatedByLine);
+      setAllocationSummary(summaries);
       setExpenses(((expenseResult.data || []) as any[]).map(row => ({
         id: row.id,
         description: row.description || "Gasto de vehículo",
@@ -74,9 +89,10 @@ export function SupplierPurchasesForm() {
         categoryId: row.category_id || null,
         lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => {
           const id = String(line.id || `legacy-${row.id}-${index}`);
-          return { id, concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0), catalogItemId: line.catalog_item_id || line.catalogItemId || line.article_id || null, used: usedLines.has(`${row.id}:${id}`) };
+          const amount = Number(line.amount || 0);
+          return { id, concept: String(line.concept || line.description || "Concepto"), amount, catalogItemId: line.catalog_item_id || line.catalogItemId || line.article_id || null, allocated: allocatedByLine.get(`${row.id}:${id}`) || 0 };
         }).filter((line: { amount: number }) => line.amount > 0),
-      })).filter(expense => expense.lines.some(line => !line.used)));
+      })).filter(expense => expense.lines.some(line => line.amount - line.allocated > 0.009)));
     });
     return () => { cancelled = true; };
   }, [companyId]);
@@ -104,11 +120,11 @@ export function SupplierPurchasesForm() {
 
   const loadExpenseLines = () => {
     if (!selectedExpense) return toast.error("Selecciona primero un gasto del vehículo.");
-    const availableLines = selectedExpense.lines.filter(line => !usedExpenseLines.has(`${selectedExpense.id}:${line.id}`));
-    if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya fueron vinculadas a un proveedor.");
+    const availableLines = selectedExpense.lines.filter(line => line.amount - line.allocated > 0.009);
+    if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya están cubiertas por compras de proveedores.");
     setItems(availableLines.map(line => {
       const matchingCatalog = (line.catalogItemId ? catalog.find(item => item.id === line.catalogItemId) : null) || catalogForSelectedExpense.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase());
-      return { catalog_item_id: matchingCatalog?.id || "", description: matchingCatalog?.name || line.concept, quantity: "1", unit_price: matchingCatalog?.default_cost != null ? String(matchingCatalog.default_cost) : String(line.amount) };
+      return { catalog_item_id: matchingCatalog?.id || "", description: matchingCatalog?.name || line.concept, quantity: "1", unit_price: String(Math.max(0, line.amount - line.allocated)) };
     }));
     toast.success("Partidas disponibles cargadas", { description: `${availableLines.length} línea(s) disponible(s). Las líneas ya vinculadas no se pueden reutilizar.` });
   };
