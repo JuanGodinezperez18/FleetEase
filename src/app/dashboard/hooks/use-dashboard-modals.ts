@@ -4,7 +4,17 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { QuickActionModal } from './use-dashboard-page';
 
-type ActiveModal = 'clients' | 'vehicles' | 'partners' | 'credits' | 'licenses' | 'insurance' | 'incomes' | 'expenses' | null;
+type ActiveModal =
+  | 'clients'
+  | 'vehicles'
+  | 'partners'
+  | 'credits'
+  | 'licenses'
+  | 'insurance'
+  | 'incomes'
+  | 'expenses'
+  | 'multas'
+  | null;
 
 interface ModalData {
   title: string;
@@ -22,22 +32,22 @@ export function useDashboardModals() {
   const [modalData, setModalData] = useState<ModalData>({ title: '', data: [] });
   const [quickActionModal, setQuickActionModal] = useState<QuickActionModal>(null);
 
-  // Títulos de modales centralizados
-  const modalTitles: Record<Exclude<QuickActionModal, null>, string> = useMemo(() => ({
-    expense: 'Registrar Gasto',
-    income: 'Registrar Ingreso',
-    credit: 'Registrar Crédito',
-    client: 'Registrar Cliente',
-    vehicle: 'Registrar Vehículo',
-    mileage: 'Registrar Kilometraje',
-    'vehicle-inspection': 'Registrar Inspección',
-  }), []);
+  const modalTitles: Record<Exclude<QuickActionModal, null>, string> = useMemo(
+    () => ({
+      expense: 'Registrar Gasto',
+      income: 'Registrar Ingreso',
+      credit: 'Registrar Crédito',
+      client: 'Registrar Cliente',
+      vehicle: 'Registrar Vehículo',
+      mileage: 'Registrar Kilometraje',
+      'vehicle-inspection': 'Registrar Inspección',
+    }),
+    []
+  );
 
-  // Handlers para modal de configuración
   const handleOpenConfig = useCallback(() => setIsConfigOpen(true), []);
   const handleCloseConfig = useCallback(() => setIsConfigOpen(false), []);
 
-  // Handlers para modal de acción rápida
   const handleOpenQuickAction = useCallback((action: string) => {
     setQuickActionModal(action as QuickActionModal);
   }, []);
@@ -46,11 +56,13 @@ export function useDashboardModals() {
     setQuickActionModal(null);
   }, []);
 
-  // Handlers para modales de lista
-  const handleOpenListModal = useCallback((modalType: ActiveModal, title: string, data: any[]) => {
-    setModalData({ title, data });
-    setActiveModal(modalType);
-  }, []);
+  const handleOpenListModal = useCallback(
+    (modalType: ActiveModal, title: string, data: any[]) => {
+      setModalData({ title, data });
+      setActiveModal(modalType);
+    },
+    []
+  );
 
   const handleCloseListModal = useCallback(() => {
     setActiveModal(null);
@@ -58,29 +70,20 @@ export function useDashboardModals() {
   }, []);
 
   return {
-    // Estado
     isConfigOpen,
     activeModal,
     modalData,
     quickActionModal,
-    
-    // Handlers de configuración
     handleOpenConfig,
     handleCloseConfig,
     setIsConfigOpen,
-    
-    // Handlers de acción rápida
     handleOpenQuickAction,
     handleCloseQuickAction,
     setQuickActionModal,
-    
-    // Handlers de lista
     handleOpenListModal,
     handleCloseListModal,
     setActiveModal,
     setModalData,
-    
-    // Datos
     modalTitles,
   };
 }
