@@ -18,7 +18,7 @@ type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
-type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; allocated: number }[] };
+type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; categoryName: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; allocated: number }[] };
 type AllocationSummary = { financialRecordId: string; expenseItemId: string; amount: number; purchaseId: string; supplierName: string; purchaseDate: string; reference: string | null };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
@@ -55,7 +55,7 @@ export function SupplierPurchasesForm() {
     Promise.all([
       supabase.from("suppliers").select("id,name").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name"),
       supabase.from("catalog_items").select("id,name,part_number,default_cost,category_id").eq("company_id", companyId).eq("is_deleted", false).eq("is_active", true).order("name").limit(2000),
-      supabase.from("financial_records").select("id,description,date,category_id,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
+      supabase.from("financial_records").select("id,description,date,category_id,items,financial_categories(name),vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
       supabase.from("supplier_purchase_allocations").select("purchase_id,financial_record_id,expense_item_id,amount").eq("company_id", companyId).not("expense_item_id", "is", null),
       supabase.from("supplier_purchases").select("id,supplier_id,purchase_date,reference,suppliers(name)").eq("company_id", companyId).eq("is_deleted", false),
     ]).then(([supplierResult, catalogResult, expenseResult, allocationResult, purchaseResult]) => {
@@ -108,7 +108,14 @@ export function SupplierPurchasesForm() {
       .filter(Boolean) as CatalogItem[];
     const merged = [...exactItems, ...byConcept];
     if (merged.length) return Array.from(new Map(merged.map(item => [item.id, item])).values());
-    return selectedExpense.categoryId ? catalog.filter(item => item.category_id === selectedExpense.categoryId) : [];
+    const categoryName = selectedExpense.categoryName?.trim().toLowerCase();
+    if (selectedExpense.categoryId || categoryName) {
+      return catalog.filter(item =>
+        (selectedExpense.categoryId && item.category_id === selectedExpense.categoryId) ||
+        (!!categoryName && item.category_name?.trim().toLowerCase() === categoryName)
+      );
+    }
+    return [];
   }, [selectedExpense, catalog]);
 
   const updateItem = (index: number, patch: Partial<PurchaseItem>) => setItems(current => current.map((item, i) => i === index ? { ...item, ...patch } : item));
