@@ -389,19 +389,35 @@ begin
   v_credit_id:=v_payment.credit_id;
 
   if v_payment.credit_payment=true and v_credit_id is not null then
+    -- financial_records no admite amount=0 (trigger FINANCIAL_AMOUNT_INVALID).
+    -- Validamos contra el resto de pagos y escribimos directamente el importe final.
+    select coalesce(sum(f.amount),0), c.total_amount
+      into v_other_paid, v_credit_total
+    from public.credits c
+    left join public.financial_records f
+      on f.credit_id=c.id
+     and f.type='payment'
+     and f.credit_payment=true
+     and f.is_deleted=false
+     and f.id<>p_payment_id
+    where c.id=v_credit_id
+      and c.company_id=v_company_id
+    group by c.total_amount;
+
+    if not found then raise exception 'CREDIT_NOT_FOUND'; end if;
+    if p_amount > greatest(round(coalesce(v_credit_total,0)-coalesce(v_other_paid,0),2),0) then
+      raise exception 'PAYMENT_EXCEEDS_BALANCE';
+    end if;
+
     update public.financial_payment_credit_allocations
     set is_deleted=true
     where payment_financial_record_id=p_payment_id and is_deleted=false;
 
     update public.financial_records
-    set amount=0,updated_at=now()
+    set amount=p_amount,date=coalesce(p_payment_date,date),payment_method=p_payment_method,reference_code=p_reference,updated_at=now()
     where id=p_payment_id;
 
     perform public.recalculate_credit_after_payment_change(v_credit_id);
-
-    if p_amount > (select remaining_balance from public.credits where id=v_credit_id) then
-      raise exception 'PAYMENT_EXCEEDS_BALANCE';
-    end if;
 
     v_left:=round(p_amount,2);
     for v_link in
@@ -420,10 +436,6 @@ begin
       end if;
     end loop;
     if v_left>0 then raise exception 'PAYMENT_ALLOCATION_FAILED'; end if;
-
-    update public.financial_records
-    set amount=p_amount,date=coalesce(p_payment_date,date),payment_method=p_payment_method,reference_code=p_reference,updated_at=now()
-    where id=p_payment_id;
 
     perform public.recalculate_credit_after_payment_change(v_credit_id);
 
