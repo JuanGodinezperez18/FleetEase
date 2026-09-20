@@ -32,7 +32,6 @@ export function SupplierPurchasesForm() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [expenses, setExpenses] = useState<VehicleExpense[]>([]);
-  const [expenseAllocations, setExpenseAllocations] = useState<Map<string, number>>(new Map());
   const [allocationSummary, setAllocationSummary] = useState<AllocationSummary[]>([]);
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -80,7 +79,6 @@ export function SupplierPurchasesForm() {
         const purchase = purchaseById.get(row.purchase_id);
         summaries.push({ financialRecordId: row.financial_record_id, expenseItemId: row.expense_item_id, amount, purchaseId: row.purchase_id, supplierName: purchase?.suppliers?.name || "Proveedor", purchaseDate: purchase?.purchase_date || "", reference: purchase?.reference || null });
       });
-      setExpenseAllocations(allocatedByLine);
       setAllocationSummary(summaries);
       setExpenses(((expenseResult.data || []) as any[]).map(row => ({
         id: row.id,
