@@ -1,13 +1,16 @@
-
 "use client";
 
 import type { Company } from '@/types';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, History } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, History, Edit, Trash2 } from 'lucide-react';
 import { DataTableColumnHeader } from '@/components/common/data-table-column-header';
-import { Badge } from '@/components/ui/badge';
 import { formatNumber } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -22,28 +25,46 @@ interface CompanyMetrics {
   userCount: number;
 }
 
-const CompanyActions: React.FC<ActionsProps> = ({ row, handleOpenModal, handleDeleteConfirm }) => {
-    const item = row.original;
-    const router = useRouter();
+const CompanyActions: React.FC<ActionsProps> = ({
+  row,
+  handleOpenModal,
+  handleDeleteConfirm,
+}) => {
+  const item = row.original;
+  const router = useRouter();
 
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Abrir menú</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => handleOpenModal(item)}>Editar</DropdownMenuItem>
-                 <DropdownMenuItem onSelect={() => router.push(`/dashboard/companies/${item.id}/history`)}>
-                  <History className="mr-2 h-4 w-4" /> Ver Historial
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => handleDeleteConfirm(item)}>Eliminar</DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="h-8 w-8 rounded-lg p-0 text-white/40 hover:bg-white/[0.06] hover:text-white"
+        >
+          <span className="sr-only">Abrir menú</span>
+          <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6}>
+        <DropdownMenuItem onSelect={() => handleOpenModal(item)}>
+          <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => router.push(`/dashboard/companies/${item.id}/history`)}
+        >
+          <History className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+          Ver historial
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-rose-400 focus:bg-rose-500/15 focus:text-rose-300"
+          onSelect={() => handleDeleteConfirm(item)}
+        >
+          <Trash2 className="mr-2.5 h-4 w-4" strokeWidth={1.75} />
+          Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 };
 
 export const getColumns = (
@@ -51,66 +72,107 @@ export const getColumns = (
   handleDeleteConfirm: (company: Company) => void,
   companyMetrics: Record<string, CompanyMetrics>
 ): ColumnDef<Company>[] => {
-    return [
-        {
-            accessorKey: 'name',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Nombre de la Empresa" />,
-        },
-        {
-            accessorKey: 'vehicleCount',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Vehículos" />,
-            cell: ({ row }) => {
-                const count = companyMetrics[row.original.id]?.vehicleCount || 0;
-                const limit = row.original.vehicleLimit;
-                if(typeof limit !== 'number') return <div className="text-center">{formatNumber(count)}</div>;
-
-                const usage = limit > 0 ? (count / limit) * 100 : (count > 0 ? 101 : 0); // If limit is 0 but count > 0, it's over limit.
-                const isNearLimit = usage >= 80 && usage <= 100;
-                const isOverLimit = usage > 100;
-
-                return (
-                    <div className="flex items-center gap-2">
-                        <span>{formatNumber(count)} / {formatNumber(limit)}</span>
-                        {isOverLimit && <Badge variant="destructive">Excedido</Badge>}
-                        {isNearLimit && !isOverLimit && <Badge variant="secondary">Cerca</Badge>}
-                    </div>
-                );
-            }
-        },
-        {
-            accessorKey: 'userCount',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Usuarios" />,
-            cell: ({ row }) => {
-                const count = companyMetrics[row.original.id]?.userCount || 0;
-                return <div className="text-center">{formatNumber(count)}</div>
-            }
-        },
-        {
-            accessorKey: 'email',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Correo" />,
-        },
-        {
-            accessorKey: 'phone',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Teléfono" />,
-        },
-        {
-            accessorKey: 'createdAt',
-            header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha de Creación" />,
-            cell: ({ row }) => {
-                const date = row.original.createdAt;
-                return date ? new Date(date).toLocaleDateString() : 'N/A';
-            }
-        },
-        {
-            id: 'actions',
-            header: 'Acciones',
-            cell: (props) => (
-                <CompanyActions
-                    {...props}
-                    handleOpenModal={handleOpenModal}
-                    handleDeleteConfirm={handleDeleteConfirm}
-                />
-            ),
+  return [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Empresa" />
+      ),
+      cell: ({ row }) => (
+        <span className="font-medium text-white/90">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: 'vehicleCount',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Vehículos" />
+      ),
+      cell: ({ row }) => {
+        const count = companyMetrics[row.original.id]?.vehicleCount || 0;
+        const limit = row.original.vehicleLimit;
+        if (typeof limit !== 'number') {
+          return (
+            <span className="tabular-nums text-white/70">{formatNumber(count)}</span>
+          );
         }
-    ];
+
+        const usage = limit > 0 ? (count / limit) * 100 : count > 0 ? 101 : 0;
+        const isNearLimit = usage >= 80 && usage <= 100;
+        const isOverLimit = usage > 100;
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="tabular-nums text-white/70">
+              {formatNumber(count)} / {formatNumber(limit)}
+            </span>
+            {isOverLimit && (
+              <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[10px] font-semibold text-rose-300">
+                Excedido
+              </span>
+            )}
+            {isNearLimit && !isOverLimit && (
+              <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                Cerca
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'userCount',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Usuarios" />
+      ),
+      cell: ({ row }) => {
+        const count = companyMetrics[row.original.id]?.userCount || 0;
+        return (
+          <span className="tabular-nums text-white/70">{formatNumber(count)}</span>
+        );
+      },
+    },
+    {
+      accessorKey: 'email',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Correo" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-white/55">{row.original.email || '—'}</span>
+      ),
+    },
+    {
+      accessorKey: 'phone',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Teléfono" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-white/55">{row.original.phone || '—'}</span>
+      ),
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Creación" />
+      ),
+      cell: ({ row }) => {
+        const date = row.original.createdAt;
+        return (
+          <span className="text-white/50">
+            {date ? new Date(date).toLocaleDateString('es-MX') : 'N/A'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: props => (
+        <CompanyActions
+          {...props}
+          handleOpenModal={handleOpenModal}
+          handleDeleteConfirm={handleDeleteConfirm}
+        />
+      ),
+    },
+  ];
 };
