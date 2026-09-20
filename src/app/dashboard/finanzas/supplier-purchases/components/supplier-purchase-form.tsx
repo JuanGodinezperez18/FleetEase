@@ -59,12 +59,13 @@ export function SupplierPurchasesForm() {
       supabase.from("financial_records").select("id,description,date,category_id,items,vehicles(make,model,plate)").eq("company_id", companyId).eq("type", "expense").eq("is_deleted", false).not("vehicle_id", "is", null).order("date", { ascending: false }).limit(200),
       supabase.from("supplier_purchase_allocations").select("purchase_id,financial_record_id,expense_item_id,amount").eq("company_id", companyId).not("expense_item_id", "is", null),
       supabase.from("supplier_purchases").select("id,supplier_id,purchase_date,reference,suppliers(name)").eq("company_id", companyId).eq("is_deleted", false),
-    ]).then(([supplierResult, catalogResult, expenseResult, allocationResult]) => {
+    ]).then(([supplierResult, catalogResult, expenseResult, allocationResult, purchaseResult]) => {
       if (cancelled) return;
       if (supplierResult.error) toast.error("No se pudieron cargar los proveedores.", { description: supplierResult.error.message });
       if (catalogResult.error) toast.error("No se pudo cargar el catálogo.", { description: catalogResult.error.message });
       if (expenseResult.error) toast.error("No se pudieron cargar los gastos para vinculación.", { description: expenseResult.error.message });
       if (allocationResult.error) toast.error("No se pudo comprobar qué líneas ya están utilizadas.", { description: allocationResult.error.message });
+      if (purchaseResult.error) toast.error("No se pudo cargar el detalle de proveedores de las compras.", { description: purchaseResult.error.message });
       setSuppliers((supplierResult.data || []) as Supplier[]);
       setCatalog((catalogResult.data || []) as CatalogItem[]);
       const purchaseRows = (allocationResult.data || []) as any[];
@@ -101,9 +102,10 @@ export function SupplierPurchasesForm() {
   const selectedExpense = expenses.find(expense => expense.id === expenseId);
   const catalogForSelectedExpense = useMemo(() => {
     if (!selectedExpense) return [];
-    const exactIds = new Set(selectedExpense.lines.map(line => line.catalogItemId).filter(Boolean) as string[]);
+    const availableLines = selectedExpense.lines.filter(line => line.amount - line.allocated > 0.009);
+    const exactIds = new Set(availableLines.map(line => line.catalogItemId).filter(Boolean) as string[]);
     const exactItems = catalog.filter(item => exactIds.has(item.id));
-    const byConcept = selectedExpense.lines
+    const byConcept = availableLines
       .map(line => catalog.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase()))
       .filter(Boolean) as CatalogItem[];
     const merged = [...exactItems, ...byConcept];
@@ -326,6 +328,54 @@ export function SupplierPurchasesForm() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="relative z-10 max-w-5xl overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-white">Gastos operativos pendientes de compra</h2>
+            <p className="mt-1 text-xs text-white/40 sm:text-sm">Aquí aparecen las líneas de gastos de vehículos que todavía no están cubiertas por una compra de proveedor.</p>
+          </div>
+          <div className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold text-amber-300">{expenses.length} gasto(s) con saldo pendiente</div>
+        </div>
+        {expenses.length === 0 ? (
+          <div className="rounded-[16px] border border-emerald-400/15 bg-emerald-400/[0.05] p-4 text-sm text-emerald-300">No hay líneas de gastos de vehículos pendientes de asociar a una compra de proveedor.</div>
+        ) : (
+          <div className="space-y-3">
+            {expenses.map(expense => {
+              const pendingLines = expense.lines.map(line => {
+                const purchased = allocationSummary.filter(a => a.financialRecordId === expense.id && a.expenseItemId === line.id).reduce((sum, a) => sum + a.amount, 0);
+                return { ...line, purchased, pending: Math.max(0, line.amount - purchased) };
+              }).filter(line => line.pending > 0.009);
+              if (!pendingLines.length) return null;
+              return (
+                <div key={expense.id} className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-medium text-white">{expense.vehicleName}</p>
+                      <p className="text-xs text-white/40">{expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-amber-300">Pendiente de compra</span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {pendingLines.map(line => {
+                      const links = allocationSummary.filter(a => a.financialRecordId === expense.id && a.expenseItemId === line.id);
+                      const suppliers = Array.from(new Set(links.map(a => a.supplierName).filter(Boolean)));
+                      return (
+                        <div key={line.id} className="grid gap-2 rounded-xl border border-white/[0.06] bg-black/10 p-3 sm:grid-cols-[1.6fr_.8fr_.8fr_1.4fr] sm:items-center">
+                          <div><p className="text-sm font-medium text-white/90">{line.concept}</p><p className="text-[11px] text-white/35">Gasto original {formatCurrency(line.amount)}</p></div>
+                          <div><p className="text-[10px] uppercase tracking-wide text-white/30">Comprado</p><p className="text-sm font-semibold text-white">{formatCurrency(line.purchased)}</p></div>
+                          <div><p className="text-[10px] uppercase tracking-wide text-white/30">Pendiente</p><p className="text-sm font-semibold text-amber-300">{formatCurrency(line.pending)}</p></div>
+                          <div><p className="text-[10px] uppercase tracking-wide text-white/30">Proveedor asociado</p><p className="text-sm text-white/70">{suppliers.length ? suppliers.join(", ") : "Sin compra registrada"}</p></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
         <DialogContent className="sm:max-w-md">
