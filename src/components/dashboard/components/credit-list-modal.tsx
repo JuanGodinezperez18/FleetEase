@@ -1,10 +1,23 @@
-
 // components/dashboard/components/credit-list-modal.tsx
 'use client';
 
 import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
@@ -13,7 +26,6 @@ import { useShareContent } from '@/hooks/use-share-content';
 import { useModalData } from '@/hooks/use-modal-data';
 import { Share2, Search, CreditCard, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ModalTableSkeleton } from './modal-table-skeleton';
 import { ModalPagination } from './modal-pagination';
 import { format } from 'date-fns';
@@ -42,12 +54,21 @@ interface CreditListModalProps {
   loading?: boolean;
 }
 
+const STATUS_BADGE = {
+  overdue:
+    'inline-flex items-center gap-1 rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[10px] font-semibold text-rose-300',
+  active:
+    'inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold text-sky-300',
+  paid:
+    'inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300',
+} as const;
+
 export function CreditListModal({
   isOpen,
   onClose,
   title = 'Créditos',
   credits = [],
-  loading = false
+  loading = false,
 }: CreditListModalProps) {
   const router = useRouter();
   const { shareContent, isSharing } = useShareContent();
@@ -65,10 +86,10 @@ export function CreditListModal({
     hasNextPage,
     totalResults,
     showingFrom,
-    showingTo
+    showingTo,
   } = useModalData({
     data: credits,
-    searchFields: (credit) => [credit.clientName],
+    searchFields: credit => [credit.clientName],
     sortFn: (a, b) => {
       const statusPriority = { overdue: 0, active: 1, paid: 2 };
       const aPriority = statusPriority[a.status || 'active'];
@@ -76,17 +97,15 @@ export function CreditListModal({
       if (aPriority !== bPriority) return aPriority - bPriority;
       return b.balance - a.balance;
     },
-    initialPageSize: 20
+    initialPageSize: 20,
   });
 
   const totals = useMemo(() => {
     const totalLent = filteredData.reduce((sum, c) => sum + c.amount, 0);
     const totalPending = filteredData.reduce((sum, c) => sum + c.balance, 0);
-    const totalPaid = totalLent - totalPending;
     const activeCount = filteredData.filter(c => c.status === 'active').length;
     const overdueCount = filteredData.filter(c => c.status === 'overdue').length;
-    const paidCount = filteredData.filter(c => c.status === 'paid').length;
-    return { totalLent, totalPending, totalPaid, activeCount, overdueCount, paidCount };
+    return { totalLent, totalPending, activeCount, overdueCount };
   }, [filteredData]);
 
   const handleViewCredit = (creditId: string) => {
@@ -98,28 +117,29 @@ export function CreditListModal({
     const date = new Date().toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
     const creditsText = filteredData
-      .map(credit => {
-        const status = credit.status === 'overdue' ? '⚠️' : credit.status === 'paid' ? '✅' : '⏳';
-        return `${status} ${credit.clientName}: ${formatCurrency(credit.balance)} pendiente`;
-      })
+      .map(
+        credit =>
+          `${credit.clientName}: ${formatCurrency(credit.balance)} pendiente`
+      )
       .join('\n');
-    const shareText = `${title}\nFecha: ${date}\n\n${creditsText}\n\nTotal Prestado: ${formatCurrency(totals.totalLent)}\nTotal Pendiente: ${formatCurrency(totals.totalPending)}`;
     shareContent({
       title: `Reporte de Créditos: ${title}`,
-      text: shareText,
+      text: `${title}\nFecha: ${date}\n\n${creditsText}\n\nTotal prestado: ${formatCurrency(totals.totalLent)}\nPendiente: ${formatCurrency(totals.totalPending)}`,
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl h-[85vh] flex flex-col gap-4 overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="flex h-[85vh] max-w-6xl flex-col gap-4 overflow-hidden sm:max-w-6xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CreditCard className="w-5 h-5 text-[#d7ff3f]" />
+          <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+                <CreditCard className="h-5 w-5" strokeWidth={1.75} />
+              </div>
               <div>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription className="mt-1">
@@ -127,57 +147,57 @@ export function CreditListModal({
                 </DialogDescription>
               </div>
             </div>
-
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {totals.overdueCount > 0 && (
-                <Badge variant="destructive" className="text-xs">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  {totals.overdueCount} Vencido{totals.overdueCount > 1 ? 's' : ''}
-                </Badge>
+                <span className={STATUS_BADGE.overdue}>
+                  <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                  {totals.overdueCount} vencido{totals.overdueCount > 1 ? 's' : ''}
+                </span>
               )}
               {totals.activeCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {totals.activeCount} Activo{totals.activeCount > 1 ? 's' : ''}
-                </Badge>
+                <span className={STATUS_BADGE.active}>
+                  <Clock className="h-3 w-3" strokeWidth={1.75} />
+                  {totals.activeCount} activo{totals.activeCount > 1 ? 's' : ''}
+                </span>
               )}
-              <Badge variant="default" className="text-xs bg-blue-600">
+              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-white/70">
                 Pendiente: {formatCurrency(totals.totalPending)}
-              </Badge>
+              </span>
             </div>
           </div>
         </DialogHeader>
 
         <div className="relative shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+            strokeWidth={1.75}
+          />
           <Input
             placeholder="Buscar por nombre de cliente..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] pl-9 text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30"
           />
           {filteredData.length !== credits.length && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Badge variant="secondary" className="text-xs">
-                {filteredData.length} de {credits.length}
-              </Badge>
-            </div>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
+              {filteredData.length} de {credits.length}
+            </span>
           )}
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 min-h-0">
-          <div className="min-w-[900px] px-6">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-w-[800px]">
             {loading ? (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Monto Prestado</TableHead>
-                    <TableHead className="text-right">Saldo Pendiente</TableHead>
-                    <TableHead className="text-center">Progreso</TableHead>
-                    <TableHead>Fecha Inicio</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-white/40">Cliente</TableHead>
+                    <TableHead className="text-right text-white/40">Prestado</TableHead>
+                    <TableHead className="text-right text-white/40">Pendiente</TableHead>
+                    <TableHead className="text-center text-white/40">Progreso</TableHead>
+                    <TableHead className="text-white/40">Inicio</TableHead>
+                    <TableHead className="text-center text-white/40">Estado</TableHead>
+                    <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -188,90 +208,100 @@ export function CreditListModal({
               <EmptyState
                 illustration={searchTerm ? 'search' : 'transactions'}
                 title={searchTerm ? 'No se encontraron créditos' : 'No hay créditos para mostrar'}
-                description={searchTerm ? 'Prueba con otro nombre de cliente.' : 'Cuando registres créditos, verás aquí saldos, progreso y vencimientos.'}
+                description={
+                  searchTerm
+                    ? 'Prueba con otro nombre de cliente.'
+                    : 'Cuando registres créditos, verás aquí saldos, progreso y vencimientos.'
+                }
                 className="min-h-[280px] border-0 bg-transparent"
               />
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Monto Prestado</TableHead>
-                    <TableHead className="text-right">Saldo Pendiente</TableHead>
-                    <TableHead className="text-center">Progreso</TableHead>
-                    <TableHead>Fecha Inicio</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
+                  <TableRow className="border-white/[0.06] hover:bg-transparent">
+                    <TableHead className="text-white/40">Cliente</TableHead>
+                    <TableHead className="text-right text-white/40">Prestado</TableHead>
+                    <TableHead className="text-right text-white/40">Pendiente</TableHead>
+                    <TableHead className="text-center text-white/40">Progreso</TableHead>
+                    <TableHead className="text-white/40">Inicio</TableHead>
+                    <TableHead className="text-center text-white/40">Estado</TableHead>
+                    <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.map((credit) => {
-                    const progress = ((credit.amount - credit.balance) / credit.amount) * 100;
+                  {paginatedData.map(credit => {
+                    const progress =
+                      credit.amount > 0
+                        ? ((credit.amount - credit.balance) / credit.amount) * 100
+                        : 0;
+                    const status = credit.status || 'active';
 
                     return (
-                      <StaggerTableRow key={credit.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                        <TableCell className="font-medium">
+                      <StaggerTableRow
+                        key={credit.id}
+                        className="border-white/[0.06] hover:bg-white/[0.03]"
+                      >
+                        <TableCell className="font-medium text-white/90">
                           {credit.clientName}
                         </TableCell>
-                        <TableCell className="text-right font-semibold">
+                        <TableCell className="text-right font-semibold tabular-nums text-white/80">
                           {formatCurrency(credit.amount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={cn(
-                            'font-semibold',
-                            credit.balance > 0 ? 'text-orange-600' : 'text-green-600'
-                          )}>
+                          <span
+                            className={cn(
+                              'font-semibold tabular-nums',
+                              credit.balance > 0 ? 'text-amber-300' : 'text-emerald-300'
+                            )}
+                          >
                             {formatCurrency(credit.balance)}
                           </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
                               <div
                                 className={cn(
-                                  'h-2 rounded-full transition-all',
-                                  credit.status === 'paid' ? 'bg-green-600' :
-                                  credit.status === 'overdue' ? 'bg-red-600' :
-                                  'bg-blue-600'
+                                  'h-full rounded-full transition-all',
+                                  status === 'paid' && 'bg-emerald-400',
+                                  status === 'overdue' && 'bg-rose-400',
+                                  status === 'active' && 'bg-sky-400'
                                 )}
                                 style={{ width: `${Math.min(progress, 100)}%` }}
                               />
                             </div>
-                            <span className="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">
+                            <span className="w-10 text-right text-xs tabular-nums text-white/45">
                               {progress.toFixed(0)}%
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                        <TableCell className="text-sm text-white/50">
                           {format(new Date(credit.createdAt), 'dd MMM yyyy', { locale: es })}
                         </TableCell>
                         <TableCell className="text-center">
-                          {credit.status === 'overdue' && (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Vencido
-                            </Badge>
-                          )}
-                          {credit.status === 'active' && (
-                            <Badge variant="outline" className="text-xs">
-                              <Clock className="w-3 h-3 mr-1" />
-                              Activo
-                            </Badge>
-                          )}
-                          {credit.status === 'paid' && (
-                            <Badge variant="default" className="text-xs bg-green-600">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Pagado
-                            </Badge>
-                          )}
+                          <span className={STATUS_BADGE[status] || STATUS_BADGE.active}>
+                            {status === 'overdue' && (
+                              <AlertCircle className="h-3 w-3" strokeWidth={1.75} />
+                            )}
+                            {status === 'active' && <Clock className="h-3 w-3" strokeWidth={1.75} />}
+                            {status === 'paid' && (
+                              <CheckCircle className="h-3 w-3" strokeWidth={1.75} />
+                            )}
+                            {status === 'overdue'
+                              ? 'Vencido'
+                              : status === 'paid'
+                                ? 'Pagado'
+                                : 'Activo'}
+                          </span>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleViewCredit(credit.id)}
+                            className="h-8 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
                           >
-                            Ver Crédito
+                            Ver crédito
                           </Button>
                         </TableCell>
                       </StaggerTableRow>
@@ -300,16 +330,22 @@ export function CreditListModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
-            <Share2 className="w-4 h-4 mr-2" />
-            Compartir Reporte
+            <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Compartir reporte
           </Button>
-          <Button onClick={onClose}>Cerrar</Button>
+          <Button
+            onClick={onClose}
+            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+          >
+            Cerrar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
