@@ -18,7 +18,7 @@ type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
-type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; used: boolean }[] };
+type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; used: boolean }[] };
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
@@ -64,7 +64,8 @@ export function SupplierPurchasesForm() {
       if (allocationResult.error) toast.error("No se pudo comprobar qué líneas ya están utilizadas.", { description: allocationResult.error.message });
       setSuppliers((supplierResult.data || []) as Supplier[]);
       setCatalog((catalogResult.data || []) as CatalogItem[]);
-      setUsedExpenseLines(new Set(((allocationResult.data || []) as any[]).map(row => `${row.financial_record_id}:${row.expense_item_id}`)));
+      const usedLines = new Set(((allocationResult.data || []) as any[]).map(row => `${row.financial_record_id}:${row.expense_item_id}`));
+      setUsedExpenseLines(usedLines);
       setExpenses(((expenseResult.data || []) as any[]).map(row => ({
         id: row.id,
         description: row.description || "Gasto de vehículo",
@@ -73,7 +74,7 @@ export function SupplierPurchasesForm() {
         categoryId: row.category_id || null,
         lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => {
           const id = String(line.id || `legacy-${row.id}-${index}`);
-          return { id, concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0), used: usedExpenseLines.has(`${row.id}:${id}`) };
+          return { id, concept: String(line.concept || line.description || "Concepto"), amount: Number(line.amount || 0), catalogItemId: line.catalog_item_id || line.catalogItemId || line.article_id || null, used: usedLines.has(`${row.id}:${id}`) };
         }).filter((line: { amount: number }) => line.amount > 0),
       })).filter(expense => expense.lines.some(line => !line.used)));
     });
@@ -82,7 +83,17 @@ export function SupplierPurchasesForm() {
 
   const total = useMemo(() => items.reduce((sum, item) => sum + Math.round((Number(item.quantity) || 0) * (Number(item.unit_price) || 0) * 100) / 100, 0), [items]);
   const selectedExpense = expenses.find(expense => expense.id === expenseId);
-  const catalogForSelectedExpense = selectedExpense?.categoryId ? catalog.filter(item => item.category_id === selectedExpense.categoryId) : [];
+  const catalogForSelectedExpense = useMemo(() => {
+    if (!selectedExpense) return [];
+    const exactIds = new Set(selectedExpense.lines.map(line => line.catalogItemId).filter(Boolean) as string[]);
+    const exactItems = catalog.filter(item => exactIds.has(item.id));
+    const byConcept = selectedExpense.lines
+      .map(line => catalog.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase()))
+      .filter(Boolean) as CatalogItem[];
+    const merged = [...exactItems, ...byConcept];
+    if (merged.length) return Array.from(new Map(merged.map(item => [item.id, item])).values());
+    return selectedExpense.categoryId ? catalog.filter(item => item.category_id === selectedExpense.categoryId) : [];
+  }, [selectedExpense, catalog]);
 
   const updateItem = (index: number, patch: Partial<PurchaseItem>) => setItems(current => current.map((item, i) => i === index ? { ...item, ...patch } : item));
 
@@ -96,7 +107,7 @@ export function SupplierPurchasesForm() {
     const availableLines = selectedExpense.lines.filter(line => !usedExpenseLines.has(`${selectedExpense.id}:${line.id}`));
     if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya fueron vinculadas a un proveedor.");
     setItems(availableLines.map(line => {
-      const matchingCatalog = catalogForSelectedExpense.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase());
+      const matchingCatalog = (line.catalogItemId ? catalog.find(item => item.id === line.catalogItemId) : null) || catalogForSelectedExpense.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase());
       return { catalog_item_id: matchingCatalog?.id || "", description: matchingCatalog?.name || line.concept, quantity: "1", unit_price: matchingCatalog?.default_cost != null ? String(matchingCatalog.default_cost) : String(line.amount) };
     }));
     toast.success("Partidas disponibles cargadas", { description: `${availableLines.length} línea(s) disponible(s). Las líneas ya vinculadas no se pueden reutilizar.` });
