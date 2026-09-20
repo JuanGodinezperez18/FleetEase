@@ -234,7 +234,24 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     return vehicles.filter(v => v.companyId === companyId && (v.status === "active" || v.status === "rented") && !v.isDeleted);
   }, [vehicles, formCompanyId, currentUser?.companyId]);
 
-  const availableVehicles = useMemo(() => selectedClientId && selectedClientId !== NONE_SELECT_VALUE ? selectableVehicles.filter(v => v.clientId === selectedClientId) : selectableVehicles, [selectedClientId, selectableVehicles]);
+  const selectedClient = useMemo(() => (
+    selectedClientId && selectedClientId !== NONE_SELECT_VALUE
+      ? clients.find(c => c.id === selectedClientId) || null
+      : null
+  ), [clients, selectedClientId]);
+
+  // La asignación oficial del cliente vive en clients.assignedVehicleId.
+  // vehicle.clientId puede estar vacío porque la asignación se administra desde
+  // el módulo de clientes/asignaciones. Conservamos clientId como fallback
+  // para registros antiguos.
+  const availableVehicles = useMemo(() => {
+    if (!selectedClient) return selectableVehicles;
+    const assignedVehicleId = selectedClient.assignedVehicleId || null;
+    return selectableVehicles.filter(v =>
+      (assignedVehicleId && v.id === assignedVehicleId) ||
+      v.clientId === selectedClient.id
+    );
+  }, [selectedClient, selectableVehicles]);
 
   const selectableCategories = useMemo(() => {
     const companyId = formCompanyId || currentUser?.companyId;
