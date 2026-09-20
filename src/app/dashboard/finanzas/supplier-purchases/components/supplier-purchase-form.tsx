@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
 type Supplier = { id: string; name: string };
-type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null };
+type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null; category_name: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
 type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
 type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; categoryName: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; allocated: number }[] };
@@ -187,7 +187,7 @@ export function SupplierPurchasesForm() {
       }
       setSupplierId(""); setReference(""); setNotes(""); setDueDate(""); setPaymentMethod("cash"); setItems([emptyItem()]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error inesperado al registrar la compra.";
+      const message = error && typeof error === "object" && "message" in error\n        ? String((error as { message?: unknown }).message || "Error inesperado al registrar la compra.")\n        : error instanceof Error\n          ? error.message\n          : "Error inesperado al registrar la compra.";
       console.error("[FleetEase] create_supplier_purchase failed", error);
       setSaveError(message);
       toast.error("No se pudo registrar la compra", { description: message });
