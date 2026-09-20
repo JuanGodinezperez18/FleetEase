@@ -2,17 +2,30 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useShareContent } from '@/hooks/use-share-content';
 import { useModalData } from '@/hooks/use-modal-data';
 import { Share2, Search, DollarSign, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ModalTableSkeleton } from './modal-table-skeleton';
 import { ModalPagination } from './modal-pagination';
 import { format } from 'date-fns';
@@ -21,15 +34,14 @@ import type { FinancialRecord } from '@/types';
 import { StaggerTableRow } from '@/components/animations/modern-transitions';
 import { useData } from '@/contexts/data-provider';
 
-// Mapeo de métodos de pago a etiquetas amigables
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  'Efectivo': 'Efectivo',
-  'Transferencia': 'Transferencia',
+  Efectivo: 'Efectivo',
+  Transferencia: 'Transferencia',
   'Uso de Depósito en Garantía': 'Depósito en Garantía',
-  'Tarjeta': 'Tarjeta',
-  'Cheque': 'Cheque',
-  'credito': 'Crédito',
-  'Retiro sin tarjeta': 'Retiro sin tarjeta'
+  Tarjeta: 'Tarjeta',
+  Cheque: 'Cheque',
+  credito: 'Crédito',
+  'Retiro sin tarjeta': 'Retiro sin tarjeta',
 };
 
 interface IncomeListModalProps {
@@ -45,41 +57,28 @@ export function IncomeListModal({
   onClose,
   title = 'Ingresos del Mes',
   incomes = [],
-  loading = false
+  loading = false,
 }: IncomeListModalProps) {
   const router = useRouter();
   const { shareContent, isSharing } = useShareContent();
   const { financialCategories } = useData();
 
-  // Enriquecer ingresos con nombres correctos de categoría y método de pago
   const enrichedIncomes = useMemo(() => {
     const categoryMap = new Map<string, string>();
-    if (financialCategories) {
-      financialCategories.forEach(cat => {
-        categoryMap.set(cat.id, cat.name);
-      });
-    }
+    financialCategories?.forEach(cat => categoryMap.set(cat.id, cat.name));
 
     return incomes.map(income => {
-      // Obtener nombre de categoría usando categoryId
-      const categoryName = income.categoryId && categoryMap.has(income.categoryId)
-        ? categoryMap.get(income.categoryId)!
-        : (income.category || 'Sin Categoría');
-
-      // Obtener etiqueta amigable del método de pago
+      const categoryName =
+        income.categoryId && categoryMap.has(income.categoryId)
+          ? categoryMap.get(income.categoryId)!
+          : income.category || 'Sin categoría';
       const paymentMethodLabel = income.paymentMethod
-        ? (PAYMENT_METHOD_LABELS[income.paymentMethod] || income.paymentMethod)
+        ? PAYMENT_METHOD_LABELS[income.paymentMethod] || income.paymentMethod
         : 'No especificado';
-
-      return {
-        ...income,
-        categoryName,
-        paymentMethodLabel
-      };
+      return { ...income, categoryName, paymentMethodLabel };
     });
   }, [incomes, financialCategories]);
 
-  // Hook con paginación
   const {
     searchTerm,
     setSearchTerm,
@@ -93,47 +92,32 @@ export function IncomeListModal({
     hasNextPage,
     totalResults,
     showingFrom,
-    showingTo
+    showingTo,
   } = useModalData({
     data: enrichedIncomes,
     searchFields: (income: any) => [
       income.description,
       income.categoryName,
-      income.paymentMethodLabel
+      income.paymentMethodLabel,
     ],
-    sortFn: (a, b) => {
-      // Ordenar por fecha descendente (más recientes primero)
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    },
-    initialPageSize: 20
+    sortFn: (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    initialPageSize: 20,
   });
 
-  // Cálculos totales
   const totals = useMemo(() => {
     const totalAmount = filteredData.reduce((sum, income) => sum + income.amount, 0);
-
-    // Agrupar por categoría
-    const byCategory = filteredData.reduce((acc, income) => {
-      const category = income.category || 'Sin Categoría';
-      acc[category] = (acc[category] || 0) + income.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Agrupar por método de pago
-    const byPaymentMethod = filteredData.reduce((acc, income) => {
-      const method = income.paymentMethod || 'No especificado';
-      acc[method] = (acc[method] || 0) + income.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const sortedCategories = Object.entries(byCategory).sort((a, b) => (b[1] as number) - (a[1] as number));
-
+    const byCategory = filteredData.reduce(
+      (acc, income: any) => {
+        const category = income.categoryName || 'Sin categoría';
+        acc[category] = (acc[category] || 0) + income.amount;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
     return {
       totalAmount,
-      categoriesCount: Object.keys(byCategory).length,
-      topCategory: sortedCategories.length > 0 ? sortedCategories[0] : undefined,
-      byCategory,
-      byPaymentMethod
+      topCategory: sorted.length > 0 ? sorted[0] : undefined,
     };
   }, [filteredData]);
 
@@ -146,37 +130,29 @@ export function IncomeListModal({
     const date = new Date().toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
-
     const incomesText = filteredData
-      .map(income => {
+      .map((income: any) => {
         const dateStr = format(new Date(income.date), 'dd/MM/yyyy', { locale: es });
-        return `${dateStr} - ${income.category}: ${formatCurrency(income.amount)} (${income.description})`;
+        return `${dateStr} - ${income.categoryName}: ${formatCurrency(income.amount)} (${income.description})`;
       })
       .join('\n');
-
-    const shareText = `${title}
-Fecha: ${date}
-
-${incomesText}
-
-Total de Ingresos: ${formatCurrency(totals.totalAmount)}
-Categorías: ${totals.categoriesCount}`;
-
     shareContent({
       title: `Reporte de Ingresos: ${title}`,
-      text: shareText,
+      text: `${title}\nFecha: ${date}\n\n${incomesText}\n\nTotal: ${formatCurrency(totals.totalAmount)}`,
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl h-[85vh] flex flex-col gap-4 overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="flex h-[85vh] max-w-6xl flex-col gap-4 overflow-hidden sm:max-w-6xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300">
+                <TrendingUp className="h-5 w-5" strokeWidth={1.75} />
+              </div>
               <div>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription className="mt-1">
@@ -184,99 +160,95 @@ Categorías: ${totals.categoriesCount}`;
                 </DialogDescription>
               </div>
             </div>
-
-            {/* Estadísticas rápidas */}
-            <div className="flex gap-2">
-              <Badge variant="default" className="text-xs bg-green-600">
-                <DollarSign className="w-3 h-3 mr-1" />
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-0.5 text-[10px] font-semibold tabular-nums text-emerald-300">
+                <DollarSign className="h-3 w-3" strokeWidth={1.75} />
                 Total: {formatCurrency(totals.totalAmount)}
-              </Badge>
+              </span>
               {totals.topCategory && (
-                <Badge variant="outline" className="text-xs">
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold text-white/55">
                   Top: {totals.topCategory[0]}
-                </Badge>
+                </span>
               )}
             </div>
           </div>
         </DialogHeader>
 
-        {/* Barra de búsqueda */}
         <div className="relative shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+            strokeWidth={1.75}
+          />
           <Input
-            placeholder="Buscar por descripción, categoría o método de pago..."
+            placeholder="Buscar por descripción, categoría o método..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] pl-9 text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30"
           />
           {filteredData.length !== incomes.length && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Badge variant="secondary" className="text-xs">
-                {filteredData.length} de {incomes.length}
-              </Badge>
-            </div>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
+              {filteredData.length} de {incomes.length}
+            </span>
           )}
         </div>
 
-        {/* Tabla con scroll */}
-        <ScrollArea className="flex-1 -mx-6 min-h-0">
-          <div className="min-w-[900px] px-6">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="min-w-[800px]">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Método de Pago</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead className="text-right">Acción</TableHead>
+                <TableRow className="border-white/[0.06] hover:bg-transparent">
+                  <TableHead className="text-white/40">Fecha</TableHead>
+                  <TableHead className="text-white/40">Categoría</TableHead>
+                  <TableHead className="text-white/40">Descripción</TableHead>
+                  <TableHead className="text-white/40">Método</TableHead>
+                  <TableHead className="text-right text-white/40">Monto</TableHead>
+                  <TableHead className="text-right text-white/40">Acción</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <ModalTableSkeleton rows={5} columns={6} />
                 ) : paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableRow className="border-white/[0.06]">
+                    <TableCell colSpan={6} className="py-10 text-center text-white/40">
                       {searchTerm ? 'No se encontraron ingresos' : 'No hay ingresos para mostrar'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  <>
-                    {/* React 19: StaggerContainer for animated rows */}
-                    {paginatedData.map((income) => (
-                      <StaggerTableRow key={income.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
-                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                            {format(new Date(income.date), 'dd MMM yyyy', { locale: es })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {income.category || 'Sin Categoría'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-medium max-w-xs truncate">
-                            {income.description}
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                            {income.paymentMethod || 'No especificado'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="font-semibold text-green-600">
-                              {formatCurrency(income.amount)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleViewTransaction(income.id)}
-                            >
-                              Ver Detalles
-                            </Button>
-                          </TableCell>
-                        </StaggerTableRow>
-                    ))}
-                  </>
+                  paginatedData.map((income: any) => (
+                    <StaggerTableRow
+                      key={income.id}
+                      className="border-white/[0.06] hover:bg-white/[0.03]"
+                    >
+                      <TableCell className="text-sm text-white/50">
+                        {format(new Date(income.date), 'dd MMM yyyy', { locale: es })}
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/60">
+                          {income.categoryName || 'Sin categoría'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate font-medium text-white/85">
+                        {income.description}
+                      </TableCell>
+                      <TableCell className="text-sm text-white/50">
+                        {income.paymentMethodLabel || 'No especificado'}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums text-emerald-300">
+                        {formatCurrency(income.amount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewTransaction(income.id)}
+                          className="h-8 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+                        >
+                          Ver detalles
+                        </Button>
+                      </TableCell>
+                    </StaggerTableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -284,7 +256,6 @@ Categorías: ${totals.categoriesCount}`;
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Paginación */}
         {!loading && (
           <div className="shrink-0">
             <ModalPagination
@@ -301,16 +272,22 @@ Categorías: ${totals.categoriesCount}`;
           </div>
         )}
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
+            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
-            <Share2 className="w-4 h-4 mr-2" />
-            Compartir Reporte
+            <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Compartir reporte
           </Button>
-          <Button onClick={onClose}>Cerrar</Button>
+          <Button
+            onClick={onClose}
+            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+          >
+            Cerrar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
