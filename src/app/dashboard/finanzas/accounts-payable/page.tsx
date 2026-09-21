@@ -115,9 +115,27 @@ export default function AccountsPayablePage() {
           .from("financial_record_links")
           .select("target_financial_record_id,amount_applied,source_financial_record_id")
           .eq("company_id", companyId)
+          .eq("relationship_type", "supplier_payment_to_financial_record")
           .in("target_financial_record_id", sourceIds);
+
+        // A deleted payment must not continue counting against the payable.
+        // The payment link can remain for audit purposes, so only active
+        // source financial records are included in the applied total.
+        const paymentIds = [...new Set((links || []).map((link: any) => link.source_financial_record_id).filter(Boolean))];
+        const activePaymentIds = new Set<string>();
+        if (paymentIds.length) {
+          const { data: activePayments } = await supabase
+            .from("financial_records")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("is_deleted", false)
+            .in("id", paymentIds);
+          for (const payment of activePayments || []) activePaymentIds.add(payment.id);
+        }
+
         appliedMap = new Map<string, number>();
         for (const link of links || []) {
+          if (!activePaymentIds.has(link.source_financial_record_id)) continue;
           appliedMap.set(
             link.target_financial_record_id,
             (appliedMap.get(link.target_financial_record_id) || 0) + Number(link.amount_applied || 0)
