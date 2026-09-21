@@ -64,13 +64,13 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
   };
 
   const fieldClassName =
-    'h-9 w-full min-w-[150px] rounded-xl border border-white/[0.08] bg-[#0b0e13] px-3 text-xs font-medium text-white/75 outline-none transition-colors hover:border-white/[0.14] focus:border-[#d7ff3f]/45 focus:ring-2 focus:ring-[#d7ff3f]/10';
+    'h-9 w-full min-w-[150px] rounded-xl border fe-border-subtle bg-[var(--fe-hover)] px-3 text-xs font-medium fe-text outline-none transition-colors hover:bg-[var(--fe-hover-strong)] focus:border-[#d7ff3f]/45 focus:ring-2 focus:ring-[#d7ff3f]/10';
 
   return (
     <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 p-1">
       <div className="flex items-center gap-2 px-1">
         <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_#d7ff3f]" aria-hidden="true" />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">Periodo</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] fe-text-faint">Periodo</span>
       </div>
 
       <Tabs
@@ -82,14 +82,14 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
         }}
         className="w-full sm:w-auto"
       >
-        <TabsList className="grid h-9 w-full grid-cols-3 gap-0.5 rounded-xl border border-white/[0.06] bg-white/[0.025] p-0.5 sm:w-[210px]">
-          <TabsTrigger value="week" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+        <TabsList className="grid h-9 w-full grid-cols-3 gap-0.5 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-0.5 sm:w-[210px]">
+          <TabsTrigger value="week" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
             Semana
           </TabsTrigger>
-          <TabsTrigger value="month" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+          <TabsTrigger value="month" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
             Mes
           </TabsTrigger>
-          <TabsTrigger value="year" className="rounded-lg px-3 text-[11px] font-semibold text-white/40 transition-all data-[state=active]:bg-white/[0.08] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
+          <TabsTrigger value="year" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
             Año
           </TabsTrigger>
         </TabsList>
