@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import NextLink from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-provider";
 import { useData } from "@/contexts/data-provider";
@@ -275,10 +275,10 @@ export default function AccountsPayablePage() {
                             variant="outline"
                             className="h-9 shrink-0 rounded-xl border-white/10 bg-transparent px-3 text-white/70 hover:bg-white/[0.06] hover:text-white"
                           >
-                            <Link href={`/dashboard/finanzas/supplier-purchases/${p.purchaseId}`}>
+                            <NextLink href={`/dashboard/finanzas/supplier-purchases/${p.purchaseId}`}>
                               <ExternalLink className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
                               Ver compra
-                            </Link>
+                            </NextLink>
                           </Button>
                         ) : null}
                         <Button
@@ -286,7 +286,7 @@ export default function AccountsPayablePage() {
                           size="sm"
                           className="h-9 shrink-0 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                         >
-                          <Link href="/dashboard/finanzas/payments">Pagar</Link>
+                          <NextLink href="/dashboard/finanzas/payments">Pagar</NextLink>
                         </Button>
                       </div>
                     </div>
@@ -333,9 +333,9 @@ export default function AccountsPayablePage() {
                         variant="ghost"
                         className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white"
                       >
-                        <Link href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Ver compra">
+                        <NextLink href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Ver compra">
                           <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
-                        </Link>
+                        </NextLink>
                       </Button>
                     </div>
                   </div>
