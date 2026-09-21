@@ -9,10 +9,6 @@ interface SplashScreenWrapperProps {
   children: React.ReactNode;
 }
 
-/**
- * El splash es únicamente visual. No debe depender de las consultas de datos
- * porque una consulta lenta nunca debe impedir que la aplicación aparezca.
- */
 export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
   const { showSplash, setDataLoaded } = useSplash();
   const { loading: authLoading } = useAuth();
@@ -20,17 +16,10 @@ export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
   useEffect(() => {
     if (!showSplash) return;
 
-    // Límite absoluto: el splash nunca puede quedarse indefinidamente.
-    const maxTimer = window.setTimeout(() => {
-      setDataLoaded(true);
-    }, 2500);
+    const maxTimer = window.setTimeout(() => setDataLoaded(true), 1600);
 
-    // Si autenticación termina correctamente, retiramos el splash poco después.
     if (!authLoading) {
-      const readyTimer = window.setTimeout(() => {
-        setDataLoaded(true);
-      }, 350);
-
+      const readyTimer = window.setTimeout(() => setDataLoaded(true), 200);
       return () => {
         window.clearTimeout(maxTimer);
         window.clearTimeout(readyTimer);
@@ -42,7 +31,7 @@ export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
 
   return (
     <>
-      {showSplash && <SplashScreen duration={2200} />}
+      {showSplash && <SplashScreen duration={1200} />}
       {children}
     </>
   );
