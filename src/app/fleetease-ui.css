@@ -295,29 +295,38 @@
   -webkit-text-fill-color: #0a0c12;
 }
 
-/* Dropdowns stay dark panel + white text */
+/* Dropdowns stay dark panel + white text
+   Do NOT target generic [role="menu"] — FAB uses that role and must stay transparent. */
 [data-radix-select-content],
 [data-radix-dropdown-menu-content],
 [data-radix-dropdown-menu-sub-content],
 [data-radix-menu-content],
-[role="listbox"],
-[role="menu"] {
+[role="listbox"] {
   background-color: #11151b !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 [data-radix-select-item],
 [data-radix-dropdown-menu-item],
-[role="option"],
-[role="menuitem"] {
+[role="option"] {
   color: rgba(255, 255, 255, 0.88) !important;
 }
 [data-radix-select-item][data-highlighted],
 [data-radix-dropdown-menu-item][data-highlighted],
-[role="option"][data-highlighted],
-[role="menuitem"][data-highlighted] {
+[role="option"][data-highlighted] {
   background-color: rgba(215, 255, 63, 0.12) !important;
   color: #ffffff !important;
+}
+
+/* FAB action list — never inherit dark menu panel */
+[data-fab-actions],
+[data-fab-actions][role="menu"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  padding: 0 !important;
 }
 
 .light button[role="combobox"],
