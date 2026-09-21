@@ -37,6 +37,8 @@ const paymentLabels: Record<string, string> = {
   credit: "Crédito",
 };
 
+const purchaseStatusLabels: Record<string, string> = { paid: "Pagada", partially_paid: "Parcialmente pagada", pending: "Pendiente", cancelled: "Cancelada" };
+
 export default function SupplierPurchasesPage() {
   const { currentUser } = useAuth();
   const { selectedCompanyId } = useData();
@@ -188,11 +190,13 @@ export default function SupplierPurchasesPage() {
                     <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                       purchase.status === "paid"
                         ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                        : purchase.status === "cancelled"
+                        : purchase.status === "partially_paid"
+                          ? "border-blue-400/20 bg-blue-400/10 text-blue-300"
+                          : purchase.status === "cancelled"
                           ? "border-red-400/20 bg-red-400/10 text-red-300"
                           : "border-amber-400/20 bg-amber-400/10 text-amber-300"
                     }`}>
-                      {purchase.status === "paid" ? "Pagada" : purchase.status === "cancelled" ? "Cancelada" : "Pendiente"}
+                      {purchaseStatusLabels[purchase.status] || "Pendiente"}
                     </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
