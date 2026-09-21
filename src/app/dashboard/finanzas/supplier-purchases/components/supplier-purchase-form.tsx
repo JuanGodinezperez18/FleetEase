@@ -23,7 +23,7 @@ type AllocationSummary = { financialRecordId: string; expenseItemId: string; amo
 
 const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
 
-export function SupplierPurchasesForm() {
+export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
   const { currentUser } = useAuth();
   const { selectedCompanyId } = useData();
