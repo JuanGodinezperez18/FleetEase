@@ -69,7 +69,6 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-/** Aplica dark/light antes del paint para evitar flash y desajustes de hidratación. */
 const themeInitScript = `
 (function() {
   try {
@@ -90,8 +89,8 @@ const themeInitScript = `
 `;
 
 /**
- * Recupera cargas fallidas por chunks viejos tras un deploy
- * (síntoma: "This page couldn't load" → Reload funciona).
+ * Recupera fallos de carga en PWA (chunks viejos / SW).
+ * Si se agotan los reintentos, desregistra el SW y borra caches.
  */
 const loadRecoveryScript = `
 (function() {
@@ -105,11 +104,27 @@ const loadRecoveryScript = `
     } catch (e) { return false; }
   }
 
+  function hardResetSwAndReload() {
+    var done = function() { window.location.reload(); };
+    if (!('serviceWorker' in navigator)) { done(); return; }
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      return Promise.all(regs.map(function(r) { return r.unregister(); }));
+    }).then(function() {
+      if (!('caches' in window)) return;
+      return caches.keys().then(function(names) {
+        return Promise.all(names.map(function(n) { return caches.delete(n); }));
+      });
+    }).then(done).catch(done);
+  }
+
   function markAndReload() {
-    if (!canRecover()) return;
     try {
       var n = parseInt(sessionStorage.getItem(KEY) || '0', 10);
       sessionStorage.setItem(KEY, String(n + 1));
+      if (n + 1 >= MAX) {
+        hardResetSwAndReload();
+        return;
+      }
     } catch (e) {}
     window.location.reload();
   }
@@ -122,7 +137,8 @@ const loadRecoveryScript = `
       m.indexOf('loading chunk') !== -1 ||
       m.indexOf('failed to fetch dynamically imported module') !== -1 ||
       m.indexOf('importing a module script failed') !== -1 ||
-      m.indexOf('error loading dynamically imported module') !== -1
+      m.indexOf('error loading dynamically imported module') !== -1 ||
+      m.indexOf('failed to load') !== -1
     );
   }
 
@@ -137,13 +153,11 @@ const loadRecoveryScript = `
     if (isChunkError(msg)) markAndReload();
   });
 
-  // Quitar overlay de arranque si React no monta a tiempo
   window.setTimeout(function() {
     var boot = document.getElementById('fe-boot');
     if (boot) boot.remove();
   }, 4000);
 
-  // Tras una carga exitosa, limpiar contador de recuperación
   window.addEventListener('load', function() {
     try { sessionStorage.removeItem(KEY); } catch (e) {}
   });
