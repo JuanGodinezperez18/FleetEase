@@ -64,23 +64,23 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         }
       `}</style>
 
-      <div className="fe-app-shell flex h-screen overflow-hidden bg-[#080a0f]">
+      <div className="fe-app-shell fe-shell-bg flex h-screen overflow-hidden">
         {/* Desktop sidebar */}
-        <div className="hidden w-64 shrink-0 border-r border-white/[0.06] bg-[#080a0f] shadow-[10px_0_40px_rgba(0,0,0,.35)] lg:block">
+        <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] lg:block">
           <Sidebar />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* Mobile top bar */}
-          <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#080a0f]/90 backdrop-blur-2xl lg:hidden">
+          <header className="fe-shell-bg/90 sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl lg:hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}>
             <div className="flex h-14 items-center justify-between px-4">
               <Button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-10 w-10 rounded-xl p-0 text-white/70 hover:bg-white/[0.06] hover:text-white",
-                  isMobileMenuOpen && "bg-white/[0.06] text-white"
+                  "h-10 w-10 rounded-xl p-0 fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+                  isMobileMenuOpen && "bg-[var(--fe-hover)] fe-text"
                 )}
                 aria-label="Abrir menú"
               >
@@ -90,12 +90,12 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                   <Menu className="h-5 w-5" strokeWidth={1.75} />
                 )}
               </Button>
-              <span className="font-heading text-sm font-semibold tracking-[-0.02em] text-white">FleetEase</span>
+              <span className="font-heading text-sm font-semibold tracking-[-0.02em] fe-text">FleetEase</span>
               <div className="h-8 w-8 rounded-full border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08]" />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetContent
                   side="left"
-                  className="w-72 border-r border-white/[0.06] bg-[#080a0f] p-0 text-white"
+                  className="fe-shell-bg w-72 border-r fe-border-subtle p-0 fe-text"
                   onInteractOutside={() => setIsMobileMenuOpen(false)}
                 >
                   <SheetHeader className="sr-only">
@@ -108,7 +108,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-auto bg-[#0a0c12]">
+          <main className="fe-main-bg flex-1 overflow-auto">
             <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 sm:p-6 lg:p-8">{children}</div>
           </main>
         </div>
