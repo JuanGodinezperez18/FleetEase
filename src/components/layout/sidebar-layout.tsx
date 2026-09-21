@@ -9,6 +9,7 @@ import { Sidebar } from "./sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { GlobalLoader } from "../common/GlobalLoader";
+import { ThemeToggle } from "./theme-toggle";
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -65,14 +66,15 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       `}</style>
 
       <div className="fe-app-shell fe-shell-bg flex h-screen overflow-hidden">
-        {/* Desktop sidebar */}
         <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] lg:block">
           <Sidebar />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {/* Mobile top bar */}
-          <header className="fe-shell-bg/90 sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl lg:hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}>
+          <header
+            className="sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl lg:hidden"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}
+          >
             <div className="flex h-14 items-center justify-between px-4">
               <Button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -91,7 +93,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                 )}
               </Button>
               <span className="font-heading text-sm font-semibold tracking-[-0.02em] fe-text">FleetEase</span>
-              <div className="h-8 w-8 rounded-full border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08]" />
+              <ThemeToggle />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetContent
                   side="left"
