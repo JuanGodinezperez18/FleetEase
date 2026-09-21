@@ -1,20 +1,23 @@
-const CACHE_NAME = 'fleetease-v7';
+/**
+ * FleetEase service worker — network-first / almost network-only.
+ * Caching JS/CSS caused "This page couldn't load" on installed mobile PWAs
+ * after deploys (stale chunks). We only keep push notification support and
+ * wipe every old cache on activate.
+ */
+const CACHE_NAME = 'fleetease-v8-network';
 
 self.addEventListener('install', (event) => {
-  // Activate the new worker immediately so installed PWAs pick up deployments
-  // without waiting for all existing tabs to close.
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
-      // Remove caches created by previous FleetEase service-worker versions.
-      caches.keys().then((names) =>
-        Promise.all(names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name)))
-      ),
-      self.clients.claim(),
-    ])
+    (async () => {
+      // Delete ALL caches from previous versions (not only non-matching names).
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+      await self.clients.claim();
+    })()
   );
 });
 
@@ -22,48 +25,76 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
-  const url = new URL(request.url);
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
-  // Never cache auth, API, Next.js data/RSC, or navigations. These must always
-  // reach the current production application and session.
+  // Never intercept app shell, Next.js bundles, API, RSC or navigations.
+  // Letting the browser hit the network avoids stale-chunk failures in PWAs.
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
+    url.pathname === '/sw.js' ||
+    url.pathname === '/manifest.json' ||
     request.mode === 'navigate' ||
-    request.headers.get('RSC') === '1'
+    request.headers.get('RSC') === '1' ||
+    request.destination === 'document' ||
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'worker'
   ) {
     return;
   }
 
-  // Only cache immutable-ish static assets. Everything else remains network-only.
-  const destination = request.destination;
-  if (!['script', 'style', 'image', 'font'].includes(destination)) return;
+  // Optional: network-first for images/fonts only (never block on cache).
+  if (request.destination === 'image' || request.destination === 'font') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || Response.error()))
+    );
+  }
+});
 
-  event.respondWith(
-    caches.match(request).then((cached) =>
-      cached || fetch(request).then((response) => {
-        if (response.ok && response.type === 'basic') {
-          const copy = response.clone();
-          void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      })
-    )
-  );
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data === 'CLEAR_CACHES') {
+    event.waitUntil(
+      caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))))
+    );
+  }
 });
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-  const data = event.data.json();
-  event.waitUntil(self.registration.showNotification(data.title, {
-    body: data.body,
-    icon: data.icon,
-    data: data.data,
-  }));
+  try {
+    const data = event.data.json();
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'FleetEase', {
+        body: data.body,
+        icon: data.icon || '/web-app-manifest-192x192.png',
+        data: data.data,
+      })
+    );
+  } catch {
+    // ignore malformed push payloads
+  }
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data?.link || '/'));
+  const link = (event.notification.data && event.notification.data.link) || '/dashboard';
+  event.waitUntil(clients.openWindow(link));
 });
