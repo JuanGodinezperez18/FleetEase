@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fleetease-v6';
+const CACHE_NAME = 'fleetease-v7';
 
 self.addEventListener('install', (event) => {
   // Activate the new worker immediately so installed PWAs pick up deployments
