@@ -14,12 +14,15 @@ export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
   const { loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!showSplash) return;
+    if (!showSplash) {
+      document.getElementById('fe-boot')?.remove();
+      return;
+    }
 
-    const maxTimer = window.setTimeout(() => setDataLoaded(true), 1600);
+    const maxTimer = window.setTimeout(() => setDataLoaded(true), 1400);
 
     if (!authLoading) {
-      const readyTimer = window.setTimeout(() => setDataLoaded(true), 200);
+      const readyTimer = window.setTimeout(() => setDataLoaded(true), 160);
       return () => {
         window.clearTimeout(maxTimer);
         window.clearTimeout(readyTimer);
@@ -31,7 +34,7 @@ export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
 
   return (
     <>
-      {showSplash && <SplashScreen duration={1200} />}
+      {showSplash && <SplashScreen duration={1100} />}
       {children}
     </>
   );

@@ -8,26 +8,26 @@ interface SplashScreenProps {
   forceHide?: boolean;
 }
 
-/**
- * Única pantalla de arranque: nombre + carga.
- * Sin imagen estática del logo (el lobo solo provocaba un flash vacío).
- */
-export function SplashScreen({ duration = 1400, onFinish, forceHide = false }: SplashScreenProps) {
+export function SplashScreen({ duration = 1200, onFinish, forceHide = false }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [progress, setProgress] = useState(8);
+  const [progress, setProgress] = useState(12);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
+    document.getElementById('fe-boot')?.remove();
+  }, []);
+
+  useEffect(() => {
     const progressInterval = window.setInterval(() => {
-      setProgress(prev => Math.min(prev + 4, 100));
-    }, Math.max(duration / 40, 16));
+      setProgress(prev => Math.min(prev + 6, 100));
+    }, Math.max(duration / 30, 16));
 
     const timer = window.setTimeout(() => {
       setFadeOut(true);
       window.setTimeout(() => {
         setIsVisible(false);
         onFinish?.();
-      }, 220);
+      }, 180);
     }, duration);
 
     return () => {
@@ -42,7 +42,7 @@ export function SplashScreen({ duration = 1400, onFinish, forceHide = false }: S
     const timer = window.setTimeout(() => {
       setIsVisible(false);
       onFinish?.();
-    }, 220);
+    }, 180);
     return () => window.clearTimeout(timer);
   }, [forceHide, isVisible, onFinish]);
 
@@ -66,7 +66,6 @@ export function SplashScreen({ duration = 1400, onFinish, forceHide = false }: S
           FleetEase <span className="text-[#d7ff3f]">Manager</span>
         </h1>
         <p className="mt-2 text-sm fe-text-muted">Gestión inteligente de flotillas</p>
-
         <div className="mt-8 w-full max-w-xs">
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fe-hover)]">
             <div
@@ -78,7 +77,6 @@ export function SplashScreen({ duration = 1400, onFinish, forceHide = false }: S
         </div>
         <p className="mt-4 text-xs fe-text-muted">Cargando tu experiencia…</p>
       </div>
-
       <p className="absolute bottom-5 text-[11px] fe-text-faint">
         © {new Date().getFullYear()} FleetEase Manager
       </p>
