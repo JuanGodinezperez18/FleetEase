@@ -94,9 +94,10 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? 'button' : 'article'}
       className={cn(
-        'group relative min-h-[292px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d1016] p-5 shadow-[0_12px_40px_rgba(0,0,0,.18)]',
-        'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/[0.15] hover:shadow-[0_18px_48px_rgba(0,0,0,.28)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]',
+        'group relative min-h-[292px] overflow-hidden rounded-2xl border border-black/[0.08] bg-white p-5 text-[#0a0c12] shadow-[0_8px_28px_rgba(8,10,15,.06)]',
+        'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-black/[0.14] hover:shadow-[0_14px_36px_rgba(8,10,15,.1)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f7f2]',
+        'dark:border-white/[0.08] dark:bg-[#0d1016] dark:text-white dark:shadow-[0_12px_40px_rgba(0,0,0,.18)] dark:hover:border-white/[0.15] dark:hover:shadow-[0_18px_48px_rgba(0,0,0,.28)] dark:focus-visible:ring-offset-[#080a0f]',
         onClick && 'cursor-pointer'
       )}
     >
@@ -104,17 +105,17 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_rgba(215,255,63,.45)]" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Analítica</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/40 dark:text-white/35">Analítica</p>
           </div>
-          <h3 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-white">{widget.title}</h3>
-          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-white/40">{chart.description}</p>
+          <h3 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#0a0c12] dark:text-white">{widget.title}</h3>
+          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-black/45 dark:text-white/40">{chart.description}</p>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] transition-all duration-200 group-hover:border-[#d7ff3f]/25 group-hover:bg-[#d7ff3f]/[0.08] group-hover:scale-105">
-          <Icon className="h-[17px] w-[17px] text-white/55 transition-colors duration-200 group-hover:text-[#d7ff3f]" strokeWidth={1.7} />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] transition-all duration-200 group-hover:border-[#d7ff3f]/35 group-hover:bg-[#d7ff3f]/[0.1] group-hover:scale-105 dark:border-white/[0.07] dark:bg-white/[0.025] dark:group-hover:border-[#d7ff3f]/25 dark:group-hover:bg-[#d7ff3f]/[0.08]">
+          <Icon className="h-[17px] w-[17px] text-black/50 transition-colors duration-200 group-hover:text-[#5c6d08] dark:text-white/55 dark:group-hover:text-[#d7ff3f]" strokeWidth={1.7} />
         </div>
       </div>
 
-      <div className="border-t border-white/[0.05] pt-2">
+      <div className="border-t border-black/[0.06] pt-2 dark:border-white/[0.05]">
         {!hasData ? (
           <EmptyState
             icon={Icon}
@@ -126,13 +127,13 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
         ) : chart.kind === 'bar' ? (
           <ResponsiveContainer width="100%" height={205}>
             <BarChart data={chart.data} margin={{ top: 14, right: 8, left: -18, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'rgba(255,255,255,.3)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={value => isMoney ? `$${money.format(value)}` : String(value)} />
+              <XAxis dataKey="name" tick={{ fill: 'rgba(8,10,15,.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'rgba(8,10,15,.3)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={value => isMoney ? `$${money.format(value)}` : String(value)} />
               <Tooltip
-                cursor={{ fill: 'rgba(255,255,255,.035)' }}
-                contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.3)' }}
+                cursor={{ fill: 'rgba(8,10,15,.04)' }}
+                contentStyle={{ background: 'var(--fe-surface, #fff)', border: '1px solid rgba(8,10,15,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.12)', color: 'var(--fe-text, #0a0c12)' }}
                 formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']}
-                labelStyle={{ color: 'rgba(255,255,255,.65)' }}
+                labelStyle={{ color: 'inherit' }}
               />
               <Bar
                 dataKey="value"
@@ -165,24 +166,24 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 >
                   {chart.data.map((item, index) => <Cell key={item.name} fill={pieLabels[index % pieLabels.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: '#11151d', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.3)' }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} />
+                <Tooltip contentStyle={{ background: 'var(--fe-surface, #fff)', border: '1px solid rgba(8,10,15,.1)', borderRadius: 10, boxShadow: '0 12px 30px rgba(0,0,0,.12)', color: 'var(--fe-text, #0a0c12)' }} formatter={(value: number | undefined) => [isMoney ? `$${money.format(value ?? 0)}` : value ?? 0, isMoney ? 'Monto' : 'Cantidad']} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-white">{isMoney ? `$${money.format(total)}` : total}</span>
-              <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white/25">{isMoney ? 'capital' : 'elementos'}</span>
+              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-[#0a0c12] dark:text-white">{isMoney ? `$${money.format(total)}` : total}</span>
+              <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">{isMoney ? 'capital' : 'elementos'}</span>
             </div>
           </div>
         )}
       </div>
 
       {hasData && (
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/[0.05] pt-3 text-[11px] text-white/45">
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-black/[0.06] pt-3 text-[11px] text-black/50 dark:border-white/[0.05] dark:text-white/45">
           {chart.data.map((item, index) => (
             <div key={item.name} className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: pieLabels[index % pieLabels.length] }} />
               <span>{item.name}</span>
-              <strong className="font-medium tabular-nums text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong>
+              <strong className="font-medium tabular-nums text-black/70 dark:text-white/70">{isMoney ? `$${money.format(item.value)}` : item.value}</strong>
             </div>
           ))}
         </div>
