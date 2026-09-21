@@ -217,10 +217,33 @@ const structuredData = {
   ],
 };
 
+/** Aplica class dark/light en <html> antes del paint para evitar FOUC blanco en skeletons. */
+const themeInitScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('theme');
+    var theme = stored || 'dark';
+    if (theme === 'system') {
+      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    var root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme === 'light' ? 'light' : 'dark');
+    root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+  } catch (e) {
+    document.documentElement.classList.add('dark');
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
       <head>
+        <Script id="fleetease-theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
         <Script id="fleetease-structured-data" type="application/ld+json">
           {JSON.stringify(structuredData)}
         </Script>
@@ -233,7 +256,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             });
           `}
         </Script>
-        {/* Google Analytics 4 */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-H9R5JSBQMW"
           strategy="afterInteractive"
@@ -246,7 +268,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             gtag('config', 'G-H9R5JSBQMW');
           `}
         </Script>
-        {/* Microsoft Clarity */}
         <Script id="microsoft-clarity" strategy="afterInteractive">
           {`
             (function(c,l,a,r,i,t,y){
@@ -257,7 +278,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
       </head>
-      <body className={`${inter.variable} ${manrope.variable} font-sans`}>
+      <body className={`${inter.variable} ${manrope.variable} font-sans bg-[#080a0f] text-white antialiased`}>
         <GlobalErrorBoundary>
           <Providers>
             <ServiceWorkerRegister />
