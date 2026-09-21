@@ -163,7 +163,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
         p_due_date: paymentMethod === "credit" ? dueDate : null,
         p_reference: reference || null,
         p_notes: notes || null,
-        p_items: items.map(i => ({ catalog_item_id: i.catalog_item_id || null, expense_item_id: i.expense_item_id, description: i.description.trim(), quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),
+        p_items: items.map(i => ({ catalog_item_id: i.catalog_item_id || null, financial_record_id: expenseId, expense_item_id: i.expense_item_id, description: i.description.trim(), quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),
         p_created_by: currentUser?.uid || null,
       } as any);
       if (error) throw error;
