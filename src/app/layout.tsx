@@ -278,7 +278,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
       </head>
-      <body className={`${inter.variable} ${manrope.variable} font-sans bg-[#080a0f] text-white antialiased`}>
+      <body className={`${inter.variable} ${manrope.variable} font-sans fe-shell-bg antialiased`}>
         <GlobalErrorBoundary>
           <Providers>
             <ServiceWorkerRegister />
