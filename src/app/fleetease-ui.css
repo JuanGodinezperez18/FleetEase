@@ -82,7 +82,7 @@
   --fe-scrollbar: rgba(8, 10, 15, 0.12);
 }
 
-/* Semantic shell utilities — use these instead of hardcoded hex */
+/* Semantic shell utilities */
 .fe-shell-bg {
   background-color: var(--fe-bg);
   color: var(--fe-text);
@@ -115,6 +115,67 @@
   background-color: var(--fe-panel);
   border-color: var(--fe-border);
   color: var(--fe-text);
+}
+
+/* Canonical module page shell */
+.fe-page-shell {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  border-radius: 30px;
+  background-color: var(--fe-bg);
+  color: var(--fe-text);
+  padding: 1rem;
+  padding-bottom: 6rem;
+}
+@media (min-width: 640px) {
+  .fe-page-shell {
+    padding: 1.5rem;
+    padding-bottom: 2rem;
+  }
+}
+@media (min-width: 1024px) {
+  .fe-page-shell {
+    padding: 1.75rem;
+  }
+}
+
+/* ---- Light bridge: remap hardcoded premium-dark classes still in pages ---- */
+.light [class*="bg-[#080a0f]"] {
+  background-color: var(--fe-bg) !important;
+  color: var(--fe-text) !important;
+}
+.light [class*="bg-[#0e1117]"] {
+  background-color: var(--fe-surface) !important;
+}
+.light [class*="bg-[#0a0c12]"] {
+  background-color: var(--fe-main) !important;
+}
+.light [class*="border-white/[0.0"],
+.light [class*="border-white/10"],
+.light [class*="border-white/"],
+.light [class*="border-white"] {
+  border-color: var(--fe-border) !important;
+}
+.light main .text-white {
+  color: var(--fe-text) !important;
+}
+.light main [class*="text-white/"] {
+  color: var(--fe-text-muted) !important;
+}
+.light main [class*="hover:bg-white/"]:hover {
+  background-color: var(--fe-hover) !important;
+}
+.light main [class*="bg-white/[0.0"],
+.light main [class*="bg-white/0"] {
+  background-color: var(--fe-hover) !important;
+}
+/* Keep lime CTAs readable */
+.light [class*="bg-[#d7ff3f]"] {
+  color: #080a0f !important;
+}
+.light [class*="text-[#d7ff3f]"] {
+  color: var(--fe-lime-text) !important;
 }
 
 .dark .bg-background {
@@ -224,7 +285,7 @@
   }
 }
 
-/* Authentication screens: same visual language as the landing page. */
+/* Authentication screens stay dark brand */
 .fleetease-auth-modern {
   background: #080a0f;
   color: #fff;
