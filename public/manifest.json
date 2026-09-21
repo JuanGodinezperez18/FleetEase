@@ -3,7 +3,7 @@
   "short_name": "FleetEase",
   "description": "Sistema de gestión de flotas vehiculares",
   "id": "/",
-  "start_url": "/dashboard?source=pwa",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "background_color": "#080a0f",
