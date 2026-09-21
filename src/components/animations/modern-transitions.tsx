@@ -3,16 +3,6 @@
 import { motion, type Variants } from 'framer-motion';
 import { type ReactNode } from 'react';
 
-/**
- * Transiciones modernas optimizadas para React 19
- *
- * React 19 mejora el rendimiento de animaciones con:
- * - Mejor coordinación con Concurrent Features
- * - Automatic batching mejorado
- * - Transiciones más fluidas con useTransition
- */
-
-// Variantes de animación predefinidas y optimizadas
 export const fadeInUp: Variants = {
   hidden: {
     opacity: 0,
@@ -25,7 +15,7 @@ export const fadeInUp: Variants = {
     filter: 'blur(0px)',
     transition: {
       duration: 0.5,
-      ease: [0.22, 1, 0.36, 1], // easeOutExpo
+      ease: [0.22, 1, 0.36, 1],
     }
   }
 };
@@ -91,8 +81,6 @@ export const cardHover: Variants = {
   }
 };
 
-// Componentes reutilizables
-
 interface FadeInProps {
   children: ReactNode;
   delay?: number;
@@ -156,7 +144,6 @@ export function StaggerItem({ children, className }: FadeInProps) {
   );
 }
 
-// Versión específica para filas de tabla
 export function StaggerTableRow({ children, className }: FadeInProps) {
   return (
     <motion.tr
@@ -186,7 +173,6 @@ export function HoverCard({ children, className }: HoverCardProps) {
   );
 }
 
-// Animación de número contador (útil para dashboards)
 interface CountUpProps {
   value: number;
   duration?: number;
@@ -217,13 +203,13 @@ export function CountUp({
   );
 }
 
-// Loading skeleton animado
+/** Skeleton de transición — siempre usa tokens dark/light de FleetEase */
 export function SkeletonLoader({ className }: { className?: string }) {
   return (
     <motion.div
-      className={`bg-slate-200 dark:bg-slate-800 rounded ${className}`}
+      className={`fe-skeleton rounded ${className ?? ''}`}
       animate={{
-        opacity: [0.5, 1, 0.5],
+        opacity: [0.55, 1, 0.55],
       }}
       transition={{
         duration: 1.5,
@@ -234,7 +220,6 @@ export function SkeletonLoader({ className }: { className?: string }) {
   );
 }
 
-// Pulso para notificaciones
 export function PulseIndicator({ className }: { className?: string }) {
   return (
     <motion.div
