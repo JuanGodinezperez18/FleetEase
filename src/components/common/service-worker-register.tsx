@@ -3,13 +3,12 @@
 import { useEffect } from "react";
 
 /**
- * Temporarily disables the service worker on all clients.
+ * Permanently disables any service worker on all clients.
  * Previous SW versions cached JS/CSS and caused "This page couldn't load"
  * on installed Android PWAs after deploys.
  *
- * We still clear caches and unregister any existing workers so reinstalled
- * PWAs load only from the network (stable). Push can be re-enabled later
- * with a non-caching SW.
+ * We clear caches, unregister workers, and never re-register.
+ * Push notifications can be re-enabled later with a non-caching SW.
  */
 export function ServiceWorkerRegister() {
   useEffect(() => {
@@ -18,7 +17,19 @@ export function ServiceWorkerRegister() {
     const disable = async () => {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        await Promise.all(
+          regs.map(async (r) => {
+            try {
+              if (r.active) {
+                r.active.postMessage("CLEAR_CACHES");
+                r.active.postMessage("SKIP_WAITING");
+              }
+            } catch {
+              // ignore
+            }
+            await r.unregister();
+          })
+        );
       } catch {
         // ignore
       }
@@ -33,6 +44,12 @@ export function ServiceWorkerRegister() {
     };
 
     void disable();
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") void disable();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   return null;
