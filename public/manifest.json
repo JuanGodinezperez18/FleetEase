@@ -2,7 +2,8 @@
   "name": "FleetEase Manager",
   "short_name": "FleetEase",
   "description": "Sistema de gestión de flotas vehiculares",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/dashboard?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#080a0f",
@@ -10,8 +11,8 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/og-image.png",
-      "sizes": "1200x630",
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
@@ -25,14 +26,40 @@
       "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
   "categories": ["business", "productivity", "finance"],
   "shortcuts": [
-    { "name": "Dashboard", "short_name": "Dashboard", "description": "Ver dashboard principal", "url": "/dashboard" },
-    { "name": "Clientes", "short_name": "Clientes", "description": "Gestionar clientes", "url": "/dashboard/clients" },
-    { "name": "Vehículos", "short_name": "Vehículos", "description": "Gestionar vehículos", "url": "/dashboard/vehicles" },
-    { "name": "Finanzas", "short_name": "Finanzas", "description": "Ver finanzas", "url": "/dashboard/finanzas" }
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver dashboard principal",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Clientes",
+      "short_name": "Clientes",
+      "description": "Gestionar clientes",
+      "url": "/dashboard/clients"
+    },
+    {
+      "name": "Vehículos",
+      "short_name": "Vehículos",
+      "description": "Gestionar vehículos",
+      "url": "/dashboard/vehicles"
+    },
+    {
+      "name": "Finanzas",
+      "short_name": "Finanzas",
+      "description": "Ver finanzas",
+      "url": "/dashboard/finanzas"
+    }
   ]
 }
