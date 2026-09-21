@@ -17,11 +17,11 @@ import { formatCurrency } from "@/lib/utils";
 type Supplier = { id: string; name: string };
 type CatalogItem = { id: string; name: string; part_number: string | null; default_cost: number | null; category_id: string | null; category_name: string | null };
 type PaymentMethod = "cash" | "transfer" | "card" | "credit";
-type PurchaseItem = { catalog_item_id: string; description: string; quantity: string; unit_price: string };
+type PurchaseItem = { catalog_item_id: string; expense_item_id: string; description: string; quantity: string; unit_price: string };
 type VehicleExpense = { id: string; description: string; date: string; vehicleName: string; categoryId: string | null; categoryName: string | null; lines: { id: string; concept: string; amount: number; catalogItemId: string | null; allocated: number }[] };
 type AllocationSummary = { financialRecordId: string; expenseItemId: string; amount: number; purchaseId: string; supplierName: string; purchaseDate: string; reference: string | null };
 
-const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", description: "", quantity: "1", unit_price: "" });
+const emptyItem = (): PurchaseItem => ({ catalog_item_id: "", expense_item_id: "", description: "", quantity: "1", unit_price: "" });
 
 export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
@@ -98,25 +98,18 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
 
   const total = useMemo(() => items.reduce((sum, item) => sum + Math.round((Number(item.quantity) || 0) * (Number(item.unit_price) || 0) * 100) / 100, 0), [items]);
   const selectedExpense = expenses.find(expense => expense.id === expenseId);
-  const catalogForSelectedExpense = useMemo(() => {
-    if (!selectedExpense) return [];
-    const availableLines = selectedExpense.lines.filter(line => line.amount - line.allocated > 0.009);
-    const exactIds = new Set(availableLines.map(line => line.catalogItemId).filter(Boolean) as string[]);
-    const exactItems = catalog.filter(item => exactIds.has(item.id));
-    const byConcept = availableLines
-      .map(line => catalog.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase()))
-      .filter(Boolean) as CatalogItem[];
-    const merged = [...exactItems, ...byConcept];
-    if (merged.length) return Array.from(new Map(merged.map(item => [item.id, item])).values());
-    const categoryName = selectedExpense.categoryName?.trim().toLowerCase();
-    if (selectedExpense.categoryId || categoryName) {
-      return catalog.filter(item =>
-        (selectedExpense.categoryId && item.category_id === selectedExpense.categoryId) ||
-        (!!categoryName && item.category_name?.trim().toLowerCase() === categoryName)
-      );
-    }
-    return [];
-  }, [selectedExpense, catalog]);
+  const availableExpenseLines = useMemo(() => selectedExpense?.lines.filter(line => line.amount - line.allocated > 0.009) || [], [selectedExpense]);
+
+  useEffect(() => {
+    if (!selectedExpense) { setItems([emptyItem()]); return; }
+    setItems(availableExpenseLines.map(line => ({ catalog_item_id: line.catalogItemId || "", expense_item_id: line.id, description: line.concept, quantity: "1", unit_price: String(Math.max(0, line.amount - line.allocated)) })));
+  }, [expenseId]);
+
+  const selectExpenseLine = (index: number, lineId: string) => {
+    const line = selectedExpense?.lines.find(item => item.id === lineId);
+    if (!line) return;
+    updateItem(index, { expense_item_id: line.id, catalog_item_id: line.catalogItemId || "", description: line.concept, quantity: "1", unit_price: String(Math.max(0, line.amount - line.allocated)) });
+  };
 
   const updateItem = (index: number, patch: Partial<PurchaseItem>) => setItems(current => current.map((item, i) => i === index ? { ...item, ...patch } : item));
 
@@ -127,13 +120,9 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
 
   const loadExpenseLines = () => {
     if (!selectedExpense) return toast.error("Selecciona primero un gasto del vehículo.");
-    const availableLines = selectedExpense.lines.filter(line => line.amount - line.allocated > 0.009);
-    if (!availableLines.length) return toast.error("Todas las líneas de este gasto ya están cubiertas por compras de proveedores.");
-    setItems(availableLines.map(line => {
-      const matchingCatalog = (line.catalogItemId ? catalog.find(item => item.id === line.catalogItemId) : null) || catalogForSelectedExpense.find(item => item.name.trim().toLowerCase() === line.concept.trim().toLowerCase());
-      return { catalog_item_id: matchingCatalog?.id || "", description: matchingCatalog?.name || line.concept, quantity: "1", unit_price: String(Math.max(0, line.amount - line.allocated)) };
-    }));
-    toast.success("Partidas disponibles cargadas", { description: `${availableLines.length} línea(s) disponible(s). Las líneas ya vinculadas no se pueden reutilizar.` });
+    if (!availableExpenseLines.length) return toast.error("Todas las partidas de este gasto ya están cubiertas por compras de proveedores.");
+    setItems(availableExpenseLines.map(line => ({ catalog_item_id: line.catalogItemId || "", expense_item_id: line.id, description: line.concept, quantity: "1", unit_price: String(Math.max(0, line.amount - line.allocated)) })));
+    toast.success("Partidas del gasto cargadas", { description: `${availableExpenseLines.length} partida(s) disponible(s).` });
   };
 
   const createSupplierFromPurchase = async () => {
@@ -158,8 +147,8 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
     if (!supplierId || supplierId === "none") return toast.error("Selecciona el proveedor.");
     if (!selectedExpense) return toast.error("Selecciona un gasto de vehículo y carga sus partidas antes de registrar la compra.");
-    if (!catalogForSelectedExpense.length) return toast.error("La categoría de este gasto no tiene artículos en el catálogo. Registra primero el artículo en el Catálogo de Artículos.");
-    if (!items.length || items.some(i => !i.catalog_item_id || !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Cada partida debe corresponder a un artículo del catálogo.");
+    if (!availableExpenseLines.length) return toast.error("El gasto seleccionado no tiene partidas pendientes de compra.");
+    if (!items.length || items.some(i => !i.expense_item_id || !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Cada partida debe corresponder a una partida del gasto operativo.");
     if (paymentMethod === "credit" && !dueDate) return toast.error("Una compra a crédito requiere fecha de vencimiento.");
     if (paymentMethod !== "credit" && dueDate) return toast.error("La fecha de vencimiento solo aplica a compras a crédito.");
     if (!(total > 0)) return toast.error("El total debe ser mayor que cero.");
@@ -174,7 +163,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
         p_due_date: paymentMethod === "credit" ? dueDate : null,
         p_reference: reference || null,
         p_notes: notes || null,
-        p_items: items.map(i => ({ catalog_item_id: i.catalog_item_id || null, description: i.description.trim(), quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),
+        p_items: items.map(i => ({ catalog_item_id: i.catalog_item_id || null, expense_item_id: i.expense_item_id, description: i.description.trim(), quantity: Number(i.quantity), unit_price: Number(i.unit_price) })),
         p_created_by: currentUser?.uid || null,
       } as any);
       if (error) throw error;
@@ -262,7 +251,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                 <Wrench className="mt-0.5 h-5 w-5 shrink-0 text-[#d7ff3f]" strokeWidth={1.75} />
                 <div className="min-w-0">
                   <p className="font-medium text-white/90">Cargar partidas desde un gasto de vehículo</p>
-                  <p className="text-xs text-white/40 sm:text-sm">Solo artículos del catálogo de la categoría del gasto. Las líneas ya vinculadas no se reutilizan.</p>
+                  <p className="text-xs text-white/40 sm:text-sm">Las partidas se toman directamente del gasto operativo. Los conceptos del gasto son manuales y no dependen del catálogo.</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -280,7 +269,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
             </div>
             <div className="space-y-3">
               <div className="hidden grid-cols-[1.7fr_.7fr_1fr_1fr_auto] gap-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-white/35 md:grid">
-                <span>Concepto / catálogo</span><span>Cantidad</span><span>Precio unitario</span><span>Total</span><span />
+                <span>Partida del gasto</span><span>Cantidad</span><span>Precio unitario</span><span>Total</span><span />
               </div>
               {items.map((item, index) => (
                 <div key={index} className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4 md:grid md:grid-cols-[1.7fr_.7fr_1fr_1fr_auto] md:items-end md:gap-2 md:rounded-none md:border-x-0 md:border-b-0 md:border-t md:border-white/[0.06] md:bg-transparent md:p-3">
@@ -289,11 +278,11 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                       <Label className="text-white/50 md:hidden">Artículo / concepto</Label>
                       <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50 md:hidden">Partida {index + 1}</span>
                     </div>
-                    <Select value={item.catalog_item_id || "none"} onValueChange={v => (v === "none" ? updateItem(index, { catalog_item_id: "" }) : selectCatalog(index, v))}>
-                      <SelectTrigger className="w-full min-w-0 border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={selectedExpense ? "Seleccionar artículo..." : "Selecciona primero el gasto"} /></SelectTrigger>
+                    <Select value={item.expense_item_id || "none"} onValueChange={v => v === "none" ? updateItem(index, { expense_item_id: "" }) : selectExpenseLine(index, v)}>
+                      <SelectTrigger className="w-full min-w-0 border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={selectedExpense ? "Seleccionar partida del gasto..." : "Selecciona primero el gasto"} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Seleccionar artículo...</SelectItem>
-                        {catalogForSelectedExpense.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.part_number ? ` · ${c.part_number}` : ""}</SelectItem>)}
+                        <SelectItem value="none">Seleccionar partida...</SelectItem>
+                        {availableExpenseLines.map(line => <SelectItem key={line.id} value={line.id}>{line.concept} · {formatCurrency(Math.max(0, line.amount - line.allocated))}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input value={item.description} onChange={e => updateItem(index, { description: e.target.value })} placeholder="Descripción del artículo" className="border-white/10 bg-white/[0.03] text-white" />
