@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
       { name: 'Depósito en Garantía', type: 'income', affects: 'security_deposit', is_default: true, category: 'Depósito', company_id: company.id },
       { name: 'Crédito Otorgado', type: 'income', affects: 'credit_granted', is_default: true, category: 'Crédito', company_id: company.id },
       { name: 'Otros Ingresos', type: 'income', affects: 'none', is_default: true, category: 'Otros', company_id: company.id },
-      { name: 'Pago de Cliente', type: 'payment', affects: 'client_balance', payment_kind: 'client_payment', is_default: true, category: 'Pago', company_id: company.id },
-      { name: 'Pago a Socio', type: 'payment', affects: 'partner_balance', payment_kind: 'partner_payment', is_default: true, category: 'Pago Socio', company_id: company.id },
-      { name: 'Pago a Proveedor', type: 'payment', affects: 'none', payment_kind: 'supplier_payment', is_default: true, category: 'Pago Proveedor', company_id: company.id },
-      { name: 'Pago de Crédito', type: 'payment', affects: 'credit_payment', payment_kind: 'credit_payment', is_default: true, category: 'Pago Crédito', company_id: company.id },
+      { name: 'Pago de Cliente', type: 'payment', affects: 'client_balance', is_default: true, category: 'Pago', company_id: company.id },
+      { name: 'Pago a Socio', type: 'payment', affects: 'partner_balance', is_default: true, category: 'Pago Socio', company_id: company.id },
+      { name: 'Pago a Proveedor', type: 'payment', affects: 'none', is_default: true, category: 'Pago Proveedor', company_id: company.id },
+      { name: 'Pago de Crédito', type: 'payment', affects: 'credit_payment', is_default: true, category: 'Pago Crédito', company_id: company.id },
     ];
 
     const { error: categoriesError } = await supabaseAdmin
