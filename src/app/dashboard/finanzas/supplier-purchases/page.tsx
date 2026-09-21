@@ -6,8 +6,9 @@ import { useAuth } from "@/contexts/auth-provider";
 import { useData } from "@/contexts/data-provider";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2, Plus, ShoppingCart, Wrench, ReceiptText } from "lucide-react";
+import { Loader2, Plus, ShoppingCart, Wrench, ReceiptText, MoreHorizontal, Eye, CreditCard } from "lucide-react";
 import { SupplierPurchasesForm } from "./components/supplier-purchase-form";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type RecentPurchase = {
   id: string;
@@ -182,13 +183,40 @@ export default function SupplierPurchasesPage() {
                     <p className="text-[10px] uppercase tracking-wide text-white/25">Total</p>
                     <p className="font-semibold tabular-nums text-white">{formatCurrency(purchase.total)}</p>
                   </div>
-                  <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                    purchase.status === "paid"
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                      : "border-amber-400/20 bg-amber-400/10 text-amber-300"
-                  }`}>
-                    {purchase.status === "paid" ? "Pagada" : "Pendiente"}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                      purchase.status === "paid"
+                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                        : purchase.status === "cancelled"
+                          ? "border-red-400/20 bg-red-400/10 text-red-300"
+                          : "border-amber-400/20 bg-amber-400/10 text-amber-300"
+                    }`}>
+                      {purchase.status === "paid" ? "Pagada" : purchase.status === "cancelled" ? "Cancelada" : "Pendiente"}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline" size="icon" aria-label={`Acciones de compra de ${purchase.supplierName}`} className="h-9 w-9 shrink-0 border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:text-white">
+                          <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/finanzas/supplier-purchases/${purchase.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver compra
+                          </Link>
+                        </DropdownMenuItem>
+                        {purchase.payment_method === "credit" && purchase.status !== "paid" && purchase.status !== "cancelled" && (
+                          <DropdownMenuItem asChild>
+                            <Link href="/dashboard/finanzas/payments">
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Pagar compra
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))}
             </div>
