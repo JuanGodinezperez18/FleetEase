@@ -15,12 +15,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        // Keep useful data in memory and prefer it while reconnecting.
         staleTime: 10 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
         networkMode: 'offlineFirst',
-        // Only transient failures are retried. Backoff is exponential and
-        // jittered; the shared circuit breaker stops synchronized retry storms.
         retry: retryQuery,
         retryDelay: retryDelayQuery,
         refetchOnWindowFocus: false,
@@ -34,13 +31,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SplashProvider minDuration={650} enabled={true}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <SplashProvider minDuration={400} enabled={true}>
           <ToastProvider>
             <SupabaseAuthProvider>
               <DataProvider>
@@ -51,8 +48,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </SupabaseAuthProvider>
             <SonnerToaster position="top-right" richColors />
           </ToastProvider>
-        </ThemeProvider>
-      </SplashProvider>
+        </SplashProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
