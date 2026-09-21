@@ -1,4 +1,4 @@
-/* FleetEase application visual system: aligned with the landing page */
+/* FleetEase application visual system */
 :root {
   --fe-lime: #d7ff3f;
   --fe-ink: #080a0f;
@@ -13,15 +13,12 @@
   --fe-light-border: rgba(8, 10, 15, 0.09);
   --fe-light-shell-glow: rgba(180, 209, 0, 0.1);
   --fe-light-surface-rgb: 255, 255, 255;
-  --fe-light-skeleton: rgba(8, 10, 15, 0.06);
-  --fe-light-skeleton-shimmer: rgba(8, 10, 15, 0.09);
-  --fe-lime-text: #66790a;
-  /* Defaults = dark (app is dark-first; avoids FOUC) */
+  --fe-lime-text: #5c6d08;
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
-  --fe-skeleton: rgba(255, 255, 255, 0.055);
-  --fe-skeleton-shimmer: rgba(255, 255, 255, 0.07);
+  --fe-skeleton: rgba(255, 255, 255, 0.08);
+  --fe-skeleton-shimmer: rgba(255, 255, 255, 0.12);
   --fe-bg: var(--fe-ink);
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
@@ -30,26 +27,21 @@
   --fe-text-muted: rgba(255, 255, 255, 0.45);
   --fe-text-faint: rgba(255, 255, 255, 0.35);
   --fe-hover: rgba(255, 255, 255, 0.06);
-  --fe-hover-strong: rgba(255, 255, 255, 0.08);
+  --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
   --fe-scrollbar: rgba(255, 255, 255, 0.1);
+  --fe-nav-active: rgba(215, 255, 63, 0.12);
 }
 
-.dark body {
-  background: var(--fe-ink);
-  color: var(--fe-text);
-}
-.light body {
-  background: var(--fe-light-bg);
-  color: #0a0c12;
-}
+.dark body { background: var(--fe-ink); color: var(--fe-text); }
+.light body { background: var(--fe-light-bg); color: #0a0c12; }
 
 .dark {
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
-  --fe-skeleton: rgba(255, 255, 255, 0.055);
-  --fe-skeleton-shimmer: rgba(255, 255, 255, 0.07);
+  --fe-skeleton: rgba(255, 255, 255, 0.08);
+  --fe-skeleton-shimmer: rgba(255, 255, 255, 0.14);
   --fe-bg: var(--fe-ink);
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
@@ -58,66 +50,65 @@
   --fe-text-muted: rgba(255, 255, 255, 0.45);
   --fe-text-faint: rgba(255, 255, 255, 0.35);
   --fe-hover: rgba(255, 255, 255, 0.06);
-  --fe-hover-strong: rgba(255, 255, 255, 0.08);
+  --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
   --fe-scrollbar: rgba(255, 255, 255, 0.1);
+  --fe-nav-active: rgba(215, 255, 63, 0.12);
+  --sidebar-background: 222 47% 5%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 72 100% 62%;
+  --sidebar-primary-foreground: 222 47% 8%;
+  --sidebar-accent: 222 20% 14%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 20% 16%;
 }
 
 .light {
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
   --fe-border: var(--fe-light-border);
-  --fe-skeleton: rgba(8, 10, 15, 0.06);
-  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.09);
+  --fe-skeleton: rgba(8, 10, 15, 0.1);
+  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.16);
   --fe-bg: var(--fe-light-bg);
   --fe-surface: var(--fe-light-surface);
   --fe-main: var(--fe-light-main);
   --fe-text: #0a0c12;
   --fe-text-secondary: rgba(8, 10, 15, 0.72);
-  --fe-text-muted: rgba(8, 10, 15, 0.5);
-  --fe-text-faint: rgba(8, 10, 15, 0.38);
-  --fe-hover: rgba(8, 10, 15, 0.05);
-  --fe-hover-strong: rgba(8, 10, 15, 0.08);
+  --fe-text-muted: rgba(8, 10, 15, 0.52);
+  --fe-text-faint: rgba(8, 10, 15, 0.4);
+  --fe-hover: rgba(8, 10, 15, 0.06);
+  --fe-hover-strong: rgba(8, 10, 15, 0.1);
   --fe-panel: rgba(255, 255, 255, 0.98);
-  --fe-scrollbar: rgba(8, 10, 15, 0.12);
+  --fe-scrollbar: rgba(8, 10, 15, 0.14);
+  --fe-nav-active: rgba(215, 255, 63, 0.28);
+  --background: 60 20% 96%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 60 10% 90%;
+  --muted-foreground: 215 16% 35%;
+  --border: 30 8% 86%;
+  --input: 30 8% 86%;
+  --sidebar-background: 60 20% 97%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 72 88% 48%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 60 18% 91%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-border: 30 8% 86%;
 }
 
-/* Semantic shell utilities */
-.fe-shell-bg {
-  background-color: var(--fe-bg);
-  color: var(--fe-text);
-}
-.fe-main-bg {
-  background-color: var(--fe-main);
-}
-.fe-surface-bg {
-  background-color: var(--fe-surface);
-}
-.fe-border-subtle {
-  border-color: var(--fe-border);
-}
-.fe-text {
-  color: var(--fe-text);
-}
-.fe-text-secondary {
-  color: var(--fe-text-secondary);
-}
-.fe-text-muted {
-  color: var(--fe-text-muted);
-}
-.fe-text-faint {
-  color: var(--fe-text-faint);
-}
-.fe-hover-surface:hover {
-  background-color: var(--fe-hover);
-}
-.fe-panel-bg {
-  background-color: var(--fe-panel);
-  border-color: var(--fe-border);
-  color: var(--fe-text);
-}
+.fe-shell-bg { background-color: var(--fe-bg); color: var(--fe-text); }
+.fe-main-bg { background-color: var(--fe-main); }
+.fe-surface-bg { background-color: var(--fe-surface); }
+.fe-border-subtle { border-color: var(--fe-border); }
+.fe-text { color: var(--fe-text); }
+.fe-text-secondary { color: var(--fe-text-secondary); }
+.fe-text-muted { color: var(--fe-text-muted); }
+.fe-text-faint { color: var(--fe-text-faint); }
+.fe-hover-surface:hover { background-color: var(--fe-hover); }
+.fe-panel-bg { background-color: var(--fe-panel); border-color: var(--fe-border); color: var(--fe-text); }
 
-/* Canonical module page shell */
 .fe-page-shell {
   position: relative;
   min-height: 100%;
@@ -125,110 +116,64 @@
   border-radius: 30px;
   background-color: var(--fe-bg);
   color: var(--fe-text);
-  padding: 1rem;
-  padding-bottom: 6rem;
+  padding: 1rem 1rem 6rem;
 }
-@media (min-width: 640px) {
-  .fe-page-shell {
-    padding: 1.5rem;
-    padding-bottom: 2rem;
-  }
-}
-@media (min-width: 1024px) {
-  .fe-page-shell {
-    padding: 1.75rem;
-  }
-}
+@media (min-width: 640px) { .fe-page-shell { padding: 1.5rem; } }
+@media (min-width: 1024px) { .fe-page-shell { padding: 1.75rem; } }
 
-/* ---- Light bridge: remap hardcoded premium-dark classes still in pages ---- */
-.light [class*="bg-[#080a0f]"] {
-  background-color: var(--fe-bg) !important;
-  color: var(--fe-text) !important;
-}
-.light [class*="bg-[#0e1117]"] {
-  background-color: var(--fe-surface) !important;
-}
-.light [class*="bg-[#0a0c12]"] {
-  background-color: var(--fe-main) !important;
-}
+/* Light bridge for leftover hardcoded dark pages */
+.light [class*="bg-[#080a0f]"] { background-color: var(--fe-bg) !important; color: var(--fe-text) !important; }
+.light [class*="bg-[#0e1117]"] { background-color: var(--fe-surface) !important; }
+.light [class*="bg-[#0a0c12]"] { background-color: var(--fe-main) !important; }
 .light [class*="border-white/[0.0"],
 .light [class*="border-white/10"],
-.light [class*="border-white/"],
-.light [class*="border-white"] {
-  border-color: var(--fe-border) !important;
-}
-.light main .text-white {
+.light [class*="border-white/"] { border-color: var(--fe-border) !important; }
+.light main .text-white { color: var(--fe-text) !important; }
+.light main [class*="text-white/"] { color: var(--fe-text-muted) !important; }
+.light main [class*="hover:bg-white/"]:hover { background-color: var(--fe-hover) !important; }
+.light main [class*="bg-white/[0.0"] { background-color: var(--fe-hover) !important; }
+.light [class*="bg-[#d7ff3f]"] { color: #080a0f !important; }
+.light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
+
+/* Sidebar selection: never white in light mode */
+[data-sidebar="menu-button"][data-active="true"],
+[data-sidebar="menu-sub-button"][data-active="true"] {
+  background: var(--fe-nav-active) !important;
   color: var(--fe-text) !important;
 }
-.light main [class*="text-white/"] {
-  color: var(--fe-text-muted) !important;
+.light [data-sidebar="menu-button"][data-active="true"],
+.light [data-sidebar="menu-sub-button"][data-active="true"] {
+  background: rgba(215, 255, 63, 0.32) !important;
+  color: #0a0c12 !important;
+  box-shadow: none !important;
 }
-.light main [class*="hover:bg-white/"]:hover {
-  background-color: var(--fe-hover) !important;
-}
-.light main [class*="bg-white/[0.0"],
-.light main [class*="bg-white/0"] {
-  background-color: var(--fe-hover) !important;
-}
-/* Keep lime CTAs readable */
-.light [class*="bg-[#d7ff3f]"] {
-  color: #080a0f !important;
-}
-.light [class*="text-[#d7ff3f]"] {
-  color: var(--fe-lime-text) !important;
+.light [data-sidebar="menu-button"]:hover,
+.light [data-sidebar="menu-sub-button"]:hover {
+  background: rgba(8, 10, 15, 0.06) !important;
 }
 
-.dark .bg-background {
-  background-color: var(--fe-ink) !important;
-}
-.dark .bg-card {
-  background-color: var(--fe-dark-surface) !important;
-}
-.dark .bg-sidebar {
-  background-color: var(--fe-ink) !important;
-}
-.dark .border-border {
-  border-color: var(--fe-dark-border) !important;
-}
-.dark .text-primary {
-  color: var(--fe-lime) !important;
-}
-.dark .bg-primary {
-  background-color: var(--fe-lime) !important;
-}
-.dark .text-primary-foreground {
-  color: var(--fe-ink) !important;
-}
+.dark .bg-background { background-color: var(--fe-ink) !important; }
+.dark .bg-card { background-color: var(--fe-dark-surface) !important; }
+.dark .bg-sidebar { background-color: var(--fe-ink) !important; }
+.dark .border-border { border-color: var(--fe-dark-border) !important; }
+.dark .text-primary { color: var(--fe-lime) !important; }
+.dark .bg-primary { background-color: var(--fe-lime) !important; }
+.dark .text-primary-foreground { color: var(--fe-ink) !important; }
 
-.light .bg-background {
-  background-color: var(--fe-light-bg) !important;
-}
-.light .bg-card {
-  background-color: var(--fe-light-surface) !important;
-}
-.light .bg-sidebar {
-  background-color: var(--fe-light-surface) !important;
-}
-.light .border-border {
-  border-color: var(--fe-light-border) !important;
-}
-.light .text-primary {
-  color: var(--fe-lime-text) !important;
-}
-.light .bg-primary {
-  background-color: var(--fe-lime) !important;
-}
-.light .text-primary-foreground {
-  color: var(--fe-ink) !important;
-}
+.light .bg-background { background-color: var(--fe-light-bg) !important; }
+.light .bg-card { background-color: var(--fe-light-surface) !important; }
+.light .bg-sidebar { background-color: var(--fe-light-surface) !important; }
+.light .border-border { border-color: var(--fe-light-border) !important; }
+.light .text-primary { color: var(--fe-lime-text) !important; }
+.light .bg-primary { background-color: var(--fe-lime) !important; }
+.light .text-primary-foreground { color: var(--fe-ink) !important; }
+.light .bg-muted { background-color: rgba(8, 10, 15, 0.08) !important; }
 
 .fe-app-shell {
-  background: radial-gradient(circle at 50% -10%, var(--fe-shell-glow), transparent 32%),
-    var(--fe-bg);
+  background: radial-gradient(circle at 50% -10%, var(--fe-shell-glow), transparent 32%), var(--fe-bg);
 }
 .light .fe-app-shell {
-  background: radial-gradient(circle at 50% -10%, var(--fe-shell-glow), transparent 32%),
-    var(--fe-light-bg);
+  background: radial-gradient(circle at 50% -10%, var(--fe-shell-glow), transparent 32%), var(--fe-light-bg);
 }
 
 .fe-surface {
@@ -237,34 +182,7 @@
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(18px);
 }
-.light .fe-surface {
-  box-shadow: 0 12px 34px rgba(8, 10, 15, 0.06);
-}
-
-.fe-section-title {
-  letter-spacing: -0.035em;
-}
-.fe-online-banner,
-.fe-offline-banner {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(16px);
-}
-.fe-online-banner {
-  color: var(--fe-ink);
-  background: var(--fe-lime);
-}
-.fe-offline-banner {
-  color: #fff;
-  background: #151922;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
+.light .fe-surface { box-shadow: 0 12px 34px rgba(8, 10, 15, 0.06); }
 
 .fe-skeleton {
   position: relative;
@@ -279,107 +197,26 @@
   background: linear-gradient(90deg, transparent, var(--fe-skeleton-shimmer), transparent);
   animation: fe-shimmer 1.5s infinite;
 }
-@keyframes fe-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
+@keyframes fe-shimmer { 100% { transform: translateX(100%); } }
 
-/* Authentication screens stay dark brand */
-.fleetease-auth-modern {
-  background: #080a0f;
-  color: #fff;
-}
-.fleetease-auth-modern > * {
-  position: relative;
-  z-index: 1;
-}
-.fleetease-auth-modern [class*="bg-gradient-to-br"] {
-  background: #080a0f !important;
-  color: #fff !important;
-}
+.fleetease-auth-modern { background: #080a0f; color: #fff; }
+.fleetease-auth-modern > * { position: relative; z-index: 1; }
+.fleetease-auth-modern [class*="bg-gradient-to-br"] { background: #080a0f !important; color: #fff !important; }
 .fleetease-auth-modern [class*="bg-white/80"],
 .fleetease-auth-modern [class*="bg-white/90"],
-.fleetease-auth-modern [class*="bg-white/95"] {
-  background: rgba(14, 17, 23, 0.94) !important;
-}
-.fleetease-auth-modern [class*="bg-white"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-.fleetease-auth-modern [class*="border-slate"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
+.fleetease-auth-modern [class*="bg-white/95"] { background: rgba(14, 17, 23, 0.94) !important; }
+.fleetease-auth-modern [class*="border-slate"] { border-color: rgba(255, 255, 255, 0.1) !important; }
 .fleetease-auth-modern [class*="text-slate-900"],
 .fleetease-auth-modern [class*="text-slate-800"],
-.fleetease-auth-modern [class*="text-slate-700"] {
-  color: #fff !important;
-}
+.fleetease-auth-modern [class*="text-slate-700"] { color: #fff !important; }
 .fleetease-auth-modern [class*="text-slate-600"],
 .fleetease-auth-modern [class*="text-slate-500"],
-.fleetease-auth-modern [class*="text-slate-400"] {
-  color: rgba(255, 255, 255, 0.48) !important;
-}
-.fleetease-auth-modern input {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-.fleetease-auth-modern input::placeholder {
-  color: rgba(255, 255, 255, 0.25) !important;
-}
+.fleetease-auth-modern [class*="text-slate-400"] { color: rgba(255, 255, 255, 0.48) !important; }
+.fleetease-auth-modern input { background: rgba(255, 255, 255, 0.04) !important; color: #fff !important; border-color: rgba(255, 255, 255, 0.1) !important; }
 .fleetease-auth-modern button[class*="bg-blue"],
-.fleetease-auth-modern button[class*="bg-primary"] {
-  background: var(--fe-lime) !important;
-  color: var(--fe-ink) !important;
-}
-.fleetease-auth-modern a[class*="text-blue"] {
-  color: var(--fe-lime) !important;
-}
-.fleetease-auth-modern [class*="bg-blue-50"] {
-  background: rgba(215, 255, 63, 0.06) !important;
-  border-color: rgba(215, 255, 63, 0.18) !important;
-}
-.fleetease-auth-modern [class*="text-blue-900"],
-.fleetease-auth-modern [class*="text-blue-800"] {
-  color: #e9f5b7 !important;
-}
-
-body:has(a[href="/login"]) [class*="bg-gradient-to-br"] {
-  background: #080a0f !important;
-  color: #fff !important;
-}
-body:has(a[href="/login"]) [class*="bg-white/80"],
-body:has(a[href="/login"]) [class*="bg-white/90"] {
-  background: rgba(14, 17, 23, 0.94) !important;
-}
-body:has(a[href="/login"]) [class*="border-slate"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-body:has(a[href="/login"]) [class*="text-slate-900"],
-body:has(a[href="/login"]) [class*="text-slate-800"],
-body:has(a[href="/login"]) [class*="text-slate-700"] {
-  color: #fff !important;
-}
-body:has(a[href="/login"]) [class*="text-slate-600"],
-body:has(a[href="/login"]) [class*="text-slate-500"],
-body:has(a[href="/login"]) [class*="text-slate-400"] {
-  color: rgba(255, 255, 255, 0.48) !important;
-}
-body:has(a[href="/login"]) input {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-body:has(a[href="/login"]) button[class*="bg-blue"] {
-  background: var(--fe-lime) !important;
-  color: var(--fe-ink) !important;
-}
-body:has(a[href="/login"]) a[class*="text-blue"] {
-  color: var(--fe-lime) !important;
-}
+.fleetease-auth-modern button[class*="bg-primary"] { background: var(--fe-lime) !important; color: var(--fe-ink) !important; }
+.fleetease-auth-modern a[class*="text-blue"] { color: var(--fe-lime) !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fe-skeleton::after {
-    animation: none;
-  }
+  .fe-skeleton::after { animation: none; }
 }
