@@ -262,7 +262,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                     {expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId || !catalogForSelectedExpense.length} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white">
+                <Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId || !availableExpenseLines.length} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white">
                   <Search className="mr-2 h-4 w-4" strokeWidth={1.75} />Cargar partidas
                 </Button>
               </div>
