@@ -164,7 +164,9 @@ export default function AccountsPayablePage() {
     };
   }, [companyId]);
 
-  const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
+  const payableStatusLabels: Record<string, string> = { paid: "Pagada", partially_paid: "Parcialmente pagada", pending: "Pendiente", cancelled: "Cancelada" };
+
+const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
   const totalPending = supplierPending;
   const dueSoon = supplierPayables
     .filter(p => p.dueDate && new Date(p.dueDate).getTime() <= Date.now() + 7 * 86400000)
@@ -324,7 +326,7 @@ export default function AccountsPayablePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">
-                        {p.status === "pending" ? "Pendiente" : p.status}
+                        {payableStatusLabels[p.status] || "Pendiente"}
                       </span>
                       <span className="font-semibold tabular-nums text-white">{formatCurrency(p.total)}</span>
                       <Button
