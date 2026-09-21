@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/auth-provider";
@@ -8,7 +8,6 @@ import { useData } from "@/contexts/data-provider";
 import { Button } from "@/components/ui/button";
 import {
   Building2,
-  Briefcase,
   CalendarClock,
   ExternalLink,
   Loader2,
@@ -42,7 +41,7 @@ type SupplierPurchase = {
 
 export default function AccountsPayablePage() {
   const { currentUser } = useAuth();
-  const { selectedCompanyId, financialRecords, partners } = useData();
+  const { selectedCompanyId } = useData();
   const companyId = selectedCompanyId || currentUser?.companyId || null;
   const [supplierPayables, setSupplierPayables] = useState<Payable[]>([]);
   const [purchases, setPurchases] = useState<SupplierPurchase[]>([]);
@@ -165,34 +164,9 @@ export default function AccountsPayablePage() {
     };
   }, [companyId]);
 
-  const partnerPayables = useMemo<Payable[]>(() => {
-    if (!companyId) return [];
-    const partnerById = new Map(partners.map(p => [p.id, p]));
-    const result: Payable[] = [];
-    for (const r of financialRecords) {
-      if (r.isDeleted || r.type !== "expense" || !r.partnerId || r.paymentMethod === "partner_pays") continue;
-      const remaining = Math.max(0, Number(r.amount));
-      if (remaining <= 0.009) continue;
-      const p = partnerById.get(r.partnerId);
-      result.push({
-        id: `partner-${r.id}`,
-        partyType: "partner",
-        partyId: r.partnerId,
-        partyName: p?.name || `${(p as any)?.firstname || ""} ${(p as any)?.lastname || ""}`.trim() || "Socio",
-        original: Number(r.amount),
-        applied: 0,
-        dueDate: r.date,
-        sourceId: r.id,
-        purchaseId: null,
-      });
-    }
-    return result;
-  }, [companyId, financialRecords, partners]);
-
   const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
-  const partnerPending = partnerPayables.reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
-  const totalPending = supplierPending + partnerPending;
-  const dueSoon = [...supplierPayables, ...partnerPayables]
+  const totalPending = supplierPending;
+  const dueSoon = supplierPayables
     .filter(p => p.dueDate && new Date(p.dueDate).getTime() <= Date.now() + 7 * 86400000)
     .reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
 
@@ -232,7 +206,7 @@ export default function AccountsPayablePage() {
           <MetricCard
             title="Total pendiente"
             value={formatCurrency(totalPending)}
-            description="Proveedores + socios"
+            description="Compras a crédito"
             icon={<Wallet className="h-5 w-5" strokeWidth={1.75} />}
             variant={totalPending > 0 ? "danger" : "default"}
           />
@@ -267,7 +241,7 @@ export default function AccountsPayablePage() {
                   return (
                     <div
                       key={p.id}
-                      className="flex flex-col gap-3 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4 md:flex-row md:items-center md:justify-between"
+                      className="flex flex-col gap-3 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -287,7 +261,7 @@ export default function AccountsPayablePage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap sm:gap-3">
                         <div className="text-right">
                           <p className="text-[11px] text-white/35">Pendiente</p>
                           <p className="font-heading text-lg font-semibold tabular-nums text-rose-300">
@@ -299,7 +273,7 @@ export default function AccountsPayablePage() {
                             asChild
                             size="sm"
                             variant="outline"
-                            className="h-9 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+                            className="h-9 shrink-0 rounded-xl border-white/10 bg-transparent px-3 text-white/70 hover:bg-white/[0.06] hover:text-white"
                           >
                             <Link href={`/dashboard/finanzas/supplier-purchases/${p.purchaseId}`}>
                               <ExternalLink className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
@@ -310,7 +284,7 @@ export default function AccountsPayablePage() {
                         <Button
                           asChild
                           size="sm"
-                          className="h-9 rounded-xl bg-[#d7ff3f] px-3 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+                          className="h-9 shrink-0 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                         >
                           <Link href="/dashboard/finanzas/payments">Pagar</Link>
                         </Button>
@@ -318,49 +292,6 @@ export default function AccountsPayablePage() {
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Socios */}
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-          <div className="border-b border-white/[0.06] px-5 py-4">
-            <h2 className="font-heading text-base font-semibold text-white">Socios</h2>
-            <p className="mt-0.5 text-xs text-white/40">Gastos pendientes de pago al socio</p>
-          </div>
-          <div className="p-4 sm:p-5">
-            {partnerPayables.length === 0 ? (
-              <p className="py-8 text-center text-sm text-white/35">No hay obligaciones pendientes con socios.</p>
-            ) : (
-              <div className="space-y-3">
-                {partnerPayables.map(p => (
-                  <div
-                    key={p.id}
-                    className="flex flex-col gap-3 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-white/35" strokeWidth={1.75} />
-                        <span className="font-semibold text-white/90">{p.partyName}</span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">
-                          Socio
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-sm text-white/45">
-                        Gasto {formatCurrency(p.original)}
-                        {p.dueDate ? ` · ${new Date(p.dueDate).toLocaleDateString("es-MX")}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-9 rounded-xl bg-[#d7ff3f] px-3 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
-                    >
-                      <Link href="/dashboard/finanzas/payments">Pagar</Link>
-                    </Button>
-                  </div>
-                ))}
               </div>
             )}
           </div>
