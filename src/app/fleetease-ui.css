@@ -89,6 +89,8 @@
   --muted-foreground: 215 16% 35%;
   --border: 30 8% 86%;
   --input: 30 8% 86%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
   --sidebar-background: 60 20% 97%;
   --sidebar-foreground: 222 47% 11%;
   --sidebar-primary: 72 88% 48%;
@@ -121,16 +123,27 @@
 @media (min-width: 640px) { .fe-page-shell { padding: 1.5rem; } }
 @media (min-width: 1024px) { .fe-page-shell { padding: 1.75rem; } }
 
-.light [class*="bg-[#080a0f]"],
-.light [class*="bg-[#0b0d12]"],
-.light [class*="bg-[#05070b]"] { background-color: var(--fe-bg) !important; color: var(--fe-text) !important; }
-.light [class*="bg-[#0e1117]"],
-.light [class*="bg-[#11141b]"],
-.light [class*="bg-[#12151c]"] { background-color: var(--fe-surface) !important; color: var(--fe-text) !important; }
-.light [class*="bg-[#0a0c12]"] { background-color: var(--fe-main) !important; }
-.light [class*="border-white/[0.0"],
-.light [class*="border-white/10"],
-.light [class*="border-white/"] { border-color: var(--fe-border) !important; }
+/* Light bridge for page shells — NOT for portaled menus */
+.light main [class*="bg-[#080a0f]"],
+.light main [class*="bg-[#0b0d12]"],
+.light main [class*="bg-[#05070b]"],
+.light aside [class*="bg-[#080a0f]"],
+.light [data-sidebar] [class*="bg-[#080a0f]"] {
+  background-color: var(--fe-bg) !important;
+  color: var(--fe-text) !important;
+}
+.light main [class*="bg-[#0e1117]"],
+.light main [class*="bg-[#11141b]"],
+.light main [class*="bg-[#11151b]"],
+.light main [class*="bg-[#12151c]"],
+.light aside [class*="bg-[#0e1117]"] {
+  background-color: var(--fe-surface) !important;
+  color: var(--fe-text) !important;
+}
+.light main [class*="bg-[#0a0c12]"] { background-color: var(--fe-main) !important; }
+.light main [class*="border-white/[0.0"],
+.light main [class*="border-white/10"],
+.light main [class*="border-white/"] { border-color: var(--fe-border) !important; }
 .light main .text-white,
 .light aside .text-white,
 .light header .text-white,
@@ -138,13 +151,92 @@
 .light main [class*="text-white/"],
 .light aside [class*="text-white/"],
 .light header [class*="text-white/"] { color: var(--fe-text-muted) !important; }
-.light [class*="hover:bg-white/"]:hover { background-color: var(--fe-hover) !important; }
-.light [class*="bg-white/[0.0"] { background-color: var(--fe-hover) !important; }
-.light [class*="bg-[#d7ff3f]"] { color: #080a0f !important; }
-.light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
-.light [class*="from-[#080a0f]"],
-.light [class*="via-[#080a0f]"],
-.light [class*="to-[#080a0f]"] { background-image: none !important; background-color: var(--fe-bg) !important; }
+.light main [class*="hover:bg-white/"]:hover { background-color: var(--fe-hover) !important; }
+.light main [class*="bg-white/[0.0"] { background-color: var(--fe-hover) !important; }
+.light main [class*="bg-[#d7ff3f]"] { color: #080a0f !important; }
+.light main [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
+.light main [class*="from-[#080a0f]"],
+.light main [class*="via-[#080a0f]"],
+.light main [class*="to-[#080a0f]"] {
+  background-image: none !important;
+  background-color: var(--fe-bg) !important;
+}
+
+/* =========================================================
+   Dropdowns / Select / Menus: fondo oscuro + texto BLANCO
+   (no deben heredar el color oscuro del body en modo claro)
+   ========================================================= */
+[data-radix-select-content],
+[data-radix-dropdown-menu-content],
+[data-radix-dropdown-menu-sub-content],
+[data-radix-menu-content],
+[data-radix-popper-content-wrapper] > div[class*="bg-[#0e1117]"],
+[data-radix-popper-content-wrapper] > div[class*="bg-[#11151b]"],
+[role="listbox"],
+[role="menu"] {
+  background-color: #11151b !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-radix-select-content] *,
+[data-radix-dropdown-menu-content] *,
+[data-radix-dropdown-menu-sub-content] *,
+[data-radix-menu-content] *,
+[role="listbox"] *,
+[role="menu"] * {
+  color: inherit;
+}
+
+[data-radix-select-item],
+[data-radix-dropdown-menu-item],
+[data-radix-dropdown-menu-checkbox-item],
+[data-radix-dropdown-menu-radio-item],
+[data-radix-dropdown-menu-sub-trigger],
+[role="option"],
+[role="menuitem"],
+[role="menuitemcheckbox"],
+[role="menuitemradio"] {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+[data-radix-select-item][data-highlighted],
+[data-radix-select-item]:focus,
+[data-radix-dropdown-menu-item][data-highlighted],
+[data-radix-dropdown-menu-item]:focus,
+[data-radix-dropdown-menu-checkbox-item][data-highlighted],
+[data-radix-dropdown-menu-radio-item][data-highlighted],
+[role="option"][data-highlighted],
+[role="option"]:focus,
+[role="menuitem"][data-highlighted],
+[role="menuitem"]:focus {
+  background-color: rgba(215, 255, 63, 0.12) !important;
+  color: #ffffff !important;
+}
+
+[data-radix-select-label],
+[data-radix-dropdown-menu-label],
+[role="menu"] [class*="text-white/35"],
+[role="listbox"] [class*="text-white/35"] {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-radix-select-separator],
+[data-radix-dropdown-menu-separator] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Select trigger: legible en claro y oscuro */
+.light button[role="combobox"],
+.light [data-radix-select-trigger] {
+  color: var(--fe-text) !important;
+  border-color: var(--fe-border) !important;
+  background-color: rgba(8, 10, 15, 0.04) !important;
+}
+.light button[role="combobox"] svg,
+.light [data-radix-select-trigger] svg {
+  color: var(--fe-text-muted) !important;
+}
 
 [data-sidebar="menu-button"][data-active="true"],
 [data-sidebar="menu-sub-button"][data-active="true"],
@@ -180,12 +272,12 @@
 .light .text-primary-foreground { color: var(--fe-ink) !important; }
 .light .bg-muted,
 .light .bg-muted\/50,
-.light [class*="bg-muted"] { background-color: rgba(8, 10, 15, 0.07) !important; }
-.light .bg-slate-100,
-.light .bg-slate-200,
-.light .bg-zinc-100,
-.light .bg-zinc-200,
-.light .bg-neutral-100 { background-color: rgba(8, 10, 15, 0.08) !important; }
+.light main [class*="bg-muted"] { background-color: rgba(8, 10, 15, 0.07) !important; }
+.light main .bg-slate-100,
+.light main .bg-slate-200,
+.light main .bg-zinc-100,
+.light main .bg-zinc-200,
+.light main .bg-neutral-100 { background-color: rgba(8, 10, 15, 0.08) !important; }
 
 .animate-pulse:not(.fe-keep-pulse),
 [class*="animate-pulse"] {
