@@ -18,6 +18,7 @@ import { useData } from '@/hooks/use-data';
 import { useState } from 'react';
 import { NotificationsPopover } from '@/components/notifications/notifications-popover';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 export function Header() {
   const { currentUser, logout } = useAuth();
@@ -110,6 +111,8 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
+
         <NotificationsPopover>
           <Button
             variant="ghost"
