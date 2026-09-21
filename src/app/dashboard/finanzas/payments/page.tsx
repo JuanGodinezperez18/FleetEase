@@ -23,6 +23,7 @@ type PaymentKind = typeof PAYMENT_KINDS[number]["value"];
 type OperationKind = PaymentKind | "security_deposit_refund";
 type PaymentSource = "direct" | "security_deposit";
 type LinkRow = { target_financial_record_id: string; source_financial_record_id: string; amount_applied: number | null; relationship_type: string };
+type SupplierPayable = { id: string; purchaseId: string | null; sourceFinancialRecordId: string | null; purchaseDate: string | null; reference: string | null; total: number; dueDate: string | null; status: string; outstanding: number };
 
 const SECURITY_DEPOSIT_CATEGORY = "Depósito en Garantía";
 
@@ -55,6 +56,7 @@ export default function PaymentsPage() {
   const [saving, setSaving] = useState(false);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [supplierPayables, setSupplierPayables] = useState<SupplierPayable[]>([]);
   const companyId = selectedCompanyId || currentUser?.companyId || null;
 
   useEffect(() => {
@@ -76,7 +78,7 @@ export default function PaymentsPage() {
     return () => { cancelled = true; };
   }, [companyId, financialRecords]);
 
-  const paymentCategory = useMemo(() => {
+  useEffect(() => {\n    let cancelled = false;\n    if (!companyId || kind !== "supplier_payment" || !entityId) { setSupplierPayables([]); return; }\n    void (async () => {\n      const { data, error } = await supabase.from("accounts_payable").select("id,supplier_purchase_id,source_financial_record_id,original_amount,due_date,status,supplier_purchases(purchase_date,reference,total)").eq("company_id", companyId).eq("party_type", "supplier").eq("party_id", entityId).eq("is_deleted", false).in("status", ["pending", "partially_paid"]).order("due_date", { ascending: true, nullsFirst: false });\n      if (cancelled) return;\n      if (error) { console.error("[FleetEase] supplier payables load failed", error); setSupplierPayables([]); return; }\n      const rows = (data || []) as any[];\n      const sourceIds = rows.map(r => r.source_financial_record_id).filter(Boolean);\n      let paymentLinks: any[] = [];\n      if (sourceIds.length) { const lr = await supabase.from("financial_record_links").select("target_financial_record_id,amount_applied,source_financial_record_id").eq("company_id", companyId).in("target_financial_record_id", sourceIds).eq("relationship_type", "supplier_payment_to_financial_record"); if (!lr.error) paymentLinks = lr.data || []; }\n      const applied = new Map<string, number>();\n      for (const link of paymentLinks) { const payment = financialRecords.find(r => r.id === link.source_financial_record_id); if (!payment || payment.isDeleted) continue; applied.set(link.target_financial_record_id, (applied.get(link.target_financial_record_id) || 0) + Number(link.amount_applied ?? payment.amount ?? 0)); }\n      if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009));\n    })();\n    return () => { cancelled = true; };\n  }, [companyId, kind, entityId, financialRecords]);\n\n  const paymentCategory = useMemo(() => {
     const aliases: Record<PaymentKind, string[]> = {
       client_payment: ["Pago de Cliente", "Pago Cliente", "Abono de Cliente"],
       partner_payment: ["Pago a Socio", "Pago de Socio", "Abono a Socio", "Comisión Socio", "Comision Socio"],
@@ -152,14 +154,14 @@ export default function PaymentsPage() {
     .filter(s => s.creditId === selectedCredit.id && (s.status === "pending" || s.status === "overdue"))
     .sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
   const selectedPartner = useMemo(() => kind === "partner_payment" ? partners.find(p => p.id === entityId && !p.isDeleted) : null, [partners, entityId, kind]);
-  const selectedTarget = targets.find(r => r.id === targetId);
+  const selectedTarget = targets.find(r => r.id === targetId);\n  const selectedSupplierPayable = kind === "supplier_payment" ? supplierPayables.find(r => r.id === targetId) : null;
   const depositAvailable = kind === "client_payment" ? (depositAvailableByClient.get(entityId) || 0) : 0;
   const partnerBalance = useMemo(() => {
     if (!selectedPartner) return 0;
     const partnerVehicles = vehicles.filter(v => v.partnerId === selectedPartner.id && !v.isDeleted);
     return calculatePartnerBalance(selectedPartner, partnerVehicles, financialRecords);
   }, [selectedPartner, vehicles, financialRecords]);
-  const targetOutstanding = selectedTarget?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
+  const targetOutstanding = selectedTarget?.outstanding || selectedSupplierPayable?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
   const maxAmount = kind === "partner_payment" ? Math.max(0, partnerBalance)
     : kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0
     : paymentSource === "security_deposit" && kind === "client_payment" ? Math.min(targetOutstanding, depositAvailable) : targetOutstanding;
@@ -177,10 +179,10 @@ export default function PaymentsPage() {
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
     } else {
       if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
-      if (kind === "client_payment" && !targetId) return toast.error("Selecciona el registro al que se aplicará el pago.");
+      if ((kind === "client_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
       if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
       if (kind !== "partner_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
-      if (kind === "client_payment" && paymentSource === "security_deposit" && depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
+      if (kind === "client_payment" && paymentSource === "security_deposit" && depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");\n      if (kind === "supplier_payment" && !selectedSupplierPayable) return toast.error("Selecciona una compra pendiente del proveedor.");
     }
 
     setSaving(true);
@@ -218,7 +220,7 @@ export default function PaymentsPage() {
           p_client_id: kind === "client_payment" ? entityId : null,
           p_partner_id: kind === "partner_payment" ? entityId : null,
           p_supplier_id: kind === "supplier_payment" ? entityId : null,
-          p_target_financial_record_id: kind === "partner_payment" ? null : (targetId || null), p_credit_id: null,
+          p_target_financial_record_id: kind === "partner_payment" ? null : (kind === "supplier_payment" ? (selectedSupplierPayable?.sourceFinancialRecordId || null) : (targetId || null)), p_credit_id: null,
           p_credit_payment_schedule_id: null, p_created_by: currentUser?.uid || null,
         } as any);
         if (error) throw error;
@@ -322,7 +324,7 @@ export default function PaymentsPage() {
                     </Select>
                   </div>
 
-                  {kind === "client_payment" && (
+                  {kind === "supplier_payment" && (\n                    <div className="space-y-2 md:col-span-2">\n                      <Label className="text-white/50">Compra / factura pendiente</Label>\n                      <Select value={targetId} onValueChange={v => { setTargetId(v); const p = supplierPayables.find(row => row.id === v); setAmount(p ? p.outstanding.toFixed(2) : ""); }} disabled={!entityId || supplierPayables.length === 0}>\n                        <SelectTrigger className="border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={supplierPayables.length ? "Seleccionar compra pendiente..." : "No hay compras pendientes"} /></SelectTrigger>\n                        <SelectContent>{supplierPayables.map(row => <SelectItem key={row.id} value={row.id}>{(row.reference || "Compra sin referencia") + " · " + (row.purchaseDate ? new Date(row.purchaseDate).toLocaleDateString("es-MX") : "Sin fecha") + " · Pendiente " + formatCurrency(row.outstanding)}</SelectItem>)}</SelectContent>\n                      </Select>\n                      {selectedSupplierPayable && <p className="text-xs text-white/35">Total de compra: {formatCurrency(selectedSupplierPayable.total)}{selectedSupplierPayable.dueDate ? " · Vence " + new Date(selectedSupplierPayable.dueDate).toLocaleDateString("es-MX") : ""}</p>}\n                    </div>\n                  )}\n\n                  {kind === "client_payment" && (
                     <div className="space-y-2">
                       <Label className="text-white/50">Origen del pago</Label>
                       <Select value={paymentSource} onValueChange={v => setPaymentSource(v as PaymentSource)}>
