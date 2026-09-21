@@ -35,6 +35,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         attribute="class"
         defaultTheme="dark"
         enableSystem
+        storageKey="theme"
         disableTransitionOnChange
       >
         <SplashProvider minDuration={400} enabled={true}>
