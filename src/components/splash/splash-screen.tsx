@@ -1,9 +1,6 @@
-// components/splash/splash-screen.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import styles from './splash-screen.module.css';
 
 interface SplashScreenProps {
   duration?: number;
@@ -11,29 +8,26 @@ interface SplashScreenProps {
   forceHide?: boolean;
 }
 
-const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
-  left: `${(i * 37) % 100}%`,
-  delay: `${(i * 0.43) % 5}s`,
-  duration: `${7 + (i % 6)}s`,
-  opacity: 0.12 + (i % 4) * 0.06,
-}));
-
-export function SplashScreen({ duration = 2200, onFinish, forceHide = false }: SplashScreenProps) {
+/**
+ * Única pantalla de arranque: nombre + carga.
+ * Sin imagen estática del logo (el lobo solo provocaba un flash vacío).
+ */
+export function SplashScreen({ duration = 1400, onFinish, forceHide = false }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(8);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     const progressInterval = window.setInterval(() => {
-      setProgress((prev) => Math.min(prev + 2, 100));
-    }, Math.max(duration / 50, 20));
+      setProgress(prev => Math.min(prev + 4, 100));
+    }, Math.max(duration / 40, 16));
 
     const timer = window.setTimeout(() => {
       setFadeOut(true);
       window.setTimeout(() => {
         setIsVisible(false);
         onFinish?.();
-      }, 300);
+      }, 220);
     }, duration);
 
     return () => {
@@ -48,47 +42,46 @@ export function SplashScreen({ duration = 2200, onFinish, forceHide = false }: S
     const timer = window.setTimeout(() => {
       setIsVisible(false);
       onFinish?.();
-    }, 300);
+    }, 220);
     return () => window.clearTimeout(timer);
   }, [forceHide, isVisible, onFinish]);
 
   if (!isVisible) return null;
 
   return (
-    <div className={`${styles.splashContainer} ${fadeOut ? styles.fadeOut : ''}`} role="dialog" aria-label="Pantalla de carga" aria-live="polite">
-      <div className={styles.particlesContainer} aria-hidden="true">
-        {PARTICLES.map((particle, i) => (
-          <div key={i} className={styles.particle} style={{ left: particle.left, animationDelay: particle.delay, animationDuration: particle.duration, opacity: particle.opacity }} />
-        ))}
-      </div>
+    <div
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center fe-shell-bg transition-opacity duration-200 ${
+        fadeOut ? 'opacity-0' : 'opacity-100'
+      }`}
+      role="dialog"
+      aria-label="Cargando FleetEase"
+      aria-live="polite"
+    >
+      <div className="relative z-10 flex w-[min(92%,420px)] flex-col items-center px-6 text-center">
+        <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] fe-text-faint">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+          Fleet OS
+        </div>
+        <h1 className="font-heading text-3xl font-semibold tracking-[-0.05em] fe-text sm:text-4xl">
+          FleetEase <span className="text-[#d7ff3f]">Manager</span>
+        </h1>
+        <p className="mt-2 text-sm fe-text-muted">Gestión inteligente de flotillas</p>
 
-      <div className={styles.content}>
-        <div className={styles.logoContainer}>
-          <div className={styles.logoGlow} />
-          <div className={styles.logoWrapper}>
-            <Image src="/web-app-manifest-512x512.png" alt="FleetEase Manager Logo" width={150} height={150} priority className={styles.logo} />
+        <div className="mt-8 w-full max-w-xs">
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--fe-hover)]">
+            <div
+              className="h-full rounded-full bg-[#d7ff3f] transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
           </div>
+          <p className="mt-2 text-[11px] fe-text-faint">{Math.round(progress)}%</p>
         </div>
-
-        <h1 className={styles.appName}>FleetEase Manager</h1>
-        <p className={styles.tagline}>Gestión Inteligente de Flotas</p>
-
-        <div className={styles.progressBarContainer}>
-          <div className={styles.progressBarBackground}>
-            <div className={styles.progressBar} style={{ width: `${progress}%` }} />
-          </div>
-          <span className={styles.progressText}>{Math.round(progress)}%</span>
-        </div>
-
-        <div className={styles.loadingDots} aria-hidden="true">
-          <span className={styles.dot} /><span className={styles.dot} /><span className={styles.dot} />
-        </div>
-        <p className={styles.loadingText}>Cargando tu experiencia...</p>
+        <p className="mt-4 text-xs fe-text-muted">Cargando tu experiencia…</p>
       </div>
 
-      <div className={styles.footer}>
-        <p className={styles.copyright}>© {new Date().getFullYear()} FleetEase Manager</p>
-      </div>
+      <p className="absolute bottom-5 text-[11px] fe-text-faint">
+        © {new Date().getFullYear()} FleetEase Manager
+      </p>
     </div>
   );
 }
