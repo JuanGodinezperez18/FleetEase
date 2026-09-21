@@ -31,8 +31,8 @@ const SidebarHeaderContent = () => {
       </div>
       {state === "expanded" && (
         <div className="min-w-0">
-          <span className="font-heading text-base font-semibold tracking-[-0.03em] text-white">FleetEase</span>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Fleet OS</p>
+          <span className="font-heading text-base font-semibold tracking-[-0.03em] fe-text">FleetEase</span>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] fe-text-faint">Fleet OS</p>
         </div>
       )}
     </div>
@@ -79,8 +79,8 @@ const UserProfileSection = () => {
       </Avatar>
       {state === "expanded" && (
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white/90">{currentUser.name || currentUser.email}</p>
-          <p className="truncate text-[11px] text-white/40">{roleLabels[currentUser.role] || currentUser.role}</p>
+          <p className="truncate text-sm font-semibold fe-text opacity-90">{currentUser.name || currentUser.email}</p>
+          <p className="truncate text-[11px] fe-text-muted">{roleLabels[currentUser.role] || currentUser.role}</p>
         </div>
       )}
     </div>
@@ -109,11 +109,11 @@ const SidebarFooterContent = () => {
 
   if (state === "collapsed") {
     return (
-      <div className="mt-auto shrink-0 border-t border-white/[0.06] p-2">
+      <div className="mt-auto shrink-0 border-t fe-border-subtle p-2">
         <Button
           variant="ghost"
           size="icon"
-          className="h-11 w-full text-white/50 hover:bg-white/[0.06] hover:text-white"
+          className="h-11 w-full fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
           onClick={handleLogout}
           aria-label="Cerrar sesión"
         >
@@ -124,10 +124,10 @@ const SidebarFooterContent = () => {
   }
 
   return (
-    <div className="mt-auto shrink-0 border-t border-white/[0.06] p-3">
+    <div className="mt-auto shrink-0 border-t fe-border-subtle p-3">
       <Button
         variant="ghost"
-        className="w-full justify-start rounded-xl text-white/50 hover:bg-white/[0.06] hover:text-white"
+        className="w-full justify-start rounded-xl fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
         onClick={handleLogout}
       >
         <LogOutIcon className="mr-2 h-4 w-4" strokeWidth={1.75} />
@@ -150,13 +150,13 @@ export function Sidebar() {
 
   return (
     <aside
-      className="flex h-full flex-col bg-[#080a0f] text-white"
+      className="fe-shell-bg flex h-full flex-col"
       role="navigation"
       aria-label="Panel de navegación principal"
     >
       <div
         className={cn(
-          "shrink-0 border-b border-white/[0.06] transition-all duration-300",
+          "shrink-0 border-b fe-border-subtle transition-all duration-300",
           state === "collapsed" ? "p-3" : "p-4"
         )}
       >
@@ -165,7 +165,7 @@ export function Sidebar() {
 
       <div
         className={cn(
-          "shrink-0 border-b border-white/[0.06] transition-all duration-300",
+          "shrink-0 border-b fe-border-subtle transition-all duration-300",
           state === "collapsed" ? "p-3" : "px-4 py-3"
         )}
       >
@@ -175,7 +175,7 @@ export function Sidebar() {
       {currentUser.role === "superAdmin" && (
         <div
           className={cn(
-            "shrink-0 border-b border-white/[0.06] transition-all duration-300",
+            "shrink-0 border-b fe-border-subtle transition-all duration-300",
             state === "collapsed" ? "p-2" : "p-3"
           )}
         >
@@ -185,9 +185,10 @@ export function Sidebar() {
 
       <nav
         className={cn(
-          "fe-sidebar-nav flex-1 overflow-y-auto py-3 transition-all duration-300 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent",
+          "fe-sidebar-nav flex-1 overflow-y-auto py-3 transition-all duration-300 scrollbar-thin scrollbar-track-transparent",
           state === "collapsed" ? "px-2" : "px-2.5"
         )}
+        style={{ scrollbarColor: "var(--fe-scrollbar) transparent" }}
       >
         <SidebarNav />
       </nav>
