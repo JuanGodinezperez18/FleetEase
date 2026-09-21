@@ -10,7 +10,6 @@ import {
   Building2,
   Briefcase,
   CalendarClock,
-  CircleDollarSign,
   ExternalLink,
   Loader2,
   Wallet,
@@ -57,10 +56,13 @@ export default function AccountsPayablePage() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      // Load the payable rows independently from supplier/purchase relations.
+      // This keeps the A/P module from depending on PostgREST nested-relation
+      // resolution; the foreign keys are still used through the IDs below.
       const { data: rows, error } = await supabase
         .from("accounts_payable")
         .select(
-          "id,party_type,party_id,original_amount,due_date,source_financial_record_id,supplier_purchase_id,status,suppliers(name),supplier_purchases(reference,purchase_date,total,status)"
+          "id,party_type,party_id,original_amount,due_date,source_financial_record_id,supplier_purchase_id,status"
         )
         .eq("company_id", companyId)
         .eq("is_deleted", false)
@@ -69,9 +71,44 @@ export default function AccountsPayablePage() {
         .order("due_date", { ascending: true, nullsFirst: false });
       if (cancelled) return;
       if (error) {
+        console.error("[accounts-payable] Error loading supplier payables:", error);
+        setSupplierPayables([]);
+        setPurchases([]);
         setLoading(false);
         return;
       }
+
+      const supplierIds = [...new Set((rows || []).map((r: any) => r.party_id).filter(Boolean))];
+      const purchaseIds = [...new Set((rows || []).map((r: any) => r.supplier_purchase_id).filter(Boolean))];
+
+      const [supplierResult, purchaseResult] = await Promise.all([
+        supplierIds.length
+          ? supabase.from("suppliers").select("id,name").in("id", supplierIds)
+          : Promise.resolve({ data: [], error: null }),
+        purchaseIds.length
+          ? supabase
+              .from("supplier_purchases")
+              .select("id,supplier_id,reference,purchase_date,total,status,due_date")
+              .eq("company_id", companyId)
+              .in("id", purchaseIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (cancelled) return;
+
+      if (supplierResult.error) {
+        console.error("[accounts-payable] Error loading suppliers:", supplierResult.error);
+      }
+      if (purchaseResult.error) {
+        console.error("[accounts-payable] Error loading supplier purchases:", purchaseResult.error);
+      }
+
+      const supplierMap = new Map<string, string>(
+        (supplierResult.data || []).map((s: any) => [s.id, s.name])
+      );
+      const purchaseMap = new Map<string, any>(
+        (purchaseResult.data || []).map((p: any) => [p.id, p])
+      );
+
       const sourceIds = (rows || []).map((r: any) => r.source_financial_record_id).filter(Boolean);
       let appliedMap = new Map<string, number>();
       if (sourceIds.length) {
@@ -92,7 +129,7 @@ export default function AccountsPayablePage() {
         id: r.id,
         partyType: "supplier",
         partyId: r.party_id,
-        partyName: r.suppliers?.name || "Proveedor",
+        partyName: supplierMap.get(r.party_id) || "Proveedor",
         original: Number(r.original_amount),
         applied: appliedMap.get(r.source_financial_record_id) || 0,
         dueDate: r.due_date,
@@ -101,17 +138,20 @@ export default function AccountsPayablePage() {
       }));
       const purchaseRows: SupplierPurchase[] = (rows || [])
         .map((r: any) =>
-          r.supplier_purchases
-            ? {
-                id: r.supplier_purchase_id,
-                supplier_id: r.party_id,
-                supplierName: r.suppliers?.name || "Proveedor",
-                total: Number(r.supplier_purchases.total),
-                purchase_date: r.supplier_purchases.purchase_date,
-                due_date: r.due_date,
-                status: r.supplier_purchases.status,
-                reference: r.supplier_purchases.reference,
-              }
+          r.supplier_purchase_id && purchaseMap.has(r.supplier_purchase_id)
+            ? (() => {
+                const purchase = purchaseMap.get(r.supplier_purchase_id);
+                return {
+                  id: r.supplier_purchase_id,
+                  supplier_id: purchase.supplier_id || r.party_id,
+                  supplierName: supplierMap.get(purchase.supplier_id || r.party_id) || "Proveedor",
+                  total: Number(purchase.total),
+                  purchase_date: purchase.purchase_date,
+                  due_date: purchase.due_date || r.due_date,
+                  status: purchase.status,
+                  reference: purchase.reference,
+                };
+              })()
             : null
         )
         .filter(Boolean) as SupplierPurchase[];
@@ -186,15 +226,6 @@ export default function AccountsPayablePage() {
             </h1>
             <p className="mt-1 text-sm text-white/40">Pendiente con proveedores y socios</p>
           </div>
-          <Button
-            asChild
-            className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
-          >
-            <Link href="/dashboard/finanzas/supplier-purchases">
-              <CircleDollarSign className="mr-2 h-4 w-4" strokeWidth={1.75} />
-              Nueva compra
-            </Link>
-          </Button>
         </header>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -272,7 +303,7 @@ export default function AccountsPayablePage() {
                           >
                             <Link href={`/dashboard/finanzas/supplier-purchases/${p.purchaseId}`}>
                               <ExternalLink className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
-                              Distribuir
+                              Ver compra
                             </Link>
                           </Button>
                         ) : null}
@@ -371,7 +402,7 @@ export default function AccountsPayablePage() {
                         variant="ghost"
                         className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white"
                       >
-                        <Link href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Distribuir compra">
+                        <Link href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Ver compra">
                           <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
                         </Link>
                       </Button>
