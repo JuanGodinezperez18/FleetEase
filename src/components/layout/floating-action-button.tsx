@@ -8,10 +8,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-provider';
 
-/**
- * FleetEase quick actions.
- * Keep the icon language consistent: Lucide line icons + FleetEase lime accent.
- */
 const ALL_QUICK_ACTIONS = [
   { icon: Gauge, label: 'Registrar Kilometraje', action: 'mileage', roles: ['superAdmin', 'super_admin', 'admin', 'editor', 'client'] },
   { icon: Wrench, label: 'Registrar Gasto', action: 'expense', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
@@ -68,7 +64,7 @@ export function FloatingActionButton({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] dark:bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -86,7 +82,7 @@ export function FloatingActionButton({
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="flex flex-col gap-2.5 mb-4 items-end"
+              className="mb-4 flex flex-col items-end gap-2.5"
               initial="closed"
               animate="open"
               exit="closed"
@@ -104,7 +100,7 @@ export function FloatingActionButton({
                     key={action.action}
                     type="button"
                     role="menuitem"
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0e1117]/95 px-3 py-2.5 text-left text-sm font-semibold text-white shadow-[0_12px_35px_rgba(0,0,0,.35)] backdrop-blur-xl transition-all duration-200 hover:-translate-x-1 hover:border-[#d7ff3f]/35 hover:bg-[#151922] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]"
+                    className="group flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#0a0c12] shadow-[0_12px_35px_rgba(0,0,0,.12)] backdrop-blur-xl transition-all duration-200 hover:-translate-x-1 hover:border-[#d7ff3f]/50 hover:bg-[#f6f7f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] dark:border-white/10 dark:bg-[#0e1117]/95 dark:text-white dark:shadow-[0_12px_35px_rgba(0,0,0,.35)] dark:hover:border-[#d7ff3f]/35 dark:hover:bg-[#151922]"
                     onClick={() => handleActionClick(action.action)}
                     variants={{
                       open: { y: 0, opacity: 1, scale: 1 },
@@ -112,7 +108,7 @@ export function FloatingActionButton({
                     }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d7ff3f]/10 text-[#d7ff3f] ring-1 ring-inset ring-[#d7ff3f]/15 transition-colors group-hover:bg-[#d7ff3f]/15">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d7ff3f]/15 text-[#5c6d08] ring-1 ring-inset ring-[#d7ff3f]/25 transition-colors group-hover:bg-[#d7ff3f]/25 dark:bg-[#d7ff3f]/10 dark:text-[#d7ff3f] dark:ring-[#d7ff3f]/15">
                       <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
                     </span>
                     <span className="whitespace-nowrap pr-1">{action.label}</span>
@@ -122,7 +118,7 @@ export function FloatingActionButton({
 
               {filteredActions.length === 0 && (
                 <motion.div
-                  className="rounded-2xl border border-white/10 bg-[#0e1117]/95 px-4 py-3 text-xs text-white/55 shadow-xl backdrop-blur-xl"
+                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-xs text-black/55 shadow-xl dark:border-white/10 dark:bg-[#0e1117]/95 dark:text-white/55"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
@@ -136,7 +132,7 @@ export function FloatingActionButton({
 
         <motion.button
           type="button"
-          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f] text-[#080a0f] shadow-[0_10px_30px_rgba(215,255,63,.20)] transition-shadow duration-200 hover:shadow-[0_14px_40px_rgba(215,255,63,.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]"
+          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f] text-[#080a0f] shadow-[0_10px_30px_rgba(215,255,63,.20)] transition-shadow duration-200 hover:shadow-[0_14px_40px_rgba(215,255,63,.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           onClick={() => setIsOpen((open) => !open)}
           onKeyDown={(e) => {
             if (e.key === 'Escape' && isOpen) setIsOpen(false);
@@ -156,7 +152,7 @@ export function FloatingActionButton({
 
           {!isOpen && urgentActionsCount > 0 && (
             <motion.span
-              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-[#080a0f]"
+              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-white dark:ring-[#080a0f]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
