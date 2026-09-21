@@ -44,6 +44,7 @@ export function PaymentHistoryView() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [links, setLinks] = useState<LinkRow[]>([]);
+  const [supplierByTarget, setSupplierByTarget] = useState<Map<string, string>>(new Map());
   const [editing, setEditing] = useState<any | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editDate, setEditDate] = useState("");
@@ -75,6 +76,66 @@ export function PaymentHistoryView() {
     void loadLinks();
   }, [companyId, financialRecords.length]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadSupplierTargets = async () => {
+      if (!companyId || !links.length) {
+        setSupplierByTarget(new Map());
+        return;
+      }
+      const targetIds = [...new Set(
+        links
+          .filter(l => l.relationship_type === "supplier_payment_to_financial_record")
+          .map(l => l.target_financial_record_id)
+          .filter(Boolean)
+      )];
+      if (!targetIds.length) {
+        setSupplierByTarget(new Map());
+        return;
+      }
+
+      const { data: payables, error } = await supabase
+        .from("accounts_payable")
+        .select("source_financial_record_id,party_id")
+        .eq("company_id", companyId)
+        .eq("party_type", "supplier")
+        .eq("is_deleted", false)
+        .in("source_financial_record_id", targetIds);
+
+      if (cancelled) return;
+      if (error) {
+        console.error("[payment-history] Error loading supplier targets:", error);
+        setSupplierByTarget(new Map());
+        return;
+      }
+
+      const supplierIds = [...new Set((payables || []).map((p: any) => p.party_id).filter(Boolean))];
+      const { data: suppliers, error: supplierError } = supplierIds.length
+        ? await supabase.from("suppliers").select("id,name").in("id", supplierIds)
+        : { data: [], error: null };
+
+      if (cancelled) return;
+      if (supplierError) {
+        console.error("[payment-history] Error loading supplier names:", supplierError);
+      }
+
+      const names = new Map<string, string>(
+        (suppliers || []).map((s: any) => [s.id, s.name])
+      );
+      const byTarget = new Map<string, string>();
+      for (const payable of payables || []) {
+        const name = names.get(payable.party_id);
+        if (name) byTarget.set(payable.source_financial_record_id, name);
+      }
+      setSupplierByTarget(byTarget);
+    };
+
+    void loadSupplierTargets();
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, links]);
+
   const paymentRecords = useMemo(() => {
     return financialRecords
       .filter(r => !r.isDeleted && (r.type === "payment" || r.creditPayment === true))
@@ -84,6 +145,10 @@ export function PaymentHistoryView() {
         const linkKind = ownLinks.some(l => l.relationship_type === "client_payment_to_financial_record") ? "client"
           : ownLinks.some(l => l.relationship_type === "supplier_payment_to_financial_record") ? "supplier"
           : null;
+        const targetLink = ownLinks.find(l =>
+          l.relationship_type === "client_payment_to_financial_record" ||
+          l.relationship_type === "supplier_payment_to_financial_record"
+        );
         const recordKind: PaymentFilter | "refund" =
           r.creditPayment || r.creditId ? "credit"
           : String(r.category || "").trim().toLowerCase() === "devolución de depósito" ? "refund"
@@ -92,11 +157,8 @@ export function PaymentHistoryView() {
         const entityName = r.clientId ? clientMap.get(r.clientId)
           : r.partnerId ? partnerMap.get(r.partnerId)
           : r.creditId ? creditMap.get(r.creditId)
+          : linkKind === "supplier" ? supplierByTarget.get(targetLink?.target_financial_record_id || "")
           : undefined;
-        const targetLink = ownLinks.find(l =>
-          l.relationship_type === "client_payment_to_financial_record" ||
-          l.relationship_type === "supplier_payment_to_financial_record"
-        );
         return { ...r, recordKind, entityName: entityName || "Sin asignar", targetId: targetLink?.target_financial_record_id || "" };
       })
       .filter(r => kind === "all" || r.recordKind === kind)
@@ -109,7 +171,7 @@ export function PaymentHistoryView() {
           .some(v => String(v || "").toLowerCase().includes(q));
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [financialRecords, companyId, clientMap, partnerMap, creditMap, links, kind, from, to, search]);
+  }, [financialRecords, companyId, clientMap, partnerMap, creditMap, links, supplierByTarget, kind, from, to, search]);
 
   const analysis = useMemo(() => {
     const total = paymentRecords.reduce((sum, r) => sum + Number(r.amount || 0), 0);
@@ -143,11 +205,14 @@ export function PaymentHistoryView() {
     }
     if (editing.recordKind === "supplier") {
       return financialRecords
-        .filter(r => !r.isDeleted && r.type === "expense")
-        .map(r => ({ id: r.id, label: `${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${new Date(r.date).toLocaleDateString("es-MX")}` }));
+        .filter(r => !r.isDeleted && r.type === "expense" && supplierByTarget.has(r.id))
+        .map(r => ({
+          id: r.id,
+          label: `${supplierByTarget.get(r.id) || "Proveedor"} · ${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${new Date(r.date).toLocaleDateString("es-MX")}`,
+        }));
     }
     return [];
-  }, [editing, financialRecords]);
+  }, [editing, financialRecords, supplierByTarget]);
 
   const startEdit = (record: any) => {
     setEditing(record);
