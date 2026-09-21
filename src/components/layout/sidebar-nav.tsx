@@ -49,10 +49,12 @@ import { useAuth } from "@/contexts/auth-provider";
 import { getNotificationLink } from "@/lib/notification-utils";
 import { useNotificationsAnalytics } from "@/hooks/use-notifications-analytics";
 
+/** Inactive nav item — theme-aware */
 const itemBase =
-  "group relative rounded-xl text-white/55 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/90";
+  "group relative rounded-xl fe-text-muted transition-all duration-200 hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]";
+/** Active nav item — theme-aware surface + strong text */
 const itemActive =
-  "bg-white/[0.06] font-medium text-white hover:bg-white/[0.07] hover:text-white";
+  "bg-[var(--fe-hover)] font-medium fe-text hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]";
 
 const NotificationBell = () => {
   const { clients, vehicles, financialRecords, clientBalances, notifications: rawNotifications, loadingData } =
@@ -77,7 +79,7 @@ const NotificationBell = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-lg text-white/50 hover:bg-white/[0.06] hover:text-white"
+          className="relative h-9 w-9 rounded-lg fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
         >
           <BellIcon className="h-4 w-4" strokeWidth={1.75} />
           {unreadCount > 0 && (
@@ -87,32 +89,40 @@ const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="mr-2 w-80 border-white/10 bg-[#0e1117] p-0 text-white shadow-xl" align="end">
+      <PopoverContent
+        className="fe-panel-bg mr-2 w-80 border p-0 shadow-xl"
+        align="end"
+      >
         <div className="space-y-0">
-          <div className="border-b border-white/[0.06] px-4 py-3">
-            <h4 className="text-sm font-semibold text-white">Notificaciones</h4>
-            {unreadCount > 0 && <p className="text-xs text-white/40">{unreadCount} sin leer</p>}
+          <div className="border-b fe-border-subtle px-4 py-3">
+            <h4 className="text-sm font-semibold fe-text">Notificaciones</h4>
+            {unreadCount > 0 && <p className="text-xs fe-text-muted">{unreadCount} sin leer</p>}
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             {analyzedNotifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-white/35">No hay notificaciones</div>
+              <div className="px-4 py-8 text-center text-sm fe-text-faint">No hay notificaciones</div>
             ) : (
               analyzedNotifications.slice(0, 5).map(notif => (
                 <Link
                   href={getNotificationLink(notif)}
                   key={notif.id}
                   className={cn(
-                    "block border-b border-white/[0.04] px-4 py-3 transition-colors last:border-0 hover:bg-white/[0.04]",
+                    "block border-b fe-border-subtle px-4 py-3 transition-colors last:border-0 hover:bg-[var(--fe-hover)]",
                     !notif.isRead && "bg-[#d7ff3f]/[0.04]"
                   )}
                 >
                   <div className="flex items-start gap-3">
                     {!notif.isRead && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#d7ff3f]" />}
                     <div className="min-w-0 flex-1">
-                      <p className={cn("mb-1 text-sm leading-snug text-white/80", !notif.isRead && "font-semibold text-white")}>
+                      <p
+                        className={cn(
+                          "mb-1 text-sm leading-snug fe-text-secondary",
+                          !notif.isRead && "font-semibold fe-text"
+                        )}
+                      >
                         {notif.message}
                       </p>
-                      <p className="text-xs text-white/35">
+                      <p className="text-xs fe-text-faint">
                         {formatDistanceToNow(new Date(notif.date), { addSuffix: true, locale: es })}
                       </p>
                     </div>
@@ -121,9 +131,12 @@ const NotificationBell = () => {
               ))
             )}
           </div>
-          <div className="border-t border-white/[0.06] px-4 py-3">
+          <div className="border-t fe-border-subtle px-4 py-3">
             <Link href="/dashboard/notifications" className="block">
-              <Button variant="ghost" className="w-full text-sm font-medium text-white/70 hover:bg-white/[0.06] hover:text-white">
+              <Button
+                variant="ghost"
+                className="w-full text-sm font-medium fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
+              >
                 Ver todas las notificaciones
               </Button>
             </Link>
@@ -291,7 +304,7 @@ export function SidebarNav() {
                     "h-4 w-4 shrink-0 transition-colors",
                     isSectionActive(item.basePath, item.subItems)
                       ? "text-[#d7ff3f]"
-                      : "text-white/40 group-hover:text-white/70"
+                      : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
                   )}
                   strokeWidth={1.75}
                 />
@@ -300,7 +313,7 @@ export function SidebarNav() {
                     <span className="flex-1 text-[13px]">{item.label}</span>
                     <ChevronRight
                       className={cn(
-                        "h-3.5 w-3.5 text-white/30 transition-transform duration-300",
+                        "h-3.5 w-3.5 fe-text-faint transition-transform duration-300",
                         openSections[item.label] && "rotate-90"
                       )}
                       strokeWidth={1.75}
@@ -309,16 +322,16 @@ export function SidebarNav() {
                 )}
               </SidebarMenuButton>
               {openSections[item.label] && state === "expanded" && (
-                <SidebarMenuSub className="fe-sidebar-submenu ml-3 space-y-0.5 border-l border-white/[0.06] pl-2">
+                <SidebarMenuSub className="fe-sidebar-submenu ml-3 space-y-0.5 border-l fe-border-subtle pl-2">
                   {item.subItems.map(subItem => (
                     <SidebarMenuSubItem key={subItem.label}>
                       {subItem.external ? (
                         <a
                           href={subItem.href}
-                          className="group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] text-white/45 transition-all duration-200 hover:bg-white/[0.05] hover:text-white/85"
+                          className="group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] fe-text-muted transition-all duration-200 hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
                         >
                           {subItem.icon && (
-                            <subItem.icon className="h-3.5 w-3.5 shrink-0 text-white/30" strokeWidth={1.75} />
+                            <subItem.icon className="h-3.5 w-3.5 shrink-0 fe-text-faint" strokeWidth={1.75} />
                           )}
                           <span>{subItem.label}</span>
                         </a>
@@ -328,8 +341,8 @@ export function SidebarNav() {
                           isActive={pathname === subItem.href}
                           aria-label={subItem.label}
                           className={cn(
-                            "group relative rounded-lg text-white/45 hover:bg-white/[0.05] hover:text-white/85",
-                            pathname === subItem.href && "bg-white/[0.05] font-medium text-white"
+                            "group relative rounded-lg fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+                            pathname === subItem.href && "bg-[var(--fe-hover)] font-medium fe-text"
                           )}
                         >
                           <div
@@ -342,7 +355,7 @@ export function SidebarNav() {
                             <subItem.icon
                               className={cn(
                                 "h-3.5 w-3.5 shrink-0",
-                                pathname === subItem.href ? "text-[#d7ff3f]" : "text-white/30"
+                                pathname === subItem.href ? "text-[#d7ff3f]" : "fe-text-faint"
                               )}
                               strokeWidth={1.75}
                             />
@@ -374,7 +387,7 @@ export function SidebarNav() {
                   <item.icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isSectionActive(item.href) ? "text-[#d7ff3f]" : "text-white/40"
+                      isSectionActive(item.href) ? "text-[#d7ff3f]" : "fe-text-faint"
                     )}
                     strokeWidth={1.75}
                   />
@@ -408,7 +421,9 @@ export function SidebarNav() {
                 <item.icon
                   className={cn(
                     "h-4 w-4 shrink-0 transition-colors",
-                    isSectionActive(item.href) ? "text-[#d7ff3f]" : "text-white/40 group-hover:text-white/70"
+                    isSectionActive(item.href)
+                      ? "text-[#d7ff3f]"
+                      : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
                   )}
                   strokeWidth={1.75}
                 />
