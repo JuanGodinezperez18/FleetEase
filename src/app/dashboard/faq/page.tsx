@@ -217,7 +217,7 @@ const faqs = [
 ];
 
 const inputClass =
-  'h-11 rounded-xl border-white/10 bg-white/[0.03] pl-10 text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
+  'h-11 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] pl-10 fe-text placeholder:text-[var(--fe-text-faint)] focus-visible:ring-[#d7ff3f]/30';
 
 export default function FAQPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -234,27 +234,26 @@ export default function FAQPage() {
   });
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+    <div className="fe-shell-bg relative min-h-full space-y-5 overflow-hidden rounded-[30px] p-4 pb-24 sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.03] [background-image:linear-gradient(rgba(128,128,128,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
         <header>
-          <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] fe-text-faint">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
             Ayuda
           </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+          <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] fe-text sm:text-3xl">
             Preguntas frecuentes
           </h1>
-          <p className="mt-1 text-sm text-white/45">
+          <p className="mt-1 text-sm fe-text-muted">
             Respuestas rápidas sobre vehículos, finanzas y configuración
           </p>
         </header>
 
-        {/* Search */}
         <div className="relative max-w-xl">
           <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 fe-text-faint"
             strokeWidth={1.75}
           />
           <Input
@@ -265,7 +264,6 @@ export default function FAQPage() {
           />
         </div>
 
-        {/* Categories */}
         <div className="flex flex-wrap gap-2">
           {faqCategories.map(category => {
             const Icon = category.icon;
@@ -281,7 +279,7 @@ export default function FAQPage() {
                   'h-9 gap-1.5 rounded-xl text-xs',
                   active
                     ? 'bg-[#d7ff3f] font-semibold text-black hover:bg-[#c8f02e]'
-                    : 'border-white/10 bg-white/[0.03] text-white/65 hover:bg-white/[0.06] hover:text-white'
+                    : 'border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]'
                 )}
               >
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -291,15 +289,11 @@ export default function FAQPage() {
           })}
         </div>
 
-        {/* FAQs */}
         <div className="space-y-2.5">
           {filteredFaqs.length === 0 ? (
-            <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] px-6 py-12 text-center">
-              <HelpCircle
-                className="mx-auto mb-3 h-10 w-10 text-white/25"
-                strokeWidth={1.5}
-              />
-              <p className="text-sm text-white/45">
+            <div className="fe-surface-bg rounded-[20px] border fe-border-subtle px-6 py-12 text-center">
+              <HelpCircle className="mx-auto mb-3 h-10 w-10 fe-text-faint opacity-60" strokeWidth={1.5} />
+              <p className="text-sm fe-text-muted">
                 No se encontraron preguntas que coincidan con tu búsqueda
               </p>
             </div>
@@ -313,7 +307,7 @@ export default function FAQPage() {
                     'overflow-hidden rounded-[16px] border transition-colors',
                     isExpanded
                       ? 'border-[#d7ff3f]/25 bg-[#d7ff3f]/[0.04]'
-                      : 'border-white/[0.07] bg-[#0e1117] hover:border-white/[0.12]'
+                      : 'fe-surface-bg border fe-border-subtle hover:border-[var(--fe-border)]'
                   )}
                 >
                   <button
@@ -326,24 +320,20 @@ export default function FAQPage() {
                         'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
                         isExpanded
                           ? 'border-[#d7ff3f]/25 bg-[#d7ff3f]/10 text-[#d7ff3f]'
-                          : 'border-white/10 bg-white/[0.04] text-white/45'
+                          : 'fe-border-subtle bg-[var(--fe-hover)] fe-text-muted'
                       )}
                     >
                       <HelpCircle className="h-4 w-4" strokeWidth={1.75} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-snug text-white/90">
-                        {faq.question}
-                      </p>
+                      <p className="text-sm font-medium leading-snug fe-text opacity-90">{faq.question}</p>
                       {isExpanded && (
-                        <p className="mt-2.5 text-sm leading-relaxed text-white/55">
-                          {faq.answer}
-                        </p>
+                        <p className="mt-2.5 text-sm leading-relaxed fe-text-secondary">{faq.answer}</p>
                       )}
                     </div>
                     <ChevronDown
                       className={cn(
-                        'mt-1 h-4 w-4 shrink-0 text-white/35 transition-transform duration-200',
+                        'mt-1 h-4 w-4 shrink-0 fe-text-faint transition-transform duration-200',
                         isExpanded && 'rotate-180 text-[#d7ff3f]'
                       )}
                       strokeWidth={1.75}
@@ -355,25 +345,20 @@ export default function FAQPage() {
           )}
         </div>
 
-        {/* Support */}
-        <section className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5">
+        <section className="fe-surface-bg rounded-[20px] border fe-border-subtle p-4 shadow-[0_18px_50px_rgba(0,0,0,.08)] dark:shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5">
           <div className="mb-4 flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <Mail className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">¿No encontraste tu respuesta?</h2>
-              <p className="mt-0.5 text-xs text-white/40">
-                Nuestro equipo de soporte está para ayudarte
-              </p>
+              <h2 className="text-base font-semibold fe-text">¿No encontraste tu respuesta?</h2>
+              <p className="mt-0.5 text-xs fe-text-muted">Nuestro equipo de soporte está para ayudarte</p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5">
-              <p className="text-sm font-medium text-white/85">Soporte técnico</p>
-              <p className="mt-1 text-xs text-white/40">
-                Problemas técnicos o preguntas sobre funcionalidades
-              </p>
+            <div className="rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-3.5">
+              <p className="text-sm font-medium fe-text opacity-90">Soporte técnico</p>
+              <p className="mt-1 text-xs fe-text-muted">Problemas técnicos o preguntas sobre funcionalidades</p>
               <a
                 href="mailto:soporte@fleetease.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
@@ -381,9 +366,9 @@ export default function FAQPage() {
                 soporte@fleetease.mx
               </a>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5">
-              <p className="text-sm font-medium text-white/85">Ventas</p>
-              <p className="mt-1 text-xs text-white/40">Información sobre planes y precios</p>
+            <div className="rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-3.5">
+              <p className="text-sm font-medium fe-text opacity-90">Ventas</p>
+              <p className="mt-1 text-xs fe-text-muted">Información sobre planes y precios</p>
               <a
                 href="mailto:ventas@fleetease.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
