@@ -32,10 +32,10 @@ export function Header() {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success('Sesi\u00f3n cerrada exitosamente');
+      toast.success('Sesión cerrada exitosamente');
       router.push('/login');
     } catch {
-      toast.error('Error al cerrar sesi\u00f3n');
+      toast.error('Error al cerrar sesión');
     }
   };
 
@@ -73,53 +73,53 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#080a0f]/90 px-4 backdrop-blur-2xl sm:h-16 md:px-6">
-      {/* Mobile menu trigger (partner/client layouts) */}
+    <header
+      className="sticky top-0 z-40 flex h-14 items-center justify-between border-b fe-border-subtle px-4 backdrop-blur-2xl sm:h-16 md:px-6"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}
+    >
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild className="md:hidden">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
-            aria-label="Abrir men\u00fa"
+            className="h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
+            aria-label="Abrir menú"
           >
             <Menu className="h-5 w-5" strokeWidth={1.75} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 border-white/[0.06] bg-[#080a0f] p-0 text-white">
-          <div className="border-b border-white/[0.06] px-5 py-4">
-            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+        <SheetContent side="left" className="fe-shell-bg w-72 border-r fe-border-subtle p-0 fe-text">
+          <div className="border-b fe-border-subtle px-5 py-4">
+            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] fe-text-faint">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               FleetEase
             </div>
-            <p className="font-heading text-base font-semibold text-white">Navegaci\u00f3n</p>
-            <p className="mt-1 text-xs text-white/40">Usa el men\u00fa lateral para moverte entre m\u00f3dulos.</p>
+            <p className="font-heading text-base font-semibold fe-text">Navegación</p>
+            <p className="mt-1 text-xs fe-text-muted">Usa el menú lateral para moverte entre módulos.</p>
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Brand */}
       <div className="flex items-center gap-3">
         <div className="hidden h-7 w-1 rounded-full bg-[#d7ff3f] shadow-[0_0_14px_rgba(215,255,63,0.4)] sm:block" />
         <div>
-          <h1 className="font-heading text-base font-semibold tracking-[-0.03em] text-white sm:text-lg">
+          <h1 className="font-heading text-base font-semibold tracking-[-0.03em] fe-text sm:text-lg">
             FleetEase <span className="text-[#d7ff3f]">Manager</span>
           </h1>
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-2">
         <NotificationsPopover>
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-10 w-10 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/65 transition-all hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white"
+            className="relative h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary transition-all hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
             aria-label="Notificaciones"
           >
             <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-[#080a0f] bg-[#d7ff3f] px-1 text-[10px] font-bold text-[#080a0f] shadow-[0_0_12px_rgba(215,255,63,0.35)]">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-[var(--fe-bg)] bg-[#d7ff3f] px-1 text-[10px] font-bold text-[#080a0f] shadow-[0_0_12px_rgba(215,255,63,0.35)]">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -130,7 +130,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-10 gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-2 text-white hover:border-white/[0.12] hover:bg-white/[0.06]"
+              className="relative h-10 gap-2 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] px-2 fe-text hover:bg-[var(--fe-hover-strong)]"
             >
               <Avatar className="h-8 w-8 border border-[#d7ff3f]/25">
                 <AvatarFallback className="bg-[#d7ff3f]/[0.12] text-xs font-semibold text-[#d7ff3f]">
@@ -138,10 +138,10 @@ export function Header() {
                 </AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start text-left md:flex">
-                <span className="max-w-36 truncate text-sm font-medium text-white">
+                <span className="max-w-36 truncate text-sm font-medium fe-text">
                   {currentUser?.name || 'Usuario'}
                 </span>
-                <span className="text-[11px] text-white/40">
+                <span className="text-[11px] fe-text-muted">
                   {currentUser?.role ? getRoleLabel(currentUser.role) : 'Cargando...'}
                 </span>
               </div>
@@ -149,36 +149,36 @@ export function Header() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-56 border-white/[0.08] bg-[#0e1117]/95 text-white shadow-2xl backdrop-blur-xl"
+            className="fe-panel-bg w-56 border shadow-2xl backdrop-blur-xl"
           >
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium text-white">{currentUser?.name}</p>
-                <p className="truncate text-xs text-white/40">{currentUser?.email}</p>
+                <p className="text-sm font-medium fe-text">{currentUser?.name}</p>
+                <p className="truncate text-xs fe-text-muted">{currentUser?.email}</p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-white/[0.07]" />
+            <DropdownMenuSeparator className="bg-[var(--fe-border)]" />
             <DropdownMenuItem
               onClick={() => router.push('/profile')}
-              className="cursor-pointer rounded-lg text-white/70 focus:bg-white/[0.06] focus:text-white"
+              className="cursor-pointer rounded-lg fe-text-secondary focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)]"
             >
               <User className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
               <span>Mi Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleSettingsClick}
-              className="cursor-pointer rounded-lg text-white/70 focus:bg-white/[0.06] focus:text-white"
+              className="cursor-pointer rounded-lg fe-text-secondary focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)]"
             >
               <Settings className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
-              <span>Configuraci\u00f3n</span>
+              <span>Configuración</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/[0.07]" />
+            <DropdownMenuSeparator className="bg-[var(--fe-border)]" />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="cursor-pointer rounded-lg text-rose-400 focus:bg-rose-500/10 focus:text-rose-300"
+              className="cursor-pointer rounded-lg text-rose-500 focus:bg-rose-500/10 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-300"
             >
               <LogOut className="mr-2 h-4 w-4" strokeWidth={1.75} />
-              <span>Cerrar Sesi\u00f3n</span>
+              <span>Cerrar Sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
