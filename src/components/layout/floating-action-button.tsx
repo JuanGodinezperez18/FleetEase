@@ -65,7 +65,7 @@ export function FloatingActionButton({
         {isOpen && (
           <motion.div
             data-fab-overlay
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[3px] dark:bg-black/45"
+            className="fixed inset-0 z-40 bg-black/15 backdrop-blur-[2px] dark:bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -83,7 +83,8 @@ export function FloatingActionButton({
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="mb-4 flex flex-col items-end gap-2.5"
+              className="mb-4 flex flex-col items-end gap-2.5 bg-transparent"
+              data-fab-actions
               initial="closed"
               animate="open"
               exit="closed"
