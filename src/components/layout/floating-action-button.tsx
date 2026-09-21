@@ -64,7 +64,8 @@ export function FloatingActionButton({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] dark:bg-black/40"
+            data-fab-overlay
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[3px] dark:bg-black/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
