@@ -69,6 +69,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/** Aplica dark/light antes del paint para evitar flash y desajustes de hidratación. */
 const themeInitScript = `
 (function() {
   try {
@@ -88,12 +89,76 @@ const themeInitScript = `
 })();
 `;
 
+/**
+ * Recupera cargas fallidas por chunks viejos tras un deploy
+ * (síntoma: "This page couldn't load" → Reload funciona).
+ */
+const loadRecoveryScript = `
+(function() {
+  var KEY = 'fe_load_recovery';
+  var MAX = 2;
+
+  function canRecover() {
+    try {
+      var n = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+      return n < MAX;
+    } catch (e) { return false; }
+  }
+
+  function markAndReload() {
+    if (!canRecover()) return;
+    try {
+      var n = parseInt(sessionStorage.getItem(KEY) || '0', 10);
+      sessionStorage.setItem(KEY, String(n + 1));
+    } catch (e) {}
+    window.location.reload();
+  }
+
+  function isChunkError(msg) {
+    if (!msg) return false;
+    var m = String(msg).toLowerCase();
+    return (
+      m.indexOf('chunkloaderror') !== -1 ||
+      m.indexOf('loading chunk') !== -1 ||
+      m.indexOf('failed to fetch dynamically imported module') !== -1 ||
+      m.indexOf('importing a module script failed') !== -1 ||
+      m.indexOf('error loading dynamically imported module') !== -1
+    );
+  }
+
+  window.addEventListener('error', function(e) {
+    var msg = (e && (e.message || (e.error && e.error.message))) || '';
+    if (isChunkError(msg)) markAndReload();
+  });
+
+  window.addEventListener('unhandledrejection', function(e) {
+    var reason = e && e.reason;
+    var msg = typeof reason === 'string' ? reason : (reason && reason.message) || '';
+    if (isChunkError(msg)) markAndReload();
+  });
+
+  // Quitar overlay de arranque si React no monta a tiempo
+  window.setTimeout(function() {
+    var boot = document.getElementById('fe-boot');
+    if (boot) boot.remove();
+  }, 4000);
+
+  // Tras una carga exitosa, limpiar contador de recuperación
+  window.addEventListener('load', function() {
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+  });
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
       <head>
         <Script id="fleetease-theme-init" strategy="beforeInteractive">
           {themeInitScript}
+        </Script>
+        <Script id="fleetease-load-recovery" strategy="beforeInteractive">
+          {loadRecoveryScript}
         </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`
@@ -121,13 +186,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Toaster />
           </Providers>
         </GlobalErrorBoundary>
-        <Script id="chunk-error-handler">
-          {`
-            window.addEventListener('error', (e) => {
-              if (e.message && e.message.includes('ChunkLoadError')) window.location.reload();
-            });
-          `}
-        </Script>
       </body>
     </html>
   );
