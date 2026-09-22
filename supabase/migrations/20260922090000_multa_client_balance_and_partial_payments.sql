@@ -125,3 +125,35 @@ begin
 end;
 $$;
 grant execute on function public.process_multa_payment_atomic(uuid,uuid,uuid,uuid,numeric,date,text,text,uuid) to authenticated;
+
+
+create or replace function public.sync_multa_status_from_payment()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare v_target_id uuid; v_multa_id uuid; v_total numeric; v_paid numeric;
+begin
+ if new.type='payment' and lower(coalesce(new.category,''))='pago de multa' then
+   select target_financial_record_id into v_target_id from public.financial_record_links
+   where source_financial_record_id=new.id and relationship_type='multa_payment_to_financial_record'
+   order by created_at desc limit 1;
+   if v_target_id is not null then
+     select source_record_id,amount into v_multa_id,v_total from public.financial_records where id=v_target_id and source_record_type='multa';
+     if v_multa_id is not null then
+       select coalesce(sum(l.amount_applied),0) into v_paid
+       from public.financial_record_links l join public.financial_records p on p.id=l.source_financial_record_id
+       where l.target_financial_record_id=v_target_id and l.relationship_type='multa_payment_to_financial_record' and p.is_deleted=false;
+       update public.multas
+       set status=case when v_paid>=v_total-0.009 then 'pagada'::multa_status else 'pendiente'::multa_status end,
+           fecha_pago=case when v_paid>=v_total-0.009 then coalesce(fecha_pago,current_date) else null end,
+           updated_at=now()
+       where id=v_multa_id and is_deleted=false;
+     end if;
+   end if;
+ end if;
+ return new;
+end;
+$$;
+
+drop trigger if exists trg_sync_multa_status_from_payment on public.financial_records;
+create trigger trg_sync_multa_status_from_payment
+after update of amount,is_deleted on public.financial_records
+for each row execute function public.sync_multa_status_from_payment();
