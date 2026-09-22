@@ -196,8 +196,10 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       }
 
       onClose();
-    } catch {
-      toast.error("Error al guardar la multa");
+    } catch (error: any) {
+      console.error("[Multas] Error al guardar la multa:", error);
+      const message = error?.message || error?.details || error?.hint || "Error desconocido";
+      toast.error("Error al guardar la multa", { description: message });
     } finally {
       setLoading(false);
     }
