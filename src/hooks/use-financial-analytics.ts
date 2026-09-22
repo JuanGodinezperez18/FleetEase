@@ -74,6 +74,7 @@ const PAYMENT_ALIASES = {
   partner: ['pago a socio', 'pago de socio', 'abono a socio', 'comisión socio', 'comision socio'],
   supplier: ['pago a proveedor', 'pago de proveedor', 'abono a proveedor'],
   credit: ['pago de crédito', 'pago credito', 'pago de crédito semanal'],
+  multa: ['pago de multa'],
 } as const;
 
 function normalizedCategory(record: FinancialRecord, categoryMap: Map<string, string>): string {
@@ -147,17 +148,22 @@ export const useFinancialAnalytics = (
 
     const customerCollections = sumPaymentsBy(PAYMENT_ALIASES.client);
     const creditCollections = sumPaymentsBy(PAYMENT_ALIASES.credit);
+    const multaCollections = sumPaymentsBy(PAYMENT_ALIASES.multa);
     const partnerPayments = sumPaymentsBy(PAYMENT_ALIASES.partner);
     const supplierPayments = sumPaymentsBy(PAYMENT_ALIASES.supplier);
     const otherPayments = paymentRecords
       .filter(r => !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.client)
         && !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.credit)
+        && !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.multa)
         && !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.partner)
         && !isPaymentCategory(r, categoryMap, PAYMENT_ALIASES.supplier))
       .reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
     const totalIncome = operationalIncome + vehicleSales;
-    const cashInflow = customerCollections + creditCollections + securityDeposits;
+    // Un pago de multa es una cobranza de efectivo de un cliente: aumenta caja,
+    // pero no es ingreso operativo ni utilidad. La salida a la autoridad se registra
+    // por separado como gasto/pago cuando la empresa liquida la multa.
+    const cashInflow = customerCollections + creditCollections + multaCollections + securityDeposits;
     // Cash flow uses only actual cash movements represented by payment records.
     // Recognized expenses are excluded here so supplier credit/AP is not double-counted
     // when its later payment is recorded.
@@ -230,11 +236,12 @@ export const useFinancialAnalytics = (
       const monthPayments = monthRecords.filter(r => r.type === 'payment');
       const monthCustomerCollections = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.client)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthCreditCollections = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.credit)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const monthMultaCollections = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.multa)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthDeposits = monthRecords.filter(r => r.type === 'income' && (r.category === 'Depósito en Garantía' || (!!r.categoryId && depositCategoryIds.has(r.categoryId)))).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthPartnerPayments = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthSupplierPayments = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const monthOtherPayments = monthPayments.filter(r => !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.client) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.credit) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const monthCashIn = monthCustomerCollections + monthCreditCollections + monthDeposits;
+      const monthOtherPayments = monthPayments.filter(r => !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.client) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.credit) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.multa) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const monthCashIn = monthCustomerCollections + monthCreditCollections + monthMultaCollections + monthDeposits;
       const monthCashOut = monthPartnerPayments + monthSupplierPayments + monthOtherPayments;
       return { period: format(date, 'MMM yy', { locale: es }), income: monthIncome, expenses: monthExpenses, payments: monthCustomerCollections + monthCreditCollections, netFlow: monthCashIn - monthCashOut };
     });
