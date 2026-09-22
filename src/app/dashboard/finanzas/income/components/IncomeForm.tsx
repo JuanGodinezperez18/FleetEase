@@ -173,6 +173,23 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     }
   }, [selectedCategoryId, selectableCategories, form]);
 
+  // Para "Renta Semanal", el importe siempre se toma de la configuración
+  // actual del vehículo seleccionado. Si no existe una renta configurada,
+  // se deja el campo disponible para captura manual.
+  useEffect(() => {
+    if (!isWeeklyRent) return;
+    const vehicle = vehicles.find(v => v.id === form.getValues('vehicleId'));
+    if (vehicle) {
+      const weeklyRentalValue = Number(vehicle.weeklyRentalValue);
+      form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : undefined, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } else if (!initialData) {
+      form.setValue('amount', undefined, { shouldValidate: true });
+    }
+  }, [isWeeklyRent, selectedCategoryId, vehicles, form, initialData]);
+
   useEffect(() => {
     if (paymentMethod !== 'Uso de Depósito en Garantía') return;
     const deposit = clients.find(c => c.id === selectedClientId)?.securityDeposit || 0;
