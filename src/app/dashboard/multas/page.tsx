@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useFinances } from "@/contexts/providers/finances-provider";
 import { useVehicles } from "@/contexts/providers/vehicles-provider";
 import { useClients } from "@/contexts/providers/clients-provider";
@@ -12,14 +12,71 @@ import { MultasTable } from "./components/multas-table";
 import type { Multa, MultaWithDetails } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
+import { supabase } from "@/lib/supabase";
 
 export default function MultasPage() {
-  const { multas, loading: loadingFinances } = useFinances();
+  const { multas, financialRecords, loading: loadingFinances } = useFinances();
   const { vehicles, vehiclesLoading } = useVehicles();
   const { clients, loading: loadingClients } = useClients();
   const loadingData = loadingFinances || vehiclesLoading || loadingClients;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMulta, setSelectedMulta] = useState<Multa | null>(null);
+  const [multaPaidAmounts, setMultaPaidAmounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMultaPayments = async () => {
+      const multaCharges = financialRecords.filter(
+        record =>
+          !record.isDeleted &&
+          record.type === "income" &&
+          record.category === "Multa" &&
+          record.sourceRecordType === "multa" &&
+          !!record.sourceRecordId
+      );
+
+      if (multaCharges.length === 0) {
+        if (!cancelled) setMultaPaidAmounts({});
+        return;
+      }
+
+      const chargeIds = multaCharges.map(record => record.id);
+      const { data, error } = await supabase
+        .from("financial_record_links")
+        .select("target_financial_record_id, source_financial_record_id, amount_applied")
+        .in("target_financial_record_id", chargeIds)
+        .eq("relationship_type", "multa_payment_to_financial_record");
+
+      if (error) {
+        console.error("[Multas] No se pudieron cargar los pagos aplicados:", error);
+        if (!cancelled) setMultaPaidAmounts({});
+        return;
+      }
+
+      const activePaymentIds = new Set(
+        financialRecords.filter(record => !record.isDeleted && record.type === "payment").map(record => record.id)
+      );
+      const chargeToMultaId = new Map(
+        multaCharges.map(record => [record.id, record.sourceRecordId as string])
+      );
+      const paidByMulta: Record<string, number> = {};
+
+      for (const link of data || []) {
+        if (!activePaymentIds.has(link.source_financial_record_id)) continue;
+        const multaId = chargeToMultaId.get(link.target_financial_record_id);
+        if (!multaId) continue;
+        paidByMulta[multaId] = (paidByMulta[multaId] || 0) + Number(link.amount_applied || 0);
+      }
+
+      if (!cancelled) setMultaPaidAmounts(paidByMulta);
+    };
+
+    void loadMultaPayments();
+    return () => {
+      cancelled = true;
+    };
+  }, [financialRecords]);
 
   const multasWithDetails: MultaWithDetails[] = useMemo(() => {
     return multas
@@ -40,7 +97,7 @@ export default function MultasPage() {
         };
       })
       .sort((a, b) => new Date(b.fechaInfraccion).getTime() - new Date(a.fechaInfraccion).getTime());
-  }, [multas, vehicles, clients]);
+  }, [multas, vehicles, clients, multaPaidAmounts]);
 
   const stats = useMemo(() => {
     const pendientes = multasWithDetails.filter(m => m.status === "pendiente");
@@ -51,8 +108,8 @@ export default function MultasPage() {
       pendientes: pendientes.length,
       pagadas: pagadas.length,
       enProceso: enProceso.length,
-      totalPendiente: pendientes.reduce((sum, m) => sum + m.total, 0),
-      totalPagado: pagadas.reduce((sum, m) => sum + m.total, 0),
+      totalPendiente: pendientes.reduce((sum, m) => sum + Math.max(0, (m as MultaWithDetails & { outstandingAmount?: number }).outstandingAmount ?? m.total), 0),
+      totalPagado: multasWithDetails.reduce((sum, m) => sum + Math.min(m.total, (m as MultaWithDetails & { outstandingAmount?: number }).total - ((m as MultaWithDetails & { outstandingAmount?: number }).outstandingAmount ?? m.total)), 0),
     };
   }, [multasWithDetails]);
 
