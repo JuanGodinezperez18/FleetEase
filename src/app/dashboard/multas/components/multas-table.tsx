@@ -84,7 +84,7 @@ function MultaMobileCard({
             </div>
             <p className="truncate text-xs text-white/40">{multa.clientName}</p>
             <p className="mt-1.5 font-heading text-base font-semibold tabular-nums text-white">
-              {formatCurrency(multa.total)}
+              {formatCurrency(multa.outstandingAmount ?? multa.total)}
             </p>
             <p className="mt-1 text-[11px] text-white/35">
               {format(new Date(multa.fechaInfraccion), "dd MMM yyyy", { locale: es })}
@@ -190,14 +190,14 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
         clientId: multaToPay.clientId,
         vehicleId: multaToPay.vehicleId,
         companyId: multaToPay.companyId,
-        amount: multaToPay.total,
+        amount: multaToPay.outstandingAmount ?? multaToPay.total,
         date: paymentDate,
         paymentMethod,
         description: `Pago de multa${multaToPay.folio ? ` - Folio ${multaToPay.folio}` : ""}`,
         isDeleted: false,
       });
       toast.success("Multa pagada", {
-        description: `Se registró ${formatCurrency(multaToPay.total)}.`,
+        description: `Se registró ${formatCurrency(multaToPay.outstandingAmount ?? multaToPay.total)}.`,
       });
       setMultaToPay(null);
     } catch {
@@ -365,7 +365,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
             <AlertDialogDescription className="text-white/50">
               {multaToPay && (
                 <span>
-                  Pago de <strong className="text-white">{formatCurrency(multaToPay.total)}</strong>
+                  Pago de <strong className="text-white">{formatCurrency(multaToPay.outstandingAmount ?? multaToPay.total)}</strong>
                   {multaToPay.folio ? ` · Folio ${multaToPay.folio}` : ""}. El estado pasará a Pagada.
                 </span>
               )}
