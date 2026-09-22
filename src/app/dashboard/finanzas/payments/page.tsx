@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/utils";
 
 const PAYMENT_KINDS = [
   { value: "client_payment", label: "Pago de Cliente", short: "Clientes", affects: "client_balance", icon: UserRound },
+  { value: "multa_payment", label: "Pago de Multa", short: "Multas", affects: "client_balance", icon: ShieldCheck },
   { value: "partner_payment", label: "Pago a Socio", short: "Socios", affects: "partner_balance", icon: Briefcase },
   { value: "supplier_payment", label: "Pago a Proveedor", short: "Proveedores", affects: "supplier_balance", icon: Building2 },
   { value: "credit_payment", label: "Pago de Crédito", short: "Créditos", affects: "credit_payment", icon: CreditCard },
@@ -99,6 +100,7 @@ export default function PaymentsPage() {
   const paymentCategory = useMemo(() => {
     const aliases: Record<PaymentKind, string[]> = {
       client_payment: ["Pago de Cliente", "Pago Cliente", "Abono de Cliente"],
+      multa_payment: ["Pago de Multa", "Pago Multa", "Abono de Multa"],
       partner_payment: ["Pago a Socio", "Pago de Socio", "Abono a Socio", "Comisión Socio", "Comision Socio"],
       supplier_payment: ["Pago a Proveedor", "Pago de Proveedor", "Abono a Proveedor"],
       credit_payment: ["Pago de Crédito", "Pago Credito", "Pago de Crédito Semanal"],
@@ -161,7 +163,10 @@ export default function PaymentsPage() {
 
   const targets = useMemo(() => {
     if (!entityId) return [];
-    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY)
+    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY && r.sourceRecordType !== "multa")
+      .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
+      .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (kind === "multa_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.sourceRecordType === "multa" && r.category === "Multa")
       .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
       .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return [];
@@ -198,7 +203,7 @@ export default function PaymentsPage() {
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
     } else {
       if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
-      if ((kind === "client_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
+      if ((kind === "client_payment" || kind === "multa_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
       if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
       if (kind !== "partner_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
       if (kind === "client_payment" && paymentSource === "security_deposit" && depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
@@ -237,7 +242,7 @@ export default function PaymentsPage() {
         const { data, error } = await supabase.rpc("create_financial_payment", {
           p_company_id: companyId, p_payment_kind: kind, p_amount: numericAmount,
           p_payment_date: date, p_payment_method: method, p_reference: reference || null,
-          p_client_id: kind === "client_payment" ? entityId : null,
+          p_client_id: (kind === "client_payment" || kind === "multa_payment") ? entityId : null,
           p_partner_id: kind === "partner_payment" ? entityId : null,
           p_supplier_id: kind === "supplier_payment" ? entityId : null,
           p_target_financial_record_id: kind === "partner_payment" ? null : (kind === "supplier_payment" ? (selectedSupplierPayable?.sourceFinancialRecordId || null) : (targetId || null)), p_credit_id: null,
@@ -402,7 +407,7 @@ export default function PaymentsPage() {
 
                   {kind === "client_payment" && (
                     <div className="space-y-2 md:col-span-2">
-                      <Label className="text-white/50">Aplicar a registro</Label>
+                      <Label className="text-white/50">{kind === "multa_payment" ? "Aplicar a multa" : "Aplicar a registro"}</Label>
                       <Select value={targetId} onValueChange={setTargetId} disabled={!entityId}>
                         <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
                           <SelectValue placeholder="Seleccionar cargo pendiente..." />
@@ -410,7 +415,7 @@ export default function PaymentsPage() {
                         <SelectContent>
                           {targets.map(r => (
                             <SelectItem key={r.id} value={r.id}>
-                              {r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
+                              {r.sourceRecordType === "multa" ? `Multa${r.referenceCode ? ` · ${r.referenceCode}` : ""}` : r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
                             </SelectItem>
                           ))}
                         </SelectContent>
