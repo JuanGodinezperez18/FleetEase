@@ -424,6 +424,8 @@
 }
 @keyframes fe-shimmer { 100% { transform: translateX(100%); } }
 
+html[data-fe-boot-hidden="true"] #fe-boot { display: none !important; }
+
 #fe-boot {
   position: fixed;
   inset: 0;
