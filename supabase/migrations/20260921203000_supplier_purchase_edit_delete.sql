@@ -73,7 +73,7 @@ begin
   update public.supplier_purchases set supplier_id=p_supplier_id,purchase_date=coalesce(p_purchase_date,current_date),
     reference=nullif(p_reference,''),payment_method=p_payment_method,status=v_status,due_date=p_due_date,total=p_total,notes=p_notes,updated_at=now()
     where id=p_purchase_id;
-  update public.financial_records set supplier_id=p_supplier_id,amount=p_total,payment_method=p_payment_method,
+  update public.financial_records set amount=p_total,payment_method=p_payment_method,
     date=coalesce(p_purchase_date,current_date),reference_code=nullif(p_reference,''),notes=p_notes,is_pending=(p_payment_method='credit'),updated_at=now()
     where id=v_record.id;
 
