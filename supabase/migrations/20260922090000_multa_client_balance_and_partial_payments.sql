@@ -13,6 +13,7 @@ declare
   v_user_id uuid := auth.uid();
   v_company_id uuid := nullif(p_record->>'company_id','')::uuid;
   v_multa_id uuid; v_financial_id uuid; v_category_id uuid;
+  v_description text;
   v_total numeric := coalesce((p_record->>'total')::numeric,0);
   v_client_id uuid := nullif(p_record->>'client_id','')::uuid;
   v_vehicle_id uuid := nullif(p_record->>'vehicle_id','')::uuid;
@@ -36,8 +37,12 @@ begin
   returning id into v_multa_id;
 
   if v_client_id is not null then
+    v_description := coalesce(nullif(p_record->>'descripcion',''),'Infracción');
+    if nullif(p_record->>'folio','') is not null then
+      v_description := v_description || ' (Folio: ' || (p_record->>'folio') || ')';
+    end if;
     insert into public.financial_records(company_id,client_id,vehicle_id,category_id,category,type,amount,date,description,is_pending,is_deleted,created_by,source_record_id,source_record_type,created_at,updated_at)
-    values(v_company_id,v_client_id,v_vehicle_id,v_category_id,'Multa','income',v_total,coalesce(nullif(p_record->>'fecha_infraccion','')::date,current_date),'Multa: '||coalesce(nullif(p_record->>'descripcion',''),'Infracción')||case when nullif(p_record->>'folio','') is not null then ' (Folio: '||p_record->>'folio'||')' else '' end,true,false,v_created_by,v_multa_id,'multa',now(),now())
+    values(v_company_id,v_client_id,v_vehicle_id,v_category_id,'Multa','income',v_total,coalesce(nullif(p_record->>'fecha_infraccion','')::date,current_date), 'Multa: ' || v_description,true,false,v_created_by,v_multa_id,'multa',now(),now())
     returning id into v_financial_id;
   end if;
   return jsonb_build_object('multa_id',v_multa_id,'financial_record_id',v_financial_id,'status','pendiente');
@@ -157,3 +162,58 @@ drop trigger if exists trg_sync_multa_status_from_payment on public.financial_re
 create trigger trg_sync_multa_status_from_payment
 after update of amount,is_deleted on public.financial_records
 for each row execute function public.sync_multa_status_from_payment();
+
+
+create or replace function public.cancel_multa_atomic(
+  p_multa_id uuid,
+  p_company_id uuid,
+  p_cancel_reason text default null,
+  p_created_by uuid default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  v_multa public.multas%rowtype;
+  v_charge public.financial_records%rowtype;
+  v_paid numeric := 0;
+  v_remaining numeric := 0;
+begin
+  if auth.uid() is null then raise exception 'No autenticado'; end if;
+  select * into v_multa from public.multas
+  where id=p_multa_id and company_id=p_company_id for update;
+  if not found then raise exception 'Multa no encontrada'; end if;
+  if v_multa.status='cancelada' then
+    return jsonb_build_object('multa_id',p_multa_id,'status','cancelada','reverted_amount',0);
+  end if;
+
+  select * into v_charge from public.financial_records
+  where company_id=p_company_id and source_record_id=p_multa_id
+    and source_record_type='multa' and type='income'
+  order by created_at asc limit 1 for update;
+
+  if found then
+    select coalesce(sum(case when fr.is_deleted then 0 else l.amount_applied end),0)
+      into v_paid
+    from public.financial_record_links l
+    left join public.financial_records fr on fr.id=l.source_financial_record_id
+    where l.target_financial_record_id=v_charge.id
+      and l.relationship_type='multa_payment_to_financial_record';
+
+    v_remaining := greatest(0,coalesce(v_charge.amount,0)-v_paid);
+    if v_paid<=0.009 then
+      update public.financial_records set is_deleted=true,is_pending=false where id=v_charge.id;
+    elsif v_remaining>0.009 then
+      update public.financial_records set amount=v_paid,is_pending=false where id=v_charge.id;
+    else
+      update public.financial_records set is_pending=false where id=v_charge.id;
+    end if;
+  end if;
+
+  update public.multas set status='cancelada',fecha_pago=null,updated_at=now() where id=p_multa_id;
+  return jsonb_build_object('multa_id',p_multa_id,'status','cancelada','paid_amount',v_paid,'reverted_amount',v_remaining);
+end;
+$function$;
+revoke all on function public.cancel_multa_atomic(uuid,uuid,text,uuid) from public;
+grant execute on function public.cancel_multa_atomic(uuid,uuid,text,uuid) to authenticated;
