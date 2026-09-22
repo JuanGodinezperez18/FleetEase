@@ -188,7 +188,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const createVehicleAssignment = useCallback(async (input: NewAssignmentInput) => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const { data: vehicle, error: vehicleError } = await supabase.from('vehicles').select('*').eq('id', input.vehicleId).single(); if (vehicleError || !vehicle) throw new Error('Vehículo no encontrado'); const { data: openLogsRaw } = await supabase.from('vehicle_assignment_logs').select('*').eq('vehicle_id', input.vehicleId).is('unassigned_at', null); const openLogs = (openLogsRaw || []).map(toDomainVehicleAssignmentLog); const availability = checkVehicleAssignmentAvailability({ lockedByCredit: vehicle.locked_by_credit }, openLogs, input.clientId); if (!availability.available) throw new Error(availability.error); const now = new Date().toISOString(); for (const openLog of openLogs) await supabase.from('vehicle_assignment_logs').update({ unassigned_at: now }).eq('id', openLog.id); const payload = buildAssignmentLogPayload({ ...input, assignedBy: currentUser.uid }, now); const { error: insertError } = await supabase.from('vehicle_assignment_logs').insert(toSbVehicleAssignmentLog(payload) as any); if (insertError) throw insertError; await supabase.from('vehicles').update({ client_id: input.clientId, status: 'rented', updated_at: now }).eq('id', input.vehicleId); await Promise.all([queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }), queryClient.invalidateQueries({ queryKey: ['vehicles'] })]); toast.success('Asignación registrada exitosamente'); } catch (error: any) { toast.error('Error al registrar la asignación', { description: error.message }); throw error; } }, [currentUser, queryClient]);
   const endVehicleAssignment = useCallback(async (assignmentLogId: string, vehicleId: string) => { try { const now = new Date().toISOString(); const { error: updateLogError } = await supabase.from('vehicle_assignment_logs').update({ unassigned_at: now }).eq('id', assignmentLogId); if (updateLogError) throw updateLogError; const { data: vehicle } = await supabase.from('vehicles').select('locked_by_credit').eq('id', vehicleId).single(); if (!vehicle?.locked_by_credit) await supabase.from('vehicles').update({ client_id: null, status: 'active', updated_at: now }).eq('id', vehicleId); await Promise.all([queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }), queryClient.invalidateQueries({ queryKey: ['vehicles'] })]); toast.success('Asignación finalizada'); } catch (error: any) { toast.error('Error al finalizar la asignación', { description: error.message }); throw error; } }, [queryClient]);
   const deleteCreditWithCleanup = useCallback(async (creditId: string) => { await cancelCreditWithAdjustment(creditId, 'Cancelación de crédito solicitada (cleanup). Se conserva historial y registros financieros.'); }, [cancelCreditWithAdjustment]);
-  const addMulta = useCallback(async (data: Partial<DomainMulta>) => { const { data: result, error } = await supabase.from('multas').insert(toSbMulta(data) as any).select().single(); if (error) throw error; const multaCategory = allFinancialCategories.find(c => c.name === 'Multa'); if (multaCategory) await addFinancialRecordMutation.mutateAsync({ clientId: data.clientId, vehicleId: data.vehicleId, categoryId: multaCategory.id, category: 'Multa', type: 'income', amount: data.total, description: `Multa: ${data.descripcion}${data.folio ? ` (Folio: ${data.folio})` : ''}`, date: data.fechaInfraccion, multaId: result.id, isPending: true, isDeleted: false, companyId: data.companyId, createdBy: data.createdBy }); await refreshData(); return toDomainMulta(result); }, [allFinancialCategories, addFinancialRecordMutation, refreshData]);
+  const addMulta = useCallback(async (data: Partial<DomainMulta>) => {
+    if (!currentUser?.uid) throw new Error('Usuario no autenticado');
+    const companyId = data.companyId || currentUser.companyId;
+    if (!companyId) throw new Error('Empresa no disponible para registrar la multa');
+    const { data: result, error } = await supabase.rpc('create_multa_atomic', {
+      p_record: toSbMulta({ ...data, companyId, createdBy: data.createdBy || currentUser.uid }) as any,
+    });
+    if (error) throw error;
+    if (!result?.multa_id) throw new Error('La base de datos no devolvió la multa creada');
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['multas'] }),
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] }),
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    ]);
+    await refreshData();
+    const { data: multa, error: multaError } = await supabase.from('multas').select('*').eq('id', result.multa_id).single();
+    if (multaError || !multa) throw multaError || new Error('No se pudo recuperar la multa creada');
+    return toDomainMulta(multa);
+  }, [currentUser, queryClient, refreshData]);
   const processMultaPayment = useCallback(async (multaId: string, paymentData: Partial<DomainFinancialRecord>) => {
     if (!currentUser?.uid) throw new Error('Usuario no autenticado');
     const companyId = paymentData.companyId || currentUser.companyId;
