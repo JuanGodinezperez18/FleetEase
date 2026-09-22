@@ -121,7 +121,7 @@ export default function PaymentsPage() {
       return { ...c, name: clientName };
     }), [credits, clients]);
 
-  const entities = kind === "client_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted)
+  const entities = kind === "client_payment" || kind === "multa_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted)
     : kind === "partner_payment" ? partners.filter(p => !p.isDeleted)
     : kind === "supplier_payment" ? suppliers
     : creditEntities;
