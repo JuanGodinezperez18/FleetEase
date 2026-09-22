@@ -331,6 +331,8 @@ export default function PaymentsPage() {
                         ? "Crédito / Cliente"
                         : kind === "partner_payment"
                         ? "Socio"
+                        : kind === "multa_payment"
+                        ? "Cliente"
                         : "Proveedor"}
                     </Label>
                     <Select value={entityId} onValueChange={v => { setEntityId(v); setTargetId(""); }}>
