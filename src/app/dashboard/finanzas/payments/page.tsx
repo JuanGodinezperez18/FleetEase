@@ -405,21 +405,32 @@ export default function PaymentsPage() {
                     </div>
                   )}
 
-                  {kind === "client_payment" && (
+                  {(kind === "client_payment" || kind === "multa_payment") && (
                     <div className="space-y-2 md:col-span-2">
                       <Label className="text-white/50">{kind === "multa_payment" ? "Aplicar a multa" : "Aplicar a registro"}</Label>
-                      <Select value={targetId} onValueChange={setTargetId} disabled={!entityId}>
+                      <Select
+                        value={targetId}
+                        onValueChange={v => {
+                          setTargetId(v);
+                          const target = targets.find(r => r.id === v);
+                          if (kind === "multa_payment" && target) setAmount(target.outstanding.toFixed(2));
+                        }}
+                        disabled={!entityId || targets.length === 0}
+                      >
                         <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
-                          <SelectValue placeholder="Seleccionar cargo pendiente..." />
+                          <SelectValue placeholder={kind === "multa_payment" ? (targets.length ? "Seleccionar multa pendiente..." : "Este cliente no tiene multas pendientes") : "Seleccionar cargo pendiente..."} />
                         </SelectTrigger>
                         <SelectContent>
                           {targets.map(r => (
                             <SelectItem key={r.id} value={r.id}>
-                              {r.sourceRecordType === "multa" ? `Multa${r.referenceCode ? ` · ${r.referenceCode}` : ""}` : r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
+                              {r.sourceRecordType === "multa" ? `Multa${r.referenceCode ? ` · Folio ${r.referenceCode}` : ""}` : r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {kind === "multa_payment" && entityId && targets.length === 0 && (
+                        <p className="text-xs text-white/35">No hay multas con saldo pendiente para este cliente.</p>
+                      )}
                     </div>
                   )}
 
@@ -443,6 +454,9 @@ export default function PaymentsPage() {
 
                   <div className="space-y-2">
                     <Label className="text-white/50">Importe</Label>
+                    {kind === "multa_payment" && selectedTarget && (
+                      <p className="mb-1 text-[11px] text-[#d7ff3f]/70">Saldo pendiente de la multa: {formatCurrency(selectedTarget.outstanding)}</p>
+                    )}
                     <Input
                       inputMode="decimal"
                       value={amount}
