@@ -129,6 +129,14 @@ const loadRecoveryScript = `
     window.location.reload();
   }
 
+  // El boot splash solo debe aparecer en la primera entrada de la sesión.
+  // En recargas posteriores dejamos que el loader/skeleton de la app tome el control.
+  try {
+    if (sessionStorage.getItem('hasShownSplash') === 'true') {
+      document.documentElement.setAttribute('data-fe-boot-hidden', 'true');
+    }
+  } catch (e) {}
+
   function isChunkError(msg) {
     if (!msg) return false;
     var m = String(msg).toLowerCase();
@@ -137,8 +145,7 @@ const loadRecoveryScript = `
       m.indexOf('loading chunk') !== -1 ||
       m.indexOf('failed to fetch dynamically imported module') !== -1 ||
       m.indexOf('importing a module script failed') !== -1 ||
-      m.indexOf('error loading dynamically imported module') !== -1 ||
-      m.indexOf('failed to load') !== -1
+      m.indexOf('error loading dynamically imported module') !== -1
     );
   }
 
