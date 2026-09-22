@@ -74,7 +74,7 @@ export const filterRecordsByVehicle = (
 };
 
 export const sumAmount = (records: FinancialRecord[]): number => records.reduce((sum, r) => sum + (r.amount || 0), 0);
-export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterIncome(records));
+export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterIncome(records).filter(r => r.category !== 'Multa'));
 export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filterExpense(records));
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
@@ -167,7 +167,8 @@ export const sumRentalIncome = (
     isActiveRecord(r) && isIncome(r) &&
     !r.creditGranted &&
     r.category !== SECURITY_DEPOSIT_CATEGORY &&
-    !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId))
+    !(depositCategoryIds && r.categoryId && depositCategoryIds.has(r.categoryId)) &&
+    r.category !== 'Multa'
   ));
 
 /** Utilidad operativa de renta/servicios: ingreso operativo menos gastos. */
