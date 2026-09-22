@@ -158,7 +158,14 @@ export default function ExpensesPage() {
       const sanitizedData = sanitizeExpenseFormData(data);
 
       if (editingRecord) {
-        await updateFinancialRecord(editingRecord.id, sanitizedData);
+        // La BD protege los campos contables/relacionales del gasto como inmutables.
+        // En edición enviamos únicamente los campos que el RPC de metadata permite modificar.
+        await updateFinancialRecord(editingRecord.id, {
+          date: sanitizedData.date,
+          description: sanitizedData.description || '',
+          paymentMethod: sanitizedData.paymentMethod,
+          evidenceUrls: sanitizedData.evidenceUrls || [],
+        });
         toast.success('Gasto actualizado', { id: toastId });
       } else {
         const totalAmount = sanitizedData.items.reduce((sum, item) => sum + item.amount, 0);
