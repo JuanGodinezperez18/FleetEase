@@ -16,6 +16,7 @@ import {
   filterRecordsByVehicle,
   sumRentalIncome,
   sumExpense,
+  calculateNetProfit,
   calculateProfitMargin,
   daysBetweenInclusive,
   categoryIdsByAffects,
@@ -78,7 +79,7 @@ export function VehicleProfitabilityDashboard({
         const totalExpenses = sumExpense(vehicleRecords);
 
         // Calcular utilidad neta
-        const netProfit = totalIncome - totalExpenses;
+        const netProfit = calculateNetProfit(vehicleRecords);
 
         // Calcular margen de utilidad
         const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
@@ -121,7 +122,7 @@ export function VehicleProfitabilityDashboard({
     const totalIncome = profitabilityData.reduce((sum, v) => sum + v.totalIncome, 0);
     const totalExpenses = profitabilityData.reduce((sum, v) => sum + v.totalExpenses, 0);
     const totalNetProfit = profitabilityData.reduce((sum, v) => sum + v.netProfit, 0);
-    const avgProfitMargin = totalIncome > 0 ? (totalNetProfit / totalIncome) * 100 : 0;
+    const avgProfitMargin = calculateProfitMargin(totalIncome, totalExpenses);
     const avgOccupancyRate = profitabilityData.reduce((sum, v) => sum + v.occupancyRate, 0) / (totalVehicles || 1);
 
     return {
