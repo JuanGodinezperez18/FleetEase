@@ -26,6 +26,7 @@ import {
 import { format, startOfMonth, endOfMonth, differenceInDays, subDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
+import { isWithinInterval } from 'date-fns';
 import { toast } from 'sonner';
 import {
   BarChart,
@@ -43,6 +44,7 @@ import {
   Area,
 } from 'recharts';
 import { ReportAnalyticsService } from '@/lib/reports/analytics-service';
+import { useFinancialAnalytics } from '@/hooks/use-financial-analytics';
 import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
 import { generateExcelReport, downloadExcel } from '@/lib/reports/excel-generator';
 import type { ReportData } from '@/lib/reports/pdf-generator';
@@ -83,14 +85,30 @@ export default function ReportsPageImproved() {
     };
   }, [dateRange]);
 
+  const financialAnalytics = useFinancialAnalytics(
+    financialRecords,
+    clients,
+    vehicles,
+    partners,
+    dateRange,
+    undefined
+  );
+
   const financialSummary = useMemo(() => {
     if (!dateRange?.from || !dateRange.to) return null;
-    return ReportAnalyticsService.calculateFinancialSummary(
-      financialRecords,
-      { from: dateRange.from, to: dateRange.to },
-      previousPeriod
-    );
-  }, [financialRecords, dateRange, previousPeriod]);
+    return {
+      income: financialAnalytics.totalIncome,
+      expenses: financialAnalytics.totalExpenses,
+      netProfit: financialAnalytics.netProfit,
+      profitMargin: financialAnalytics.profitMargin,
+      transactionsCount: financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from!, end: dateRange.to! })).length,
+      expensesByCategory: Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
+      incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
+      incomeChange: financialAnalytics.monthlyGrowth.income,
+      expensesChange: financialAnalytics.monthlyGrowth.expenses,
+      profitChange: financialAnalytics.monthlyGrowth.profit,
+    };
+  }, [financialAnalytics, financialRecords, dateRange]);
 
   const vehicleMetrics = useMemo(() => {
     if (!dateRange?.from || !dateRange.to) return [];
@@ -128,9 +146,15 @@ export default function ReportsPageImproved() {
     );
   }, [partners, vehicles, financialRecords, dateRange]);
 
-  const monthlyTrends = useMemo(() => {
-    return ReportAnalyticsService.calculateMonthlyTrends(financialRecords, 6);
-  }, [financialRecords]);
+  const monthlyTrends = useMemo(
+    () => financialAnalytics.cashFlowAnalysis.slice(-6).map(month => ({
+      month: month.period,
+      income: month.income,
+      expenses: month.expenses,
+      netProfit: month.netFlow,
+    })),
+    [financialAnalytics.cashFlowAnalysis]
+  );
 
   const chartData = useMemo(() => {
     if (!financialSummary) return [];
