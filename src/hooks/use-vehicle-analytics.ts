@@ -6,7 +6,7 @@ import type { Vehicle, FinancialRecord, VehicleAssignmentLog, Company } from '@/
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { differenceInDays } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateNetProfit, calculateProfitMargin } from '@/lib/financial-metrics';
 
 const DEFAULT_MAINTENANCE_INTERVAL_KM = 10000;
 
@@ -35,8 +35,8 @@ function calculateVehicleMetrics(
   const recordsForVehicle = financialRecords.filter(r => r.vehicleId === vehicle.id && !r.isDeleted);
   const totalIncome = sumRentalIncome(recordsForVehicle);
   const totalExpenses = sumExpense(recordsForVehicle);
-  const netProfit = totalIncome - totalExpenses;
-  const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : (netProfit < 0 ? -100 : 0);
+  const netProfit = calculateNetProfit(recordsForVehicle);
+  const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
 
   const logsForVehicle = assignmentLogs.filter(log => log.vehicleId === vehicle.id);
   const acquisitionDate = infallibleNormalizeDate(vehicle.acquisitionDate);
