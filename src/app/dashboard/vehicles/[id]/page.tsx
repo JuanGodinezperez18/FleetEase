@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
 import type { Vehicle, Client } from '@/types';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
-import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateNetProfit } from '@/lib/financial-metrics';
 import {
   Calendar,
   Palette,
@@ -165,8 +165,7 @@ export default function VehicleDetailPage() {
 
   const roi = useMemo(() => {
     if (!vehicle || !vehicle.cost || vehicle.cost === 0) return null;
-    const operatingProfit =
-      sumRentalIncome(vehicleFinancialRecords) - sumExpense(vehicleFinancialRecords);
+    const operatingProfit = calculateNetProfit(vehicleFinancialRecords);
     return ((operatingProfit / vehicle.cost) * 100).toFixed(2);
   }, [vehicleFinancialRecords, vehicle]);
 
