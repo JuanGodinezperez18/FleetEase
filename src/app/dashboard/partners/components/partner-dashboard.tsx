@@ -11,7 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
 import { MetricCard, InteractiveMetricCard } from '@/components/dashboard/components/MetricCard';
-import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
+import { calculateNetProfit, sumRentalIncome } from '@/lib/financial-metrics';
 import { PartnerPerformanceBadge } from '@/components/partners/partner-status-badges';
 
 interface PartnerDashboardProps {
@@ -43,12 +43,13 @@ const CompanyComparisonDashboard = () => {
       .map(company => {
         const companyRecords = financialRecords.filter(r => r.companyId === company.id && !r.isDeleted);
         const totalIncome = sumRentalIncome(companyRecords);
-        const totalExpenses = sumExpense(companyRecords);
+        const beneficio = calculateNetProfit(companyRecords);
+        const totalExpenses = totalIncome - beneficio;
         return {
           name: company.name,
           ingresos: totalIncome,
           gastos: totalExpenses,
-          beneficio: totalIncome - totalExpenses,
+          beneficio,
         };
       })
       .sort((a, b) => b.beneficio - a.beneficio);
