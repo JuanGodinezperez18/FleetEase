@@ -1,15 +1,12 @@
 "use client";
 
 import { useMemo } from 'react';
-import { useFinances } from '@/contexts/providers/finances-provider';
 import { useData } from '@/contexts/data-provider';
 import { useClients } from '@/contexts/providers/clients-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-
-const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
 export default function ClientBalancesPage() {
   const { clients, credits } = useClients();
