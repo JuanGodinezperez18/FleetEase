@@ -1,6 +1,6 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 import { isWithinInterval } from 'date-fns';
-import { sumRentalIncome, sumExpense, calculateNetProfit, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateNetProfit, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -66,7 +66,10 @@ export class ReportAnalyticsService {
         ? Math.floor((Date.now() - new Date(lastPaymentRecord.date).getTime()) / (1000 * 60 * 60 * 24))
         : -1;
 
-      const calculatedBalance = calculateClientBalance(client, clientRecords).balance;
+      // El saldo reportado es el saldo vigente del cliente ya resuelto por el proveedor de datos.
+      // El reporte no debe reconstruir un saldo con el rango del informe, porque eso puede
+      // mezclar el saldo inicial con movimientos parciales del periodo seleccionado.
+      const calculatedBalance = Number(client.balance ?? 0);
 
       let paymentBehavior = 'N/A';
       if (calculatedBalance <= 0) paymentBehavior = 'Excelente';
