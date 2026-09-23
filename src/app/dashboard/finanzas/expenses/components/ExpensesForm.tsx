@@ -44,7 +44,7 @@ const expenseSchema = z.object({
     value => value === NONE_SELECT_VALUE ? null : value,
     z.string().uuid().nullable().optional(),
   ),
-  vehicleId: z.string().min(1, "Debe seleccionar un vehículo."),
+  // Un gasto general de empresa no requiere vehículo ni cliente.\n  // Si existe vehículo, el gasto queda asociado a esa unidad.\n  vehicleId: z.preprocess(\n    value => value === NONE_SELECT_VALUE || value === "" ? null : value,\n    z.string().uuid().nullable().optional(),\n  ),
   items: z.array(lineSchema).min(1, "Agrega al menos un concepto de gasto."),
   description: z.string().optional(),
   categoryId: z.string().min(1, "La categoría es obligatoria."),
@@ -261,7 +261,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [expenseCategories, formCompanyId, currentUser?.companyId]);
 
-  const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
+  const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);\n  const isCompanyExpense = !selectedClientId || selectedClientId === NONE_SELECT_VALUE;
 
   const selectedCategory = useMemo(
     () => expenseCategories.find(category => category.id === selectedCategoryId) || null,
@@ -332,15 +332,15 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
             <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-            <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje</FormLabel><FormControl><Input type="number" placeholder="Ej: 120500" {...field} value={field.value ?? ""} disabled={isSubmitting || isEditing} /></FormControl>{selectedVehicle && <p className="text-xs text-white/40">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
+            <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje (opcional)</FormLabel><FormControl><Input type="number" placeholder={selectedVehicle ? "Ej: 120500" : "No aplica a gasto general"} {...field} value={field.value ?? ""} disabled={isSubmitting || isEditing || !selectedVehicle} /></FormControl>{selectedVehicle && <p className="text-xs text-white/40">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
             <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => v === newCategoryValue ? setIsNewCategoryModalOpen(true) : field.onChange(v)} value={field.value ?? ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una categoría" /></SelectTrigger></FormControl><SelectContent>{selectableCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{(currentUser?.role === "superAdmin" || currentUser?.role === "admin") && <SelectItem value={newCategoryValue}><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nueva categoría...</span></SelectItem>}</SelectContent></Select><FormMessage /></FormItem>} />
             <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Pagado por</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa (afecta a socio)</SelectItem><SelectItem value="partner_pays">Socio (no afecta balance)</SelectItem><SelectItem value="company_absorbs">Empresa (absorbe el gasto)</SelectItem></SelectContent></Select></FormItem>} />
           </div>
 
           <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción general (opcional)</FormLabel><FormControl><Input placeholder="Ej: Servicio de suspensión delantera" {...field} disabled={isSubmitting} /></FormControl></FormItem>} />
 
-          <div className="space-y-4 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+          <div className="space-y-4 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">\n            {isCompanyExpense && <div className="rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.04] px-3 py-2 text-xs text-white/55">Gasto general de empresa: no se asociará a vehículo, cliente, socio ni kilometraje.</div>}
             <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-white">Conceptos del gasto</h3><p className="text-xs text-white/40">Puedes registrar refacciones, mano de obra y otros conceptos dentro del mismo gasto.</p></div><Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting || isEditing}><Plus className="mr-1 h-4 w-4" />Agregar línea</Button></div>
             <div className="space-y-3">
               {fields.map((field, index) => {
