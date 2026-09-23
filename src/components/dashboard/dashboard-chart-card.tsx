@@ -24,6 +24,7 @@ interface DashboardChartCardProps {
 }
 
 const money = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
+const moneyText = (value: number) => value < 0 ? `-${money.format(Math.abs(value))}` : `${money.format(value)}';
 
 function valueOf(allKPIs: Record<string, MetricKPIData>, id: string) {
   const value = allKPIs[id]?.value;
@@ -247,7 +248,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 tick={{ fill: 'rgba(8,10,15,.3)', fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={value => (isMoney ? `$${money.format(value)}` : String(value))}
+                tickFormatter={value => (isMoney ? moneyText(Number(value)) : String(value))}
               />
               <Tooltip
                 cursor={{ fill: 'rgba(215,255,63,0.12)', radius: 6 }}
@@ -259,7 +260,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   color: 'var(--fe-text, #0a0c12)',
                 }}
                 formatter={(value: number | undefined) => [
-                  isMoney ? `$${money.format(value ?? 0)}` : (value ?? 0),
+                  isMoney ? moneyText(value ?? 0) : (value ?? 0),
                   isMoney ? 'Monto' : 'Cantidad',
                 ]}
                 labelStyle={{ color: 'inherit' }}
@@ -327,7 +328,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-[#0a0c12] dark:text-white">
-                {isMoney ? `$${money.format(total)}` : total}
+                {isMoney ? moneyText(total) : total}
               </span>
               <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
                 {isMoney ? 'capital' : 'elementos'}
@@ -346,8 +347,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 style={{ background: pieLabels[index % pieLabels.length] }}
               />
               <span>{item.name}</span>
-              <strong className="font-medium tabular-nums text-black/70 dark:text-white/70">
-                {isMoney ? `$${money.format(item.value)}` : item.value}
+              <strong className={cn(\n                  "font-medium tabular-nums",\n                  isMoney && item.value < 0 ? "text-rose-500 dark:text-rose-400" : "text-black/70 dark:text-white/70"\n                )}>
+                {isMoney ? moneyText(item.value) : item.value}
               </strong>
             </div>
           ))}
