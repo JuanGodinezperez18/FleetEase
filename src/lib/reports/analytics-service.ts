@@ -32,18 +32,6 @@ export interface PartnerMetric {
   transactionsCount: number;
 }
 
-export interface FinancialSummary {
-  income: number;
-  expenses: number;
-  netProfit: number;
-  profitMargin: number;
-  transactionsCount: number;
-  expensesByCategory: Record<string, number>;
-  incomeByCategory: Record<string, number>;
-  incomeChange?: number;
-  expensesChange?: number;
-  profitChange?: number;
-}
 
 /**
  * Servicio de análisis de datos para reportes.
@@ -78,7 +66,6 @@ export class ReportAnalyticsService {
         ? Math.floor((Date.now() - new Date(lastPaymentRecord.date).getTime()) / (1000 * 60 * 60 * 24))
         : -1;
 
-      const balanceRecords = clientRecords.filter(r => r.type === 'income' || r.type === 'payment');
       const calculatedBalance = calculateClientBalance(client, clientRecords).balance;
 
       let paymentBehavior = 'N/A';
@@ -122,21 +109,4 @@ export class ReportAnalyticsService {
   static getTopClients(clientMetrics: ClientMetric[], limit: number = 5): ClientMetric[] { return clientMetrics.sort((a, b) => b.totalPayments - a.totalPayments).slice(0, limit); }
   static getClientsWithCriticalBalance(clientMetrics: ClientMetric[], threshold: number = 5000): ClientMetric[] { return clientMetrics.filter(m => m.balance > threshold).sort((a, b) => b.balance - a.balance); }
 
-  static calculateMonthlyTrends(financialRecords: FinancialRecord[], months: number = 6): Array<{ month: string; income: number; expenses: number; profit: number }> {
-    const trends: Array<{ month: string; income: number; expenses: number; profit: number }> = [];
-    const now = new Date();
-    for (let i = months - 1; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      const monthRecords = financialRecords.filter(r => {
-        if (r.isDeleted) return false;
-        const recordDate = new Date(r.date);
-        return recordDate >= monthDate && recordDate < nextMonthDate;
-      });
-      const income = sumRentalIncome(monthRecords);
-      const expenses = monthRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
-      trends.push({ month: monthDate.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }), income, expenses, profit: income - expenses });
-    }
-    return trends;
-  }
 }
