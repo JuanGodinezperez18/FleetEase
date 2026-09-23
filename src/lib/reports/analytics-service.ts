@@ -1,6 +1,6 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 import { isWithinInterval } from 'date-fns';
-import { sumRentalIncome } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -79,9 +79,7 @@ export class ReportAnalyticsService {
         : -1;
 
       const balanceRecords = clientRecords.filter(r => r.type === 'income' || r.type === 'payment');
-      const calculatedBalance = (client.initialBalance || 0)
-        + balanceRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0)
-        - totalPayments;
+      const calculatedBalance = calculateClientBalance(client, clientRecords).balance;
 
       let paymentBehavior = 'N/A';
       if (calculatedBalance <= 0) paymentBehavior = 'Excelente';
@@ -105,11 +103,12 @@ export class ReportAnalyticsService {
     return partners.map(partner => {
       const partnerVehicles = vehicles.filter(v => v.partnerId === partner.id && !v.isDeleted);
       const activeVehicles = partnerVehicles.filter(v => v.status === 'active' || v.status === 'rented').length;
-      let partnerRecords = financialRecords.filter(r => !r.isDeleted && partnerVehicles.some(v => v.id === r.vehicleId));
+      let partnerRecords = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
       if (dateRange) partnerRecords = partnerRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
-      const totalIncome = sumRentalIncome(partnerRecords);
-      const totalExpenses = partnerRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
-      const netBalance = totalIncome - totalExpenses;
+      const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecords);
+      const totalIncome = profitability.totalIncome;
+      const totalExpenses = profitability.totalExpenses;
+      const netBalance = profitability.netProfit;
       const transactionsCount = partnerRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
       return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
