@@ -206,7 +206,10 @@ export default function PaymentsPage() {
       if ((kind === "client_payment" || kind === "multa_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
       if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
       if (kind !== "partner_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
-      if (kind === "client_payment" && paymentSource === "security_deposit" && depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
+      if (kind === "client_payment" && paymentSource === "security_deposit") {
+        if (depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
+        if (numericAmount > depositAvailable + 0.009) return toast.error(`El importe no puede exceder el depósito en garantía disponible de ${formatCurrency(depositAvailable)}.`);
+      }
       if (kind === "supplier_payment" && !selectedSupplierPayable) return toast.error("Selecciona una compra pendiente del proveedor.");
     }
 
@@ -461,8 +464,22 @@ export default function PaymentsPage() {
                     )}
                     <Input
                       inputMode="decimal"
+                      type="number"
+                      min="0"
+                      max={kind === "client_payment" && paymentSource === "security_deposit" ? depositAvailable : undefined}
+                      step="0.01"
                       value={amount}
-                      onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, "");
+                        if (kind === "client_payment" && paymentSource === "security_deposit") {
+                          const next = Number(raw);
+                          if (Number.isFinite(next) && next > depositAvailable) {
+                            setAmount(depositAvailable.toFixed(2));
+                            return;
+                          }
+                        }
+                        setAmount(raw);
+                      }}
                       placeholder="0.00"
                       className="border-white/10 bg-white/[0.03] text-white"
                     />
