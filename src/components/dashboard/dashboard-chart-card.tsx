@@ -191,8 +191,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? 'button' : 'article'}
       className={cn(
-        'group relative min-h-[292px] overflow-hidden rounded-2xl border border-black/[0.08] bg-white p-5 text-[#0a0c12] shadow-[0_8px_28px_rgba(8,10,15,.06)]',
-        'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-black/[0.14] hover:shadow-[0_14px_36px_rgba(8,10,15,.1)]',
+        'group relative min-h-[292px] overflow-hidden rounded-[18px] border border-black/[0.08] bg-white p-5 text-[#0a0c12] shadow-[0_6px_22px_rgba(8,10,15,.05)]',
+        'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-black/[0.14] hover:shadow-[0_10px_28px_rgba(8,10,15,.08)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f7f2]',
         'dark:border-white/[0.08] dark:bg-[#0d1016] dark:text-white dark:shadow-[0_12px_40px_rgba(0,0,0,.18)] dark:hover:border-white/[0.15] dark:hover:shadow-[0_18px_48px_rgba(0,0,0,.28)] dark:focus-visible:ring-offset-[#080a0f]',
         onClick && 'cursor-pointer'
@@ -201,7 +201,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       <div className="mb-3 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_10px_rgba(215,255,63,.45)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]" />
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/40 dark:text-white/35">
               Analítica
             </p>
