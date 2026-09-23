@@ -3,7 +3,7 @@
 
 import { useRef } from 'react';
 import type { Partner, Vehicle, FinancialRecord } from '@/types';
-import { calculatePartnerProfitability } from '@/lib/financial-metrics';
+import { calculatePartnerProfitability, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 
 export type PartnerMetric = {
   partnerId: string;
@@ -33,8 +33,7 @@ export const usePartnerAnalytics = (
 
     const metrics: PartnerMetric[] = partners.map(partner => {
       const partnerVehicles = vehicles.filter(v => v.partnerId === partner.id && !v.isDeleted);
-      const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
-      const recordsForPartner = financialRecords.filter(record => partnerVehicleIds.has(record.vehicleId || '') && !record.isDeleted);
+      const recordsForPartner = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
 
       const profitability = calculatePartnerProfitability(partnerVehicles, recordsForPartner);
       const totalIncome = profitability.totalIncome;
