@@ -121,6 +121,8 @@ export const useFinancialAnalytics = (
     const filteredRecords = filterRecordsByDateRange(financialRecords, { from: dateRange.from, to: dateRange.to });
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: startOfDay(now), to: endOfDay(now) });
     const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
+    const refundDepositCategoryIds = new Set((financialCategories ?? []).filter(cat => cat.type === 'expense' && cat.name.trim().toLowerCase() === 'devolución de depósito').map(cat => cat.id));
+    const isDepositRefund = (r: FinancialRecord) => r.type === 'expense' && (r.category === 'Devolución de Depósito' || (!!r.categoryId && refundDepositCategoryIds.has(r.categoryId)));
     const categoryMap = new Map<string, string>();
     financialCategories?.forEach(cat => categoryMap.set(cat.id, cat.name));
 
@@ -132,8 +134,8 @@ export const useFinancialAnalytics = (
       .filter(r => r.type === 'income' && r.creditGranted === true)
       .reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
     const vehicleSalesGrossProfit = vehicleSales - vehicleSalesCost;
-    const totalExpenses = sumExpense(filteredRecords);
-    const todayExpenses = sumExpense(todayRecords);
+    const totalExpenses = sumExpense(filteredRecords.filter(r => !isDepositRefund(r)));
+    const todayExpenses = sumExpense(todayRecords.filter(r => !isDepositRefund(r)));
 
     const securityDeposits = filteredRecords
       .filter(r => r.type === 'income' && (r.category === 'Depósito en Garantía' || (!!r.categoryId && depositCategoryIds.has(r.categoryId))))
@@ -167,7 +169,8 @@ export const useFinancialAnalytics = (
     // Cash flow uses only actual cash movements represented by payment records.
     // Recognized expenses are excluded here so supplier credit/AP is not double-counted
     // when its later payment is recorded.
-    const cashOutflow = partnerPayments + supplierPayments + otherPayments;
+    const depositRefunds = filteredRecords.filter(isDepositRefund).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const cashOutflow = partnerPayments + supplierPayments + otherPayments + depositRefunds;
     const netCashFlow = cashInflow - cashOutflow;
     const creditRecovered = creditCollections;
     const netProfit = operationalIncome + vehicleSalesGrossProfit - totalExpenses;
@@ -198,7 +201,7 @@ export const useFinancialAnalytics = (
           clientsWithRevenueInPeriod.add(record.clientId);
         }
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + amount;
-      } else if (record.type === 'expense') {
+      } else if (record.type === 'expense' && !isDepositRefund(record)) {
         const categoryName = normalizedCategory(record, categoryMap) || 'Sin Categoría';
         const amount = Number(record.amount || 0);
         expenseCategoriesMap[categoryName] = (expenseCategoriesMap[categoryName] || 0) + amount;
@@ -230,7 +233,7 @@ export const useFinancialAnalytics = (
       const monthOperationalIncome = sumRentalIncome(monthRecords, depositCategoryIds);
       const monthVehicleSales = sumVehicleSales(monthRecords);
       const monthIncome = monthOperationalIncome + monthVehicleSales;
-      const monthExpenses = sumExpense(monthRecords);
+      const monthExpenses = sumExpense(monthRecords.filter(r => !isDepositRefund(r)));
       const monthCategoryMap = new Map<string, string>();
       financialCategories?.forEach(cat => monthCategoryMap.set(cat.id, cat.name));
       const monthPayments = monthRecords.filter(r => r.type === 'payment');
@@ -241,8 +244,9 @@ export const useFinancialAnalytics = (
       const monthPartnerPayments = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthSupplierPayments = monthPayments.filter(r => isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthOtherPayments = monthPayments.filter(r => !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.client) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.credit) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.multa) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.partner) && !isPaymentCategory(r, monthCategoryMap, PAYMENT_ALIASES.supplier)).reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const monthDepositRefunds = monthRecords.filter(isDepositRefund).reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const monthCashIn = monthCustomerCollections + monthCreditCollections + monthMultaCollections + monthDeposits;
-      const monthCashOut = monthPartnerPayments + monthSupplierPayments + monthOtherPayments;
+      const monthCashOut = monthPartnerPayments + monthSupplierPayments + monthOtherPayments + monthDepositRefunds;
       return { period: format(date, 'MMM yy', { locale: es }), income: monthIncome, expenses: monthExpenses, payments: monthCustomerCollections + monthCreditCollections, netFlow: monthCashIn - monthCashOut };
     });
 
@@ -260,7 +264,7 @@ export const useFinancialAnalytics = (
     const prevMonthVehicleSalesCost = prevMonthRecords
       .filter(r => r.type === 'income' && r.creditGranted === true)
       .reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
-    const prevMonthExpenses = sumExpense(prevMonthRecords);
+    const prevMonthExpenses = sumExpense(prevMonthRecords.filter(r => !isDepositRefund(r)));
     const prevMonthProfit = prevMonthOperationalIncome + (prevMonthVehicleSales - prevMonthVehicleSalesCost) - prevMonthExpenses;
     const monthlyGrowth = {
       income: calculateChange(totalIncome, prevMonthIncome),
