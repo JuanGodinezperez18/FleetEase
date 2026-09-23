@@ -69,29 +69,82 @@ function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileage
   return { ...vehicle, displayCurrentMileage: currentMileage.toLocaleString(), displayLastMaintMileage: lastMaintenanceMileage.toLocaleString(), displayNextMaintDueAt: (currentMileage + kmToNextMaintenance).toLocaleString(), displayKmToNextMaintenance: kmToNextMaintenance.toLocaleString(), kmToNextMaintenance, dailyAveragekm };
 }
 
-export function calculatePartnerBalance(partner: DomainPartner, partnerVehicles: DomainVehicle[], financialRecords: DomainFinancialRecord[]): number {
-  const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
-  const totalIncome = financialRecords
-    // El ingreso generado automáticamente por administración pertenece a la
-    // empresa; no forma parte del saldo económico del socio.
-    .filter(r => r.type === 'income' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.sourceRecordType !== 'vehicle_admin_fee' && !r.isDeleted)
-    .reduce((sum, r) => sum + r.amount, 0);
-  const totalExpenses = financialRecords
-    .filter(r => r.type === 'expense' && r.vehicleId && partnerVehicleIds.has(r.vehicleId) && r.paymentMethod !== 'partner_pays' && !r.isDeleted)
+/**
+ * Fuente única del estado de cuenta del socio.
+ *
+ * Regla económica:
+ * + ingresos de sus vehículos (renta + crédito otorgado)
+ * - gastos del vehículo que corresponden al socio
+ * - pagos realizados al socio
+ *
+ * Los ingresos automáticos por administración pertenecen a la empresa y
+ * NO incrementan el saldo del socio.
+ *
+ * Importante: un vehículo puede pasar a "sold" cuando un crédito se liquida.
+ * Por eso no podemos depender únicamente de vehicles.partnerId actual: usamos
+ * también la atribución histórica partnerId de los movimientos que la
+ * conservaron. Así los ingresos de renta/crédito y gastos históricos siguen
+ * perteneciendo al mismo estado de cuenta.
+ */
+export function getPartnerFinancialRecords(
+  partner: DomainPartner,
+  partnerVehicles: DomainVehicle[],
+  financialRecords: DomainFinancialRecord[],
+): DomainFinancialRecord[] {
+  const currentVehicleIds = new Set(
+    partnerVehicles.filter(v => !v.isDeleted).map(v => v.id),
+  );
+
+  const historicalVehicleIds = new Set(
+    financialRecords
+      .filter(r => !r.isDeleted && r.partnerId === partner.id && r.vehicleId)
+      .map(r => r.vehicleId as string),
+  );
+
+  const partnerVehicleIds = new Set([
+    ...currentVehicleIds,
+    ...historicalVehicleIds,
+  ]);
+
+  return financialRecords.filter(r => {
+    if (r.isDeleted) return false;
+    if (r.partnerId === partner.id) return true;
+    return !!r.vehicleId && partnerVehicleIds.has(r.vehicleId);
+  });
+}
+
+export function calculatePartnerBalance(
+  partner: DomainPartner,
+  partnerVehicles: DomainVehicle[],
+  financialRecords: DomainFinancialRecord[],
+): number {
+  const records = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
+
+  const totalIncome = records
+    .filter(
+      r =>
+        r.type === 'income' &&
+        r.sourceRecordType !== 'vehicle_admin_fee',
+    )
     .reduce((sum, r) => sum + r.amount, 0);
 
-  // Un pago recibido por un crédito NO es un pago directo al socio.
-  // Primero es un ingreso/pago que recibe la empresa. El saldo del socio
-  // solo disminuye cuando existe un registro separado de "Pago a Socio"
-  // asociado al socio (partnerId).
-  const allPartnerPayments = financialRecords
-    .filter(r => r.type === 'payment' && r.partnerId === partner.id && !r.isDeleted)
+  const totalExpenses = records
+    .filter(
+      r =>
+        r.type === 'expense' &&
+        r.paymentMethod !== 'partner_pays',
+    )
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  // Los pagos a socio son movimientos separados y siempre reducen su saldo.
+  const totalPartnerPayments = records
+    .filter(r => r.type === 'payment' && r.partnerId === partner.id)
     .reduce((sum, r) => sum + r.amount, 0);
 
   return (partner.initialBalance || 0)
     + totalIncome
     - totalExpenses
-    - allPartnerPayments;
+    - totalPartnerPayments;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
