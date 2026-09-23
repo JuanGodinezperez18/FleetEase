@@ -462,21 +462,24 @@ export default function PaymentsPage() {
                     {kind === "multa_payment" && selectedTarget && (
                       <p className="mb-1 text-[11px] text-[#d7ff3f]/70">Saldo pendiente de la multa: {formatCurrency(selectedTarget.outstanding)}</p>
                     )}
+                    {kind === "client_payment" && paymentSource === "security_deposit" && targetId && (
+                      <p className="mb-1 text-[11px] text-[#d7ff3f]/70">
+                        Máximo aplicable: {formatCurrency(maxAmount)} · Depósito: {formatCurrency(depositAvailable)} · Saldo pendiente: {formatCurrency(targetOutstanding)}
+                      </p>
+                    )}
                     <Input
                       inputMode="decimal"
                       type="number"
                       min="0"
-                      max={kind === "client_payment" && paymentSource === "security_deposit" ? depositAvailable : undefined}
+                      max={maxAmount > 0 ? maxAmount : undefined}
                       step="0.01"
                       value={amount}
                       onChange={e => {
                         const raw = e.target.value.replace(/[^0-9.]/g, "");
-                        if (kind === "client_payment" && paymentSource === "security_deposit") {
-                          const next = Number(raw);
-                          if (Number.isFinite(next) && next > depositAvailable) {
-                            setAmount(depositAvailable.toFixed(2));
-                            return;
-                          }
+                        const next = Number(raw);
+                        if (Number.isFinite(next) && next > maxAmount && maxAmount > 0) {
+                          setAmount(maxAmount.toFixed(2));
+                          return;
                         }
                         setAmount(raw);
                       }}
