@@ -206,7 +206,7 @@ export const useFinancialAnalytics = (
         .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía')
         .reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const operatingExpenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const financedSaleCosts = financedSales.reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
+      const financedSaleCosts = sumVehicleSalesCost(clientRecords, vehicles);
       const expenses = operatingExpenses + financedSaleCosts;
       const netProfit = revenue - expenses;
       const profitMargin = calculateProfitMargin(revenue, expenses);
