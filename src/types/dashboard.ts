@@ -120,16 +120,11 @@ export const DEFAULT_DASHBOARD_CONFIG: Omit<UserDashboardConfig, 'userId' | 'com
   layout: 'grid',
   theme: 'system',
   widgets: [
-    { id: 'income-month', type: 'metric', title: 'Ingresos del Mes', category: 'FINANZAS', dataKey: 'totalMonthIncome', enabled: true, order: 0 },
-    { id: 'expenses-month', type: 'metric', title: 'Gastos del Mes', category: 'FINANZAS', dataKey: 'totalMonthExpenses', enabled: true, order: 1 },
-    { id: 'net-income', type: 'metric', title: 'Ingreso Neto', category: 'FINANZAS', dataKey: 'monthNetIncome', enabled: true, order: 2 },
-    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 3 },
-    { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'totalActive', enabled: true, order: 4 },
-    { id: 'maintenance-overdue', type: 'metric', title: 'Mantenimiento Vencido', category: 'KILOMETRAJE', dataKey: 'maintenanceOverdueCount', enabled: true, order: 5 },
-    { id: 'total-clients', type: 'metric', title: 'Clientes Activos', category: 'CLIENTES', dataKey: 'totalActiveClients', enabled: true, order: 6 },
-    { id: 'critical-clients', type: 'metric', title: 'Clientes Críticos', category: 'CLIENTES', dataKey: 'criticalClientsCount', enabled: true, order: 7 },
-    { id: 'active-credits', type: 'metric', title: 'Créditos Activos', category: 'CREDITOS', dataKey: 'totalActiveCredits', enabled: true, order: 8 },
-    ...CHART_WIDGETS,
+    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 0 },
+    { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'totalActive', enabled: true, order: 1 },
+    { id: 'total-clients', type: 'metric', title: 'Clientes Activos', category: 'CLIENTES', dataKey: 'totalActiveClients', enabled: true, order: 2 },
+    { id: 'active-credits', type: 'metric', title: 'Créditos Activos', category: 'CREDITOS', dataKey: 'totalActiveCredits', enabled: true, order: 3 },
+    ...CHART_WIDGETS.map((widget, index) => ({ ...widget, order: 4 + index })),
   ],
 };
 
