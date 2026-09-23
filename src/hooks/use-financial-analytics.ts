@@ -16,6 +16,7 @@ import {
   daysBetweenInclusive,
   categoryIdsByAffects,
   calculateCashFlowBreakdown,
+  normalizeFinancialCategory,
 } from '@/lib/financial-metrics';
 
 type ProfitabilityLevel = 'high' | 'medium' | 'low' | 'negative';
@@ -155,7 +156,7 @@ export const useFinancialAnalytics = (
         }
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + amount;
       } else if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '') && record.category !== 'Depósito en Garantía') {
-        const categoryName = normalizedCategory(record, categoryMap) || 'Sin Categoría';
+        const categoryName = normalizeFinancialCategory(record, categoryMap) || 'Sin Categoría';
         const amount = Number(record.amount || 0);
         incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + amount;
         if (record.clientId) {
@@ -164,7 +165,7 @@ export const useFinancialAnalytics = (
         }
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + amount;
       } else if (record.type === 'expense' && !isDepositRefund(record)) {
-        const categoryName = normalizedCategory(record, categoryMap) || 'Sin Categoría';
+        const categoryName = normalizeFinancialCategory(record, categoryMap) || 'Sin Categoría';
         const amount = Number(record.amount || 0);
         expenseCategoriesMap[categoryName] = (expenseCategoriesMap[categoryName] || 0) + amount;
         if (record.clientId) clientValueMap[record.clientId] = (clientValueMap[record.clientId] || 0) - amount;
