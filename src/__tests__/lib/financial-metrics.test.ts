@@ -32,6 +32,8 @@ import {
   DEFAULT_MAINTENANCE_INTERVAL_KM,
   SECURITY_DEPOSIT_CATEGORY,
   categoryIdsByAffects,
+  getPaymentCategory,
+  calculateCashFlowBreakdown,
 } from '@/lib/financial-metrics';
 import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
 
