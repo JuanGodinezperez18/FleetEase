@@ -1,6 +1,6 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 import { isWithinInterval } from 'date-fns';
-import { sumRentalIncome, sumExpense, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateNetProfit, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -47,7 +47,7 @@ export class ReportAnalyticsService {
       const rentalIncome = sumRentalIncome(vehicleRecords);
       const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
       const totalExpenses = sumExpense(expenseRecords);
-      const netProfit = rentalIncome - totalExpenses;
+      const netProfit = calculateNetProfit(vehicleRecords);
       const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
       const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
       return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate: vehicle.clientId ? 100 : 0, transactionsCount: profitTransactions.length };
