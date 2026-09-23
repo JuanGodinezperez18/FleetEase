@@ -1,6 +1,6 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 import { isWithinInterval } from 'date-fns';
-import { sumRentalIncome, sumExpense, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateClientBalance, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -58,9 +58,9 @@ export class ReportAnalyticsService {
       if (dateRange) vehicleRecords = vehicleRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
       const rentalIncome = sumRentalIncome(vehicleRecords);
       const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
-      const totalExpenses = expenseRecords.reduce((sum, r) => sum + r.amount, 0);
+      const totalExpenses = sumExpense(expenseRecords);
       const netProfit = rentalIncome - totalExpenses;
-      const profitability = totalExpenses > 0 ? (netProfit / totalExpenses) * 100 : rentalIncome > 0 ? 100 : 0;
+      const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
       const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
       return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate: vehicle.clientId ? 100 : 0, transactionsCount: profitTransactions.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
@@ -112,30 +112,6 @@ export class ReportAnalyticsService {
       const transactionsCount = partnerRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
       return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
-  }
-
-  static calculateFinancialSummary(financialRecords: FinancialRecord[], dateRange: { from: Date; to: Date }, previousPeriod?: { from: Date; to: Date }): FinancialSummary {
-    const currentRecords = financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
-    const income = sumRentalIncome(currentRecords);
-    const expenses = currentRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
-    const netProfit = income - expenses;
-    const profitMargin = income > 0 ? (netProfit / income) * 100 : 0;
-    const profitRecords = currentRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
-    const expensesByCategory = currentRecords.filter(r => r.type === 'expense').reduce((acc, r) => { const category = r.category || 'Sin categoría'; acc[category] = (acc[category] || 0) + r.amount; return acc; }, {} as Record<string, number>);
-    const incomeByCategory = currentRecords.filter(r => r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY).reduce((acc, r) => { const category = r.category || 'Sin categoría'; acc[category] = (acc[category] || 0) + r.amount; return acc; }, {} as Record<string, number>);
-    const summary: FinancialSummary = { income, expenses, netProfit, profitMargin, transactionsCount: profitRecords.length, expensesByCategory, incomeByCategory };
-
-    if (previousPeriod) {
-      const previousRecords = financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: previousPeriod.from, end: previousPeriod.to }));
-      const previousIncome = sumRentalIncome(previousRecords);
-      const previousExpenses = previousRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
-      const previousNetProfit = previousIncome - previousExpenses;
-      const calculateChange = (current: number, previous: number) => previous === 0 ? (current > 0 ? 100 : current < 0 ? -100 : 0) : ((current - previous) / Math.abs(previous)) * 100;
-      summary.incomeChange = calculateChange(income, previousIncome);
-      summary.expensesChange = calculateChange(expenses, previousExpenses);
-      summary.profitChange = calculateChange(netProfit, previousNetProfit);
-    }
-    return summary;
   }
 
   static filterRecordsByDateRange(records: FinancialRecord[], dateRange: { from: Date; to: Date }): FinancialRecord[] {
