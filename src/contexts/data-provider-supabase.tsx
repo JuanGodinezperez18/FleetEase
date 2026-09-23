@@ -113,21 +113,29 @@ export function getPartnerFinancialRecords(
   });
 }
 
-export function calculatePartnerBalance(
+export interface PartnerBalanceBreakdown {
+  initialBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  totalPartnerPayments: number;
+  balance: number;
+}
+
+export function calculatePartnerBalanceBreakdown(
   partner: DomainPartner,
   partnerVehicles: DomainVehicle[],
   financialRecords: DomainFinancialRecord[],
-): number {
+): PartnerBalanceBreakdown {
   const records = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
 
   const totalIncome = records
     .filter(r => {
       if (r.type !== 'income') return false;
-      // Solo estos dos conceptos generan saldo a favor del socio.
-      // Administración, depósitos, multas y otros ingresos pertenecen a la empresa
-      // o tienen su propio tratamiento financiero.
+      // Solo renta y crédito otorgado generan saldo a favor del socio.
       const category = (r.category || '').trim().toLowerCase();
-      return category === 'renta semanal' || category === 'crédito otorgado' || category === 'credito otorgado';
+      return category === 'renta semanal'
+        || category === 'crédito otorgado'
+        || category === 'credito otorgado';
     })
     .reduce((sum, r) => sum + r.amount, 0);
 
@@ -139,15 +147,29 @@ export function calculatePartnerBalance(
     )
     .reduce((sum, r) => sum + r.amount, 0);
 
-  // Los pagos a socio son movimientos separados y siempre reducen su saldo.
+  // Un pago a socio es una salida real del saldo que se le adeuda.
   const totalPartnerPayments = records
     .filter(r => r.type === 'payment' && r.partnerId === partner.id)
     .reduce((sum, r) => sum + r.amount, 0);
 
-  return (partner.initialBalance || 0)
-    + totalIncome
-    - totalExpenses
-    - totalPartnerPayments;
+  const initialBalance = partner.initialBalance || 0;
+  const balance = initialBalance + totalIncome - totalExpenses - totalPartnerPayments;
+
+  return {
+    initialBalance,
+    totalIncome,
+    totalExpenses,
+    totalPartnerPayments,
+    balance,
+  };
+}
+
+export function calculatePartnerBalance(
+  partner: DomainPartner,
+  partnerVehicles: DomainVehicle[],
+  financialRecords: DomainFinancialRecord[],
+): number {
+  return calculatePartnerBalanceBreakdown(partner, partnerVehicles, financialRecords).balance;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
