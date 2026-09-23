@@ -7,15 +7,37 @@ import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
 const dashboardCache = new Map<string, { data: UserDashboardConfig; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
+const CURRENT_DASHBOARD_VERSION = 2;
+const REDUNDANT_DEFAULT_WIDGET_IDS = new Set([
+  'income-month',
+  'expenses-month',
+  'net-income',
+  'maintenance-overdue',
+  'critical-clients',
+  'total-lent',
+  'total-pending',
+]);
+
 function mergeDefaultWidgets(config: UserDashboardConfig): UserDashboardConfig {
-  const existingIds = new Set(config.widgets.map(widget => widget.id));
-  const maxOrder = config.widgets.reduce((max, widget) => Math.max(max, widget.order), -1);
+  const needsRedundancyMigration = (config.dashboardVersion ?? 1) < CURRENT_DASHBOARD_VERSION;
+
+  const migratedWidgets = needsRedundancyMigration
+    ? config.widgets.filter(widget => !REDUNDANT_DEFAULT_WIDGET_IDS.has(widget.id))
+    : config.widgets;
+
+  const existingIds = new Set(migratedWidgets.map(widget => widget.id));
+  const maxOrder = migratedWidgets.reduce((max, widget) => Math.max(max, widget.order), -1);
   const missingWidgets: DashboardWidget[] = DEFAULT_DASHBOARD_CONFIG.widgets
     .filter(widget => !existingIds.has(widget.id))
     .map((widget, index) => ({ ...widget, order: maxOrder + index + 1 }));
 
-  if (missingWidgets.length === 0) return config;
-  return { ...config, widgets: [...config.widgets, ...missingWidgets] };
+  if (!needsRedundancyMigration && missingWidgets.length === 0) return config;
+
+  return {
+    ...config,
+    dashboardVersion: CURRENT_DASHBOARD_VERSION,
+    widgets: [...migratedWidgets, ...missingWidgets],
+  };
 }
 
 export class DashboardService {
@@ -49,6 +71,7 @@ export class DashboardService {
       const defaultConfig: UserDashboardConfig = {
         userId,
         ...DEFAULT_DASHBOARD_CONFIG,
+        dashboardVersion: CURRENT_DASHBOARD_VERSION,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
