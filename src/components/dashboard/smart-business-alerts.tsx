@@ -131,10 +131,11 @@ export function SmartBusinessAlerts({
     const activeVehicles = vehicles.filter(v => v.status === "active" && !v.isDeleted);
     activeVehicles.forEach(vehicle => {
       const vehicleRecords = financialRecords.filter(
-        r => r.vehicleId === vehicle.id && r.type === "income" && new Date(r.date) >= cutoffDate
+        r => r.vehicleId === vehicle.id && new Date(r.date) >= cutoffDate
       );
+      const vehicleIncomeRecords = vehicleRecords.filter(r => r.type === "income");
 
-      if (vehicleRecords.length === 0) {
+      if (vehicleIncomeRecords.length === 0) {
         generatedAlerts.push({
           id: `vehicle-idle-${vehicle.id}`,
           type: "warning",
@@ -145,7 +146,7 @@ export function SmartBusinessAlerts({
           action: { label: "Ver vehículo", href: `/dashboard/vehicles/${vehicle.id}` },
           data: { vehicleId: vehicle.id, daysIdle: 30 },
         });
-      } else if (vehicleRecords.length <= 2) {
+      } else if (vehicleIncomeRecords.length <= 2) {
         generatedAlerts.push({
           id: `vehicle-low-occupancy-${vehicle.id}`,
           type: "info",
@@ -154,7 +155,7 @@ export function SmartBusinessAlerts({
           description: "Pocas rentas en el último mes",
           impact: "Oportunidad de mejora en ocupación.",
           action: { label: "Ver vehículo", href: `/dashboard/vehicles/${vehicle.id}` },
-          data: { vehicleId: vehicle.id, rentalCount: vehicleRecords.length },
+          data: { vehicleId: vehicle.id, rentalCount: vehicleIncomeRecords.length },
         });
       }
     });
