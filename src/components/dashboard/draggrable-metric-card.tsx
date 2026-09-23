@@ -97,17 +97,17 @@ function DraggableMetricCardBase({
       role={onClick ? 'button' : 'article'}
       aria-label={`${widget.title}: ${displayValue}`}
       className={cn(
-        'group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]',
+        'group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0e1117] p-5 shadow-[0_10px_30px_rgba(0,0,0,.16)]',
         'select-none backdrop-blur-xl transition-all duration-300',
-        'before:pointer-events-none before:absolute before:-right-12 before:-top-12 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.045] before:blur-3xl before:transition-opacity',
-        'hover:-translate-y-1 hover:border-white/[0.14] hover:shadow-[0_24px_65px_rgba(0,0,0,.34)]',
+        'before:pointer-events-none before:absolute before:-right-16 before:-top-16 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.035] before:blur-3xl before:transition-opacity',
+        'hover:-translate-y-0.5 hover:border-white/[0.14] hover:shadow-[0_16px_40px_rgba(0,0,0,.24)]',
         onClick && 'cursor-pointer active:translate-y-0'
       )}
     >
       <div className="relative flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] opacity-70 shadow-[0_0_10px_#d7ff3f]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]/80" />
             <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
               {widget.title}
             </p>
@@ -150,8 +150,8 @@ function DraggableMetricCardBase({
         </div>
 
         <div className="flex shrink-0 items-start gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.07] transition-transform duration-300 group-hover:scale-105">
-            <IconComponent className="h-5 w-5 text-[#d7ff3f]" aria-hidden="true" strokeWidth={1.75} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] transition-colors duration-200 group-hover:border-[#d7ff3f]/20 group-hover:bg-[#d7ff3f]/[0.06]">
+            <IconComponent className="h-5 w-5 text-[#d7ff3f]/90" aria-hidden="true" strokeWidth={1.75} />
           </div>
           <button
             type="button"
