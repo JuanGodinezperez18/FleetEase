@@ -311,14 +311,8 @@ export const calculatePartnerProfitability = (
   const vehicleSales = sumAmount(saleRecords);
 
   const soldVehicleIds = new Set(saleRecords.map(r => r.vehicleId).filter(Boolean) as string[]);
-  const vehicleById = new Map(partnerVehicles.map(v => [v.id, v]));
-
-  // El costo de cada vehículo vendido se reconoce una sola vez, aunque exista
-  // más de un registro relacionado con la operación.
-  const vehicleSalesCost = Array.from(soldVehicleIds).reduce(
-    (sum, vehicleId) => sum + (Number(vehicleById.get(vehicleId)?.cost) || 0),
-    0
-  );
+  // Reutiliza el helper canónico para evitar que esta regla vuelva a duplicarse.
+  const vehicleSalesCost = sumVehicleSalesCost(activeRecords, partnerVehicles);
 
   // Para vehículos que siguen siendo de renta, el costo de adquisición es la
   // inversión que todavía debe recuperarse con las rentas acumuladas.
