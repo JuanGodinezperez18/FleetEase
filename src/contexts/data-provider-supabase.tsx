@@ -20,6 +20,7 @@ import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, type New
 import type { Client, Vehicle, Partner, Credit, FinancialRecord, MileageLog, Notification, VehicleAssignmentLog, Company, FinancialCategory, MessageTemplate, MessageLog, CreditPaymentSchedule, Multa } from '@/types/supabase';
 import { toDomainClient, toDomainVehicle, toDomainPartner, toDomainCredit, toDomainFinancialRecord, toDomainMileageLog, toDomainNotification, toDomainVehicleAssignmentLog, toDomainCompany, toDomainFinancialCategory, toDomainMessageTemplate, toDomainMessageLog, toDomainCreditPaymentSchedule, toDomainMulta, toSbClient, toSbVehicle, toSbPartner, toSbCredit, toSbFinancialRecord, toSbMileageLog, toSbNotification, toSbVehicleAssignmentLog, toSbCompany, toSbFinancialCategory, toSbMessageTemplate, toSbMessageLog, toSbCreditPaymentSchedule, toSbMulta } from '@/lib/domain-mappers';
 import { formatCurrency } from '@/lib/utils';
+import { calculatePartnerBalance, calculatePartnerBalanceBreakdown, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 import { useVehicleAnalytics } from '@/hooks/use-vehicle-analytics';
 import { useClientAnalytics } from '@/hooks/use-client-analytics';
 import type { Client as DomainClient, Vehicle as DomainVehicle, Partner as DomainPartner, Credit as DomainCredit, FinancialRecord as DomainFinancialRecord, MileageLog as DomainMileageLog, Notification as DomainNotification, VehicleAssignmentLog as DomainVehicleAssignmentLog, Company as DomainCompany, FinancialCategory as DomainFinancialCategory, MessageTemplate as DomainMessageTemplate, MessageLog as DomainMessageLog, CreditPaymentSchedule as DomainCreditPaymentSchedule, Multa as DomainMulta, VehicleWithMileage as DomainVehicleWithMileage } from '@/types';
@@ -69,108 +70,6 @@ function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileage
   return { ...vehicle, displayCurrentMileage: currentMileage.toLocaleString(), displayLastMaintMileage: lastMaintenanceMileage.toLocaleString(), displayNextMaintDueAt: (currentMileage + kmToNextMaintenance).toLocaleString(), displayKmToNextMaintenance: kmToNextMaintenance.toLocaleString(), kmToNextMaintenance, dailyAveragekm };
 }
 
-/**
- * Fuente única del estado de cuenta del socio.
- *
- * Regla económica:
- * + ingresos de sus vehículos (renta + crédito otorgado)
- * - gastos del vehículo que corresponden al socio
- * - pagos realizados al socio
- *
- * Los ingresos automáticos por administración pertenecen a la empresa y
- * NO incrementan el saldo del socio.
- *
- * Importante: un vehículo puede pasar a "sold" cuando un crédito se liquida.
- * Por eso no podemos depender únicamente de vehicles.partnerId actual: usamos
- * también la atribución histórica partnerId de los movimientos que la
- * conservaron. Así los ingresos de renta/crédito y gastos históricos siguen
- * perteneciendo al mismo estado de cuenta.
- */
-export function getPartnerFinancialRecords(
-  partner: DomainPartner,
-  partnerVehicles: DomainVehicle[],
-  financialRecords: DomainFinancialRecord[],
-): DomainFinancialRecord[] {
-  const currentVehicleIds = new Set(
-    partnerVehicles.filter(v => !v.isDeleted).map(v => v.id),
-  );
-
-  const historicalVehicleIds = new Set(
-    financialRecords
-      .filter(r => !r.isDeleted && r.partnerId === partner.id && r.vehicleId)
-      .map(r => r.vehicleId as string),
-  );
-
-  const partnerVehicleIds = new Set([
-    ...currentVehicleIds,
-    ...historicalVehicleIds,
-  ]);
-
-  return financialRecords.filter(r => {
-    if (r.isDeleted) return false;
-    if (r.partnerId === partner.id) return true;
-    return !!r.vehicleId && partnerVehicleIds.has(r.vehicleId);
-  });
-}
-
-export interface PartnerBalanceBreakdown {
-  initialBalance: number;
-  totalIncome: number;
-  totalExpenses: number;
-  totalPartnerPayments: number;
-  balance: number;
-}
-
-export function calculatePartnerBalanceBreakdown(
-  partner: DomainPartner,
-  partnerVehicles: DomainVehicle[],
-  financialRecords: DomainFinancialRecord[],
-): PartnerBalanceBreakdown {
-  const records = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
-
-  const totalIncome = records
-    .filter(r => {
-      if (r.type !== 'income') return false;
-      // Solo renta y crédito otorgado generan saldo a favor del socio.
-      const category = (r.category || '').trim().toLowerCase();
-      return category === 'renta semanal'
-        || category === 'crédito otorgado'
-        || category === 'credito otorgado';
-    })
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  const totalExpenses = records
-    .filter(
-      r =>
-        r.type === 'expense' &&
-        r.paymentMethod !== 'partner_pays',
-    )
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  // Un pago a socio es una salida real del saldo que se le adeuda.
-  const totalPartnerPayments = records
-    .filter(r => r.type === 'payment' && r.partnerId === partner.id)
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  const initialBalance = partner.initialBalance || 0;
-  const balance = initialBalance + totalIncome - totalExpenses - totalPartnerPayments;
-
-  return {
-    initialBalance,
-    totalIncome,
-    totalExpenses,
-    totalPartnerPayments,
-    balance,
-  };
-}
-
-export function calculatePartnerBalance(
-  partner: DomainPartner,
-  partnerVehicles: DomainVehicle[],
-  financialRecords: DomainFinancialRecord[],
-): number {
-  return calculatePartnerBalanceBreakdown(partner, partnerVehicles, financialRecords).balance;
-}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
