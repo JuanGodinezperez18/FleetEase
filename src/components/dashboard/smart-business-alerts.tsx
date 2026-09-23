@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import type { Vehicle, Client, FinancialRecord } from "@/types";
 import Link from "next/link";
-import { getMaintenanceIntervalKm } from "@/lib/financial-metrics";
+import { getMaintenanceIntervalKm, calculateNetProfit, calculateProfitMargin } from "@/lib/financial-metrics";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 import { cn } from "@/lib/utils";
 
@@ -189,14 +189,15 @@ export function SmartBusinessAlerts({
         const vehicleRecords = financialRecords.filter(
           r => r.vehicleId === vehicle.id && new Date(r.date) >= cutoffDate
         );
-        const income = vehicleRecords
-          .filter(r => r.type === "income")
+        const incomeRecords = vehicleRecords.filter(r => r.type === "income");
+        const income = incomeRecords
+          .filter(r => !r.creditGranted && r.category !== "Depósito en Garantía" && r.category !== "Multa")
           .reduce((sum, r) => sum + (r.amount || 0), 0);
         const expenses = vehicleRecords
           .filter(r => r.type === "expense")
           .reduce((sum, r) => sum + (r.amount || 0), 0);
-        const netProfit = income - expenses;
-        const margin = income > 0 ? (netProfit / income) * 100 : 0;
+        const netProfit = calculateNetProfit(vehicleRecords);
+        const margin = calculateProfitMargin(income, expenses);
 
         if (margin > 50 && income > 10000) {
           generatedAlerts.push({
