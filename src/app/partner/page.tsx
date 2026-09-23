@@ -183,7 +183,7 @@ export default function PartnerDashboard() {
 
   // Calcular gastos totales de sus vehículos usando la definición contable canónica.
   const totalExpenses = useMemo(() => sumExpense(filteredRecords), [filteredRecords]);
-  const netProfit = useMemo(() => calculateNetProfit(filteredRecords), [filteredRecords]);
+  const netProfit = useMemo(() => calculateNetProfit(filteredRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')), [filteredRecords]);
 
   // Multas de los vehículos del socio
   const partnerMultas = useMemo(() => {
