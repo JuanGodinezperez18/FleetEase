@@ -9,7 +9,7 @@
  * - Nunca modificar las fórmulas de negocio (margen, ROI, ocupación) sin aprobación explícita.
  * - Los helpers que devuelven montos siempre suman `r.amount || 0` para ser defensivos.
  */
-import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
+import type { FinancialRecord, Vehicle, FinancialCategory, Partner, Client } from '@/types';
 import { differenceInDays, isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
@@ -77,6 +77,100 @@ export const sumAmount = (records: FinancialRecord[]): number => records.reduce(
 export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterIncome(records).filter(r => r.category !== 'Multa'));
 export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filterExpense(records));
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
+
+
+/**
+ * Regla canónica de estado de cuenta de socios.
+ * La identidad histórica del vehículo se conserva mediante los movimientos
+ * financieros que todavía tienen partnerId, incluso cuando el vehículo ya fue vendido.
+ */
+export const getPartnerFinancialRecords = (
+  partner: Partner,
+  partnerVehicles: Vehicle[],
+  financialRecords: FinancialRecord[],
+): FinancialRecord[] => {
+  const currentVehicleIds = new Set(
+    partnerVehicles.filter(v => !v.isDeleted).map(v => v.id),
+  );
+  const historicalVehicleIds = new Set(
+    financialRecords
+      .filter(r => !r.isDeleted && r.partnerId === partner.id && r.vehicleId)
+      .map(r => r.vehicleId as string),
+  );
+  const partnerVehicleIds = new Set([...currentVehicleIds, ...historicalVehicleIds]);
+
+  return financialRecords.filter(r => {
+    if (r.isDeleted) return false;
+    if (r.partnerId === partner.id) return true;
+    return !!r.vehicleId && partnerVehicleIds.has(r.vehicleId);
+  });
+};
+
+export interface PartnerBalanceBreakdown {
+  initialBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  totalPartnerPayments: number;
+  balance: number;
+}
+
+export const calculatePartnerBalanceBreakdown = (
+  partner: Partner,
+  partnerVehicles: Vehicle[],
+  financialRecords: FinancialRecord[],
+): PartnerBalanceBreakdown => {
+  const records = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
+  const totalIncome = sumAmount(records.filter(r => {
+    if (r.type !== 'income') return false;
+    const category = (r.category || '').trim().toLowerCase();
+    return category === 'renta semanal' || category === 'crédito otorgado' || category === 'credito otorgado';
+  }));
+  const totalExpenses = sumAmount(records.filter(
+    r => r.type === 'expense' && r.paymentMethod !== 'partner_pays',
+  ));
+  const totalPartnerPayments = sumAmount(records.filter(
+    r => r.type === 'payment' && r.partnerId === partner.id,
+  ));
+  const initialBalance = partner.initialBalance || 0;
+  return {
+    initialBalance,
+    totalIncome,
+    totalExpenses,
+    totalPartnerPayments,
+    balance: initialBalance + totalIncome - totalExpenses - totalPartnerPayments,
+  };
+};
+
+export const calculatePartnerBalance = (
+  partner: Partner,
+  partnerVehicles: Vehicle[],
+  financialRecords: FinancialRecord[],
+): number => calculatePartnerBalanceBreakdown(partner, partnerVehicles, financialRecords).balance;
+
+export interface ClientBalanceBreakdown {
+  initialBalance: number;
+  totalIncome: number;
+  totalPayments: number;
+  balance: number;
+}
+
+export const calculateClientBalance = (
+  client: Client,
+  financialRecords: FinancialRecord[],
+): ClientBalanceBreakdown => {
+  const records = financialRecords.filter(
+    r => !r.isDeleted && r.clientId === client.id && r.category !== SECURITY_DEPOSIT_CATEGORY,
+  );
+  const totalIncome = sumAmount(records.filter(r => r.type === 'income'));
+  const totalPayments = sumAmount(records.filter(r => r.type === 'payment'));
+  const initialBalance = client.initialBalance || 0;
+  return {
+    initialBalance,
+    totalIncome,
+    totalPayments,
+    balance: initialBalance + totalIncome - totalPayments,
+  };
+};
 
 /**
  * Ventas de vehículos financiadas.
