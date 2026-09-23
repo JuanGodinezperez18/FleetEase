@@ -56,6 +56,25 @@ const itemBase =
 const itemActive =
   "bg-[var(--fe-hover)] font-medium fe-text hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]";
 
+const navGroupByLabel: Record<string, string> = {
+  "Panel de Control": "Operación",
+  "Créditos": "Finanzas",
+  "Rentabilidad": "Análisis",
+  "Mensajería": "Comunicación",
+  "Administración": "Administración",
+};
+
+function NavGroupLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return <div className="h-2" aria-hidden="true" />;
+  return (
+    <div className="px-3 pb-1 pt-4 first:pt-2">
+      <span className="text-[9px] font-semibold uppercase tracking-[0.18em] fe-text-faint">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 const NotificationBell = () => {
   const { clients, vehicles, financialRecords, clientBalances, notifications: rawNotifications, loadingData } =
     useData();
@@ -177,11 +196,16 @@ export type UserRole = "admin" | "editor" | "viewer" | "superAdmin" | "partner" 
 export type NavItem = NavLinkItem | NavSectionItem;
 
 export const navItemsBase: NavItem[] = [
+  // Operación
   { href: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
   { href: "/dashboard/vehicles", label: "Vehículos", icon: CarIcon },
-  { href: "/dashboard/multas", label: "Multas", icon: ShieldAlert, roles: ["admin", "superAdmin", "editor"] },
   { href: "/dashboard/clients", label: "Clientes", icon: UsersIconLucide },
   { href: "/dashboard/partners", label: "Socios", icon: Briefcase },
+  { href: "/dashboard/mileage", label: "Registro de Kilometraje", icon: Gauge },
+  { href: "/dashboard/multas", label: "Multas", icon: ShieldAlert, roles: ["admin", "superAdmin", "editor"] },
+  { href: "/dashboard/seguimientos", label: "Seguimientos Fotográficos", icon: Camera, roles: ["admin", "superAdmin", "editor"] },
+
+  // Finanzas
   { href: "/dashboard/credits", label: "Créditos", icon: Landmark },
   {
     label: "Finanzas",
@@ -197,10 +221,9 @@ export const navItemsBase: NavItem[] = [
       { href: "/dashboard/finanzas/accounts-payable", label: "Cuentas por pagar", icon: HandCoins },
     ],
   },
+
+  // Análisis
   { href: "/dashboard/profitability", label: "Rentabilidad", icon: AreaChart, roles: ["admin", "superAdmin", "editor"] },
-  { href: "/dashboard/mileage", label: "Registro de Kilometraje", icon: Gauge },
-  { href: "/dashboard/alerts", label: "Alertas de Negocio", icon: BellIcon, roles: ["admin", "superAdmin", "editor"] },
-  { href: "/dashboard/seguimientos", label: "Seguimientos Fotográficos", icon: Camera, roles: ["admin", "superAdmin", "editor"] },
   {
     label: "Reporte Ejecutivo",
     icon: BarChart3Icon,
@@ -210,8 +233,13 @@ export const navItemsBase: NavItem[] = [
       { href: "/dashboard/reports/history", label: "Historial", icon: History },
     ],
   },
+  { href: "/dashboard/alerts", label: "Alertas de Negocio", icon: BellIcon, roles: ["admin", "superAdmin", "editor"] },
+
+  // Comunicación
   { href: "/dashboard/messages", label: "Mensajería", icon: MessageSquare },
   { type: "notificationsLink", href: "/dashboard/notifications", label: "Notificaciones", icon: BellIcon },
+
+  // Administración
   {
     label: "Administración",
     icon: SettingsIcon,
@@ -282,8 +310,15 @@ export function SidebarNav() {
 
   return (
     <SidebarMenu className="gap-0.5">
-      {filteredNavItems.map(item => (
-        <SidebarMenuItem key={item.label}>
+      {filteredNavItems.map((item, index) => {
+        const group = navGroupByLabel[item.label];
+        const previousItem = filteredNavItems[index - 1];
+        const previousGroup = previousItem ? navGroupByLabel[previousItem.label] : undefined;
+        const showGroup = group && group !== previousGroup;
+        return (
+          <React.Fragment key={item.label}>
+            {showGroup && <NavGroupLabel label={group} collapsed={state === "collapsed"} />}
+            <SidebarMenuItem>
           {"subItems" in item && item.subItems ? (
             <>
               <SidebarMenuButton
@@ -431,8 +466,10 @@ export function SidebarNav() {
               </SidebarMenuButton>
             )
           ) : null}
-        </SidebarMenuItem>
-      ))}
+          </SidebarMenuItem>
+          </React.Fragment>
+        );
+      })}
     </SidebarMenu>
   );
 }
