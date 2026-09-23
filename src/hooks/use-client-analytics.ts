@@ -3,8 +3,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { Client, FinancialRecord, Vehicle } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
+import { calculateClientBalance } from '@/lib/financial-metrics';
 import { differenceInDays } from 'date-fns';
-import { DRIVER_PAYMENT_CATEGORY } from '@/contexts/data-provider';
+import { DRIVER_PAYMENT_CATEGORY } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -60,7 +61,8 @@ export const useClientAnalytics = (
       const totalIncome = incomeRecords.reduce((sum, r) => sum + r.amount, 0);
       const totalPayments = paymentRecords.reduce((sum, r) => sum + r.amount, 0);
       const totalTransactions = clientRecords.length;
-      const currentBalance = (client.initialBalance || 0) + totalIncome - totalPayments;
+      const canonicalBalance = calculateClientBalance(client, clientRecords);
+      const currentBalance = canonicalBalance.balance;
       const avgTransactionValue = balanceRecords.length > 0
         ? (totalIncome + totalPayments) / balanceRecords.length
         : 0;
