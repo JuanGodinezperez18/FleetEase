@@ -127,7 +127,10 @@ function DraggableMetricCardBase({
             </p>
           </div>
 
-          <h3 className={cn(\n            "font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[34px]",\n            isNegativeMoney ? "text-rose-400" : "text-white"\n          )} aria-live="polite">
+          <h3 className={cn(
+            "font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[34px]",
+            isNegativeMoney ? "text-rose-400" : "text-white"
+          )} aria-live="polite">
             {displayValue}
           </h3>
 
