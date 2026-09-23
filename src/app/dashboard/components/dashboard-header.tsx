@@ -19,18 +19,18 @@ export function DashboardHeader({
   onDateChange,
 }: DashboardHeaderProps) {
   return (
-    <header className="relative overflow-hidden rounded-[20px] border border-white/[0.08] bg-[#0e1117] px-4 py-4 shadow-[0_24px_70px_rgba(0,0,0,.28)] sm:rounded-[26px] sm:px-6 sm:py-5">
-      <div className="pointer-events-none absolute -right-20 -top-28 h-64 w-64 rounded-full bg-[#d7ff3f]/[0.07] blur-[80px]" />
+    <header className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0e1117] px-4 py-5 shadow-[0_18px_48px_rgba(0,0,0,.20)] sm:px-6 sm:py-6">
+      <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-[#d7ff3f]/[0.055] blur-[90px]" />
       <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
             Operación
           </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-[38px] sm:leading-none">
+          <h1 className="font-heading text-2xl font-semibold tracking-[-0.045em] text-white sm:text-[40px] sm:leading-none">
             Dashboard
           </h1>
-          <p className="mt-1.5 truncate text-sm text-white/40">
+          <p className="mt-2 truncate text-sm text-white/40">
             Hola, <span className="text-white/70">{userName || '…'}</span>
           </p>
         </div>
@@ -51,9 +51,9 @@ export function DashboardHeader({
         </div>
       </div>
 
-      <div className="relative mt-4 flex items-center gap-2 border-t border-white/[0.06] pt-3 text-[10px] text-white/30">
+      <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3 text-[10px] text-white/30">
         <Activity className="h-3.5 w-3.5 text-[#d7ff3f]" strokeWidth={1.75} />
-        <span>Indicadores en tiempo real</span>
+        <span>Indicadores operativos y financieros</span><span className="hidden sm:inline text-white/20">Vista general</span>
       </div>
     </header>
   );
