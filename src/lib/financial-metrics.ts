@@ -184,6 +184,24 @@ export const calculateClientBalance = (
 export const sumVehicleSales = (records: FinancialRecord[]): number =>
   sumAmount(records.filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true));
 
+/**
+ * Costo canónico de ventas de vehículos financiadas.
+ * Cada vehículo vendido se contabiliza una sola vez para evitar duplicar
+ * el costo si existen varios registros relacionados con la operación.
+ */
+export const sumVehicleSalesCost = (records: FinancialRecord[], vehicles: Vehicle[]): number => {
+  const soldVehicleIds = new Set(
+    records
+      .filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true && r.vehicleId)
+      .map(r => r.vehicleId as string)
+  );
+  const vehicleById = new Map(vehicles.map(v => [v.id, v]));
+  return Array.from(soldVehicleIds).reduce(
+    (sum, vehicleId) => sum + (Number(vehicleById.get(vehicleId)?.cost) || 0),
+    0
+  );
+};
+
 export interface PartnerProfitability {
   rentalIncome: number;
   vehicleSales: number;
