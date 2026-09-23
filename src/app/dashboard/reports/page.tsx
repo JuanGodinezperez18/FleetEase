@@ -26,7 +26,6 @@ import {
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
-import { isWithinInterval } from 'date-fns';
 import { toast } from 'sonner';
 import {
   BarChart,
