@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
-import { calculatePartnerBalance, getPartnerFinancialRecords } from '@/contexts/data-provider';
+import { calculatePartnerBalanceBreakdown, getPartnerFinancialRecords } from '@/contexts/data-provider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Car, DollarSign, TrendingDown, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -43,7 +43,7 @@ export default function PartnerDetailsPage() {
   // El saldo no se recalcula aquí. La tarjeta y este estado de cuenta
   // consumen exactamente la misma función central del Data Provider.
   const partnerBalance = useMemo(
-    () => calculatePartnerBalance(partner!, partnerVehicles, financialRecords),
+    () => calculatePartnerBalanceBreakdown(partner!, partnerVehicles, financialRecords),
     [financialRecords, partnerVehicles, partner]
   );
 
@@ -53,24 +53,8 @@ export default function PartnerDetailsPage() {
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentRecords = partnerRecords.slice(startIndex, endIndex);
 
-  // 📈 RESUMEN
-  const summary = useMemo(() => {
-    const income = partnerRecords
-      .filter(r => r.type === 'income' && r.sourceRecordType !== 'vehicle_admin_fee')
-      .reduce((sum, r) => sum + r.amount, 0);
-    const expenses = partnerRecords
-      .filter(r => r.type === 'expense' && r.paymentMethod !== 'partner_pays')
-      .reduce((sum, r) => sum + r.amount, 0);
-    const payments = partnerRecords
-      .filter(r => r.type === 'payment' && r.partnerId === partnerId)
-      .reduce((sum, r) => sum + r.amount, 0);
-    return {
-      totalIncome: income,
-      totalExpenses: expenses,
-      totalPayments: payments,
-      netProfit: income - expenses,
-    };
-  }, [partnerRecords, partnerId]);
+  // 📈 RESUMEN: misma fuente y misma fórmula que la tarjeta de saldo.
+  const summary = partnerBalance;
 
   if (!partner) {
     return (
@@ -128,9 +112,9 @@ export default function PartnerDetailsPage() {
 
         <MetricCard
           title="SALDO FINAL (A PAGAR AL SOCIO)"
-          value={formatCurrency(partnerBalance)}
+          value={formatCurrency(summary.balance)}
           icon={<DollarSign className="w-5 h-5" />}
-          variant={partnerBalance > 0 ? "success" : "danger"}
+          variant={summary.balance > 0 ? "success" : "danger"}
         />
       </div>
 
