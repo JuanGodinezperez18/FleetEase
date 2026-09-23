@@ -8,6 +8,7 @@ import { IconMap, type KPIConfig, type MetricKPIData } from '@/types/dashboard';
 import type { DashboardWidget } from '@/types/dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkline } from '@/components/ui/sparkline';
+import { formatCurrency } from '@/lib/utils';
 
 interface DraggableMetricCardProps {
   widget: DashboardWidget;
@@ -33,6 +34,12 @@ function formatNumber(value: string | number): string {
   }
   return String(value);
 }
+
+const MONETARY_KPI_IDS = new Set([
+  'client-balance-total', 'avg-client-balance', 'income-month', 'income-today', 'expenses-month',
+  'expenses-today', 'net-income', 'cash-flow-month', 'projected-income', 'total-lent', 'total-pending',
+  'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas',
+]);
 
 function MetricCardSkeleton() {
   return (
@@ -74,7 +81,14 @@ function DraggableMetricCardBase({
     : null;
   if (!IconComponent) return null;
 
-  const displayValue = kpiData?.value !== undefined ? formatNumber(kpiData.value) : 'N/A';
+  const rawNumericValue = kpiData?.value !== undefined
+    ? Number(String(kpiData.value).replace(/[$,\s]/g, ''))
+    : NaN;
+  const isMonetary = MONETARY_KPI_IDS.has(widget.id) || MONETARY_KPI_IDS.has(widget.dataKey);
+  const isNegativeMoney = isMonetary && Number.isFinite(rawNumericValue) && rawNumericValue < 0;
+  const displayValue = kpiData?.value !== undefined
+    ? (isMonetary && Number.isFinite(rawNumericValue) ? formatCurrency(rawNumericValue) : formatNumber(kpiData.value))
+    : 'N/A';
   const changePercent = kpiData?.changePercent ?? (
     kpiData?.previousValue && kpiData?.value
       ? ((Number(kpiData.value) - Number(kpiData.previousValue)) / Number(kpiData.previousValue)) * 100
@@ -113,7 +127,7 @@ function DraggableMetricCardBase({
             </p>
           </div>
 
-          <h3 className="font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] text-white tabular-nums sm:text-[34px]" aria-live="polite">
+          <h3 className={cn(\n            "font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[34px]",\n            isNegativeMoney ? "text-rose-400" : "text-white"\n          )} aria-live="polite">
             {displayValue}
           </h3>
 
