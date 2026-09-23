@@ -79,6 +79,80 @@ export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filt
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
 
+
+export const PAYMENT_CATEGORY_ALIASES = {
+  client: ['pago de cliente', 'pago cliente', 'abono de cliente'],
+  partner: ['pago a socio', 'pago de socio', 'abono a socio', 'comisión socio', 'comision socio'],
+  supplier: ['pago a proveedor', 'pago de proveedor', 'abono a proveedor'],
+  credit: ['pago de crédito', 'pago credito', 'pago de crédito semanal'],
+  multa: ['pago de multa'],
+} as const;
+
+export type PaymentCategory = keyof typeof PAYMENT_CATEGORY_ALIASES;
+
+export const normalizeFinancialCategory = (
+  record: FinancialRecord,
+  categoryMap?: Map<string, string>,
+): string => (record.categoryId && categoryMap?.get(record.categoryId)) || record.category || '';
+
+export const getPaymentCategory = (
+  record: FinancialRecord,
+  categoryMap?: Map<string, string>,
+): PaymentCategory | 'other' => {
+  const category = normalizeFinancialCategory(record, categoryMap).trim().toLowerCase();
+  for (const [type, aliases] of Object.entries(PAYMENT_CATEGORY_ALIASES) as [PaymentCategory, readonly string[]][]) {
+    if (aliases.includes(category)) return type;
+  }
+  return 'other';
+};
+
+export interface CashFlowBreakdown {
+  customerCollections: number;
+  creditCollections: number;
+  multaCollections: number;
+  securityDeposits: number;
+  partnerPayments: number;
+  supplierPayments: number;
+  otherPayments: number;
+  depositRefunds: number;
+  cashInflow: number;
+  cashOutflow: number;
+  netCashFlow: number;
+}
+
+export const calculateCashFlowBreakdown = (
+  records: FinancialRecord[],
+  categoryMap?: Map<string, string>,
+  depositCategoryIds?: Set<string>,
+  depositRefundCategoryIds?: Set<string>,
+): CashFlowBreakdown => {
+  const activeRecords = records.filter(isActiveRecord);
+  const paymentRecords = activeRecords.filter(isPayment);
+  const sumPaymentsBy = (type: PaymentCategory): number =>
+    sumAmount(paymentRecords.filter(r => getPaymentCategory(r, categoryMap) === type));
+  const securityDeposits = sumAmount(activeRecords.filter(r =>
+    isIncome(r) &&
+    (r.category === SECURITY_DEPOSIT_CATEGORY || (!!r.categoryId && !!depositCategoryIds?.has(r.categoryId)))
+  ));
+  const depositRefunds = sumAmount(activeRecords.filter(r =>
+    isExpense(r) &&
+    (r.category === 'Devolución de Depósito' || (!!r.categoryId && !!depositRefundCategoryIds?.has(r.categoryId)))
+  ));
+  const customerCollections = sumPaymentsBy('client');
+  const creditCollections = sumPaymentsBy('credit');
+  const multaCollections = sumPaymentsBy('multa');
+  const partnerPayments = sumPaymentsBy('partner');
+  const supplierPayments = sumPaymentsBy('supplier');
+  const otherPayments = sumAmount(paymentRecords.filter(r => getPaymentCategory(r, categoryMap) === 'other'));
+  const cashInflow = customerCollections + creditCollections + multaCollections + securityDeposits;
+  const cashOutflow = partnerPayments + supplierPayments + otherPayments + depositRefunds;
+  return {
+    customerCollections, creditCollections, multaCollections, securityDeposits,
+    partnerPayments, supplierPayments, otherPayments, depositRefunds,
+    cashInflow, cashOutflow, netCashFlow: cashInflow - cashOutflow,
+  };
+};
+
 /**
  * Regla canónica de estado de cuenta de socios.
  * La identidad histórica del vehículo se conserva mediante los movimientos
