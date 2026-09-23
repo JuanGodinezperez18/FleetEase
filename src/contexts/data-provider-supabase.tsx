@@ -121,11 +121,14 @@ export function calculatePartnerBalance(
   const records = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
 
   const totalIncome = records
-    .filter(
-      r =>
-        r.type === 'income' &&
-        r.sourceRecordType !== 'vehicle_admin_fee',
-    )
+    .filter(r => {
+      if (r.type !== 'income') return false;
+      // Solo estos dos conceptos generan saldo a favor del socio.
+      // Administración, depósitos, multas y otros ingresos pertenecen a la empresa
+      // o tienen su propio tratamiento financiero.
+      const category = (r.category || '').trim().toLowerCase();
+      return category === 'renta semanal' || category === 'crédito otorgado' || category === 'credito otorgado';
+    })
     .reduce((sum, r) => sum + r.amount, 0);
 
   const totalExpenses = records
