@@ -66,16 +66,16 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       `}</style>
 
       <div className="fe-app-shell fe-shell-bg flex h-screen overflow-hidden">
-        <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] lg:block">
+        <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] xl:block">
           <Sidebar />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header
-            className="sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl lg:hidden"
+            className="sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl xl:hidden"
             style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}
           >
-            <div className="flex h-14 items-center justify-between px-4">
+            <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 sm:h-16 sm:px-6">
               <Button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant="ghost"
@@ -92,8 +92,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                   <Menu className="h-5 w-5" strokeWidth={1.75} />
                 )}
               </Button>
-              <span className="font-heading text-sm font-semibold tracking-[-0.02em] fe-text">FleetEase</span>
-              <ThemeToggle />
+              <span className="justify-self-center font-heading text-sm font-semibold tracking-[-0.02em] fe-text sm:text-base">FleetEase</span>
+              <div className="justify-self-end"><ThemeToggle /></div>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetContent
                   side="left"
@@ -111,7 +111,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </header>
 
           <main className="fe-main-bg flex-1 overflow-auto">
-            <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 sm:p-6 lg:p-8">{children}</div>
+            <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 sm:p-6 xl:p-8">{children}</div>
           </main>
         </div>
       </div>
