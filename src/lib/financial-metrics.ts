@@ -147,6 +147,8 @@ export const calculatePartnerBalance = (
   financialRecords: FinancialRecord[],
 ): number => calculatePartnerBalanceBreakdown(partner, partnerVehicles, financialRecords).balance;
 
+export const DRIVER_PAYMENT_CATEGORY = 'Pago a Conductor';
+
 export interface ClientBalanceBreakdown {
   initialBalance: number;
   totalIncome: number;
@@ -162,7 +164,7 @@ export const calculateClientBalance = (
     r => !r.isDeleted && r.clientId === client.id && r.category !== SECURITY_DEPOSIT_CATEGORY,
   );
   const totalIncome = sumAmount(records.filter(r => r.type === 'income'));
-  const totalPayments = sumAmount(records.filter(r => r.type === 'payment'));
+  const totalPayments = sumAmount(records.filter(r => r.type === 'payment' || (r.type === 'expense' && r.category === DRIVER_PAYMENT_CATEGORY)));
   const initialBalance = client.initialBalance || 0;
   return {
     initialBalance,
