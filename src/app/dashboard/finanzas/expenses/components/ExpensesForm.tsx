@@ -261,7 +261,8 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [expenseCategories, formCompanyId, currentUser?.companyId]);
 
-  const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);\n  const isCompanyExpense = !selectedClientId || selectedClientId === NONE_SELECT_VALUE;
+  const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
+  const isCompanyExpense = !selectedClientId || selectedClientId === NONE_SELECT_VALUE;
 
   const selectedCategory = useMemo(
     () => expenseCategories.find(category => category.id === selectedCategoryId) || null,
