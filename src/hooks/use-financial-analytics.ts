@@ -116,8 +116,6 @@ export const useFinancialAnalytics = (
 
     const creditGranted = vehicleSales;
 
-    const categoryMap = new Map<string, string>();
-    financialCategories?.forEach(cat => categoryMap.set(cat.id, cat.name));
     const cashFlow = calculateCashFlowBreakdown(
       filteredRecords,
       categoryMap,
