@@ -114,6 +114,7 @@ export interface UserDashboardConfig {
   widgets: DashboardWidget[];
   createdAt?: string;
   updatedAt?: string;
+  dashboardVersion?: number;
 }
 
 export const DEFAULT_DASHBOARD_CONFIG: Omit<UserDashboardConfig, 'userId' | 'companyId'> = {
