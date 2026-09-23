@@ -3,7 +3,7 @@
 
 import { useRef } from 'react';
 import type { Partner, Vehicle, FinancialRecord } from '@/types';
-import { calculatePartnerProfitability, getPartnerFinancialRecords } from '@/lib/financial-metrics';
+import { calculatePartnerProfitability, calculateProfitMargin, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 
 export type PartnerMetric = {
   partnerId: string;
@@ -39,7 +39,7 @@ export const usePartnerAnalytics = (
       const totalIncome = profitability.totalIncome;
       const totalExpenses = profitability.totalExpenses;
       const netProfit = profitability.netProfit;
-      const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : (netProfit < 0 ? -100 : 0);
+      const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
 
       let performanceLevel: PartnerMetric['performanceLevel'];
       if (netProfit > 5000) performanceLevel = 'Excelente';
