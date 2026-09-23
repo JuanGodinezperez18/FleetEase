@@ -23,7 +23,7 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, differenceInDays, subDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
 import { isWithinInterval } from 'date-fns';
@@ -75,15 +75,6 @@ export default function ReportsPageImproved() {
   const [reportType, setReportType] = useState<ReportType>('financial');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
-
-  const previousPeriod = useMemo(() => {
-    if (!dateRange?.from || !dateRange.to) return undefined;
-    const daysInPeriod = differenceInDays(dateRange.to, dateRange.from) + 1;
-    return {
-      from: subDays(dateRange.from, daysInPeriod),
-      to: subDays(dateRange.from, 1),
-    };
-  }, [dateRange]);
 
   const financialAnalytics = useFinancialAnalytics(
     financialRecords,
