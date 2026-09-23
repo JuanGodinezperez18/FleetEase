@@ -16,5 +16,7 @@ export {
   PARTNER_PAYMENT_CATEGORY_NAME,
   PARTNER_PAYMENT_CATEGORY_ID,
   calculatePartnerBalance,
+  calculatePartnerBalanceBreakdown,
+  getPartnerFinancialRecords,
 } from './data-provider-supabase';
 export type { DataContextType } from './data-provider-supabase';
