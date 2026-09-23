@@ -347,7 +347,10 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 style={{ background: pieLabels[index % pieLabels.length] }}
               />
               <span>{item.name}</span>
-              <strong className={cn(\n                  "font-medium tabular-nums",\n                  isMoney && item.value < 0 ? "text-rose-500 dark:text-rose-400" : "text-black/70 dark:text-white/70"\n                )}>
+              <strong className={cn(
+                  "font-medium tabular-nums",
+                  isMoney && item.value < 0 ? "text-rose-500 dark:text-rose-400" : "text-black/70 dark:text-white/70"
+                )}>
                 {isMoney ? moneyText(item.value) : item.value}
               </strong>
             </div>
