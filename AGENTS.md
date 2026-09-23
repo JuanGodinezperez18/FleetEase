@@ -164,3 +164,15 @@ When reviewing code, prioritize:
 2. **Security** — RLS policies, role checks in middleware, input validation, auth flow
 3. **Database** — Indexes, RLS, soft delete patterns, company_id filtering, migration status
 4. **Module-by-module** — Each portal (dashboard/partner/client), financial calculations, credits, multas, GPS tracking, notifications
+
+## Agent Skills
+The curated FleetEase skills live under .agents/skills/.
+
+Before financial changes, use fleetease-financial-integrity.
+Before Supabase/Postgres changes, use supabase-architecture.
+Before Next.js architecture/loading changes, use nextjs-architecture.
+For product UI/UX changes, use ui-ux-product-design.
+For public marketing/landing-page work, use landing-page-design.
+For validation and regression review, use testing-review.
+
+These skills refine the existing product; they do not authorize changes to protected business formulas or replacement of established UI direction without user scope.
