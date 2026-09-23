@@ -130,9 +130,7 @@ export const useFinancialAnalytics = (
     const todayOperationalIncome = sumRentalIncome(todayRecords, depositCategoryIds);
     const vehicleSales = sumVehicleSales(filteredRecords);
     const todayVehicleSales = sumVehicleSales(todayRecords);
-    const vehicleSalesCost = filteredRecords
-      .filter(r => r.type === 'income' && r.creditGranted === true)
-      .reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
+    const vehicleSalesCost = sumVehicleSalesCost(filteredRecords, vehicles);
     const vehicleSalesGrossProfit = vehicleSales - vehicleSalesCost;
     const totalExpenses = sumExpense(filteredRecords.filter(r => !isDepositRefund(r)));
     const todayExpenses = sumExpense(todayRecords.filter(r => !isDepositRefund(r)));
@@ -261,9 +259,7 @@ export const useFinancialAnalytics = (
     const prevMonthOperationalIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
     const prevMonthVehicleSales = sumVehicleSales(prevMonthRecords);
     const prevMonthIncome = prevMonthOperationalIncome + prevMonthVehicleSales;
-    const prevMonthVehicleSalesCost = prevMonthRecords
-      .filter(r => r.type === 'income' && r.creditGranted === true)
-      .reduce((sum, r) => sum + getVehicleSaleCost(r, vehicles), 0);
+    const prevMonthVehicleSalesCost = sumVehicleSalesCost(prevMonthRecords, vehicles);
     const prevMonthExpenses = sumExpense(prevMonthRecords.filter(r => !isDepositRefund(r)));
     const prevMonthProfit = prevMonthOperationalIncome + (prevMonthVehicleSales - prevMonthVehicleSalesCost) - prevMonthExpenses;
     const monthlyGrowth = {
