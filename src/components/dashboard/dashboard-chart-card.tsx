@@ -24,7 +24,7 @@ interface DashboardChartCardProps {
 }
 
 const money = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
-const moneyText = (value: number) => value < 0 ? `-${money.format(Math.abs(value))}` : `${money.format(value)}';
+const moneyText = (value: number) => value < 0 ? `-${money.format(Math.abs(value))}` : `${money.format(value)}`;
 
 function valueOf(allKPIs: Record<string, MetricKPIData>, id: string) {
   const value = allKPIs[id]?.value;
