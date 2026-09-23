@@ -3,9 +3,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { Client, FinancialRecord, Vehicle } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
-import { calculateClientBalance } from '@/lib/financial-metrics';
+import { calculateClientBalance, DRIVER_PAYMENT_CATEGORY } from '@/lib/financial-metrics';
 import { differenceInDays } from 'date-fns';
-import { DRIVER_PAYMENT_CATEGORY } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
