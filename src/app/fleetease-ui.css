@@ -35,6 +35,15 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-input-placeholder: rgba(255, 255, 255, 0.3);
+  --fe-radius-sm: 10px;
+  --fe-radius-md: 14px;
+  --fe-radius-lg: 18px;
+  --fe-shadow-sm: 0 6px 22px rgba(0, 0, 0, 0.08);
+  --fe-shadow-md: 0 12px 34px rgba(0, 0, 0, 0.12);
+  --fe-success: #34d399;
+  --fe-warning: #f59e0b;
+  --fe-danger: #f87171;
+  --fe-info: #60a5fa;
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
@@ -62,6 +71,12 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-input-placeholder: rgba(255, 255, 255, 0.3);
+  --fe-shadow-sm: 0 6px 22px rgba(0, 0, 0, 0.08);
+  --fe-shadow-md: 0 12px 34px rgba(0, 0, 0, 0.12);
+  --fe-success: #34d399;
+  --fe-warning: #f59e0b;
+  --fe-danger: #f87171;
+  --fe-info: #60a5fa;
   --sidebar-background: 222 47% 5%;
   --sidebar-foreground: 210 40% 98%;
   --sidebar-primary: 72 100% 62%;
@@ -93,6 +108,12 @@
   --fe-input-border: rgba(8, 10, 15, 0.12);
   --fe-input-text: #0a0c12;
   --fe-input-placeholder: rgba(8, 10, 15, 0.4);
+  --fe-shadow-sm: 0 6px 22px rgba(8, 10, 15, 0.05);
+  --fe-shadow-md: 0 12px 34px rgba(8, 10, 15, 0.08);
+  --fe-success: #047857;
+  --fe-warning: #b45309;
+  --fe-danger: #b91c1c;
+  --fe-info: #2563eb;
   --background: 60 20% 96%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
@@ -402,12 +423,12 @@
 }
 
 .fe-surface {
-  background: rgba(var(--fe-surface-rgb), 0.82);
+  background: rgba(var(--fe-surface-rgb), 0.86);
   border: 1px solid var(--fe-border);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(18px);
+  box-shadow: var(--fe-shadow-sm);
+  backdrop-filter: blur(14px);
 }
-.light .fe-surface { box-shadow: 0 12px 34px rgba(8, 10, 15, 0.06); }
+.light .fe-surface { box-shadow: var(--fe-shadow-sm); }
 
 .fe-skeleton {
   position: relative;
