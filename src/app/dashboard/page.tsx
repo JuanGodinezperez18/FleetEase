@@ -131,7 +131,7 @@ export default function DashboardPage() {
             onDateChange={() => undefined}
           />
 
-          <section aria-label="Indicadores principales">
+          <section aria-label="Indicadores principales" className="space-y-3"><div className="flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen ejecutivo</p><h2 className="mt-1 text-sm font-semibold text-white/80">Estado actual de la operación</h2></div><span className="hidden text-[10px] text-white/25 sm:inline">Arrastra para personalizar</span></div>
             <KpiGrid
               enabledWidgets={
                 enabledWidgets.length > 0
@@ -148,7 +148,7 @@ export default function DashboardPage() {
             />
           </section>
 
-          <section aria-label="Acciones rápidas" className="border-t border-white/[0.06] pt-5 sm:pt-6">
+          <section aria-label="Acciones rápidas" className="border-t border-white/[0.06] pt-6 sm:pt-7"><div className="mb-3 flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Operación</p><h2 className="mt-1 text-sm font-semibold text-white/80">Acciones rápidas</h2></div></div>
             <QuickActions
               quickActionModal={quickActionModal}
               isSubmittingForm={isSubmittingForm}
