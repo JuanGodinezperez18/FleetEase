@@ -63,7 +63,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function ReportsPageImproved() {
-  const { financialRecords, vehicles, clients, partners, selectedCompanyId, clientBalances } = useData();
+  const { financialRecords, vehicles, clients, partners, financialCategories, selectedCompanyId, clientBalances } = useData();
   const { currentUser } = useAuth();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -81,7 +81,7 @@ export default function ReportsPageImproved() {
     vehicles,
     partners,
     dateRange,
-    undefined
+    financialCategories
   );
 
   const financialSummary = useMemo(() => {
