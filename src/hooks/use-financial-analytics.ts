@@ -11,6 +11,7 @@ import {
   calculateAvgTransactionValue,
   sumRentalIncome,
   sumVehicleSales,
+  sumVehicleSalesCost,
   sumExpense,
   daysBetweenInclusive,
   categoryIdsByAffects,
@@ -84,16 +85,6 @@ function normalizedCategory(record: FinancialRecord, categoryMap: Map<string, st
 function isPaymentCategory(record: FinancialRecord, categoryMap: Map<string, string>, aliases: readonly string[]): boolean {
   const category = normalizedCategory(record, categoryMap).trim().toLowerCase();
   return aliases.some(alias => alias === category);
-}
-
-function getVehicleSaleCost(record: FinancialRecord, vehicles: Vehicle[]): number {
-  const items = (record as FinancialRecord & { items?: unknown }).items;
-  if (items && typeof items === 'object' && !Array.isArray(items)) {
-    const saleCost = Number((items as Record<string, unknown>).saleCost);
-    if (Number.isFinite(saleCost) && saleCost >= 0) return saleCost;
-  }
-  const vehicle = record.vehicleId ? vehicles.find(v => v.id === record.vehicleId) : undefined;
-  return Number(vehicle?.cost || 0);
 }
 
 export const useFinancialAnalytics = (
