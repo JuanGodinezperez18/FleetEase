@@ -4,6 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
+import { calculatePartnerBalance, getPartnerFinancialRecords } from '@/contexts/data-provider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Car, DollarSign, TrendingDown, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -34,11 +35,16 @@ export default function PartnerDetailsPage() {
   );
 
   const partnerRecords = useMemo(
-    () => financialRecords.filter(r => {
-      const vehicleIds = partnerVehicles.map(v => v.id);
-      return (r.vehicleId && vehicleIds.includes(r.vehicleId)) || r.partnerId === partnerId;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    [financialRecords, partnerVehicles, partnerId]
+    () => getPartnerFinancialRecords(partner!, partnerVehicles, financialRecords)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [financialRecords, partnerVehicles, partner]
+  );
+
+  // El saldo no se recalcula aquí. La tarjeta y este estado de cuenta
+  // consumen exactamente la misma función central del Data Provider.
+  const partnerBalance = useMemo(
+    () => calculatePartnerBalance(partner!, partnerVehicles, financialRecords),
+    [financialRecords, partnerVehicles, partner]
   );
 
   // 📊 CÁLCULO DE PAGINACIÓN
@@ -49,14 +55,22 @@ export default function PartnerDetailsPage() {
 
   // 📈 RESUMEN
   const summary = useMemo(() => {
-    const income = partnerRecords.filter(r => r.type === 'income' && !r.isDeleted).reduce((sum, r) => sum + r.amount, 0);
-    const expenses = partnerRecords.filter(r => r.type === 'expense' && !r.isDeleted && r.paymentMethod !== 'partner_pays').reduce((sum, r) => sum + r.amount, 0);
+    const income = partnerRecords
+      .filter(r => r.type === 'income' && r.sourceRecordType !== 'vehicle_admin_fee')
+      .reduce((sum, r) => sum + r.amount, 0);
+    const expenses = partnerRecords
+      .filter(r => r.type === 'expense' && r.paymentMethod !== 'partner_pays')
+      .reduce((sum, r) => sum + r.amount, 0);
+    const payments = partnerRecords
+      .filter(r => r.type === 'payment' && r.partnerId === partnerId)
+      .reduce((sum, r) => sum + r.amount, 0);
     return {
       totalIncome: income,
       totalExpenses: expenses,
-      netProfit: income - expenses
+      totalPayments: payments,
+      netProfit: income - expenses,
     };
-  }, [partnerRecords]);
+  }, [partnerRecords, partnerId]);
 
   if (!partner) {
     return (
@@ -114,9 +128,9 @@ export default function PartnerDetailsPage() {
 
         <MetricCard
           title="SALDO FINAL (A PAGAR AL SOCIO)"
-          value={formatCurrency((partner.initialBalance || 0) + summary.netProfit)}
+          value={formatCurrency(partnerBalance)}
           icon={<DollarSign className="w-5 h-5" />}
-          variant={(partner.initialBalance || 0) + summary.netProfit > 0 ? "success" : "danger"}
+          variant={partnerBalance > 0 ? "success" : "danger"}
         />
       </div>
 
