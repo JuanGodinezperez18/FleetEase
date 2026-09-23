@@ -15,7 +15,7 @@ import { getVehicleColumns } from '@/app/dashboard/vehicles/columns';
 import type { Vehicle, Partner, Client, FinancialRecord } from '@/types';
 import Link from 'next/link';
 import { calculatePartnerBalance } from '@/contexts/data-provider';
-import { calculatePartnerProfitability } from '@/lib/financial-metrics';
+import { calculatePartnerProfitability, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 
 export default function PartnerDetailsPage() {
   const router = useRouter();
@@ -35,7 +35,8 @@ export default function PartnerDetailsPage() {
   const metrics = useMemo(() => {
     if (!partner) return { totalIncome: 0, totalExpenses: 0, netProfit: 0, profitMargin: 0, vehicleCount: 0 };
     
-    const profitability = calculatePartnerProfitability(partnerVehicles, financialRecords);
+    const partnerRecords = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
+    const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecords);
     const partnerBalanceData = partnerBalances.find(pb => pb.id === partnerId);
     const partnerBalance = partnerBalanceData?.balance ?? 0;
 
