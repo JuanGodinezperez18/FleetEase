@@ -32,7 +32,7 @@ import type { DateRange } from 'react-day-picker';
 import { DashboardDateFilter } from '@/components/dashboard/components/DashboardDateFilter';
 import { isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
-import { sumRentalIncome, sumExpense } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, calculateNetProfit } from '@/lib/financial-metrics';
 
 type WidgetType = 'balance' | 'income-expense' | 'multas';
 
@@ -183,6 +183,7 @@ export default function PartnerDashboard() {
 
   // Calcular gastos totales de sus vehículos usando la definición contable canónica.
   const totalExpenses = useMemo(() => sumExpense(filteredRecords), [filteredRecords]);
+  const netProfit = useMemo(() => calculateNetProfit(filteredRecords), [filteredRecords]);
 
   // Multas de los vehículos del socio
   const partnerMultas = useMemo(() => {
@@ -335,8 +336,8 @@ export default function PartnerDashboard() {
                         <div className="mt-6 pt-4 border-t">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-muted-foreground">Utilidad Neta</span>
-                            <span className={`text-xl font-bold ${(totalIncome - totalExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {formatCurrency(totalIncome - totalExpenses)}
+                            <span className={`text-xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {formatCurrency(netProfit)}
                             </span>
                           </div>
                         </div>
