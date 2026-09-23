@@ -15,7 +15,7 @@ import { getVehicleColumns } from '@/app/dashboard/vehicles/columns';
 import type { Vehicle, Partner, Client, FinancialRecord } from '@/types';
 import Link from 'next/link';
 import { calculatePartnerBalance } from '@/contexts/data-provider';
-import { calculatePartnerProfitability, getPartnerFinancialRecords } from '@/lib/financial-metrics';
+import { calculatePartnerProfitability, calculateProfitMargin, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 
 export default function PartnerDetailsPage() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function PartnerDetailsPage() {
       totalExpenses: profitability.totalExpenses,
       netProfit: profitability.netProfit,
       partnerBalance,
-      profitMargin: profitability.totalIncome > 0 ? (profitability.netProfit / profitability.totalIncome) * 100 : 0,
+      profitMargin: calculateProfitMargin(profitability.totalIncome, profitability.totalExpenses),
       vehicleCount: partnerVehicles.length,
     };
 }, [partner, partnerVehicles, financialRecords, partnerId, partnerBalances]);
