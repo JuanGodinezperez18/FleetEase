@@ -5,4 +5,4 @@ revoke execute on function public.sync_multa_status_from_payment() from authenti
 -- Domain RPCs are intended for signed-in application users, never anonymous callers.
 revoke execute on function public.cancel_multa_atomic(uuid,uuid,text,uuid) from anon, public;
 revoke execute on function public.create_multa_atomic(jsonb) from anon, public;
-revoke execute on function public.create_vehicle_admin_income() from anon, public;
+revoke execute on function public.create_vehicle_admin_income() from authenticated, anon, public;
