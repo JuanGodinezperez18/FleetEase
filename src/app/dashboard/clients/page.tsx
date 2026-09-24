@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Download, Trash2, Filter } from 'lucide-react';
+import { PlusCircle, Download, Trash2 } from 'lucide-react';
 import { useData } from '@/hooks/use-data';
 import type { Client, Company, Vehicle, ClientWithMetrics } from '@/types';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
@@ -13,20 +13,16 @@ import { offboardClientWithWriteOff } from '@/lib/client-offboarding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getColumns } from './columns';
 import { toast } from 'sonner';
-import { useAdvancedClientSearch } from '@/hooks/use-advanced-client-search';
 import { ClientDashboard } from './components/client-dashboard';
-import { AdvancedSearchPanel } from './components/advanced-filters';
 import { useExportData, type ExportOptions } from '@/hooks/use-export-data';
 import { ClientListModal } from '@/components/dashboard/components/client-list-modal';
 import { sanitizeAndFormatData, formatCurrency } from '@/lib/utils';
 import { useDOMSafeModal } from '@/components/common/dom-safe-wrapper';
 import { supabase } from '@/lib/supabase';
-import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { useAuth } from '@/contexts/auth-provider';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useStorage, type StorageFolderPath } from '@/hooks/use-storage';
 import { ExportDialog } from './components/export-dialog';
 import { ClientMobileCard } from './components/client-mobile-card';
@@ -81,13 +77,7 @@ export default function ClientsPage() {
     }));
   }, [clients, clientMetrics, clientBalances]);
   
-  const {
-    filters,
-    filteredClients: filteredAndSortedClients,
-    updateFilter,
-    resetFilters,
-    activeFiltersCount
-  } = useAdvancedClientSearch(allClientsWithData, Object.fromEntries(clientBalances.map(cb => [cb.id, cb.balance])));
+  const filteredAndSortedClients = allClientsWithData;
   
   const { exportToExcel, isExporting } = useExportData();
 
@@ -332,7 +322,7 @@ export default function ClientsPage() {
     }
   };
   
-  const showDashboard = filters.searchTerm === '' && filters.debtRange === null && activeFiltersCount === 0;
+  const showDashboard = true;
   const selectedCount = Object.keys(rowSelection).length;
 
   if (loadingData && !clients.length) {
@@ -405,27 +395,6 @@ export default function ClientsPage() {
           <ClientDashboard clients={clients} clientMetrics={clientMetrics} onCardClick={handleCardClick} />
         )}
 
-        <Accordion type="single" collapsible className="w-full" defaultValue="">
-          <AccordionItem value="filters" className="border-white/[0.07]">
-            <AccordionTrigger className="rounded-2xl border border-white/[0.07] bg-[#0e1117] px-4 py-3 hover:no-underline data-[state=open]:rounded-b-none">
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Filter className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
-                <span className="font-semibold">Filtros</span>
-                {activeFiltersCount > 0 && (
-                  <Badge className="border-[#d7ff3f]/20 bg-[#d7ff3f]/10 text-[10px] text-[#d7ff3f]">{activeFiltersCount}</Badge>
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="rounded-b-2xl border border-t-0 border-white/[0.07] bg-[#0e1117] px-3 pb-3">
-              <AdvancedSearchPanel
-                filters={filters}
-                updateFilter={updateFilter}
-                resetFilters={resetFilters}
-                activeFiltersCount={activeFiltersCount}
-              />
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="p-4 sm:p-5">
