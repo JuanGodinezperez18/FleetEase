@@ -59,7 +59,7 @@ const ClientActions: React.FC<ActionsProps> = ({ row, activeTab, handleOpenModal
                 <DropdownMenuItem className={menuItemClass} onSelect={() => router.push(`/dashboard/clients/${item.id}/transactions`)}>
                     <Newspaper className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Transacciones
                 </DropdownMenuItem>
-                <DropdownMenuItem className={menuItemClass} onSelect={() => router.push(`/dashboard/clients/${item.id}/history`)}>
+                <DropdownMenuItem className={menuItemClass} onSelect={() => router.push(`/dashboard/clients/${item.id}#historial`)}>
                   <History className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Historial
                 </DropdownMenuItem>
                 {activeTab !== 'deleted' && (
