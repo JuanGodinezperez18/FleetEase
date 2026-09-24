@@ -68,8 +68,8 @@ export const CreditAdvancedFilters: React.FC<CreditAdvancedFiltersProps> = ({
   };
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-      <div className="flex flex-col gap-2 border-b border-white/[0.06] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="fe-filter-surface">
+      <div className="fe-filter-header">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-white/35" strokeWidth={1.75} />
           <h2 className="font-heading text-base font-semibold text-white">Filtros</h2>
@@ -84,7 +84,7 @@ export const CreditAdvancedFilters: React.FC<CreditAdvancedFiltersProps> = ({
         </span>
       </div>
 
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="fe-filter-body space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" strokeWidth={1.75} />
           <Input
@@ -95,9 +95,9 @@ export const CreditAdvancedFilters: React.FC<CreditAdvancedFiltersProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="fe-filter-grid">
           <Select value={filters.status} onValueChange={value => onFilterChange("status", value)}>
-            <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+            <SelectTrigger className="fe-filter-control border-white/10 bg-white/[0.03] text-white">
               <div className="flex items-center gap-1">
                 <Activity className="h-3.5 w-3.5 text-white/40" strokeWidth={1.75} />
                 <SelectValue />
@@ -151,7 +151,7 @@ export const CreditAdvancedFilters: React.FC<CreditAdvancedFiltersProps> = ({
           <Button
             variant="outline"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="fe-filter-control w-full border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
             <Filter className="mr-2 h-4 w-4" strokeWidth={1.75} />
             {isExpanded ? "Ocultar" : "Más filtros"}
