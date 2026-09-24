@@ -17,7 +17,6 @@ import { useAuth } from '@/contexts/auth-provider';
 import { usePartnerAnalytics, type PartnerMetric } from '@/hooks/use-partner-analytics';
 import { PartnerDashboard } from './components/partner-dashboard';
 import { usePartnerSearch } from '@/hooks/use-partner-search';
-import { PartnerAdvancedFilters } from './components/partner-advanced-filters';
 import { PartnerBalancesModal } from './components/partner-balances-modal';
 import { PartnerMobileCard } from './components/partner-mobile-card';
 
@@ -193,16 +192,6 @@ export default function PartnersPage() {
                     partners={partners}
                     partnerMetrics={partnerMetrics}
                     onBalanceCardClick={() => setIsBalanceModalOpen(true)}
-                />
-
-                <PartnerAdvancedFilters 
-                    filters={filters}
-                    onFilterChange={updateFilter}
-                    onReset={resetFilters}
-                    onSearch={debouncedSetQuery}
-                    totalResults={totalResults}
-                    companies={companies}
-                    isLoading={loadingData}
                 />
 
                 <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
