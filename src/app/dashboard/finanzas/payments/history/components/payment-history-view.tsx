@@ -280,17 +280,17 @@ export function PaymentHistoryView() {
   const resetFilters = () => { setKind("all"); setSearch(""); setFrom(""); setTo(""); };
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               Finanzas
             </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">Historial de pagos</h1>
-            <p className="mt-1 text-sm text-white/40">Consulta, edita y elimina con reversión atómica</p>
+            <h1 className="fe-module-title">Historial de pagos</h1>
+            <p className="fe-module-subtitle">Consulta, edita y elimina con reversión atómica</p>
           </div>
           <Button asChild className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90">
             <Link href="/dashboard/finanzas/payments"><HandCoins className="mr-2 h-4 w-4" strokeWidth={1.75} />Registrar pago</Link>
@@ -304,7 +304,7 @@ export function PaymentHistoryView() {
           <MetricCard title="Créditos" value={formatCurrency(analysis.credit)} description="Cuotas aplicadas" icon={<CreditCard className="h-5 w-5" strokeWidth={1.75} />} />
         </div>
 
-        <section className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
+        <section className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
           <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2 md:col-span-2">
               <Label className="text-white/50">Buscar</Label>
@@ -354,7 +354,7 @@ export function PaymentHistoryView() {
               <>
                 <div className="space-y-3 md:hidden">
                   {paymentRecords.map(r => (
-                    <div key={r.id} className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+                    <div key={r.id} className="rounded-[14px] border border-white/[0.07] bg-white/[0.02] p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-white/90">{r.entityName}</p>
@@ -392,7 +392,7 @@ export function PaymentHistoryView() {
                           <td className="p-3 text-right font-semibold tabular-nums text-white">{formatCurrency(Number(r.amount || 0))}</td>
                           <td className="p-3">
                             <div className="flex justify-end gap-1">
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-white" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
+                              <Button size="icon" variant="ghost" className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} onClick={() => void deletePayment(r)}>
                                 {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                               </Button>
