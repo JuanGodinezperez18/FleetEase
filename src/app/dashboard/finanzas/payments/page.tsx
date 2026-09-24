@@ -270,20 +270,20 @@ export default function PaymentsPage() {
   const tabItems = [...PAYMENT_KINDS.map(item => ({ ...item, value: item.value as OperationKind })), { value: "security_deposit_refund" as const, label: "Devolver Depósito", short: "Devolución", icon: RotateCcw }];
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               Finanzas
             </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            <h1 className="fe-module-title">
               Pagos
             </h1>
-            <p className="mt-1 text-sm text-white/40">
+            <p className="fe-module-subtitle">
               Aplicación de pagos, depósitos y devoluciones
             </p>
           </div>
@@ -300,7 +300,7 @@ export default function PaymentsPage() {
                 <TabsTrigger
                   key={item.value}
                   value={item.value}
-                  className="rounded-xl px-2 py-2.5 text-xs text-white/50 data-[state=active]:bg-[#d7ff3f]/15 data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none"
+                  className="min-h-11 rounded-xl px-2 py-2.5 text-xs text-white/50 data-[state=active]:bg-[#d7ff3f]/15 data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none"
                 >
                   <Icon className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
                   {item.short}
@@ -381,7 +381,7 @@ export default function PaymentsPage() {
                   )}
 
                   {kind === "client_payment" && entityId && (
-                    <div className="md:col-span-2 rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
+                    <div className="md:col-span-2 rounded-[14px] border border-white/[0.07] bg-white/[0.03] p-4">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-white/40">Depósito en garantía disponible</span>
                         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
