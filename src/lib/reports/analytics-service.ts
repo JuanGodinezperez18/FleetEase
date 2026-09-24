@@ -1,6 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
-import { isWithinInterval } from 'date-fns';
-import { sumRentalIncome, sumExpense, calculateNetProfit, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -60,7 +59,7 @@ export class ReportAnalyticsService {
       if (dateRange) clientRecords = clientRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
 
       const paymentRecords = clientRecords.filter(r => r.type === 'payment');
-      const totalPayments = paymentRecords.reduce((sum, r) => sum + r.amount, 0);
+      const totalPayments = sumPayment(paymentRecords);
       const lastPaymentRecord = paymentRecords.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
       const daysSinceLastPayment = lastPaymentRecord
         ? Math.floor((Date.now() - new Date(lastPaymentRecord.date).getTime()) / (1000 * 60 * 60 * 24))
