@@ -7,9 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, Mail, Lock, User, Phone, Building, CheckCircle, AlertCircle, Zap, TrendingUp, Building2, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, ArrowRight, Mail, Lock, User, Phone, Building, CheckCircle, Zap, TrendingUp, Building2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { type PlanType, plans } from '@/config/plans';
 
@@ -73,7 +72,6 @@ export default function RegisterPage() {
     } finally { setIsSubmitting(false); }
   };
 
-  const containerVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } };
   const stepVariants = {
     enter: (direction: number) => ({ x: direction > 0 ? 300 : -300, opacity: 0 }),
     center: { x: 0, opacity: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
@@ -81,87 +79,99 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#080a0f] text-white p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div className="absolute -top-1/2 -right-1/2 w-full h-full bg-[#d7ff3f]/[0.06] rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }} />
-        <motion.div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-white/[0.025] rounded-full blur-3xl" animate={{ scale: [1.2, 1, 1.2], rotate: [0, -90, 0] }} transition={{ duration: 25, repeat: Infinity, ease: 'linear' }} />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] p-4 text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[#d7ff3f]/[0.04] blur-[100px]" />
+        <div className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full bg-[#d7ff3f]/[0.03] blur-[80px]" />
       </div>
 
-      <motion.div initial="hidden" animate="visible" variants={containerVariants} className="w-full max-w-2xl relative z-10">
-        <div className="mb-8 text-center">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }} className="flex justify-center mb-4">
-            <div className="relative w-20 h-20 rounded-3xl bg-white flex items-center justify-center shadow-2xl"><Image src="/logo.png" alt="FleetEase Logo" width={70} height={70} priority className="w-[70px] h-[70px]" /></div>
-          </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }} className="text-3xl font-bold mb-2 tracking-tight">Comienza gratis con FleetEase</motion.h1>
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }} className="text-sm text-white/45">14 días gratis • 1 usuario • 2 vehículos • Sin tarjeta</motion.p>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative z-10 w-full max-w-[760px] py-6 sm:py-10">
+        <div className="mb-6 text-center sm:mb-8">
+          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+            Fleet OS
+          </div>
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-xl">
+            <Image src="/logo.png" alt="FleetEase Logo" width={48} height={48} priority className="h-12 w-12 object-contain" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">
+            FleetEase <span className="text-[#d7ff3f]">Manager</span>
+          </h1>
+          <p className="mt-1.5 text-sm text-white/45">Gestión inteligente de flotillas</p>
         </div>
 
-        <Card className="border-white/[0.09] shadow-2xl backdrop-blur-sm bg-[#0e1117]/90 text-white">
-          <CardHeader className="space-y-4 pb-6">
-            <div className="flex items-center justify-between">
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-xl">
+          <div className="border-b border-white/[0.07] px-5 py-5 sm:px-7 sm:py-6">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="text-xl font-semibold">{step === 1 && 'Información Básica'}{step === 2 && 'Información de Contacto'}{step === 3 && 'Confirma tu Registro'}</CardTitle>
-                <CardDescription className="text-white/40">{step === 1 && 'Comencemos con los datos de tu empresa'}{step === 2 && 'Ahora tus datos de contacto y acceso'}{step === 3 && 'Revisa que todo esté correcto'}</CardDescription>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Registro de cuenta</p>
+                <h2 className="text-lg font-semibold sm:text-xl">{step === 1 ? 'Información básica' : step === 2 ? 'Información de contacto' : 'Confirma tu registro'}</h2>
+                <p className="mt-1 text-sm text-white/40">{step === 1 ? 'Comencemos con los datos de tu empresa' : step === 2 ? 'Ahora tus datos de contacto y acceso' : 'Revisa que todo esté correcto'}</p>
               </div>
-              <div className="flex gap-2">{[1, 2, 3].map(s => <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= step ? 'w-8 bg-[#d7ff3f]' : 'w-2 bg-white/15'}`} />)}</div>
+              <div className="flex shrink-0 items-center gap-1.5 pt-1">
+                {[1, 2, 3].map(s => <div key={s} className={`h-1 rounded-full transition-all ${s === step ? 'w-8 bg-[#d7ff3f]' : s < step ? 'w-5 bg-[#d7ff3f]/45' : 'w-1.5 bg-white/15'}`} />)}
+              </div>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent>
+          <div className="px-5 py-6 sm:px-7 sm:py-7">
             <div className="relative overflow-hidden">
               <motion.div key={step} custom={step} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-5">
                 {step === 1 && <>
-                  <div className="space-y-2"><Label htmlFor="companyName">Nombre de tu Empresa</Label><div className="relative"><Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="companyName" placeholder="Ej: Transportes Rodríguez" value={data.companyName} onChange={e => updateField('companyName', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" autoFocus /></div></div>
-                  <div className="space-y-2"><Label htmlFor="name">Tu Nombre Completo</Label><div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="name" placeholder="Ej: Juan Pérez" value={data.name} onChange={e => updateField('name', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" /></div></div>
-                  <div className="space-y-2"><Label htmlFor="email">Correo Electrónico</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="email" type="email" placeholder="tu@empresa.com" value={data.email} onChange={e => updateField('email', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" autoComplete="new-email" /></div></div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-2"><Label htmlFor="companyName" className="text-xs font-medium text-white/55">Nombre de tu empresa</Label><div className="relative"><Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="companyName" placeholder="Ej: Transportes Rodríguez" value={data.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15" autoFocus /></div></div>
+                    <div className="space-y-2"><Label htmlFor="name" className="text-xs font-medium text-white/55">Tu nombre completo</Label><div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="name" placeholder="Ej: Juan Pérez" value={data.name} onChange={e => updateField('name', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
+                  </div>
+
+                  <div className="space-y-2"><Label htmlFor="email" className="text-xs font-medium text-white/55">Correo electrónico</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="email" type="email" placeholder="tu@empresa.com" value={data.email} onChange={e => updateField('email', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" autoComplete="new-email" /></div></div>
 
                   <div className="space-y-3">
-                    <div className="flex items-end justify-between"><Label>Selecciona tu Plan</Label><span className="text-[10px] uppercase tracking-wider text-white/25">Puedes cambiar después</span></div>
-                    <div className="grid gap-3">
+                    <div className="flex items-end justify-between gap-3"><Label className="text-xs font-medium text-white/55">Selecciona tu plan</Label><span className="text-[10px] uppercase tracking-wider text-white/25">Puedes cambiar después</span></div>
+                    <div className="grid gap-3 md:grid-cols-2">
                       {(Object.values(plans) as any[]).map((plan: any) => {
                         const isFree = plan.id === 'free';
                         const selected = data.selectedPlan === plan.id;
-                        return <motion.div key={plan.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative cursor-pointer rounded-2xl border p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/20' : ''}`}>
+                        return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative cursor-pointer rounded-2xl border p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
                           {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Prueba gratis</div>}
-                          {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más Popular</div>}
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-5 w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div>
-                              <div><p className="font-semibold text-white">{plan.name}</p><p className="text-sm text-white/40">{plan.description}</p></div>
-                            </div>
-                            <div className="text-right shrink-0"><p className="text-lg font-bold text-white">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? '14 días' : `/ ${plan.period}`}</p></div>
+                          {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más popular</div>}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3"><div className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-5 w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="truncate text-sm text-white/40">{plan.description}</p></div></div>
+                            <div className="shrink-0 text-right"><p className="text-lg font-bold text-white">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? '14 días' : `/ ${plan.period}`}</p></div>
                           </div>
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="text-[#d7ff3f] font-semibold">No requiere tarjeta</span></>}</div>
-                          {selected && <div className="absolute top-3 right-3"><CheckCircle className="h-5 w-5 text-[#d7ff3f]" /></div>}
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="font-semibold text-[#d7ff3f]">No requiere tarjeta</span></>}</div>
+                          {selected && <div className="absolute right-3 top-3"><CheckCircle className="h-5 w-5 text-[#d7ff3f]" /></div>}
                         </motion.div>;
                       })}
                     </div>
                   </div>
 
-                  <Button onClick={handleNextStep} className="w-full h-11 bg-[#d7ff3f] text-[#080a0f] hover:bg-white font-bold" disabled={!data.name || !data.email || !data.companyName}>Continuar</Button>
+                  <Button onClick={handleNextStep} className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!data.name || !data.email || !data.companyName}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button>
                 </>}
 
                 {step === 2 && <>
-                  <div className="space-y-2"><Label htmlFor="phone">Teléfono / WhatsApp</Label><div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="phone" type="tel" placeholder="Ej: 55 1234 5678" value={data.phone} onChange={e => updateField('phone', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" autoFocus /></div></div>
-                  <div className="space-y-2"><Label htmlFor="password">Contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={data.password} onChange={e => updateField('password', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" /></div></div>
-                  <div className="space-y-2"><Label htmlFor="confirmPassword">Confirmar Contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="confirmPassword" type="password" placeholder="Repite tu contraseña" value={data.confirmPassword} onChange={e => updateField('confirmPassword', e.target.value)} className="pl-10 h-11 border-white/10 bg-white/[0.035] text-white placeholder:text-white/25" /></div></div>
-                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="flex-1 border-white/10 bg-transparent text-white hover:bg-white/5"><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleNextStep} className="flex-1 bg-[#d7ff3f] text-[#080a0f] hover:bg-white font-bold" disabled={!data.phone || !data.password || !data.confirmPassword}>Continuar</Button></div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-2"><Label htmlFor="phone" className="text-xs font-medium text-white/55">Teléfono / WhatsApp</Label><div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="phone" type="tel" placeholder="Ej: 55 1234 5678" value={data.phone} onChange={e => updateField('phone', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" autoFocus /></div></div>
+                    <div className="space-y-2"><Label htmlFor="password" className="text-xs font-medium text-white/55">Contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={data.password} onChange={e => updateField('password', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="confirmPassword" className="text-xs font-medium text-white/55">Confirmar contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="confirmPassword" type="password" placeholder="Repite tu contraseña" value={data.confirmPassword} onChange={e => updateField('confirmPassword', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
+                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5"><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleNextStep} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!data.phone || !data.password || !data.confirmPassword}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
                 </>}
 
-                {step === 3 && <div className="space-y-6">
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 space-y-3">
-                    {[[Building, 'Empresa', data.companyName], [User, 'Tu Nombre', data.name], [Mail, 'Correo', data.email], [Phone, 'Teléfono', data.phone]].map(([Icon, label, value]: any) => <div key={label} className="flex items-start gap-3"><Icon className="h-5 w-5 text-[#d7ff3f] mt-0.5" /><div><p className="text-sm font-medium text-white">{label}</p><p className="text-sm text-white/40">{value}</p></div></div>)}
+                {step === 3 && <div className="space-y-5">
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 sm:p-5">
+                    <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen</p>
+                    <div className="grid gap-4 sm:grid-cols-2">{[[Building, 'Empresa', data.companyName], [User, 'Tu nombre', data.name], [Mail, 'Correo', data.email], [Phone, 'Teléfono', data.phone]].map(([Icon, label, value]: any) => <div key={label} className="flex items-start gap-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#d7ff3f]" /><div className="min-w-0"><p className="text-xs font-medium text-white/55">{label}</p><p className="truncate text-sm text-white">{value}</p></div></div>)}</div>
                   </div>
-                  <div className="rounded-2xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.055] p-4"><div className="flex items-start gap-3"><CheckCircle className="h-5 w-5 text-[#d7ff3f] mt-0.5" /><div><p className="text-sm font-medium text-white">Plan {plans[data.selectedPlan].name}</p><p className="text-sm text-white/55 mt-1">{plans[data.selectedPlan].trialDays ? `${plans[data.selectedPlan].trialDays} días gratis` : ''}{plans[data.selectedPlan].trialDays ? ' • ' : ''}{plans[data.selectedPlan].maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plans[data.selectedPlan].maxVehicles} vehículos`} • {plans[data.selectedPlan].maxUsers === -1 ? 'Usuarios ilimitados' : `${plans[data.selectedPlan].maxUsers} usuario${plans[data.selectedPlan].maxUsers > 1 ? 's' : ''}`} • {plans[data.selectedPlan].price === 0 ? 'Sin tarjeta' : `$${plans[data.selectedPlan].price}/${plans[data.selectedPlan].period}`}</p></div></div></div>
-                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="flex-1 border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="flex-1 bg-[#d7ff3f] text-[#080a0f] hover:bg-white font-bold" disabled={isSubmitting}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Activar prueba gratis' : 'Crear Cuenta'}</Button></div>
+                  <div className="rounded-2xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.055] p-4 sm:p-5"><div className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#d7ff3f]" /><div><p className="text-sm font-semibold text-white">Plan {plans[data.selectedPlan].name}</p><p className="mt-1 text-sm leading-6 text-white/55">{plans[data.selectedPlan].trialDays ? `${plans[data.selectedPlan].trialDays} días gratis` : ''}{plans[data.selectedPlan].trialDays ? ' • ' : ''}{plans[data.selectedPlan].maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plans[data.selectedPlan].maxVehicles} vehículos`} • {plans[data.selectedPlan].maxUsers === -1 ? 'Usuarios ilimitados' : `${plans[data.selectedPlan].maxUsers} usuario${plans[data.selectedPlan].maxUsers > 1 ? 's' : ''}`} • {plans[data.selectedPlan].price === 0 ? 'Sin tarjeta' : `$${plans[data.selectedPlan].price}/${plans[data.selectedPlan].period}`}</p></div></div></div>
+                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={isSubmitting}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Activar prueba gratis' : 'Crear cuenta'}</Button></div>
                 </div>}
               </motion.div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }} className="text-center text-xs text-white/30 mt-6">Al registrarte, aceptas nuestros <Link href="/terminos" className="text-[#d7ff3f] hover:text-white">Términos y Condiciones</Link> y <Link href="/privacidad" className="text-[#d7ff3f] hover:text-white">Política de Privacidad</Link></motion.p>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 0.5 }} className="text-center text-sm text-white/40 mt-4">¿Ya tienes cuenta? <Link href="/login" className="text-[#d7ff3f] font-medium hover:text-white">Inicia sesión</Link></motion.p>
+        <p className="mt-5 text-center text-xs text-white/30">Al registrarte, aceptas nuestros <Link href="/terminos" className="text-[#d7ff3f] hover:text-white">Términos y Condiciones</Link> y <Link href="/privacidad" className="text-[#d7ff3f] hover:text-white">Política de Privacidad</Link></p>
+        <p className="mt-3 text-center text-sm text-white/40">¿Ya tienes cuenta? <Link href="/login" className="font-medium text-[#d7ff3f] hover:text-white">Inicia sesión</Link></p>
       </motion.div>
     </div>
   );
