@@ -182,7 +182,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
         {selectedClientId && (
           <div
             className={cn(
-              "rounded-[16px] border p-4",
+              "rounded-[14px] border p-4",
               clientVehicle
                 ? "border-white/[0.07] bg-white/[0.03]"
                 : "border-rose-400/25 bg-rose-400/[0.06]"
@@ -279,7 +279,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
         </div>
 
         {numberOfPayments && weeklyPayment ? (
-          <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
+          <div className="rounded-[14px] border border-white/[0.07] bg-white/[0.03] p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] text-white/40">Monto total</p>
@@ -298,7 +298,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
         ) : null}
 
         {paymentPlan.length > 0 && (
-          <details className="overflow-hidden rounded-[16px] border border-white/[0.07]">
+          <details className="overflow-hidden rounded-[14px] border border-white/[0.07]">
             <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-white/70 hover:bg-white/[0.03]">
               Vista previa del plan ({paymentPlan.length} pagos)
             </summary>
@@ -330,7 +330,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
           </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-transparent pt-4 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
@@ -343,7 +343,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
           <Button
             type="submit"
             disabled={isSubmitting || !selectedClientId || !selectedVehicleId}
-            className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-50"
+            className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-50"
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} />}
             {isSubmitting ? "Guardando..." : initialData?.id ? "Guardar cambios" : "Crear crédito"}
