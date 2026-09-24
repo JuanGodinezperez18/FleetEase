@@ -196,7 +196,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
         <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+            <div key={i} className="h-32 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0e1117]" />
           ))}
         </div>
         <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
@@ -205,20 +205,15 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Finanzas
-            </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
-              Cuentas por pagar
-            </h1>
-            <p className="mt-1 text-sm text-white/40">Pendiente con proveedores y socios</p>
+            <div className="fe-module-eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />Finanzas</div>
+            <h1 className="fe-module-title">Cuentas por pagar</h1>
+            <p className="fe-module-subtitle">Pendiente con proveedores y socios</p>
           </div>
         </header>
 
@@ -261,7 +256,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                   return (
                     <div
                       key={p.id}
-                      className="flex flex-col gap-3 rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-[14px] border border-white/[0.07] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -293,7 +288,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                             asChild
                             size="sm"
                             variant="outline"
-                            className="h-9 shrink-0 rounded-xl border-white/10 bg-transparent px-3 text-white/70 hover:bg-white/[0.06] hover:text-white"
+                            className="h-11 shrink-0 rounded-xl border-white/10 bg-transparent px-3 text-white/70 hover:bg-white/[0.06] hover:text-white"
                           >
                             <NextLink href={`/dashboard/finanzas/supplier-purchases/${p.purchaseId}`}>
                               <ExternalLink className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.75} />
@@ -351,7 +346,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                         asChild
                         size="icon"
                         variant="ghost"
-                        className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white"
+                        className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white"
                       >
                         <NextLink href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Ver compra">
                           <ExternalLink className="h-4 w-4" strokeWidth={1.75} />
