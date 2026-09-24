@@ -172,20 +172,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex h-full min-h-0 flex-col">
-          <div className="sticky top-0 z-20 -mx-1 mb-4 flex flex-col gap-3 border-b border-white/[0.07] bg-[#0b0f14]/95 px-1 py-3 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">{initialData ? "Editar vehículo" : "Nuevo vehículo"}</p>
-              <p className="mt-0.5 truncate text-sm font-medium text-white/90">{form.watch("alias") || "Completa la información del vehículo"}</p>
-            </div>
-            <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-10 flex-1 rounded-xl border-white/[0.09] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white sm:flex-none">Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="h-10 flex-1 rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90 sm:flex-none">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Guardando..." : "Guardar"}
-              </Button>
-            </div>
-          </div>
-
           <div className="min-h-0 flex-grow overflow-y-auto overscroll-contain pr-1 sm:pr-3">
             <div className="space-y-5 p-1 sm:space-y-6">
               {!initialData && (
@@ -271,7 +257,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
             </div>
           </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-[#0b0f14]/95 pt-4 backdrop-blur-xl sm:flex-row sm:justify-end">
+          <div className="shrink-0 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-[#0b0f14] pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white sm:h-10 sm:w-auto">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90 sm:h-10 sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
