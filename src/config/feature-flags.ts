@@ -1,199 +1,31 @@
-/**
- * Sistema de Feature Flags basado en el plan
- * Controla qué características están disponibles según el plan del usuario
- */
-
+/** Entitlements de FleetEase por plan. Solo se marcan capacidades actualmente implementadas. */
 import type { PlanType } from '@/config/plans';
-
-// Definición de todas las features disponibles en la aplicación
 export type FeatureKey =
-  | 'vehicles'           // Gestión de vehículos
-  | 'clients'            // Gestión de clientes
-  | 'partners'           // Gestión de socios
-  | 'financial_records'  // Registro de ingresos/gastos
-  | 'dashboard_basic'    // Dashboard básico
-  | 'dashboard_advanced' // Dashboard avanzado con métricas
-  | 'profitability'      // Rentabilidad por vehículo
-  | 'client_score'       // Client Score (calificación de clientes)
-  | 'maintenance_alerts' // Alertas de mantenimiento
-  | 'reports_excel'      // Reportes en Excel
-  | 'multi_user'         // Múltiples usuarios
-  | 'api_access'         // API de integración
-  | 'white_label'        // Personalización de marca
-  | 'multi_company'      // Multi-empresa
-  | 'priority_support'   // Soporte prioritario
-  | 'sat_integration'    // Integración con SAT
-  | 'custom_reports'     // Reportes personalizados
-  | 'audit_logs'         // Logs de auditoría
-  | 'advanced_analytics' // Analíticas avanzadas
-  | 'bulk_operations'    // Operaciones masivas
-  | 'email_notifications' // Notificaciones por email
-  | 'whatsapp_notifications'; // Notificaciones por WhatsApp
-
-// Configuración de features por plan
+  | 'vehicles' | 'clients' | 'partners' | 'financial_records' | 'vehicle_assignments' | 'mileage' | 'maintenance' | 'credits'
+  | 'payments' | 'fines' | 'security_deposits' | 'supplier_purchases' | 'accounts_payable' | 'inspections' | 'tracking' | 'documents' | 'ocr'
+  | 'client_portal' | 'partner_portal' | 'notifications' | 'dashboard_basic' | 'dashboard_advanced' | 'dashboard_config' | 'profitability'
+  | 'client_score' | 'maintenance_alerts' | 'reports_pdf' | 'reports_excel' | 'report_history' | 'multi_user' | 'priority_support' | 'audit_logs'
+  | 'advanced_analytics' | 'bulk_operations' | 'email_notifications'
+  | 'whatsapp_notifications' | 'whatsapp_intelligence' | 'fleet_intelligence' | 'advanced_automations' | 'api_access' | 'white_label'
+  | 'multi_company' | 'custom_reports' | 'gps_integrations';
+const starter: Record<FeatureKey, boolean> = {
+  vehicles:true,clients:true,partners:true,financial_records:true,vehicle_assignments:true,mileage:true,maintenance:true,credits:true,
+  payments:true,fines:true,security_deposits:true,supplier_purchases:true,accounts_payable:true,inspections:true,tracking:true,documents:true,ocr:true,
+  client_portal:true,partner_portal:true,notifications:true,dashboard_basic:true,dashboard_advanced:false,dashboard_config:false,profitability:false,
+  client_score:false,maintenance_alerts:false,reports_pdf:true,reports_excel:false,report_history:false,multi_user:false,priority_support:false,audit_logs:false,
+  advanced_analytics:false,bulk_operations:false,email_notifications:true,whatsapp_notifications:false,whatsapp_intelligence:false,fleet_intelligence:false,
+  advanced_automations:false,api_access:false,white_label:false,multi_company:false,custom_reports:false,gps_integrations:false,
+};
 export const featureFlags: Record<PlanType, Record<FeatureKey, boolean>> = {
-  starter: {
-    vehicles: true,
-    clients: true,
-    partners: true,
-    financial_records: true,
-    dashboard_basic: true,
-    dashboard_advanced: false,
-    profitability: false,
-    client_score: false,
-    maintenance_alerts: false,
-    reports_excel: false,
-    multi_user: false,
-    api_access: false,
-    white_label: false,
-    multi_company: false,
-    priority_support: false,
-    sat_integration: false,
-    custom_reports: false,
-    audit_logs: false,
-    advanced_analytics: false,
-    bulk_operations: false,
-    email_notifications: true,
-    whatsapp_notifications: false,
-  },
-  pro: {
-    vehicles: true,
-    clients: true,
-    partners: true,
-    financial_records: true,
-    dashboard_basic: true,
-    dashboard_advanced: true,
-    profitability: true,
-    client_score: true,
-    maintenance_alerts: true,
-    reports_excel: true,
-    multi_user: true,
-    api_access: false,
-    white_label: false,
-    multi_company: false,
-    priority_support: true,
-    sat_integration: false,
-    custom_reports: false,
-    audit_logs: true,
-    advanced_analytics: false,
-    bulk_operations: true,
-    email_notifications: true,
-    whatsapp_notifications: true,
-  },
-  enterprise: {
-    vehicles: true,
-    clients: true,
-    partners: true,
-    financial_records: true,
-    dashboard_basic: true,
-    dashboard_advanced: true,
-    profitability: true,
-    client_score: true,
-    maintenance_alerts: true,
-    reports_excel: true,
-    multi_user: true,
-    api_access: true,
-    white_label: true,
-    multi_company: true,
-    priority_support: true,
-    sat_integration: true,
-    custom_reports: true,
-    audit_logs: true,
-    advanced_analytics: true,
-    bulk_operations: true,
-    email_notifications: true,
-    whatsapp_notifications: true,
-  },
+  free:{...starter}, starter:{...starter},
+  pro:{...starter,dashboard_advanced:true,dashboard_config:true,profitability:true,client_score:true,maintenance_alerts:true,reports_excel:true,report_history:true,multi_user:true,priority_support:true,audit_logs:true,advanced_analytics:true,bulk_operations:true},
+  enterprise:{...starter,dashboard_advanced:true,dashboard_config:true,profitability:true,client_score:true,maintenance_alerts:true,reports_excel:true,report_history:true,multi_user:true,priority_support:true,audit_logs:true,advanced_analytics:true,bulk_operations:true},
 };
-
-/**
- * Verifica si una feature está disponible para un plan
- */
-export function isFeatureEnabled(plan: PlanType, feature: FeatureKey): boolean {
-  return featureFlags[plan][feature] || false;
-}
-
-/**
- * Verifica si múltiples features están disponibles
- */
-export function areFeaturesEnabled(plan: PlanType, features: FeatureKey[]): boolean {
-  return features.every(feature => isFeatureEnabled(plan, feature));
-}
-
-/**
- * Obtiene todas las features disponibles para un plan
- */
-export function getAvailableFeatures(plan: PlanType): FeatureKey[] {
-  return Object.entries(featureFlags[plan])
-    .filter(([_, enabled]) => enabled)
-    .map(([feature]) => feature as FeatureKey);
-}
-
-/**
- * Obtiene todas las features NO disponibles para un plan (para mostrar upgrade)
- */
-export function getUnavailableFeatures(plan: PlanType): FeatureKey[] {
-  return Object.entries(featureFlags[plan])
-    .filter(([_, enabled]) => !enabled)
-    .map(([feature]) => feature as FeatureKey);
-}
-
-/**
- * Hook para verificar features en componentes
- */
-export function checkFeature(plan: PlanType, feature: FeatureKey): {
-  enabled: boolean;
-  message: string;
-} {
-  const enabled = isFeatureEnabled(plan, feature);
-  
-  const messages: Record<FeatureKey, string> = {
-    vehicles: 'Gestión de vehículos',
-    clients: 'Gestión de clientes',
-    partners: 'Gestión de socios',
-    financial_records: 'Registro de ingresos y gastos',
-    dashboard_basic: 'Dashboard básico',
-    dashboard_advanced: 'Dashboard avanzado',
-    profitability: 'Rentabilidad por vehículo',
-    client_score: 'Client Score',
-    maintenance_alerts: 'Alertas de mantenimiento',
-    reports_excel: 'Reportes en Excel',
-    multi_user: 'Múltiples usuarios',
-    api_access: 'API de integración',
-    white_label: 'Personalización de marca',
-    multi_company: 'Multi-empresa',
-    priority_support: 'Soporte prioritario',
-    sat_integration: 'Integración con SAT',
-    custom_reports: 'Reportes personalizados',
-    audit_logs: 'Logs de auditoría',
-    advanced_analytics: 'Analíticas avanzadas',
-    bulk_operations: 'Operaciones masivas',
-    email_notifications: 'Notificaciones por email',
-    whatsapp_notifications: 'Notificaciones por WhatsApp',
-  };
-
-  return {
-    enabled,
-    message: enabled 
-      ? `${messages[feature]} disponible`
-      : `${messages[feature]} no disponible en tu plan`,
-  };
-}
-
-// Mapeo de rutas a features requeridas
-export const routeFeatureMap: Record<string, FeatureKey> = {
-  '/dashboard/profitability': 'profitability',
-  '/dashboard/reports': 'reports_excel',
-  '/dashboard/users': 'multi_user',
-  '/dashboard/settings/company': 'multi_company',
-  '/dashboard/advanced-analytics': 'advanced_analytics',
-};
-
-/**
- * Verifica si una ruta está disponible para un plan
- */
-export function isRouteAvailable(plan: PlanType, route: string): boolean {
-  const requiredFeature = routeFeatureMap[route];
-  if (!requiredFeature) return true; // Si no hay feature requerida, está disponible
-  return isFeatureEnabled(plan, requiredFeature);
-}
+export function isFeatureEnabled(plan:PlanType,feature:FeatureKey):boolean{return featureFlags[plan]?.[feature]??false;}
+export function areFeaturesEnabled(plan:PlanType,features:FeatureKey[]):boolean{return features.every(feature=>isFeatureEnabled(plan,feature));}
+export function getAvailableFeatures(plan:PlanType):FeatureKey[]{return Object.entries(featureFlags[plan]).filter(([,enabled])=>enabled).map(([feature])=>feature as FeatureKey);}
+export function getUnavailableFeatures(plan:PlanType):FeatureKey[]{return Object.entries(featureFlags[plan]).filter(([,enabled])=>!enabled).map(([feature])=>feature as FeatureKey);}
+export function checkFeature(plan:PlanType,feature:FeatureKey):{enabled:boolean;message:string}{const enabled=isFeatureEnabled(plan,feature);const messages:Record<FeatureKey,string>={
+  vehicles:'Gestión de vehículos',clients:'Gestión de clientes',partners:'Gestión de socios',financial_records:'Ingresos y gastos',vehicle_assignments:'Asignaciones',mileage:'Kilometraje',maintenance:'Mantenimiento',credits:'Créditos',payments:'Pagos',fines:'Multas',security_deposits:'Depósitos en garantía',supplier_purchases:'Compras a proveedores',accounts_payable:'Cuentas por pagar',inspections:'Inspecciones',tracking:'Seguimiento',documents:'Documentos',ocr:'OCR documental',client_portal:'Portal de clientes',partner_portal:'Portal de socios',notifications:'Notificaciones',dashboard_basic:'Dashboard básico',dashboard_advanced:'Dashboard avanzado',dashboard_config:'Dashboard configurable',profitability:'Rentabilidad por vehículo',client_score:'Client Score',maintenance_alerts:'Alertas de mantenimiento',reports_pdf:'Reportes PDF',reports_excel:'Reportes Excel',report_history:'Historial de reportes',multi_user:'Múltiples usuarios',priority_support:'Soporte prioritario',audit_logs:'Auditoría',advanced_analytics:'Analítica avanzada',bulk_operations:'Operaciones masivas',email_notifications:'Email',whatsapp_notifications:'Notificaciones por WhatsApp',whatsapp_intelligence:'WhatsApp Intelligence',fleet_intelligence:'Fleet Intelligence',advanced_automations:'Automatizaciones avanzadas',api_access:'API',white_label:'White-label',multi_company:'Multiempresa',custom_reports:'Reportes personalizados',gps_integrations:'Integraciones GPS'};return{enabled,message:enabled?`${messages[feature]} disponible`:`${messages[feature]} no disponible en tu plan`};}
+export const routeFeatureMap:Record<string,FeatureKey>={'/dashboard/profitability':'profitability','/dashboard/reports':'reports_pdf','/dashboard/users':'multi_user'};
+export function isRouteAvailable(plan:PlanType,route:string):boolean{const requiredFeature=routeFeatureMap[route];if(!requiredFeature)return true;return isFeatureEnabled(plan,requiredFeature);}
