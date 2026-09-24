@@ -252,11 +252,11 @@ export default function VehicleDetailPage() {
     typeof vehicle.imageUrl === 'string' ? vehicle.imageUrl : null;
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="ghost"
             onClick={() => router.push('/dashboard/vehicles')}
@@ -269,7 +269,7 @@ export default function VehicleDetailPage() {
             <Button
               variant="outline"
               onClick={() => router.push(`/dashboard/vehicles?action=edit&vehicleId=${vehicle.id}`)}
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <Edit className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Editar
@@ -316,7 +316,7 @@ export default function VehicleDetailPage() {
         </header>
 
         {/* Accesos rápidos */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button
             variant="outline"
             onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}/documents`)}
@@ -336,14 +336,14 @@ export default function VehicleDetailPage() {
           <Button
             variant="outline"
             onClick={() => router.push(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}
-            className="h-11 justify-start rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white col-span-2 sm:col-span-1"
+            className="h-11 justify-start rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white "
           >
             <History className="mr-2 h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
             Asignaciones
           </Button>
         </div>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.18)]">
           <div className="grid gap-6 p-4 sm:p-5 md:grid-cols-2">
             <div className="relative h-56 overflow-hidden rounded-[16px] border border-white/[0.06] bg-white/[0.03] sm:h-64">
               {imageUrl ? (
