@@ -300,7 +300,7 @@ export default function ClientDetailPage() {
           </div>
         </section>
 
-        <EntityTimeline events={clientTimeline} entityType="client" />
+        <div id="historial" className="scroll-mt-6"><EntityTimeline events={clientTimeline} entityType="client" /></div>
       </div>
     </div>
   );
