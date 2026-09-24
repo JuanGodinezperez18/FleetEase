@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, Trash2, FileText, User, Car, Phone, Banknote } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, FileText, History, User, Car, Phone, Banknote } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
   PaymentRiskBadge,
@@ -108,6 +108,13 @@ export function ClientMobileCard({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Eye className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Transacciones
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={menuItemClass}
+                  onSelect={() => onNavigate(`/dashboard/clients/${client.id}/history`)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <History className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Historial
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1.5 bg-white/10" />
                 <DropdownMenuItem
