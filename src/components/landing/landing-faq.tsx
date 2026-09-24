@@ -35,10 +35,10 @@ export function LandingFaq() {
 
   return (
     <section id="faq" className="border-t border-white/[0.07] bg-white/[0.018]">
-      <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 lg:grid-cols-[.65fr_1.35fr] lg:gap-14 lg:px-8 lg:py-24">
+      <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:gap-10 sm:py-16 lg:grid-cols-[.65fr_1.35fr] lg:gap-14 lg:px-8 lg:py-24">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d7ff3f]">FAQ</div>
-          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:mt-4 sm:text-4xl">
             Lo esencial,
             <br />
             sin vueltas.
@@ -52,7 +52,7 @@ export function LandingFaq() {
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between py-5 text-left text-sm font-semibold text-white/90"
+                  className="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-sm font-semibold leading-5 text-white/90 sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <span>{q}</span>
@@ -64,7 +64,7 @@ export function LandingFaq() {
                 <div
                   className={`overflow-hidden transition-all ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
                 >
-                  <p className="pb-5 pr-8 text-sm leading-6 text-white/55">{a}</p>
+                  <p className="pb-5 pr-7 text-sm leading-6 text-white/55 sm:pr-8">{a}</p>
                 </div>
               </div>
             );
