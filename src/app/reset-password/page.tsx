@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
     <div className="space-y-2">
       <Label htmlFor={id} className="text-white/70">{label}</Label>
       <div className="relative">
-        <Input id={id} type={visible ? 'text' : 'password'} autoComplete="new-password" value={value} onChange={(e) => onChange(e.target.value)} disabled={submitting} required className="h-11 border-white/[0.10] bg-white/[0.04] pr-12 text-white placeholder:text-white/25 focus:border-[#d7ff3f]/50 focus:ring-[#d7ff3f]/20" />
+        <Input id={id} type={visible ? 'text' : 'password'} autoComplete="new-password" value={value} onChange={(e) => onChange(e.target.value)} disabled={submitting} required className="h-11 rounded-xl border-white/[0.10] bg-white/[0.04] pr-12 text-white placeholder:text-white/25 focus:border-[#d7ff3f]/50 focus:ring-[#d7ff3f]/20" />
         <button type="button" onClick={onToggle} aria-label={visible ? `Ocultar ${label.toLowerCase()}` : `Mostrar ${label.toLowerCase()}`} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-white/40 transition hover:bg-white/[0.06] hover:text-[#d7ff3f]">
           {visible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
@@ -99,15 +99,15 @@ export default function ResetPasswordPage() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] px-5 py-12 text-white">
       <Background />
-      <div className="relative z-10 w-full max-w-md">
-        <div className="mb-8 text-center">
+      <div className="relative z-10 w-full max-w-[400px]">
+        <div className="mb-6 text-center sm:mb-8">
           <Link href="/" className="mb-6 inline-flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white"><Image src="/logo.png" alt="FleetEase" width={34} height={34} className="h-8 w-8 object-contain" priority /></div><span className="text-xl font-semibold tracking-[-0.03em]">FleetEase</span></Link>
-          <h1 className="mt-5 text-3xl font-semibold tracking-[-0.04em]">Nueva contraseña</h1>
+          <h1 className="mt-4 text-2xl font-semibold tracking-[-0.04em] sm:mt-5 sm:text-3xl">Nueva contraseña</h1>
           <p className="mt-2 text-sm text-white/45">Recupera el acceso a tu cuenta de FleetEase Manager.</p>
         </div>
-        <Card className="border-white/[0.10] bg-[#0e1117]/95 text-white shadow-[0_30px_80px_rgba(0,0,0,.45)] backdrop-blur-xl">
+        <Card className="rounded-3xl border-white/[0.10] bg-[#0e1117]/95 text-white shadow-[0_30px_80px_rgba(0,0,0,.45)] backdrop-blur-xl">
           {success ? (
-            <CardContent className="px-7 py-10 text-center"><CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-[#d7ff3f]" /><CardTitle className="text-2xl text-white">Contraseña actualizada</CardTitle><p className="mt-2 text-sm text-white/45">Tu contraseña se cambió correctamente.</p><Button className="mt-7 w-full rounded-full bg-[#d7ff3f] font-bold text-[#080a0f] hover:bg-white" onClick={() => router.replace('/login')}>Iniciar sesión</Button></CardContent>
+            <CardContent className="px-7 py-10 text-center"><CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-[#d7ff3f]" /><CardTitle className="text-2xl text-white">Contraseña actualizada</CardTitle><p className="mt-2 text-sm text-white/45">Tu contraseña se cambió correctamente.</p><Button className="mt-7 w-full rounded-xl bg-[#d7ff3f] font-bold text-[#080a0f] hover:bg-white" onClick={() => router.replace('/login')}>Iniciar sesión</Button></CardContent>
           ) : (
             <>
               <CardHeader className="border-b border-white/[0.07] px-7 py-6"><CardTitle className="flex items-center gap-3 text-xl text-white"><Lock className="h-5 w-5 text-[#d7ff3f]" /> Restablecer acceso</CardTitle><CardDescription className="text-white/40">Define una contraseña nueva y segura.</CardDescription></CardHeader>
@@ -117,7 +117,7 @@ export default function ResetPasswordPage() {
                     <PasswordField id="password" label="Nueva contraseña" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword(v => !v)} />
                     <PasswordField id="confirm-password" label="Confirmar contraseña" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(v => !v)} />
                     {error && <div role="alert" className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-3 text-sm text-red-200">{error}</div>}
-                    <Button type="submit" disabled={submitting} className="h-11 w-full rounded-full bg-[#d7ff3f] font-bold text-[#080a0f] shadow-[0_0_30px_rgba(215,255,63,.12)] hover:bg-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Actualizando...</> : 'Cambiar contraseña'}</Button>
+                    <Button type="submit" disabled={submitting} className="h-11 w-full rounded-xl bg-[#d7ff3f] font-bold text-[#080a0f] shadow-[0_0_30px_rgba(215,255,63,.12)] hover:bg-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Actualizando...</> : 'Cambiar contraseña'}</Button>
                   </form>
                 )}
                 <Link href="/login" className="mt-6 flex items-center justify-center gap-2 text-sm text-white/40 transition hover:text-white"><ArrowLeft className="h-4 w-4" />Volver a iniciar sesión</Link>
