@@ -129,6 +129,23 @@ const loadRecoveryScript = `
     window.location.reload();
   }
 
+  // Remove legacy Service Workers before hydration/navigation.
+  // Old SWs can serve stale chunks/RSC payloads and cause navigation failures.
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      return Promise.all(registrations.map(function(registration) {
+        try {
+          if (registration.active) registration.active.postMessage('CLEAR_CACHES');
+        } catch (e) {}
+        return registration.unregister();
+      }));
+    }).then(function() {
+      if (!('caches' in window)) return;
+      return caches.keys().then(function(names) {
+        return Promise.all(names.map(function(name) { return caches.delete(name); }));
+      });
+    }).catch(function() {});
+  }
   // El boot splash solo debe aparecer en la primera entrada de la sesión.
   // En recargas posteriores dejamos que el loader/skeleton de la app tome el control.
   try {
