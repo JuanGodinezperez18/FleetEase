@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
     const uniqueFileName = `${user.id}-${view}-${Date.now()}.${fileExtension}`;
     const fullPath = `assignments/${vehicleId}/${uniqueFileName}`;
+    if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const { error: uploadError } = await supabaseAdmin.storage.from(BUCKET_NAME).upload(fullPath, fileBuffer, { contentType: file.type, upsert: false });
     if (uploadError) {
