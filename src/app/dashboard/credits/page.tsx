@@ -87,7 +87,7 @@ const CreditMobileCard = ({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-white/40 hover:bg-white/[0.06] hover:text-white">
+            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl text-white/40 hover:bg-white/[0.06] hover:text-white">
               <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
             </Button>
           </DropdownMenuTrigger>
