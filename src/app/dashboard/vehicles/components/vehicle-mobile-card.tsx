@@ -62,7 +62,7 @@ export function VehicleMobileCard({
           onNavigate(`/dashboard/vehicles/${vehicle.id}`);
         }
       }}
-      className="group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)] transition-all active:scale-[0.99]"
+      className="group relative overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)] transition-all active:scale-[0.99]"
     >
       <div className="flex items-start gap-3">
         {vehicle.imageUrl && typeof vehicle.imageUrl === 'string' ? (
