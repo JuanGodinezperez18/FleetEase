@@ -9,7 +9,6 @@ import type { Vehicle, Company } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MultipleFileInput } from "@/components/common/multiple-file-input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { DollarSign, Building, Phone, PlusCircle, Info, Loader2, CalendarPlus, PackagePlus } from "lucide-react";
 import { parseDateForInput } from "@/lib/date-utils";
 import { useAuth } from "@/contexts/auth-provider";
@@ -187,10 +186,10 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-grow pr-3 -mr-3 sm:pr-6 sm:-mr-6">
-            <div className="space-y-6 p-1">
+          <div className="min-h-0 flex-grow overflow-y-auto overscroll-contain pr-1 sm:pr-3">
+            <div className="space-y-5 p-1 sm:space-y-6">
               {!initialData && (
-                <div className="rounded-2xl border border-[#d7ff3f]/10 bg-white/[0.025] p-5 shadow-[0_12px_35px_rgba(0,0,0,.14)]">
+                <div className="rounded-[14px] border border-[#d7ff3f]/10 bg-white/[0.025] p-5 shadow-[0_12px_35px_rgba(0,0,0,.14)]">
                   <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-white/90">¿Tienes la tarjeta de circulación?</h3>
@@ -201,7 +200,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 </div>
               )}
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
+              <section className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
                 <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Identificación</p><h3 className="text-base font-semibold text-white">Datos del vehículo</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField name="alias" control={form.control} render={({field}) => <FormItem><FormLabel>Alias del vehículo</FormLabel><FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
@@ -271,7 +270,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 </div>
               </section>
             </div>
-          </ScrollArea>
+          </div>
           <div className="flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-[#0b0f14]/95 pt-4 backdrop-blur-xl sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white sm:h-10 sm:w-auto">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90 sm:h-10 sm:w-auto">
