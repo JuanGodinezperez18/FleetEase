@@ -11,7 +11,6 @@ import { getMileageColumns } from "./columns";
 import { useMileageAnalytics } from "@/hooks/use-mileage-analytics";
 import { useMileageSearch, type VehicleWithMileageAndMetrics } from "@/hooks/use-mileage-search";
 import { MaintenanceDashboard } from "./components/maintenance-dashboard";
-import { MileageAdvancedFilters } from "./components/mileage-advanced-filters";
 import { toast } from "sonner";
 import { MileageHistoryModal } from "./components/mileage-history-modal";
 import { MileageMobileCard } from "./components/mileage-mobile-card";
@@ -224,16 +223,6 @@ export default function MileageTrackingPage() {
         </header>
 
         <MaintenanceDashboard vehicles={vehiclesWithAllMetrics} vehicleMetrics={vehicleMetrics} />
-
-        <MileageAdvancedFilters
-          filters={filters}
-          onFilterChange={updateFilter}
-          onReset={resetFilters}
-          onSearch={debouncedSetQuery}
-          totalResults={totalResults}
-          companies={companies}
-          isLoading={loadingData}
-        />
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
