@@ -123,7 +123,7 @@ export default function CreditDetailPage() {
 
   if (!credit) {
     return (
-      <div className="rounded-[30px] bg-[#080a0f] p-8 text-center text-white/50">Crédito no encontrado</div>
+      <div className="rounded-[18px] bg-[#080a0f] p-8 text-center text-white/50">Crédito no encontrado</div>
     );
   }
 
@@ -139,7 +139,7 @@ export default function CreditDetailPage() {
           <Button
             variant="ghost"
             onClick={() => router.push("/dashboard/credits")}
-            className="h-9 w-fit rounded-xl px-3 text-white/50 hover:bg-white/[0.06] hover:text-white"
+            className="h-11 w-fit rounded-xl px-3 text-white/50 hover:bg-white/[0.06] hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-4" strokeWidth={1.75} />
             Volver a créditos
@@ -165,7 +165,7 @@ export default function CreditDetailPage() {
               {credit.status === "active" && (credit.remainingBalance || 0) > 0 && (
                 <Button
                   onClick={() => router.push("/dashboard/finanzas/payments")}
-                  className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+                  className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                 >
                   Registrar pago en Pagos
                 </Button>
@@ -174,9 +174,9 @@ export default function CreditDetailPage() {
           </div>
         </header>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3">
+            <div className="rounded-[12px] border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[11px] text-white/40">Monto total</p>
               <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-white">{formatCurrency(credit.totalAmount)}</p>
             </div>
@@ -184,7 +184,7 @@ export default function CreditDetailPage() {
               <p className="text-[11px] text-white/40">Pagado</p>
               <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-emerald-300">{formatCurrency(credit.paidAmount || 0)}</p>
             </div>
-            <div className="rounded-[16px] border border-rose-400/15 bg-rose-400/[0.05] p-3">
+            <div className="rounded-[12px] border border-rose-400/15 bg-rose-400/[0.05] p-3">
               <p className="text-[11px] text-rose-300/70">Saldo pendiente</p>
               <p className="mt-0.5 font-heading text-lg font-semibold tabular-nums text-rose-300">{formatCurrency(credit.remainingBalance || 0)}</p>
             </div>
@@ -210,7 +210,7 @@ export default function CreditDetailPage() {
             </h2>
             <p className="mt-0.5 text-xs text-white/40">Abonos se aplican en orden a cuotas pendientes</p>
           </div>
-          <div className="p-4 sm:p-5">
+          <div className="p-3 sm:p-5">
             <DataTable columns={scheduleColumns} data={schedule} noResultsText="No hay calendario de pagos." />
           </div>
         </section>
@@ -228,7 +228,7 @@ export default function CreditDetailPage() {
                 return (
                   <div
                     key={payment.id}
-                    className="flex items-center justify-between rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-3"
+                    className="flex items-center justify-between rounded-[12px] border border-white/[0.07] bg-white/[0.02] p-3"
                   >
                     <div>
                       <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(payment.amount)}</p>
