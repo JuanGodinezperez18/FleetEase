@@ -63,24 +63,24 @@ export default function LandingPage() {
           Saltar al contenido principal
         </a>
 
-        <main id="contenido" className="relative z-10 pt-[72px]">
+        <main id="contenido" className="relative z-10 pt-[64px] sm:pt-[72px]">
           {/* HERO — fully server-rendered for SEO */}
-          <section className="mx-auto grid min-h-[640px] max-w-[1240px] items-center gap-12 px-5 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-8 lg:py-20">
+          <section className="mx-auto grid min-h-[560px] max-w-[1240px] items-center gap-10 px-5 py-12 sm:min-h-[640px] sm:gap-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-8 lg:py-20">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" /> Gestión de flotillas sin ruido
               </div>
-              <h1 className="max-w-[680px] text-[44px] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-[64px] lg:text-[78px]">
+              <h1 className="max-w-[680px] text-[40px] sm:text-[64px] font-semibold leading-[0.98] tracking-[-0.055em] lg:text-[78px]">
                 Tu flotilla.
                 <br />
                 <span className="text-[#d7ff3f]">Tus números.</span>
                 <br />
                 Bajo control.
               </h1>
-              <p className="mt-6 max-w-[570px] text-[17px] leading-8 text-white/60 sm:text-[19px]">
+              <p className="mt-5 max-w-[570px] text-[16px] leading-7 sm:mt-6 sm:text-[19px] sm:leading-8 text-white/60 sm:text-[19px]">
                 FleetEase es el software de gestión de flotillas y renta de vehículos que convierte la operación diaria en una vista clara de rentabilidad, mantenimiento y desempeño.
               </p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
                 <Link
                   href="/registro"
                   className="group flex items-center justify-center gap-3 rounded-full bg-[#d7ff3f] px-7 py-4 text-[14px] font-bold text-[#080a0f] transition hover:bg-white"
@@ -109,7 +109,7 @@ export default function LandingPage() {
 
             <div className="relative">
               <div className="absolute -inset-10 rounded-[40px] bg-[#d7ff3f]/[0.07] blur-3xl" />
-              <div className="relative overflow-hidden rounded-[26px] border border-white/[0.12] bg-[#0e1117]/90 shadow-[0_40px_100px_rgba(0,0,0,.55)] backdrop-blur-xl">
+              <div className="relative overflow-hidden rounded-[22px] sm:rounded-[26px] border border-white/[0.12] bg-[#0e1117]/90 shadow-[0_40px_100px_rgba(0,0,0,.55)] backdrop-blur-xl">
                 <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="h-7 w-7 rounded-lg bg-[#d7ff3f] p-1.5">
@@ -137,8 +137,8 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
-                <div className="grid gap-3 px-4 pb-4 lg:grid-cols-[1.25fr_.75fr]">
-                  <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
+                <div className="grid gap-3 px-3 pb-3 sm:px-4 sm:pb-4 lg:grid-cols-[1.25fr_.75fr]">
+                  <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
                     <div className="mb-5 flex items-center justify-between">
                       <div>
                         <div className="text-xs font-semibold">Rentabilidad mensual</div>
