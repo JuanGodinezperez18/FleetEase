@@ -121,7 +121,7 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0 text-white/50 hover:bg-white/[0.06] hover:text-white">
+              <Button variant="ghost" className="h-11 w-11 rounded-xl p-0 text-white/50 hover:bg-white/[0.06] hover:text-white">
                 <span className="sr-only">Abrir menú</span>
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
               </Button>
