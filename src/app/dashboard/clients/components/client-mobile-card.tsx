@@ -111,7 +111,7 @@ export function ClientMobileCard({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className={menuItemClass}
-                  onSelect={() => onNavigate(`/dashboard/clients/${client.id}/history`)}
+                  onSelect={() => onNavigate(`/dashboard/clients/${client.id}#historial`)}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <History className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} /> Historial
