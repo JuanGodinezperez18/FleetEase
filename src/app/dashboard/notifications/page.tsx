@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useData } from '@/hooks/use-data';
 import type { AnalyzedNotification } from '@/hooks/use-notifications-analytics';
 import { NotificationsDashboard } from './components/notifications-dashboard';
-import { NotificationsAdvancedFilters } from './components/notifications-advanced-filters';
 import { useNotificationsSearch } from '@/hooks/use-notifications-search';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -372,15 +371,6 @@ export default function NotificationsPage() {
         </header>
 
         <NotificationsDashboard analyzedNotifications={displayedNotifications} />
-
-        <NotificationsAdvancedFilters
-          filters={filters}
-          onFilterChange={updateFilter}
-          onReset={resetFilters}
-          onSearch={debouncedSetQuery}
-          totalResults={totalResults}
-          isLoading={loadingData}
-        />
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-4 py-3.5 sm:px-5">
