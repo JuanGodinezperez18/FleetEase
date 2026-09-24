@@ -9,26 +9,71 @@ const SECURITY_HEADERS = [
   ['Referrer-Policy', 'strict-origin-when-cross-origin'],
 ] as const;
 
-function applySecurityHeaders(response: NextResponse) {
+function applySecurityHeaders(response: NextResponse, contentSecurityPolicy: string) {
   for (const [key, value] of SECURITY_HEADERS) {
     response.headers.set(key, value);
   }
+  response.headers.set('Content-Security-Policy', contentSecurityPolicy);
   return response;
+}
+
+function buildCsp(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
+    script-src-attr 'none';
+    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://js.stripe.com;
+    style-src 'self' 'unsafe-inline';
+    style-src-attr 'unsafe-inline';
+    style-src-elem 'self' 'unsafe-inline';
+    img-src 'self' data: https: blob: https://firebasestorage.googleapis.com https://storage.googleapis.com;
+    media-src 'self' blob:;
+    manifest-src 'self';
+    font-src 'self' data:;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    child-src 'self';
+    worker-src 'self' blob:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'self';
+    upgrade-insecure-requests;
+  `;
+
+  const contentSecurityPolicy = cspHeader.replace(/\\s{2,}/g, ' ').trim();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
+
+  return { requestHeaders, contentSecurityPolicy };
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const { requestHeaders, contentSecurityPolicy } = buildCsp(req);
+
+  const createResponse = () =>
+    applySecurityHeaders(
+      NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      }),
+      contentSecurityPolicy
+    );
 
   // Security headers must also reach Next.js static assets such as
-  // /_next/static/media/*.woff2. The previous matcher excluded these paths,
-  // so a CDN/static response could miss HSTS even though vercel.json and
-  // next.config.mjs declared it.
+  // /_next/static/media/*.woff2.
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {
-    return applySecurityHeaders(NextResponse.next());
+    return createResponse();
   }
 
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/'];
@@ -36,14 +81,12 @@ export async function middleware(req: NextRequest) {
     path => pathname === path || pathname.startsWith(path + '/')
   );
 
-  // Public pages must never wait for a Supabase network round-trip. This is
-  // especially important for the PWA start route, where a slow auth service
-  // must not leave Android showing only the native splash screen.
+  // Public pages must never wait for a Supabase network round-trip.
   if (isPublicPath) {
-    return applySecurityHeaders(NextResponse.next());
+    return createResponse();
   }
 
-  let response = applySecurityHeaders(NextResponse.next({ request: req }));
+  let response = createResponse();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,7 +98,7 @@ export async function middleware(req: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
-          response = applySecurityHeaders(NextResponse.next({ request: req }));
+          response = createResponse();
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -64,8 +107,6 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // Protected routes validate the session server-side. A failure redirects to
-  // login rather than failing open.
   const {
     data: { user },
     error,
@@ -74,14 +115,15 @@ export async function middleware(req: NextRequest) {
   if (error || !user) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
-    return applySecurityHeaders(NextResponse.redirect(loginUrl));
+    return applySecurityHeaders(
+      NextResponse.redirect(loginUrl),
+      contentSecurityPolicy
+    );
   }
 
-  return applySecurityHeaders(response);
+  return response;
 }
 
 export const config = {
-  // Include static assets so the middleware can enforce security headers on
-  // files served from /_next/static as well as application routes.
   matcher: ['/((?!api).*)'],
 };
