@@ -44,12 +44,6 @@ export function ServiceWorkerRegister() {
     };
 
     void disable();
-
-    const onVis = () => {
-      if (document.visibilityState === "visible") void disable();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   return null;
