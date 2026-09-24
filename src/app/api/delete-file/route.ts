@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (!match) return NextResponse.json({ error: 'Formato de URL no valido' }, { status: 400 });
 
     const filePath = getSafeStoragePath(match[1]);
-    if (!filePath) {
+    if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no valida.' }, { status: 400 });
     }
 
