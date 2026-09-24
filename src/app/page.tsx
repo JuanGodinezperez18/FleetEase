@@ -347,7 +347,7 @@ export default function LandingPage() {
                   }`}
                 >
                   {plan.id === "free" && (
-                    <div className="absolute right-4 top-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">
+                    <div className="absolute right-3 top-3 max-w-[calc(100%-1.5rem)] rounded-full bg-[#d7ff3f] px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-[#080a0f] sm:right-4 sm:top-4 sm:px-2.5 sm:text-[9px]">
                       14 días gratis
                     </div>
                   )}
@@ -357,8 +357,8 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="text-sm font-semibold text-white/80">{plan.name}</div>
-                  <div className="mt-6 flex items-end gap-1">
-                    <span className="text-4xl font-semibold tracking-[-0.04em] tabular-nums">
+                  <div className="mt-5 flex min-w-0 items-end gap-1 pr-1 sm:mt-6">
+                    <span className="text-3xl font-semibold tracking-[-0.04em] tabular-nums sm:text-4xl">
                       {plan.price === 0 ? "Gratis" : `$${plan.price}`}
                     </span>
                     {plan.price === 0 ? (
@@ -368,7 +368,7 @@ export default function LandingPage() {
                     )}
                   </div>
                   <p className="mt-3 min-h-10 text-xs leading-5 text-white/50">{plan.description}</p>
-                  <div className="my-6 h-px bg-white/[0.08]" />
+                  <div className="my-5 h-px bg-white/[0.08] sm:my-6" />
                   <ul className="flex-1 space-y-3">
                     {plan.features.map((f, j) => (
                       <li key={j} className="flex gap-2.5 text-xs text-white/60">
@@ -397,8 +397,8 @@ export default function LandingPage() {
           <LandingFaq />
 
           {/* Final CTA */}
-          <section className="mx-auto max-w-[1240px] px-5 py-14 lg:px-8 lg:py-20">
-            <div className="relative overflow-hidden rounded-[28px] border border-[#d7ff3f]/20 bg-[#d7ff3f] px-7 py-12 text-[#080a0f] sm:px-14 lg:py-16">
+          <section className="mx-auto max-w-[1240px] px-5 py-10 sm:py-14 lg:px-8 lg:py-20">
+            <div className="relative overflow-hidden rounded-[24px] border border-[#d7ff3f]/20 bg-[#d7ff3f] px-5 py-9 text-[#080a0f] sm:rounded-[28px] sm:px-14 sm:py-12 lg:py-16">
               <div className="absolute -right-20 -top-40 h-96 w-96 rounded-full bg-white/30 blur-3xl" />
               <div className="relative max-w-3xl">
                 <Sparkles className="mb-6 h-7 w-7" />
@@ -407,12 +407,12 @@ export default function LandingPage() {
                   <br />
                   Empieza a dirigir tu flotilla.
                 </h2>
-                <p className="mt-5 max-w-xl text-base leading-7 text-[#080a0f]/65">
+                <p className="mt-4 max-w-xl text-sm leading-6 text-[#080a0f]/65 sm:mt-5 sm:text-base sm:leading-7">
                   Prueba FleetEase durante 14 días sin tarjeta y conoce el sistema con tu propia operación.
                 </p>
                 <Link
                   href="/registro"
-                  className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#080a0f] px-7 py-4 text-sm font-bold text-white transition hover:bg-white hover:text-[#080a0f]"
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#080a0f] px-6 py-4 text-sm font-bold sm:mt-8 sm:w-auto sm:px-7" text-white transition hover:bg-white hover:text-[#080a0f]"
                 >
                   Comenzar prueba gratis <ArrowRight className="h-4 w-4" />
                 </Link>
