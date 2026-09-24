@@ -21,7 +21,7 @@ import {
   SECURITY_DEPOSIT_CATEGORY,
   PARTNER_PAYMENT_CATEGORY_NAME,
 } from '@/contexts/data-provider';
-import { TransactionTimeline, type TimelineEvent } from './components/ClientTransactionTimeline';
+import { TransactionTimeline, type TimelineEvent } from './components/TransactionTimeline';
 
 export default function ClientTransactionsPage() {
   const router = useRouter();
