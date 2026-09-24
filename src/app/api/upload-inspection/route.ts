@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const uniqueFileName = `${user.id}-${view}-${Date.now()}.${fileExtension}`;
     const bucketName = 'inspection-images';
     const fullPath = `${vehicleId}/${uniqueFileName}`;
+    if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType: file.type, upsert: false });
     if (uploadError) throw uploadError;
