@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-provider';
 import { useVehicleSearch } from '@/hooks/use-vehicle-search';
 import { FleetDashboard } from './components/fleet-dashboard';
-import { VehicleAdvancedFilters } from './components/vehicle-advanced-filters';
 import { sanitizeAndFormatData } from '@/lib/utils';
 import { useStorage } from '@/hooks/use-storage';
 import { canAddVehicle, getVehicleLimitMessage, type PlanType } from '@/config/plans';
@@ -273,17 +272,6 @@ export default function VehiclesPage() {
         </header>
 
         <FleetDashboard vehicles={rawVehicles} vehicleMetrics={vehicleMetrics || []} />
-
-        <VehicleAdvancedFilters 
-          filters={filters}
-          onFilterChange={updateFilter}
-          onReset={resetFilters}
-          onSearch={debouncedSetQuery}
-          totalResults={totalResults}
-          partners={partners}
-          clients={clients}
-          isLoading={loadingData}
-        />
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="p-4 sm:p-5">
