@@ -15,11 +15,16 @@ export function proxy(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
+    script-src-attr 'none';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: https: blob: https://firebasestorage.googleapis.com https://storage.googleapis.com;
+    media-src 'self' blob:;
+    manifest-src 'self';
     font-src 'self' data:;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com;
-    frame-src https://js.stripe.com https://hooks.stripe.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    child-src 'self';
+    worker-src 'self' blob:;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
