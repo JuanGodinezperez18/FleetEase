@@ -412,7 +412,7 @@ export default function LandingPage() {
                 </p>
                 <Link
                   href="/registro"
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#080a0f] px-6 py-4 text-sm font-bold sm:mt-8 sm:w-auto sm:px-7" text-white transition hover:bg-white hover:text-[#080a0f]"
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#080a0f] px-6 py-4 text-sm font-bold text-white transition hover:bg-white hover:text-[#080a0f] sm:mt-8 sm:w-auto sm:px-7"
                 >
                   Comenzar prueba gratis <ArrowRight className="h-4 w-4" />
                 </Link>
