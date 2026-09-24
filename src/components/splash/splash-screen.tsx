@@ -14,7 +14,7 @@ export function SplashScreen({ duration = 1200, onFinish, forceHide = false }: S
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    document.getElementById('fe-boot')?.remove();
+    document.documentElement.dataset.feBootHidden = 'true';
   }, []);
 
   useEffect(() => {
