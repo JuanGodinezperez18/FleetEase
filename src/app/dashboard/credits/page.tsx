@@ -56,7 +56,7 @@ const CreditMobileCard = ({
     : "border-white/10 bg-white/[0.06] text-white/50";
 
   return (
-    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+    <div className="rounded-[14px] border border-white/[0.07] bg-white/[0.02] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -282,7 +282,7 @@ export default function CreditsPage() {
   );
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
@@ -301,7 +301,7 @@ export default function CreditsPage() {
             <Button
               data-add-button="true"
               onClick={handleCreateNew}
-              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
             >
               <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Agregar crédito
@@ -311,7 +311,7 @@ export default function CreditsPage() {
 
         <CreditPortfolioDashboard creditMetrics={creditMetrics} portfolioAnalytics={portfolioAnalytics} />
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Gestión de créditos</h2>
             <p className="mt-0.5 text-xs text-white/40">
