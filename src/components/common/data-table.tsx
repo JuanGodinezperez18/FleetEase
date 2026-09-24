@@ -75,12 +75,12 @@ function DataTableFilterRow<TData>({ table }: DataTableFilterRowProps<TData>) {
   return (
     <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 ml-auto hidden md:flex">
+          <Button variant="outline" size="sm" className="h-11 ml-auto hidden md:flex">
             <SlidersHorizontal className="mr-2 h-4 w-4" />
             Filtros
           </Button>
         </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
+      <PopoverContent className="w-[min(92vw,20rem)]" align="end">
         <div className="space-y-4 p-4">
             <div className="font-medium text-sm">Filtros de Columna</div>
             {filterableColumns.map(header => {
@@ -102,7 +102,7 @@ function DataTableFilterRow<TData>({ table }: DataTableFilterRowProps<TData>) {
                     onChange={(event) =>
                       column.setFilterValue(event.target.value)
                     }
-                    className="h-8 col-span-3"
+                    className="h-11 col-span-3"
                   />
                 </div>
               );
@@ -256,7 +256,7 @@ export function DataTable<TData, TValue>({
     <div>
         {/* Bulk Actions Bar */}
         {selectedRows.length > 0 && bulkActions.length > 0 && (
-          <div className="bg-muted/50 border-b px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="border-b border-border/60 bg-muted/40 px-4 py-3 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-2">
             <span className="text-sm font-medium">
               {selectedRows.length} elemento(s) seleccionado(s)
             </span>
@@ -269,7 +269,7 @@ export function DataTable<TData, TValue>({
                     variant={action.variant || 'outline'}
                     size="sm"
                     onClick={() => handleBulkAction(action)}
-                    className="h-8"
+                    className="h-10"
                   >
                     {Icon && <Icon className="mr-2 h-4 w-4" />}
                     {action.label}
@@ -280,7 +280,7 @@ export function DataTable<TData, TValue>({
                 variant="ghost"
                 size="sm"
                 onClick={() => setRowSelection({})}
-                className="h-8"
+                className="h-10"
               >
                 Cancelar
               </Button>
@@ -303,7 +303,7 @@ export function DataTable<TData, TValue>({
                     variant="outline"
                     size="sm"
                     onClick={() => setIsCompact(!isCompact)}
-                    className="h-9 hidden md:flex"
+                    className="h-11 hidden md:flex"
                     title={isCompact ? "Vista normal" : "Vista compacta"}
                 >
                     {isCompact ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
@@ -314,7 +314,7 @@ export function DataTable<TData, TValue>({
                     size="sm"
                     onClick={handleExport}
                     disabled={loading || data.length === 0}
-                    className="h-9"
+                    className="h-11"
                 >
                     <FileDown className="mr-2 h-4 w-4" />
                     Exportar
@@ -323,10 +323,10 @@ export function DataTable<TData, TValue>({
       </div>
       
       {/* Mobile Card View */}
-      <div className="grid gap-4 md:hidden">
+      <div className="grid gap-3 md:hidden">
         {loading ? (
             loadingRows.map(i => (
-                <div key={`mobile-skeleton-${i}`} className="p-4 border rounded-lg space-y-3">
+                <div key={`mobile-skeleton-${i}`} className="p-4 border border-border/70 rounded-[14px] bg-card/60 space-y-3">
                     <Skeleton className="h-5 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
                     <Skeleton className="h-4 w-2/3" />
@@ -334,7 +334,7 @@ export function DataTable<TData, TValue>({
             ))
         ) : table.getRowModel().rows?.length ? (
           table.getRowModel().rows.map((row) => (
-            <div key={row.id} className="p-4 border rounded-lg space-y-2">
+            <div key={row.id} className="p-4 border border-border/70 rounded-[14px] bg-card/60 space-y-2">
               {row.getVisibleCells().map((cell) => {
                 const columnDef = cell.column.columnDef;
                 const headerDef = cell.column.columnDef.header;
@@ -435,7 +435,7 @@ export function DataTable<TData, TValue>({
         </ShadcnTable>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex flex-wrap items-center justify-end gap-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
             {table.getFilteredSelectedRowModel().rows.length} de{" "}
             {table.getFilteredRowModel().rows.length} fila(s) seleccionadas.
