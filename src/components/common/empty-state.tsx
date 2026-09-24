@@ -48,9 +48,9 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center min-h-[400px] p-8 text-center',
-        'border-2 border-dashed rounded-lg border-muted-foreground/25',
-        'bg-gradient-to-br from-muted/30 to-muted/10',
+        'flex min-h-[320px] flex-col items-center justify-center rounded-[14px] border border-dashed border-border/70 bg-card/50 p-6 text-center sm:min-h-[360px] sm:p-8',
+        'shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]',
+        'transition-colors',
         className
       )}
       role="status"
@@ -59,17 +59,17 @@ export function EmptyState({
       {IllustrationComponent ? (
         <IllustrationComponent className="mb-6" />
       ) : Icon ? (
-        <div className="mb-4 p-4 rounded-full bg-primary/10">
-          <Icon className="w-12 h-12 text-primary" strokeWidth={1.5} />
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/40">
+          <Icon className="h-6 w-6 text-muted-foreground" strokeWidth={1.6} />
         </div>
       ) : null}
 
-      <h3 className="text-xl font-semibold mb-2 text-foreground">
+      <h3 className="mb-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
         {title}
       </h3>
 
       {description && (
-        <p className="text-muted-foreground mb-6 max-w-md">
+        <p className="mb-6 max-w-md text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       )}
@@ -77,7 +77,7 @@ export function EmptyState({
       {children}
 
       {actionLabel && onAction && (
-        <Button onClick={onAction} size="lg" className="mt-4">
+        <Button onClick={onAction} size="lg" className="mt-2 min-h-11">
           {actionLabel}
         </Button>
       )}
