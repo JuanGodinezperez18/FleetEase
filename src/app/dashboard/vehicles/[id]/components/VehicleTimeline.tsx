@@ -37,7 +37,7 @@ const eventConfig: Record<
 export const VehicleTimeline = ({ events }: { events: TimelineEvent[] }) => {
   if (!events || events.length === 0) {
     return (
-      <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+      <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
         <div className="border-b border-white/[0.06] px-5 py-3.5">
           <h2 className="font-heading flex items-center gap-2 text-sm font-semibold text-white">
             <History className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
@@ -52,7 +52,7 @@ export const VehicleTimeline = ({ events }: { events: TimelineEvent[] }) => {
   }
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+    <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
       <div className="border-b border-white/[0.06] px-5 py-3.5">
         <h2 className="font-heading flex items-center gap-2 text-sm font-semibold text-white">
           <History className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
