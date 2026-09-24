@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const filePath = getSafeStoragePath(match[2]);
-    if (!filePath) {
+    if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no válida.' }, { status: 400 });
     }
     
