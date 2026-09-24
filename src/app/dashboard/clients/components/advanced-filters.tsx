@@ -25,8 +25,8 @@ export function AdvancedSearchPanel({
   activeFiltersCount 
 }: AdvancedSearchPanelProps) {
   return (
-    <Card className="border-t-0 rounded-t-none">
-      <CardContent className="space-y-4 pt-6">
+    <Card className="fe-filter-surface rounded-t-none">
+      <CardContent className="fe-filter-body space-y-4 pt-5">
         {/* Búsqueda general */}
         <div>
           <Label htmlFor="search">Búsqueda general</Label>
@@ -42,11 +42,11 @@ export function AdvancedSearchPanel({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {/* Rango de deuda */}
           <div>
             <Label>Deuda (rango)</Label>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 gap-2">
               <Input
                 type="number"
                 placeholder="Mín"
@@ -145,7 +145,7 @@ export function AdvancedSearchPanel({
         </div>
         {activeFiltersCount > 0 && (
           <div className="flex justify-start pt-2">
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="min-h-11">
                 <X className="w-4 h-4 mr-2" />
                 Limpiar {activeFiltersCount} filtro(s)
             </Button>
