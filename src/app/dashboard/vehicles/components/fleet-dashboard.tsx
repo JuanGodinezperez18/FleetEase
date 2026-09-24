@@ -139,7 +139,7 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
 
       {/* Analytics: desktop only — reduce mobile noise */}
       <div className="hidden gap-4 md:grid md:grid-cols-2">
-        <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <Card className="rounded-[14px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
               Rendimiento de la flota
@@ -169,7 +169,7 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
           </CardContent>
         </Card>
 
-        <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <Card className="rounded-[14px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
               Top 5 por rentabilidad
@@ -220,7 +220,7 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
       </div>
 
       {attentionRequiredVehicles.length > 0 && (
-        <div className="hidden rounded-[20px] border border-amber-400/20 bg-amber-400/[0.06] p-4 md:block">
+        <div className="hidden rounded-[14px] border border-amber-400/20 bg-amber-400/[0.06] p-4 md:block">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-300">
             <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
             Requieren atención
