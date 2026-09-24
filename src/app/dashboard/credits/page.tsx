@@ -14,7 +14,6 @@ import { CreditCancellationDialog, type CreditCancellationResult } from "@/compo
 import { useCreditAnalytics } from "@/hooks/use-credits-analytics";
 import { useCreditsSearch, type CreditWithMetrics } from "@/hooks/use-credits-search";
 import { CreditPortfolioDashboard } from "./components/credit-portfolio-dashboard";
-import { CreditAdvancedFilters } from "./components/credit-advanced-filters";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/date-utils";
@@ -311,17 +310,6 @@ export default function CreditsPage() {
         </header>
 
         <CreditPortfolioDashboard creditMetrics={creditMetrics} portfolioAnalytics={portfolioAnalytics} />
-
-        <CreditAdvancedFilters
-          filters={filters}
-          onFilterChange={updateFilter}
-          onReset={resetFilters}
-          onSearch={debouncedSetQuery}
-          totalResults={totalResults}
-          clients={clients}
-          vehicles={vehicles}
-          isLoading={loadingData}
-        />
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
