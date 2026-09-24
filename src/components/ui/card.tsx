@@ -14,7 +14,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <motion.div
       ref={ref}
       className={cn(
-        "rounded-xl border text-card-foreground",
+        "rounded-[14px] border text-card-foreground",
         glass && "glass-premium backdrop-blur-xl",
         !glass && "bg-card shadow-sm",
         hover && "hover-lift transition-all duration-300",
