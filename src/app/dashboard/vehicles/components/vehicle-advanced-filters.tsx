@@ -70,8 +70,8 @@ export const VehicleAdvancedFilters: React.FC<VehicleAdvancedFiltersProps> = ({
   ];
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
+    <Card className="fe-filter-surface w-full">
+      <CardHeader className="fe-filter-header pb-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -84,7 +84,7 @@ export const VehicleAdvancedFilters: React.FC<VehicleAdvancedFiltersProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="fe-filter-body space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -95,9 +95,9 @@ export const VehicleAdvancedFilters: React.FC<VehicleAdvancedFiltersProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="fe-filter-grid">
            <Select value={filters.status} onValueChange={(value) => onFilterChange('status', value)}>
-            <SelectTrigger><div className="flex items-center gap-1"><Gauge className="h-4 w-4" /><SelectValue /></div></SelectTrigger>
+            <SelectTrigger className="fe-filter-control"><div className="flex items-center gap-1"><Gauge className="h-4 w-4" /><SelectValue /></div></SelectTrigger>
             <SelectContent>
               {statusOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
             </SelectContent>
@@ -121,7 +121,7 @@ export const VehicleAdvancedFilters: React.FC<VehicleAdvancedFiltersProps> = ({
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={() => setIsExpanded(!isExpanded)} className="w-full">
+          <Button variant="outline" onClick={() => setIsExpanded(!isExpanded)} className="fe-filter-control w-full">
             <Filter className="h-4 w-4 mr-2" />
             {isExpanded ? 'Ocultar Avanzados' : 'Más Filtros'}
           </Button>
@@ -171,7 +171,7 @@ export const VehicleAdvancedFilters: React.FC<VehicleAdvancedFiltersProps> = ({
           </div>
         )}
       </CardContent>
-      <CardFooter className="border-t pt-3 pb-3">
+      <CardFooter className="border-t border-border/70 px-4 pb-3 pt-3 sm:px-5">
         <Button variant="ghost" onClick={onReset} disabled={activeFiltersCount === 0}>
           <X className="h-4 w-4 mr-2" /> Limpiar Filtros
         </Button>
