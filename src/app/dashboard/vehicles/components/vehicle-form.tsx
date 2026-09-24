@@ -171,8 +171,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
 
     return (
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-grow overflow-y-auto overscroll-contain pr-1 sm:pr-3">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+          <div className="pr-1 sm:pr-3">
             <div className="space-y-5 p-1 sm:space-y-6">
               {!initialData && (
                 <div className="rounded-[14px] border border-[#d7ff3f]/10 bg-white/[0.025] p-5 shadow-[0_12px_35px_rgba(0,0,0,.14)]">
@@ -257,7 +257,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
             </div>
           </div>
-          <div className="shrink-0 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-[#0b0f14] pt-4 sm:flex-row sm:justify-end">
+          <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-transparent pt-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white sm:h-10 sm:w-auto">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90 sm:h-10 sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
