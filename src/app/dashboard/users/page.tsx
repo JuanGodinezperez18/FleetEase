@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUserAnalytics, type UserMetric } from '@/hooks/use-user-analytics';
 import { UserAdminDashboard } from './components/user-admin-dashboard';
-import { UserAdvancedFilters } from './components/user-advanced-filters';
 import { useUserSearch } from './components/user-search';
 import { toast as sonnerToast } from 'sonner';
 import { getColumns } from './columns';
@@ -476,16 +475,6 @@ export default function UsersPage() {
         </header>
 
         <UserAdminDashboard users={users} userMetrics={userMetrics} />
-
-        <UserAdvancedFilters
-          filters={filters}
-          onFilterChange={updateFilter}
-          onReset={resetFilters}
-          onSearch={debouncedSetQuery}
-          totalResults={totalResults}
-          companies={companies}
-          isLoading={loadingData}
-        />
 
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
           <ResponsiveTable
