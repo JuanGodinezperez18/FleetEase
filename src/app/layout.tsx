@@ -7,7 +7,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
-import { ServiceWorkerRegister } from "@/components/common/service-worker-register";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -92,102 +91,26 @@ const themeInitScript = `
  * Recupera fallos de carga en PWA (chunks viejos / SW).
  * Si se agotan los reintentos, desregistra el SW y borra caches.
  */
-const loadRecoveryScript = `
+const legacySwCleanupScript = `
 (function() {
-  var KEY = 'fe_load_recovery';
-  var MAX = 2;
-
-  function canRecover() {
-    try {
-      var n = parseInt(sessionStorage.getItem(KEY) || '0', 10);
-      return n < MAX;
-    } catch (e) { return false; }
-  }
-
-  function hardResetSwAndReload() {
-    var done = function() { window.location.reload(); };
-    if (!('serviceWorker' in navigator)) { done(); return; }
-    navigator.serviceWorker.getRegistrations().then(function(regs) {
-      return Promise.all(regs.map(function(r) { return r.unregister(); }));
-    }).then(function() {
-      if (!('caches' in window)) return;
-      return caches.keys().then(function(names) {
-        return Promise.all(names.map(function(n) { return caches.delete(n); }));
-      });
-    }).then(done).catch(done);
-  }
-
-  function markAndReload() {
-    try {
-      var n = parseInt(sessionStorage.getItem(KEY) || '0', 10);
-      sessionStorage.setItem(KEY, String(n + 1));
-      if (n + 1 >= MAX) {
-        hardResetSwAndReload();
-        return;
-      }
-    } catch (e) {}
-    window.location.reload();
-  }
-
-  // Remove legacy Service Workers before hydration/navigation.
-  // Old SWs can serve stale chunks/RSC payloads and cause navigation failures.
-  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      return Promise.all(registrations.map(function(registration) {
-        try {
-          if (registration.active) registration.active.postMessage('CLEAR_CACHES');
-        } catch (e) {}
-        return registration.unregister();
-      }));
-    }).then(function() {
-      if (!('caches' in window)) return;
-      return caches.keys().then(function(names) {
-        return Promise.all(names.map(function(name) { return caches.delete(name); }));
-      });
-    }).catch(function() {});
-  }
-  // El boot splash solo debe aparecer en la primera entrada de la sesión.
-  // En recargas posteriores dejamos que el loader/skeleton de la app tome el control.
-  try {
-    if (sessionStorage.getItem('hasShownSplash') === 'true') {
-      document.documentElement.setAttribute('data-fe-boot-hidden', 'true');
-    }
-  } catch (e) {}
-
-  function isChunkError(msg) {
-    if (!msg) return false;
-    var m = String(msg).toLowerCase();
-    return (
-      m.indexOf('chunkloaderror') !== -1 ||
-      m.indexOf('loading chunk') !== -1 ||
-      m.indexOf('failed to fetch dynamically imported module') !== -1 ||
-      m.indexOf('importing a module script failed') !== -1 ||
-      m.indexOf('error loading dynamically imported module') !== -1
-    );
-  }
-
-  window.addEventListener('error', function(e) {
-    var msg = (e && (e.message || (e.error && e.error.message))) || '';
-    if (isChunkError(msg)) markAndReload();
-  });
-
-  window.addEventListener('unhandledrejection', function(e) {
-    var reason = e && e.reason;
-    var msg = typeof reason === 'string' ? reason : (reason && reason.message) || '';
-    if (isChunkError(msg)) markAndReload();
-  });
-
-  window.setTimeout(function() {
-    var boot = document.getElementById('fe-boot');
-    if (boot) boot.remove();
-  }, 4000);
-
-  window.addEventListener('load', function() {
-    try { sessionStorage.removeItem(KEY); } catch (e) {}
-  });
+  // FleetEase no longer registers a Service Worker. Remove legacy workers/caches
+  // once, without forcing a reload or interfering with App Router navigation.
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    return Promise.all(registrations.map(function(registration) {
+      try {
+        if (registration.active) registration.active.postMessage('CLEAR_CACHES');
+      } catch (e) {}
+      return registration.unregister();
+    }));
+  }).then(function() {
+    if (!('caches' in window)) return;
+    return caches.keys().then(function(names) {
+      return Promise.all(names.map(function(name) { return caches.delete(name); }));
+    });
+  }).catch(function() {});
 })();
 `;
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
@@ -195,8 +118,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Script id="fleetease-theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
-        <Script id="fleetease-load-recovery" strategy="beforeInteractive">
-          {loadRecoveryScript}
+        <Script id="fleetease-legacy-sw-cleanup" strategy="beforeInteractive">
+          {legacySwCleanupScript}
         </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`
@@ -217,7 +140,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
         <GlobalErrorBoundary>
           <Providers>
-            <ServiceWorkerRegister />
             <OfflineIndicator />
             {children}
             <PwaInstallButton />
