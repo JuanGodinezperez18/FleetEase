@@ -91,11 +91,15 @@ const CreditMobileCard = ({
               <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onViewDetails(credit.id)}>Ver detalles</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onEdit(credit)}>Editar</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+            <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white" onSelect={() => onViewDetails(credit.id)}>
+              Ver detalles
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white" onSelect={() => onEdit(credit)}>
+              Editar
+            </DropdownMenuItem>
             {credit.status === "active" && (
-              <DropdownMenuItem onSelect={() => onDeactivate(credit.id)} className="text-rose-400 focus:text-rose-400">
+              <DropdownMenuItem className="cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-amber-300 focus:bg-amber-500/15 focus:text-amber-200" onSelect={() => onDeactivate(credit.id)}>
                 Cancelar crédito
               </DropdownMenuItem>
             )}
@@ -289,7 +293,7 @@ export default function CreditsPage() {
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">
-              Operación
+              Finanzas
             </div>
             <h1 className="fe-module-title">Créditos</h1>
             <p className="fe-module-subtitle">Portafolio, morosidad y gestión de créditos</p>
