@@ -15,7 +15,7 @@ export function SplashScreenWrapper({ children }: SplashScreenWrapperProps) {
 
   useEffect(() => {
     if (!showSplash) {
-      document.getElementById('fe-boot')?.remove();
+      document.documentElement.dataset.feBootHidden = 'true';
       return;
     }
 
