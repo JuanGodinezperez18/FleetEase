@@ -118,7 +118,7 @@ export const CreditPortfolioDashboard: React.FC<CreditPortfolioDashboardProps> =
       </div>
 
       {portfolioMetrics.highRiskCredits > 0 && (
-        <div className="flex items-start gap-3 rounded-[16px] border border-rose-400/25 bg-rose-400/[0.06] p-3 text-sm text-rose-200">
+        <div className="flex items-start gap-3 rounded-[14px] border border-rose-400/25 bg-rose-400/[0.06] p-3 text-sm text-rose-200">
           <Siren className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
           <div>
             <p className="font-semibold">Atención requerida</p>
@@ -130,7 +130,7 @@ export const CreditPortfolioDashboard: React.FC<CreditPortfolioDashboardProps> =
       )}
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Comportamiento de pago</h2>
             <p className="mt-0.5 text-xs text-white/40">Distribución del portafolio</p>
@@ -155,7 +155,7 @@ export const CreditPortfolioDashboard: React.FC<CreditPortfolioDashboardProps> =
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="flex items-center gap-2 font-heading text-base font-semibold text-white">
               <AlertTriangle className="h-4 w-4 text-rose-300" strokeWidth={1.75} />
