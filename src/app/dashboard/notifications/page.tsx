@@ -131,7 +131,7 @@ const NotificationMobileCard = ({
         <Button
           size="sm"
           asChild
-          className="h-9 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+          className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
         >
           <Link href={getNotificationLink(notification)}>Revisar</Link>
         </Button>
