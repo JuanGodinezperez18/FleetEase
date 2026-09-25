@@ -40,7 +40,7 @@ const HealthScoreGauge = ({ score, title }: { score: number; title: string }) =>
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 text-center">
+    <div className="flex flex-col items-center justify-center rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 text-center">
       <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">{title}</p>
       <div className="relative mt-2 h-36 w-36">
         <ResponsiveContainer width="100%" height="100%">
@@ -113,7 +113,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <HealthScoreGauge score={overallHealthScore} title="Salud general" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:col-span-2">
-          <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
             <ShieldCheck className="mx-auto mb-2 h-6 w-6 text-sky-300" strokeWidth={1.75} />
             <p className="text-[11px] uppercase tracking-wide text-white/40">Seguridad</p>
             <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
@@ -121,7 +121,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
               <span className="text-sm text-white/35">/100</span>
             </p>
           </div>
-          <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
             <Wrench className="mx-auto mb-2 h-6 w-6 text-emerald-300" strokeWidth={1.75} />
             <p className="text-[11px] uppercase tracking-wide text-white/40">Mantenimiento</p>
             <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
@@ -129,7 +129,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
               <span className="text-sm text-white/35">/100</span>
             </p>
           </div>
-          <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 text-center">
             <Settings2 className="mx-auto mb-2 h-6 w-6 text-[#d7ff3f]" strokeWidth={1.75} />
             <p className="text-[11px] uppercase tracking-wide text-white/40">Configuración</p>
             <p className="mt-1 font-heading text-2xl font-semibold tabular-nums text-white">
@@ -143,7 +143,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
       {(alerts.length > 0 || recommendations.length > 0) && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {alerts.length > 0 && (
-            <div className="rounded-[20px] border border-rose-400/20 bg-rose-400/[0.06] p-4">
+            <div className="rounded-[14px] border border-rose-400/20 bg-rose-400/[0.06] p-4">
               <div className="mb-2 flex items-center gap-2 text-rose-300">
                 <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
                 <p className="text-sm font-semibold">Alertas críticas</p>
@@ -156,7 +156,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
             </div>
           )}
           {recommendations.length > 0 && (
-            <div className="rounded-[20px] border border-sky-400/20 bg-sky-400/[0.06] p-4">
+            <div className="rounded-[14px] border border-sky-400/20 bg-sky-400/[0.06] p-4">
               <div className="mb-2 flex items-center gap-2 text-sky-300">
                 <Lightbulb className="h-4 w-4" strokeWidth={1.75} />
                 <p className="text-sm font-semibold">Recomendaciones</p>
@@ -171,7 +171,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
         </div>
       )}
 
-      <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
+      <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
           Respaldo
         </p>
