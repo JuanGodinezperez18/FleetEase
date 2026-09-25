@@ -181,7 +181,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
           <Button
             onClick={exportConfiguration}
             disabled={isProcessing}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-11 rounded-xl" bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
           >
             <Download className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
             Exportar
@@ -190,7 +190,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
             variant="outline"
             onClick={handleImportClick}
             disabled={isProcessing}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-11 rounded-xl" border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
             <Upload className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
             Importar
@@ -206,7 +206,7 @@ export const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
             variant="outline"
             onClick={resetToDefaults}
             disabled={isProcessing}
-            className="h-10 rounded-xl border-rose-400/20 bg-rose-400/10 text-xs text-rose-300 hover:bg-rose-400/15"
+            className="h-11 rounded-xl" border-rose-400/20 bg-rose-400/10 text-xs text-rose-300 hover:bg-rose-400/15"
           >
             <RotateCcw className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
             Restaurar defaults
