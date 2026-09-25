@@ -54,40 +54,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener o crear customer de Stripe
-    let { data: stripeCustomer, error: customerError } = await supabaseAdmin
-      .from('stripe_customers')
-      .select('stripe_customer_id')
-      .eq('company_id', userProfile.company_id)
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from('companies')
+      .select('id, name, email, stripe_customer_id')
+      .eq('id', userProfile.company_id)
       .single();
 
-    let stripeCustomerId: string;
+    if (companyError || !company) {
+      return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404 });
+    }
 
-    if (customerError || !stripeCustomer?.stripe_customer_id) {
-      // Crear customer en Stripe
-      const { data: company } = await supabaseAdmin
-        .from('companies')
-        .select('name, email')
-        .eq('id', userProfile.company_id)
-        .single();
+    let stripeCustomerId = company.stripe_customer_id as string | null;
 
+    if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
-        email: company?.email || user.email,
-        name: company?.name,
-        metadata: {
-          company_id: userProfile.company_id,
-        },
+        email: company.email || user.email,
+        name: company.name,
+        metadata: { company_id: company.id },
       });
-
       stripeCustomerId = customer.id;
 
-      // Guardar en BD
-      await supabaseAdmin.from('stripe_customers').insert({
-        company_id: userProfile.company_id,
-        stripe_customer_id: stripeCustomerId,
-      });
-    } else {
-      stripeCustomerId = stripeCustomer.stripe_customer_id;
+      await supabaseAdmin
+        .from('companies')
+        .update({ stripe_customer_id: stripeCustomerId, updated_at: new Date().toISOString() })
+        .eq('id', company.id);
     }
 
     // Crear sesión de checkout usando el Price ID real del catálogo
@@ -107,6 +97,13 @@ export async function POST(request: NextRequest) {
         company_id: userProfile.company_id,
         plan_id: planId,
         billing_cycle: billingCycle,
+      },
+      subscription_data: {
+        metadata: {
+          company_id: userProfile.company_id,
+          plan_id: planId,
+          billing_cycle: billingCycle,
+        },
       },
     });
 
