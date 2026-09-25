@@ -55,7 +55,7 @@ function CompanyMobileCard({
     typeof company.vehicleLimit === 'number' ? String(company.vehicleLimit) : '∞';
 
   return (
-    <article className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)]">
+    <article className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)]">
       <div className="flex items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
           <Building2 className="h-5 w-5" strokeWidth={1.75} />
@@ -386,7 +386,7 @@ export default function CompaniesPage() {
   if (!canManageCompanies) {
     return (
       <div className="relative min-h-full overflow-hidden rounded-[30px] bg-[#080a0f] p-6 text-white">
-        <div className="mx-auto max-w-md rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
+        <div className="mx-auto max-w-md rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-rose-400/20 bg-rose-400/10 text-rose-300">
             <Building2 className="h-6 w-6" strokeWidth={1.75} />
           </div>
@@ -443,7 +443,7 @@ export default function CompaniesPage() {
           onCardClick={handleCardClick}
         />
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-2 px-1">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">
