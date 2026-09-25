@@ -234,7 +234,7 @@ export default function FAQPage() {
   });
 
   return (
-    <div className="fe-shell-bg relative min-h-full space-y-5 overflow-hidden rounded-[30px] p-4 pb-24 sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="fe-shell-bg relative min-h-full space-y-5 overflow-hidden rounded-[18px] p-4 pb-24 sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.03] [background-image:linear-gradient(rgba(128,128,128,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(128,128,128,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
@@ -291,7 +291,7 @@ export default function FAQPage() {
 
         <div className="space-y-2.5">
           {filteredFaqs.length === 0 ? (
-            <div className="fe-surface-bg rounded-[20px] border fe-border-subtle px-6 py-12 text-center">
+            <div className="fe-surface-bg rounded-[14px] border fe-border-subtle px-6 py-12 text-center">
               <HelpCircle className="mx-auto mb-3 h-10 w-10 fe-text-faint opacity-60" strokeWidth={1.5} />
               <p className="text-sm fe-text-muted">
                 No se encontraron preguntas que coincidan con tu búsqueda
@@ -345,7 +345,7 @@ export default function FAQPage() {
           )}
         </div>
 
-        <section className="fe-surface-bg rounded-[20px] border fe-border-subtle p-4 shadow-[0_18px_50px_rgba(0,0,0,.08)] dark:shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5">
+        <section className="fe-surface-bg rounded-[14px] border fe-border-subtle p-4 shadow-[0_18px_50px_rgba(0,0,0,.08)] dark:shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5">
           <div className="mb-4 flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <Mail className="h-5 w-5" strokeWidth={1.75} />
