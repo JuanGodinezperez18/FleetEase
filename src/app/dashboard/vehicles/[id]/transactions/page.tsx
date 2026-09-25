@@ -88,7 +88,7 @@ export default function VehicleTransactionsPage() {
           </p>
         </header>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
           <DataTable
             columns={transactionsColumns}
             data={vehicleTransactions}
