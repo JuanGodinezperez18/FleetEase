@@ -306,7 +306,7 @@ export default function SubscriptionPage() {
                   </ul>
 
                   <Button
-                    className={`h-10 w-full rounded-xl text-xs font-semibold ${
+                    className={`h-11 w-full rounded-xl text-xs font-semibold ${
                       isCurrentPlan
                         ? 'border-white/10 bg-white/[0.06] text-white/50'
                         : plan.popular
