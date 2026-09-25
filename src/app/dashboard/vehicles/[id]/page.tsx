@@ -227,7 +227,7 @@ export default function VehicleDetailPage() {
 
   if (loadingData) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
       </div>
     );
@@ -235,7 +235,7 @@ export default function VehicleDetailPage() {
 
   if (!vehicle) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-[30px] bg-[#080a0f] text-center text-white">
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-[18px] bg-[#080a0f] text-center text-white">
         <p className="font-heading text-lg font-semibold">No se encontró el vehículo</p>
         <Button
           variant="outline"
