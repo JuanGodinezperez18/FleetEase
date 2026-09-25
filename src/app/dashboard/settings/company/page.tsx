@@ -33,7 +33,7 @@ const companySettingsSchema = z.object({
 type CompanySettingsFormValues = z.infer<typeof companySettingsSchema>;
 
 const inputClass =
-  'h-10 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
+  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
 const labelClass = 'text-xs font-medium text-white/55';
 const sectionClass =
   'rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
