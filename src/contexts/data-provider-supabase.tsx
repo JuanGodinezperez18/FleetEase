@@ -128,8 +128,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const loadingData = useMemo(() => authLoading || loadingClients || loadingVehicles || loadingFinancialRecords || loadingCategories, [authLoading, loadingClients, loadingVehicles, loadingFinancialRecords, loadingCategories]);
   const refreshData = useCallback(async () => { await queryClient.invalidateQueries(); }, [queryClient]);
 
-  const addVehicleMutation = useMutation({ mutationFn: async (data: Partial<DomainVehicle>) => { const { data: result, error } = await supabase.from('vehicles').insert(toSbVehicle(data) as any).select().single(); if (error) throw error; return toDomainVehicle(result); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo agregado exitosamente'); }, onError: (error) => toast.error('Error al agregar vehículo', { description: error.message }) });
-  const updateVehicleMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainVehicle> & { id: string }) => { const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo actualizado'); }, onError: (error) => toast.error('Error al actualizar vehículo', { description: error.message }) });
+  const addVehicleMutation = useMutation({
+    mutationFn: async (data: Partial<DomainVehicle>) => {
+      try {
+        validateVehicleMutation(data);
+        const { data: result, error } = await supabase.from('vehicles').insert(toSbVehicle(data) as any).select().single();
+        if (error) throw error;
+        return toDomainVehicle(result);
+      } catch (error) {
+        throw getSafeVehicleError(error);
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo agregado exitosamente'); },
+    onError: (error) => toast.error('Error al agregar vehículo', { description: error.message }),
+  });
+  const updateVehicleMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<DomainVehicle> & { id: string }) => {
+      try {
+        validateVehicleMutation(data);
+        if (data.lastMaintenanceMileage !== undefined && data.currentMileage === undefined) {
+          const { data: existing, error: fetchError } = await supabase.from('vehicles').select('current_mileage').eq('id', id).single();
+          if (fetchError) throw fetchError;
+          validateVehicleMutation(data, Number(existing.current_mileage ?? 0));
+        }
+        const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        throw getSafeVehicleError(error);
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo actualizado'); },
+    onError: (error) => toast.error('Error al actualizar vehículo', { description: error.message }),
+  });
   const deleteVehicleMutation = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from('vehicles').update({ is_deleted: true }).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo eliminado'); }, onError: (error) => toast.error('Error al eliminar vehículo', { description: error.message }) });
   const addClientMutation = useMutation({ mutationFn: async (data: Partial<DomainClient>) => { const { data: result, error } = await supabase.from('clients').insert(toSbClient(data) as any).select().single(); if (error) throw error; return toDomainClient(result); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente agregado exitosamente'); }, onError: (error) => toast.error('Error al agregar cliente', { description: error.message }) });
   const updateClientMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainClient> & { id: string }) => { const { error } = await supabase.from('clients').update(toSbClient(data) as any).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente actualizado'); }, onError: (error) => toast.error('Error al actualizar cliente', { description: error.message }) });
