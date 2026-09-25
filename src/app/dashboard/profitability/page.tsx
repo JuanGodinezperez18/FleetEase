@@ -38,14 +38,17 @@ export default function ProfitabilityPage() {
   const userDisplayName = currentUser?.name || currentUser?.email || '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-[18px] bg-background/40 p-1 sm:p-2">
       <DashboardHeader userName={userDisplayName} isConfigOpen={false} onOpenConfig={() => {}} onDateChange={() => {}} />
-      <div>
-        <h1 className="fe-section-title font-heading text-3xl font-bold tracking-tight">Rentabilidad por Vehículo</h1>
-        <p className="text-muted-foreground mt-1">Identifica qué vehículos ganan dinero y cuáles pierden</p>
+      <div className="fe-module-header">
+        <div className="fe-module-eyebrow">Análisis</div>
+        <div>
+        <h1 className="fe-module-title">Rentabilidad por Vehículo</h1>
+        <p className="fe-module-subtitle">Identifica qué vehículos ganan dinero y cuáles pierden</p>
+        </div>
       </div>
 
-      <Alert className="fe-surface border-[color:var(--fe-lime)]/20 bg-[color:var(--fe-lime)]/5">
+      <Alert className="fe-surface rounded-[14px] border-[color:var(--fe-lime)]/20 bg-[color:var(--fe-lime)]/5">
         <TrendingUp className="h-5 w-5 text-[color:var(--fe-lime)]" />
         <AlertTitle className="font-heading text-foreground">Feature Estrella de FleetEase</AlertTitle>
         <AlertDescription className="text-muted-foreground mt-2">
@@ -62,15 +65,15 @@ export default function ProfitabilityPage() {
           dateRange={dateRange}
         />
       ) : (
-        <Card className="fe-surface">
+        <Card className="fe-surface rounded-[14px]">
           <CardHeader>
             <CardTitle className="font-heading">{!hasVehicles ? 'No hay vehículos registrados' : 'No hay registros financieros'}</CardTitle>
             <CardDescription>{!hasVehicles ? 'Comienza registrando tus vehículos para ver la rentabilidad' : 'Registra ingresos y gastos para ver la rentabilidad de tus vehículos'}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {!hasVehicles && <Button asChild><Link href="/dashboard/vehicles">Registrar Vehículo</Link></Button>}
-              {!hasRecords && <Button asChild variant="outline"><Link href="/dashboard/finanzas">Registrar Ingreso/Gasto</Link></Button>}
+              {!hasVehicles && <Button asChild className="min-h-11"><Link href="/dashboard/vehicles">Registrar Vehículo</Link></Button>}
+              {!hasRecords && <Button asChild variant="outline" className="min-h-11"><Link href="/dashboard/finanzas">Registrar Ingreso/Gasto</Link></Button>}
             </div>
           </CardContent>
         </Card>
