@@ -155,7 +155,7 @@ export default function VehicleAssignmentsPage() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="flex items-center gap-3.5 rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
+          <div className="flex items-center gap-3.5 rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <Car className="h-5 w-5" strokeWidth={1.75} />
             </div>
@@ -168,7 +168,7 @@ export default function VehicleAssignmentsPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3.5 rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
+          <div className="flex items-center gap-3.5 rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/50">
               <Users className="h-5 w-5" strokeWidth={1.75} />
             </div>
@@ -181,7 +181,7 @@ export default function VehicleAssignmentsPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3.5 rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
+          <div className="flex items-center gap-3.5 rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.18)]">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/15 bg-amber-400/[0.08] text-amber-300">
               <ShieldCheck className="h-5 w-5" strokeWidth={1.75} />
             </div>
@@ -196,7 +196,7 @@ export default function VehicleAssignmentsPage() {
           </div>
         </div>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="flex flex-col gap-2 border-b border-white/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <h2 className="font-heading text-lg font-semibold text-white">
