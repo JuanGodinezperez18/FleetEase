@@ -83,10 +83,10 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const inputClass =
-  'h-10 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
+  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
 const labelClass = 'text-xs font-medium text-white/55';
 const selectTriggerClass =
-  'h-10 rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30';
+  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30';
 
 const CategoryForm = React.forwardRef<
   CategoryFormHandles,
@@ -563,7 +563,7 @@ export default function CategoriesPage() {
 
   if (loadingData && !financialCategories.length) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
       </div>
     );
@@ -571,8 +571,8 @@ export default function CategoriesPage() {
 
   if (!canManage) {
     return (
-      <div className="relative min-h-full overflow-hidden rounded-[30px] bg-[#080a0f] p-6 text-white">
-        <div className="mx-auto max-w-md rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
+      <div className="relative min-h-full overflow-hidden rounded-[18px] bg-[#080a0f] p-6 text-white">
+        <div className="mx-auto max-w-md rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-rose-400/20 bg-rose-400/10 text-rose-300">
             <Tags className="h-6 w-6" strokeWidth={1.75} />
           </div>
@@ -586,7 +586,7 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
@@ -609,7 +609,7 @@ export default function CategoriesPage() {
                 variant="outline"
                 onClick={handleCreateDefaultCategories}
                 disabled={isSubmitting}
-                className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+                className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
               >
                 <Wand2 className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
                 Categorías de sistema
@@ -617,7 +617,7 @@ export default function CategoriesPage() {
             )}
             <Button
               onClick={() => handleOpenModal()}
-              className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+              className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
             >
               <PlusCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Agregar categoría
@@ -625,7 +625,7 @@ export default function CategoriesPage() {
           </div>
         </header>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-2 px-1">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">
@@ -665,14 +665,14 @@ export default function CategoriesPage() {
             variant="outline"
             onClick={handleCloseModal}
             disabled={isSubmitting}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
           >
             Cancelar
           </Button>
           <Button
             onClick={() => formRef.current?.submit()}
             disabled={isSubmitting}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
           >
             {isSubmitting && (
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" strokeWidth={1.75} />
