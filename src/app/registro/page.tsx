@@ -79,13 +79,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] p-4 text-white">
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#080a0f] px-3 py-5 text-white sm:p-4">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[#d7ff3f]/[0.04] blur-[100px]" />
         <div className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full bg-[#d7ff3f]/[0.03] blur-[80px]" />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative z-10 w-full max-w-[760px] py-6 sm:py-10">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative z-10 min-w-0 w-full max-w-[760px] py-4 sm:py-10">
         <div className="mb-6 text-center sm:mb-8">
           <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
@@ -100,7 +100,7 @@ export default function RegisterPage() {
           <p className="mt-1.5 text-sm text-white/45">Gestión inteligente de flotillas</p>
         </div>
 
-        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-xl">
+        <div className="min-w-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-xl">
           <div className="border-b border-white/[0.07] px-5 py-5 sm:px-7 sm:py-6">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -114,8 +114,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="px-5 py-6 sm:px-7 sm:py-7">
-            <div className="relative overflow-hidden">
+          <div className="min-w-0 px-4 py-5 sm:px-7 sm:py-7">
+            <div className="relative min-w-0 overflow-hidden">
               <motion.div key={step} custom={step} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-5">
                 {step === 1 && <>
                   <div className="grid gap-5 md:grid-cols-2">
@@ -131,12 +131,12 @@ export default function RegisterPage() {
                       {(Object.values(plans) as any[]).map((plan: any) => {
                         const isFree = plan.id === 'free';
                         const selected = data.selectedPlan === plan.id;
-                        return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative cursor-pointer rounded-2xl border p-3 sm:p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
+                        return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative min-w-0 w-full cursor-pointer rounded-2xl border p-3 sm:p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
                           {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Prueba gratis</div>}
                           {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más popular</div>}
-                          <div className="flex items-start gap-2 sm:gap-3">
-                            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="truncate text-sm text-white/40">{plan.description}</p></div></div>
-                            <div className="shrink-0 text-right"><p className="text-base sm:text-lg font-bold text-white">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? '14 días' : `/ ${plan.period}`}</p></div>
+                          <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3">
+                            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="text-sm leading-5 text-white/40 sm:truncate">{plan.description}</p></div></div>
+                            <div className="shrink-0 text-left sm:ml-auto sm:text-right"><p className="text-base font-bold text-white sm:text-lg">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? '14 días' : `/ ${plan.period}`}</p></div>
                           </div>
                           <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] sm:text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="font-semibold text-[#d7ff3f]">No requiere tarjeta</span></>}</div>
                           {selected && <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3"><CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-[#d7ff3f]" /></div>}
