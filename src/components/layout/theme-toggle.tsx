@@ -26,7 +26,7 @@ export function ThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary"
+        className="h-11 w-11 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary"
         aria-label="Tema"
         disabled
       >
@@ -43,7 +43,7 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary transition-all hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
+          className="h-11 w-11 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary transition-all hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
           aria-label="Cambiar tema"
         >
           {isDark ? (
