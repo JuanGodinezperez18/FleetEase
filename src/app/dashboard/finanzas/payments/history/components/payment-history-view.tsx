@@ -340,7 +340,7 @@ export function PaymentHistoryView() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Pagos realizados</h2>
             <p className="mt-0.5 text-xs text-white/40">{paymentRecords.length} registros</p>
@@ -411,7 +411,7 @@ export function PaymentHistoryView() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-2xl rounded-[20px] border border-white/[0.1] bg-[#0e1117] p-5 text-white shadow-2xl sm:p-6">
+          <div className="w-full max-w-2xl rounded-[14px] border border-white/[0.1] bg-[#0e1117] p-5 text-white shadow-2xl sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-heading text-lg font-semibold">Editar {PAYMENT_LABELS[editing.recordKind] || "Pago"}</h2>
