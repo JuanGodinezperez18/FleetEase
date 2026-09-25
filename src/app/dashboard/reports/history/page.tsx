@@ -68,7 +68,7 @@ export default function ReportHistoryPage() {
         <Button
           variant="ghost"
           onClick={() => router.back()}
-          className="h-9 rounded-xl px-2 text-white/50 hover:bg-white/[0.06] hover:text-white"
+          className="h-11 rounded-xl px-2 text-white/50 hover:bg-white/[0.06] hover:text-white"
         >
           <ArrowLeft className="mr-2 h-4 w-4" strokeWidth={1.75} />
           Volver a reportes
