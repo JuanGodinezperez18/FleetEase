@@ -1,5 +1,6 @@
 /**
  * Catálogo comercial de FleetEase.
+ * El catálogo de producción debe mantenerse sincronizado con los Price IDs de Stripe.
  * Este archivo describe capacidades que hoy existen en el producto.
  * Las capacidades en comingSoon no deben presentarse como incluidas todavía.
  */
