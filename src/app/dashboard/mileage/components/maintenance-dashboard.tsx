@@ -123,7 +123,7 @@ export const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ vehi
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] lg:col-span-1">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] lg:col-span-1">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Calendario predictivo</h2>
             <p className="mt-0.5 text-xs text-white/40">Mantenimientos estimados</p>
@@ -148,7 +148,7 @@ export const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = ({ vehi
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] lg:col-span-2">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] lg:col-span-2">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Eficiencia operativa</h2>
             <p className="mt-0.5 text-xs text-white/40">Costo de mantenimiento por km</p>
