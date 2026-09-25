@@ -333,7 +333,7 @@ export default function SeguimientosPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+                  className="h-11 w-11 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
@@ -345,7 +345,7 @@ export default function SeguimientosPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+                  className="h-11 w-11 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
