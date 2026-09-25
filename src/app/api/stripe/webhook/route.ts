@@ -51,34 +51,21 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        
+
         if (session.mode === 'subscription' && session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          
+          const subscription = await stripe.subscriptions.retrieve(
+            typeof session.subscription === 'string' ? session.subscription : session.subscription.id
+          );
           const companyId = session.metadata?.company_id;
           const planId = session.metadata?.plan_id;
-          const billingCycle = session.metadata?.billing_cycle;
 
           if (companyId) {
-            // Actualizar customer con subscription_id
-            await supabaseAdmin
-              .from('stripe_customers')
-              .update({
-                stripe_subscription_id: subscription.id,
-                subscription_status: subscription.status,
-                subscription_plan: planId,
-                current_period_end: getCurrentPeriodEnd(subscription),
-                updated_at: new Date().toISOString(),
-              })
-              .eq('company_id', companyId);
-
-            // Actualizar company con plan
             await supabaseAdmin
               .from('companies')
               .update({
-                plan: planId,
+                plan: planId || undefined,
                 stripe_subscription_id: subscription.id,
-                stripe_customer_id: session.customer as string,
+                stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
                 subscription_status: subscription.status,
                 updated_at: new Date().toISOString(),
               })
@@ -90,56 +77,48 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        
-        // Buscar customer por stripe_subscription_id
-        const { data: stripeCustomer } = await supabaseAdmin
-          .from('stripe_customers')
-          .select('company_id')
+        const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+
+        const { data: companyBySubscription } = await supabaseAdmin
+          .from('companies')
+          .select('id')
           .eq('stripe_subscription_id', subscription.id)
-          .single();
+          .maybeSingle();
 
-        if (stripeCustomer) {
-          await supabaseAdmin
-            .from('stripe_customers')
-            .update({
-              subscription_status: subscription.status,
-              current_period_end: getCurrentPeriodEnd(subscription),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('stripe_subscription_id', subscription.id);
+        let companyId = companyBySubscription?.id;
+        if (!companyId) {
+          const { data: companyByCustomer } = await supabaseAdmin
+            .from('companies')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .maybeSingle();
+          companyId = companyByCustomer?.id;
+        }
 
+        if (companyId) {
           await supabaseAdmin
             .from('companies')
             .update({
               subscription_status: subscription.status,
+              stripe_subscription_id: subscription.id,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', stripeCustomer.company_id);
+            .eq('id', companyId);
         }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        
-        const { data: stripeCustomer } = await supabaseAdmin
-          .from('stripe_customers')
-          .select('company_id')
-          .eq('stripe_subscription_id', subscription.id)
-          .single();
+        const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
 
-        if (stripeCustomer) {
-          await supabaseAdmin
-            .from('stripe_customers')
-            .update({
-              stripe_subscription_id: null,
-              subscription_status: 'canceled',
-              subscription_plan: null,
-              current_period_end: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('stripe_subscription_id', subscription.id);
+        const { data: company } = await supabaseAdmin
+          .from('companies')
+          .select('id')
+          .or(`stripe_subscription_id.eq.${subscription.id},stripe_customer_id.eq.${customerId}`)
+          .maybeSingle();
 
+        if (company) {
           await supabaseAdmin
             .from('companies')
             .update({
@@ -148,7 +127,7 @@ export async function POST(request: NextRequest) {
               subscription_status: 'canceled',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', stripeCustomer.company_id);
+            .eq('id', company.id);
         }
         break;
       }
@@ -156,71 +135,23 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = getInvoiceSubscriptionId(invoice);
-
         if (subscriptionId) {
-          const { data: stripeCustomer } = await supabaseAdmin
-            .from('stripe_customers')
-            .select('company_id')
-            .eq('stripe_subscription_id', subscriptionId)
-            .single();
-
-          if (stripeCustomer) {
-            await supabaseAdmin
-              .from('stripe_customers')
-              .update({
-                subscription_status: 'past_due',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('stripe_subscription_id', subscriptionId);
-
-            await supabaseAdmin
-              .from('companies')
-              .update({
-                subscription_status: 'past_due',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', stripeCustomer.company_id);
-          }
+          await supabaseAdmin
+            .from('companies')
+            .update({ subscription_status: 'past_due', updated_at: new Date().toISOString() })
+            .eq('stripe_subscription_id', subscriptionId);
         }
         break;
       }
 
-      // Antes no se manejaba este evento: cuando un pago fallido
-      // (invoice.payment_failed, arriba) se corrige y el cobro de
-      // reintento de Stripe SÍ pasa, no había una confirmación explícita
-      // de que la cuenta salió de 'past_due'. En la práctica
-      // 'customer.subscription.updated' también suele dispararse en ese
-      // momento y ya corrige el status, pero este evento es la señal
-      // directa e inequívoca del pago exitoso - útil además como punto
-      // de enganche para enviar un recibo/confirmación al cliente.
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = getInvoiceSubscriptionId(invoice);
-
         if (subscriptionId) {
-          const { data: stripeCustomer } = await supabaseAdmin
-            .from('stripe_customers')
-            .select('company_id')
-            .eq('stripe_subscription_id', subscriptionId)
-            .single();
-
-          if (stripeCustomer) {
-            await supabaseAdmin
-              .from('stripe_customers')
-              .update({
-                subscription_status: 'active',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('stripe_subscription_id', subscriptionId);
-
-            await supabaseAdmin
-              .from('companies')
-              .update({
-                subscription_status: 'active',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', stripeCustomer.company_id);
-          }
+          await supabaseAdmin
+            .from('companies')
+            .update({ subscription_status: 'active', updated_at: new Date().toISOString() })
+            .eq('stripe_subscription_id', subscriptionId);
         }
         break;
       }
