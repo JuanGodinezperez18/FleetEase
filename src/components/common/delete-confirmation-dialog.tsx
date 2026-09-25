@@ -60,7 +60,7 @@ export function DeleteConfirmationDialog({
             {finalDescription}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="gap-2">
           <AlertDialogCancel onClick={onClose} disabled={isDeleting}>
               {cancelText}
           </AlertDialogCancel>
