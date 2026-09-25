@@ -311,7 +311,7 @@ export default function PaymentsPage() {
 
           {tabItems.map(item => (
             <TabsContent key={item.value} value={item.value} className="mt-5">
-              <div className="max-w-4xl overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+              <div className="max-w-4xl overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
                 <div className="mb-5">
                   <h2 className="font-heading text-lg font-semibold tracking-tight text-white">
                     {item.label}
