@@ -256,7 +256,7 @@ export default function VehiclesPage() {
             <Button
               variant="outline"
               onClick={() => router.push('/dashboard/vehicles/assignments')}
-              className="h-10 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               Asignaciones
             </Button>
