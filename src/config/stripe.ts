@@ -20,12 +20,13 @@ export const stripeConfig = {
   },
 };
 
-// Mantiene compatibilidad con el nombre histórico. Los valores son MXN en centavos,
-// no USD; no se utiliza para autorizar features ni para el checkout.
+// Compatibilidad con el nombre histórico. Los valores se derivan del catálogo
+// comercial canónico en MXN y se expresan en centavos. No se utiliza para
+// autorizar features ni para el checkout.
 export const planPricesUSD = {
-  starter: 29900,
-  pro: 59900,
-  enterprise: 99900,
+  starter: plans.starter.price * 100,
+  pro: plans.pro.price * 100,
+  enterprise: plans.enterprise.price * 100,
 };
 
 export const planFeatures = {
