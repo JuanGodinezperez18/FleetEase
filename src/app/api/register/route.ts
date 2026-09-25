@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getStripe } from '@/lib/stripe';
+import { getStripePriceId } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
