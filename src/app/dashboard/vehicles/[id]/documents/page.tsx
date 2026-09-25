@@ -314,7 +314,7 @@ export default function VehicleDocumentsPage() {
               return (
                 <article
                   key={field.key}
-                  className="flex flex-col overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_14px_40px_rgba(0,0,0,.2)]"
+                  className="flex flex-col overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_14px_40px_rgba(0,0,0,.2)]"
                 >
                   <div className="border-b border-white/[0.06] px-4 py-3">
                     <div className="flex items-center justify-between gap-2">
