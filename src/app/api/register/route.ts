@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getStripe } from '@/lib/stripe';
+import Stripe from 'stripe';
 import { getStripePriceId } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
 
@@ -138,7 +138,9 @@ export async function POST(request: NextRequest) {
     // 5. Crear customer y Checkout con el Price ID canónico de Stripe.
     // El customer se guarda directamente en companies; no existe una tabla
     // stripe_customers en el esquema actual.
-    const stripe = getStripe();
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) throw new Error('STRIPE_SECRET_KEY no está configurada.');
+    const stripe = new Stripe(secretKey, { apiVersion: '2025-10-29.clover' });
     const billingCycle = 'monthly';
     const priceId = getStripePriceId(selectedPlan, billingCycle);
     const customer = await stripe.customers.create({
