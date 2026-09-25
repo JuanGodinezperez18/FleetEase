@@ -61,7 +61,7 @@ function StatCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 text-left shadow-[0_14px_40px_rgba(0,0,0,.18)] transition-colors hover:border-white/[0.12] disabled:cursor-default"
+      className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 text-left shadow-[0_14px_40px_rgba(0,0,0,.18)] transition-colors hover:border-white/[0.12] disabled:cursor-default"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -234,7 +234,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
+        <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">
             Tendencia
           </p>
@@ -272,7 +272,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
         </div>
 
         {stats.stateDistribution.length > 0 && (
-          <div className="rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">
               Geografía
             </p>
@@ -306,7 +306,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
       </div>
 
       {stats.companiesNearingLimit.length > 0 && (
-        <div className="rounded-[20px] border border-amber-400/20 bg-amber-400/[0.06] p-4 sm:p-5">
+        <div className="rounded-[14px] border border-amber-400/20 bg-amber-400/[0.06] p-4 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-amber-300" strokeWidth={1.75} />
             <h3 className="text-sm font-semibold text-amber-200">
