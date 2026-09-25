@@ -237,19 +237,12 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   if (!apiKey || apiKey === 'TU_GOOGLE_MAPS_API_KEY_AQUI') {
     return (
-      <div className="space-y-4">
-        <div className="p-3 border border-amber-200 bg-amber-50 rounded-md">
-          <p className="text-sm text-amber-800">
-            Configure la API Key de Google Maps para habilitar el autocompletado.
-          </p>
-        </div>
-        <ManualAddressFields
-          values={values}
-          onChange={onChange}
-          errors={errors}
-          disabled={disabled}
-        />
-      </div>
+      <ManualAddressFields
+      values={values}
+      onChange={onChange}
+      errors={errors}
+      disabled={disabled}
+    />
     );
   }
 
