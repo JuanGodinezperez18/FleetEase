@@ -43,7 +43,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
     return !allVehicles.some(v => v.serialNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de serie ya está registrado." }),
   status: z.enum(['active', 'inactive', 'maintenance', 'sold', 'rented']),
-  createdAt: z.string().optional(),
+  createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= new Date().toISOString().slice(0, 10)), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
   clientId: z.string().nullable(),
   partnerId: z.string().nullable(),
   cost: z.coerce.number().optional(),
