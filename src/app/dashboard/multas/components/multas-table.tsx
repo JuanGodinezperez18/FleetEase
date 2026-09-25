@@ -297,7 +297,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                       <span className="text-white/80">
                         {format(new Date(multa.fechaInfraccion), "dd/MM/yyyy", { locale: es })}
                       </span>
-                      <span className="text-[11px] text-white/35">Hace {multa.daysOverdue} días</span>
+                      <span className="text-[11px] text-white/35">{multa.daysOverdue > 0 ? `Hace ${multa.daysOverdue} días` : multa.daysOverdue < 0 ? `En ${Math.abs(multa.daysOverdue)} días` : "Hoy"}</span>
                     </div>
                   </TableCell>
                   <TableCell>
