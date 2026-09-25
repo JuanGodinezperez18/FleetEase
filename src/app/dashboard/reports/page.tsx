@@ -386,12 +386,11 @@ export default function ReportsPageImproved() {
             <Button
               asChild
               variant="outline"
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <Link href="/dashboard/reports/history">Historial</Link>
             </Button>
           </div>
-        </header>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
