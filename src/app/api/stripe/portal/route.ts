@@ -34,20 +34,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
     }
 
-    // Obtener customer de Stripe
-    const { data: stripeCustomer, error: customerError } = await supabaseAdmin
-      .from('stripe_customers')
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from('companies')
       .select('stripe_customer_id')
-      .eq('company_id', userProfile.company_id)
+      .eq('id', userProfile.company_id)
       .single();
 
-    if (customerError || !stripeCustomer?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No hay suscripción activa' }, { status: 404 });
+    if (companyError || !company?.stripe_customer_id) {
+      return NextResponse.json({ error: 'No hay cliente de facturación configurado' }, { status: 404 });
     }
 
     // Crear sesión del portal de facturación
     const session = await stripe.billingPortal.sessions.create({
-      customer: stripeCustomer.stripe_customer_id,
+      customer: company.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/subscription`,
     });
 
