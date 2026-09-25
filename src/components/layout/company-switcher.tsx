@@ -30,7 +30,7 @@ export function CompanySwitcher() {
   return (
     <div className="w-full">
       <Select value={selectedCompanyId || "all"} onValueChange={handleValueChange}>
-        <SelectTrigger className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30">
+        <SelectTrigger className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30">
           <div className="flex items-center gap-2 truncate">
             <Building className="h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} />
             <SelectValue asChild>
