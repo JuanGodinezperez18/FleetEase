@@ -62,9 +62,8 @@ export async function POST(request: NextRequest) {
         is_deleted: false,
         max_vehicles: planConfig.maxVehicles === -1 ? null : planConfig.maxVehicles,
         max_users: planConfig.maxUsers === -1 ? null : planConfig.maxUsers,
-        ...(selectedPlan === 'free'
-          ? { subscription_status: 'trialing', trial_ends_at: trialEndsAt }
-          : { subscription_status: 'active' }),
+        subscription_status: selectedPlan === 'free' ? 'trialing' : 'pending_payment',
+        trial_ends_at: trialEndsAt,
       })
       .select()
       .single();
@@ -75,18 +74,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Error al crear la empresa' }, { status: 500 });
     }
 
-    // 3. Crear perfil de usuario
+    // 3. Completar el perfil creado automáticamente por el trigger on_auth_user_created.
+    // No insertamos otro registro con el mismo UUID.
     const { error: profileError } = await supabaseAdmin
       .from('users')
-      .insert({
-        id: authData.user.id,
+      .update({
         email,
         name,
         phone,
         role: 'admin',
         company_id: company.id,
         is_deleted: false,
-      });
+      })
+      .eq('id', authData.user.id);
 
     if (profileError) {
       await supabaseAdmin.from('companies').delete().eq('id', company.id);
@@ -121,16 +121,72 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Error al configurar las categorías financieras' }, { status: 500 });
     }
 
+    if (selectedPlan === 'free') {
+      return NextResponse.json({
+        success: true,
+        message: 'Cuenta creada. Tu prueba gratuita de 14 días ha comenzado.',
+        userId: authData.user.id,
+        companyId: company.id,
+        plan: selectedPlan,
+        trialEndsAt,
+        requiresPaymentMethod: false,
+      });
+    }
+
+    // 5. Crear customer y Checkout con el Price ID canónico de Stripe.
+    // El customer se guarda directamente en companies; no existe una tabla
+    // stripe_customers en el esquema actual.
+    const stripe = getStripe();
+    const billingCycle = 'monthly';
+    const priceId = getStripePriceId(selectedPlan, billingCycle);
+    const customer = await stripe.customers.create({
+      email,
+      name: companyName,
+      phone: phone || undefined,
+      metadata: { company_id: company.id, plan_id: selectedPlan },
+    });
+
+    await supabaseAdmin
+      .from('companies')
+      .update({
+        stripe_customer_id: customer.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', company.id);
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${appUrl}/dashboard/settings/subscription?success=true&checkout=completed`,
+      cancel_url: `${appUrl}/registro?plan=${selectedPlan}&canceled=true`,
+      metadata: {
+        company_id: company.id,
+        plan_id: selectedPlan,
+        billing_cycle: billingCycle,
+      },
+      subscription_data: {
+        metadata: {
+          company_id: company.id,
+          plan_id: selectedPlan,
+          billing_cycle: billingCycle,
+        },
+      },
+    });
+
+    if (!session.url) throw new Error('Stripe no devolvió una URL de checkout.');
+
     return NextResponse.json({
       success: true,
-      message: selectedPlan === 'free'
-        ? 'Cuenta creada. Tu prueba gratuita de 14 días ha comenzado.'
-        : 'Cuenta creada exitosamente',
+      message: 'Cuenta creada. Continúa con el pago para activar tu suscripción.',
       userId: authData.user.id,
       companyId: company.id,
       plan: selectedPlan,
       trialEndsAt,
-      requiresPaymentMethod: planConfig.requiresPaymentMethod !== false,
+      requiresPaymentMethod: true,
+      checkoutUrl: session.url,
     });
   } catch (error) {
     console.error('[Register API] Unexpected error:', error);
