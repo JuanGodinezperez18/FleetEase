@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/resend';
+import { getStripe } from '@/lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,20 +52,23 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data: subscriptions, error } = await supabase
-      .from('stripe_customers')
-      .select('company_id, current_period_end, subscription_plan, subscription_status')
-      .not('company_id', 'is', null)
-      .not('current_period_end', 'is', null)
+      .from('companies')
+      .select('id, name, plan, stripe_subscription_id')
+      .not('stripe_subscription_id', 'is', null)
       .in('subscription_status', ['active', 'trialing', 'past_due']);
 
     if (error) throw error;
     companiesChecked = subscriptions?.length ?? 0;
 
+    const stripe = getStripe();
+
     for (const subscription of subscriptions ?? []) {
       try {
-        const periodEnd = new Date(subscription.current_period_end);
-        if (Number.isNaN(periodEnd.getTime())) throw new Error('Invalid current_period_end');
+        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id!);
+        const currentPeriodEnd = stripeSubscription.items.data[0]?.current_period_end;
+        if (!currentPeriodEnd) throw new Error('Stripe subscription has no current period end');
 
+        const periodEnd = new Date(currentPeriodEnd * 1000);
         const daysRemaining = Math.ceil((periodEnd.getTime() - now.getTime()) / DAY_MS);
         if (!REMINDER_DAYS.includes(daysRemaining)) continue;
 
@@ -73,14 +77,14 @@ export async function GET(request: NextRequest) {
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('name, plan')
-          .eq('id', subscription.company_id)
+          .eq('id', subscription.id)
           .single();
         if (companyError || !company) throw companyError || new Error('Company not found');
 
         const { data: admins, error: adminError } = await supabase
           .from('users')
           .select('email')
-          .eq('company_id', subscription.company_id)
+          .eq('company_id', subscription.id)
           .eq('is_deleted', false)
           .eq('role', 'admin');
         if (adminError) throw adminError;
@@ -95,7 +99,7 @@ export async function GET(request: NextRequest) {
         // The unique constraint on (company_id, reminder_key, period_end) prevents duplicates.
         const { data: reservation, error: reservationError } = await supabase
           .from('subscription_email_reminders')
-          .insert({ company_id: subscription.company_id, reminder_key: key, period_end: periodEnd.toISOString() })
+          .insert({ company_id: subscription.id, reminder_key: key, period_end: periodEnd.toISOString() })
           .select('id')
           .maybeSingle();
 
@@ -110,7 +114,7 @@ export async function GET(request: NextRequest) {
 
         const email = renderEmail(
           company.name || 'tu empresa',
-          subscription.subscription_plan || company.plan || 'FleetEase',
+          subscription.plan || company.plan || 'FleetEase',
           periodEnd,
           daysRemaining,
         );
@@ -133,8 +137,8 @@ export async function GET(request: NextRequest) {
         }
       } catch (companyError) {
         const message = companyError instanceof Error ? companyError.message : String(companyError);
-        errors.push(`${subscription.company_id}: ${message}`);
-        console.error('[Subscription expiry cron]', subscription.company_id, companyError);
+        errors.push(`${subscription.id}: ${message}`);
+        console.error('[Subscription expiry cron]', subscription.id, companyError);
       }
     }
 
