@@ -11,6 +11,7 @@ import { MultaForm } from "./components/multa-form";
 import { MultasTable } from "./components/multas-table";
 import type { Multa, MultaWithDetails } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 import { supabase } from "@/lib/supabase";
 
@@ -84,9 +85,7 @@ export default function MultasPage() {
       .map(multa => {
         const vehicle = vehicles.find(v => v.id === multa.vehicleId);
         const client = clients.find(c => c.id === multa.clientId);
-        const daysOverdue = Math.floor(
-          (new Date().getTime() - new Date(multa.fechaInfraccion).getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const daysOverdue = differenceInCalendarDays(new Date(), parseISO(multa.fechaInfraccion));
         return {
           ...multa,
           vehiclePlate: vehicle?.plate,

@@ -43,7 +43,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
     return !allVehicles.some(v => v.serialNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de serie ya está registrado." }),
   status: z.enum(['active', 'inactive', 'maintenance', 'sold', 'rented']),
-  createdAt: z.string().optional(),
+  createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= new Date().toISOString().slice(0, 10)), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
   clientId: z.string().nullable(),
   partnerId: z.string().nullable(),
   cost: z.coerce.number().optional(),
@@ -192,7 +192,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                   <FormField name="alias" control={form.control} render={({field}) => <FormItem><FormLabel>Alias del vehículo</FormLabel><FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="make" control={form.control} render={({field}) => <FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="model" control={form.control} render={({field}) => <FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="year" control={form.control} render={({field}) => <FormItem><FormLabel>Año</FormLabel><FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="year" control={form.control} render={({field}) => <FormItem><FormLabel>Año</FormLabel><FormControl><Input type="number" {...field} onFocus={e => e.currentTarget.select()} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="plate" control={form.control} render={({field}) => <FormItem><FormLabel>Placa</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="serialNumber" control={form.control} render={({field}) => <FormItem className="sm:col-span-2"><FormLabel>No. Serie</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="color" control={form.control} render={({field}) => <FormItem><FormLabel>Color</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
@@ -202,7 +202,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
 
               <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
                 <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Registro</p><h3 className="text-base font-semibold text-white">Fecha de creación</h3></div></div>
-                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" {...field} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-muted cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
+                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={parseDateForInput(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-muted cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
               </section>
 
               <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">

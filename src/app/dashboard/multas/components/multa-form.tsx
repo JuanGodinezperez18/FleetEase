@@ -76,6 +76,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
   const importe = watch("importe");
   const recargos = watch("recargos");
   const currentStatus = watch("status");
+  const today = new Date().toISOString().slice(0, 10);
 
   const activeVehicles = useMemo(
     () => vehicles.filter(v => !v.isDeleted && v.status !== "sold"),
@@ -270,7 +271,12 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           <Input
             id="fechaInfraccion"
             type="date"
-            {...register("fechaInfraccion", { required: "La fecha es requerida" })}
+            max={today}
+            {...register("fechaInfraccion", {
+              required: "La fecha es requerida",
+              validate: value => !value || value <= today || "La fecha de infracción no puede ser futura.",
+            })}
+            onFocus={e => e.currentTarget.select()}
             className={inputClass}
           />
           {errors.fechaInfraccion && (
