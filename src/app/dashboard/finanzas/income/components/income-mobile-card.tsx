@@ -45,7 +45,7 @@ export function IncomeMobileCard({
   const canDelete = record.canDelete !== false && !isCreditGranted;
 
   return (
-    <article className="group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)]">
+    <article className="group relative overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_14px_40px_rgba(0,0,0,.2)]">
       <div className="flex items-start gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300">
           <TrendingUp className="h-5 w-5" strokeWidth={1.75} />
