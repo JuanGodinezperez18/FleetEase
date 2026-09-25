@@ -41,7 +41,7 @@ function getSafePlan(plan: unknown): PlanType {
 }
 
 const sectionClass =
-  'rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
+  'rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -67,7 +67,7 @@ export default function SubscriptionPage() {
 
   if (loading || verifying) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
         <p className="text-sm">Cargando suscripción...</p>
       </div>
@@ -121,7 +121,7 @@ export default function SubscriptionPage() {
   const PlanIcon = PLAN_ICONS[currentPlan];
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
@@ -215,7 +215,7 @@ export default function SubscriptionPage() {
               onClick={handleManageBilling}
               variant="outline"
               disabled={processing}
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <CreditCard className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Gestionar facturación
@@ -224,7 +224,7 @@ export default function SubscriptionPage() {
               <Button
                 onClick={() => handleUpgrade('enterprise')}
                 disabled={processing}
-                className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+                className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
               >
                 <Building2 className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
                 Contactar ventas
@@ -246,7 +246,7 @@ export default function SubscriptionPage() {
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-[20px] border p-4 sm:p-5 ${
+                  className={`relative rounded-[14px] border p-4 sm:p-5 ${
                     isCurrentPlan
                       ? 'border-emerald-400/30 bg-emerald-400/[0.06]'
                       : plan.popular
