@@ -348,7 +348,7 @@ export function SmartBusinessAlerts({
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-[20px] border border-white/[0.07] bg-[#0e1117] py-14 text-center">
+        <div className="flex flex-col items-center justify-center rounded-[14px] border border-white/[0.07] bg-[#0e1117] py-14 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
             <CheckCircle className="h-7 w-7" strokeWidth={1.75} />
           </div>
