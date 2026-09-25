@@ -269,7 +269,7 @@ export function DataTable<TData, TValue>({
                     variant={action.variant || 'outline'}
                     size="sm"
                     onClick={() => handleBulkAction(action)}
-                    className="h-10"
+                    className="h-11"
                   >
                     {Icon && <Icon className="mr-2 h-4 w-4" />}
                     {action.label}
@@ -280,7 +280,7 @@ export function DataTable<TData, TValue>({
                 variant="ghost"
                 size="sm"
                 onClick={() => setRowSelection({})}
-                className="h-10"
+                className="h-11"
               >
                 Cancelar
               </Button>
