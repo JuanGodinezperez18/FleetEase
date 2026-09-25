@@ -361,7 +361,7 @@ export default function ReportsPageImproved() {
             <Button
               onClick={handleExportPDF}
               disabled={isGeneratingPDF}
-              className="h-10 rounded-xl bg-[#d7ff3f] px-3 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-11 rounded-xl bg-[#d7ff3f] px-3 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
             >
               {isGeneratingPDF ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" strokeWidth={1.75} />
