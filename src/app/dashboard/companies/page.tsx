@@ -422,14 +422,14 @@ export default function CompaniesPage() {
               variant="outline"
               onClick={handleExport}
               disabled={filteredCompanies.length === 0}
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <Download className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Exportar
             </Button>
             <Button
               onClick={() => handleOpenModal()}
-              className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+              className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
             >
               <PlusCircle className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Agregar empresa
