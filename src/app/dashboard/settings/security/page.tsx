@@ -147,7 +147,7 @@ export default function SecuritySettingsPage() {
                     size="icon"
                     onClick={() => removeFactor(factor.id)}
                     aria-label="Eliminar autenticador"
-                    className="h-9 w-9 rounded-lg text-rose-400 hover:bg-rose-500/15 hover:text-rose-300"
+                    className="h-11 w-11 rounded-lg text-rose-400 hover:bg-rose-500/15 hover:text-rose-300"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={1.75} />
                   </Button>
