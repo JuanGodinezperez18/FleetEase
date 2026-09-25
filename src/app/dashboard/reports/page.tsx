@@ -316,15 +316,9 @@ export default function ReportsPageImproved() {
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">Análisis</div>
-              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Operación
-            </div>
-            <h1 className="fe-module-title">
-              Reporte ejecutivo
-            </h1>
+            <h1 className="fe-module-title">Reporte ejecutivo</h1>
             <p className="fe-module-subtitle">Análisis con exportación PDF y Excel</p>
           </div>
-
           <div className="fe-module-actions flex flex-wrap items-end gap-2">
             <Select value={reportType} onValueChange={(v: ReportType) => setReportType(v)}>
               <SelectTrigger className="w-[180px] border-white/10 bg-white/[0.03] text-white">
@@ -397,6 +391,7 @@ export default function ReportsPageImproved() {
               <Link href="/dashboard/reports/history">Historial</Link>
             </Button>
           </div>
+        </header>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
