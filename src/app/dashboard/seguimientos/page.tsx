@@ -436,7 +436,7 @@ export default function SeguimientosPage() {
                       )}.jpg`
                     )
                   }
-                  className="h-10 flex-1 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+                  className="h-11 flex-1 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
                 >
                   <Download className="mr-2 h-4 w-4" strokeWidth={1.75} />
                   Descargar
@@ -447,7 +447,7 @@ export default function SeguimientosPage() {
                     onClick={() =>
                       openGoogleMaps(selectedImage.latitude!, selectedImage.longitude!)
                     }
-                    className="h-10 flex-1 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+                    className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
                   >
                     <MapPin className="mr-2 h-4 w-4" strokeWidth={1.75} />
                     Abrir en Maps
