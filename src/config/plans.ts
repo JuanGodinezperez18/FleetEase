@@ -32,12 +32,12 @@ export const plans: Record<PlanType, PlanConfig> = {
   starter: { id:'starter', name:'Starter', price:299, currency:'MXN', period:'mes', maxVehicles:5, maxUsers:1, requiresPaymentMethod:true,
     description:'Control operativo y financiero para flotillas pequeñas', features:starterFeatures,
     comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp'] },
-  pro: { id:'pro', name:'Pro', price:599, currency:'MXN', period:'mes', maxVehicles:15, maxUsers:3, requiresPaymentMethod:true,
+  pro: { id:'pro', name:'Pro', price:699, currency:'MXN', period:'mes', maxVehicles:15, maxUsers:3, requiresPaymentMethod:true,
     description:'Rentabilidad, análisis y control avanzado para operaciones en crecimiento', features:proFeatures,
     comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp para administradores, socios y clientes','Automatizaciones operativas avanzadas'], popular:true },
-  enterprise: { id:'enterprise', name:'Enterprise', price:999, currency:'MXN', period:'mes', maxVehicles:-1, maxUsers:-1, requiresPaymentMethod:true,
-    description:'Para empresas que necesitan mayor capacidad y servicios a la medida',
-    features:['Todo lo incluido en Pro','Vehículos ilimitados','Usuarios ilimitados','Soporte y acompañamiento empresarial'],
+  enterprise: { id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:50, maxUsers:10, requiresPaymentMethod:true,
+    description:'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
+    features:['Todo lo incluido en Pro','Hasta 50 vehículos','Hasta 10 usuarios','Soporte y acompañamiento empresarial'],
     comingSoon:['API de integración y webhooks','Multiempresa','Personalización de marca (white-label)','Reportes personalizados','Integraciones GPS multi-proveedor'] },
 };
 export function getPlanConfig(planId: PlanType): PlanConfig { return plans[planId]; }
