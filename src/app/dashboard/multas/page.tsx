@@ -125,27 +125,27 @@ export default function MultasPage() {
 
   if (loadingData) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               Operación
             </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            <h1 className="fe-module-title">
               Multas
             </h1>
-            <p className="mt-1 text-sm text-white/40">Infracciones de tránsito de la flota</p>
+            <p className="fe-module-subtitle">Infracciones de tránsito de la flota</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
@@ -156,7 +156,7 @@ export default function MultasPage() {
                 setSelectedMulta(null);
                 setIsFormOpen(true);
               }}
-              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
             >
               <Plus className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Registrar multa
@@ -193,7 +193,7 @@ export default function MultasPage() {
           />
         </div>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Lista de multas</h2>
             <p className="mt-0.5 text-xs text-white/40">{multasWithDetails.length} registro{multasWithDetails.length !== 1 ? "s" : ""}</p>
