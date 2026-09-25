@@ -192,7 +192,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto border-white/10 bg-[#080a0f] p-0 text-white shadow-2xl sm:rounded-[24px]">
-        <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+        <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
       <div className="relative z-10 space-y-5 sm:space-y-6">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
