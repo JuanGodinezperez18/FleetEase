@@ -36,7 +36,7 @@ const inputClass =
   'h-10 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
 const labelClass = 'text-xs font-medium text-white/55';
 const sectionClass =
-  'rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
+  'rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
 
 export default function CompanySettingsPage() {
   const { selectedCompanyId, companies, loadingData, updateCompany } = useData();
@@ -86,7 +86,7 @@ export default function CompanySettingsPage() {
   if (currentUser?.role !== 'superAdmin') {
     return (
       <div className="relative min-h-full overflow-hidden rounded-[30px] bg-[#080a0f] p-6 text-white">
-        <div className="mx-auto max-w-md rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
+        <div className="mx-auto max-w-md rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-rose-400/20 bg-rose-400/10 text-rose-300">
             <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
           </div>
@@ -110,7 +110,7 @@ export default function CompanySettingsPage() {
   if (!company) {
     return (
       <div className="relative min-h-full overflow-hidden rounded-[30px] bg-[#080a0f] p-6 text-white">
-        <div className="mx-auto max-w-md rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
+        <div className="mx-auto max-w-md rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
             <Building2 className="h-6 w-6" strokeWidth={1.75} />
           </div>
