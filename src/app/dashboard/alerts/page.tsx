@@ -24,12 +24,7 @@ export default function AlertsPage() {
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">Análisis</div>
-              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
-              Operación
-            </div>
-            <h1 className="fe-module-title">
-              Alertas de negocio
-            </h1>
+            <h1 className="fe-module-title">Alertas de negocio</h1>
             <p className="fe-module-subtitle">Notificaciones inteligentes sobre tu operación</p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
@@ -79,7 +74,7 @@ export default function AlertsPage() {
               <Button
                 asChild
                 variant="outline"
-                className="h-10 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+                className="h-11 rounded-xl border-white/10 bg-transparent text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
               >
                 <Link href="/dashboard/finanzas">Registrar movimiento</Link>
               </Button>
@@ -87,7 +82,7 @@ export default function AlertsPage() {
           </section>
         )}
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Tipos de alertas</h2>
           </div>
