@@ -277,7 +277,7 @@ export default function VehicleDetailPage() {
             <Button
               variant="outline"
               onClick={() => window.print()}
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <Printer className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Imprimir
@@ -285,7 +285,7 @@ export default function VehicleDetailPage() {
             <Button
               variant="outline"
               onClick={handleShare}
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               <Share2 className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Compartir
