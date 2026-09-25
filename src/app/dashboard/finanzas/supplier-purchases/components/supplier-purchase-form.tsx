@@ -208,7 +208,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
             <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
           </div>
         </header>
-        <div className="max-w-5xl overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+        <div className="max-w-5xl overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
           <div className="mb-5">
             <h2 className="font-heading text-lg font-semibold tracking-tight text-white">Nueva compra</h2>
             <p className="mt-1 text-xs text-white/40">Una compra puede contener varias partidas y relacionarse con gastos de vehículos.</p>
@@ -330,7 +330,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
         </div>
       </div>
 
-      <div className="relative z-10 max-w-5xl overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+      <div className="relative z-10 max-w-5xl overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="font-heading text-lg font-semibold tracking-tight text-white">Gastos operativos pendientes de compra</h2>
