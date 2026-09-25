@@ -48,6 +48,54 @@ export const CLIENT_SECURITY_DEPOSIT_CATEGORY_ID = "66NXhL4RKMnc65R5GcKQ";
 export const PARTNER_PAYMENT_CATEGORY_NAME = 'Pago a Socio';
 export let PARTNER_PAYMENT_CATEGORY_ID: string | undefined;
 
+function getSafeVehicleError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (/^(El color es requerido|El color del vehículo no es válido|Esta placa ya está registrada|Este número de serie ya está registrado|El costo de adquisición no puede ser negativo|La renta por semana no puede ser negativa|El costo de administración no puede ser negativo|El kilometraje no puede ser negativo|El kilometraje del último mantenimiento no puede ser negativo|El último mantenimiento no puede ser mayor que el kilometraje actual)\.?$/i.test(message.trim())) {
+    return new Error(message.trim());
+  }
+  if (/null value in column ["']?color["']?/i.test(message) || (/color/i.test(message) && /required|requerid|not-null/i.test(message))) {
+    return new Error('El color es requerido.');
+  }
+  if (/duplicate|unique/i.test(message) && /plate/i.test(message)) {
+    return new Error('Esta placa ya está registrada.');
+  }
+  if (/duplicate|unique/i.test(message) && /serial/i.test(message)) {
+    return new Error('Este número de serie ya está registrado.');
+  }
+  logger.error('Vehicle mutation failed', error);
+  return new Error('No fue posible guardar el vehículo. Revisa los datos e inténtalo nuevamente.');
+}
+
+function validateVehicleMutation(data: Partial<DomainVehicle>, existingCurrentMileage?: number): void {
+  if (data.color !== undefined && !String(data.color ?? '').trim()) {
+    throw new Error('El color es requerido.');
+  }
+
+  for (const [value, label] of [
+    [data.cost, 'El costo de adquisición'],
+    [data.weeklyRentalValue, 'La renta por semana'],
+    [data.adminCommission, 'El costo de administración'],
+  ] as const) {
+    if (value !== undefined && (!Number.isFinite(Number(value)) || Number(value) < 0)) {
+      throw new Error(`${label} no puede ser negativo.`);
+    }
+  }
+
+  if (data.currentMileage !== undefined && (!Number.isFinite(Number(data.currentMileage)) || Number(data.currentMileage) < 0)) {
+    throw new Error('El kilometraje no puede ser negativo.');
+  }
+
+  if (data.lastMaintenanceMileage !== undefined && (!Number.isFinite(Number(data.lastMaintenanceMileage)) || Number(data.lastMaintenanceMileage) < 0)) {
+    throw new Error('El kilometraje del último mantenimiento no puede ser negativo.');
+  }
+
+  const currentMileage = data.currentMileage !== undefined ? Number(data.currentMileage) : existingCurrentMileage;
+  const lastMaintenanceMileage = data.lastMaintenanceMileage !== undefined ? Number(data.lastMaintenanceMileage) : undefined;
+  if (lastMaintenanceMileage !== undefined && currentMileage !== undefined && lastMaintenanceMileage > currentMileage) {
+    throw new Error('El último mantenimiento no puede ser mayor que el kilometraje actual.');
+  }
+}
+
 function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileageLog[], companyMaintenanceInterval?: number): DomainVehicleWithMileage {
   const vehicleLogs = logs.filter(log => log.vehicleId === vehicle.id && !log.isDeleted).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const currentMileage = vehicle.currentMileage || 0;
