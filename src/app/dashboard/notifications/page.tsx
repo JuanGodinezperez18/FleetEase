@@ -372,7 +372,7 @@ export default function NotificationsPage() {
 
         <NotificationsDashboard analyzedNotifications={displayedNotifications} />
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-4 py-3.5 sm:px-5">
             <h2 className="font-heading text-sm font-semibold text-white">Bandeja</h2>
             <p className="text-xs text-white/40">Alertas filtradas según tus criterios</p>
