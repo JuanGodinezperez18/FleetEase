@@ -211,7 +211,7 @@ export default function VehicleAssignmentsPage() {
             {preselectedVehicleId && (
               <Button
                 variant="ghost"
-                className="h-9 w-fit rounded-xl px-3 text-xs text-white/50 hover:bg-white/[0.06] hover:text-white"
+                className="h-11 w-fit rounded-xl px-3 text-xs text-white/50 hover:bg-white/[0.06] hover:text-white"
                 onClick={() => router.push('/dashboard/vehicles/assignments')}
               >
                 Ver todas
