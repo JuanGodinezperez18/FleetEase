@@ -208,10 +208,10 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                 <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> elementos visibles
               </div>
               <div className="flex gap-2">
-                <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-9 rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white">
+                <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-11 rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white">
                   Cancelar
                 </Button>
-                <Button type="button" onClick={handleSave} disabled={isSaving} className="h-9 rounded-xl bg-[#d7ff3f] px-4 text-xs font-bold text-black hover:bg-[#d7ff3f]/90 shadow-[0_0_22px_rgba(215,255,63,.12)]">
+                <Button type="button" onClick={handleSave} disabled={isSaving} className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-bold text-black hover:bg-[#d7ff3f]/90 shadow-[0_0_22px_rgba(215,255,63,.12)]">
                   {isSaving ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Guardando</> : <><Save className="mr-2 h-3.5 w-3.5" />Guardar cambios</>}
                 </Button>
               </div>
