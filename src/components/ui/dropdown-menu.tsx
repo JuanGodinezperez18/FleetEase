@@ -28,7 +28,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-lg px-2.5 py-2 text-sm outline-none focus:bg-white/[0.08] data-[state=open]:bg-white/[0.08] text-white/80",
+      "flex min-h-11 cursor-default select-none items-center rounded-lg px-2.5 py-2 text-sm outline-none focus:bg-white/[0.08] data-[state=open]:bg-white/[0.08] text-white/80",
       inset && "pl-8",
       className
     )}
@@ -84,7 +84,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-2.5 text-sm outline-none transition-colors text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+      "relative flex min-h-11 cursor-pointer select-none items-center rounded-lg px-2.5 py-2.5 text-sm outline-none transition-colors text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
       inset && "pl-8",
       className
     )}
@@ -100,7 +100,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-lg py-2.5 pl-8 pr-2 text-sm outline-none transition-colors text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+      "relative flex min-h-11 cursor-pointer select-none items-center rounded-lg py-2.5 pl-8 pr-2 text-sm outline-none transition-colors text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
       className
     )}
     checked={checked}
