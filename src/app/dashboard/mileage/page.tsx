@@ -182,27 +182,27 @@ export default function MileageTrackingPage() {
 
   if (loadingData && !vehicles.length) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <p className="text-sm">Cargando datos...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               Operación
             </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            <h1 className="fe-module-title">
               Kilometraje
             </h1>
-            <p className="mt-1 text-sm text-white/40">
+            <p className="fe-module-subtitle">
               Mantenimiento cada {maintenanceInterval.toLocaleString()} km
             </p>
           </div>
@@ -214,7 +214,7 @@ export default function MileageTrackingPage() {
               data-add-button="true"
               onClick={() => handleOpenModal()}
               disabled={isSubmitting}
-              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
             >
               <PlusCircle className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Registrar kilometraje
@@ -224,7 +224,7 @@ export default function MileageTrackingPage() {
 
         <MaintenanceDashboard vehicles={vehiclesWithAllMetrics} vehicleMetrics={vehicleMetrics} />
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-4">
             <h2 className="font-heading text-base font-semibold text-white">Control de kilometraje</h2>
             <p className="mt-0.5 text-xs text-white/40">
