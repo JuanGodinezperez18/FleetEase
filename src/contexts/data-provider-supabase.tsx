@@ -48,6 +48,54 @@ export const CLIENT_SECURITY_DEPOSIT_CATEGORY_ID = "66NXhL4RKMnc65R5GcKQ";
 export const PARTNER_PAYMENT_CATEGORY_NAME = 'Pago a Socio';
 export let PARTNER_PAYMENT_CATEGORY_ID: string | undefined;
 
+function getSafeVehicleError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  if (/^(El color es requerido|El color del vehículo no es válido|Esta placa ya está registrada|Este número de serie ya está registrado|El costo de adquisición no puede ser negativo|La renta por semana no puede ser negativa|El costo de administración no puede ser negativo|El kilometraje no puede ser negativo|El kilometraje del último mantenimiento no puede ser negativo|El último mantenimiento no puede ser mayor que el kilometraje actual)\.?$/i.test(message.trim())) {
+    return new Error(message.trim());
+  }
+  if (/null value in column ["']?color["']?/i.test(message) || (/color/i.test(message) && /required|requerid|not-null/i.test(message))) {
+    return new Error('El color es requerido.');
+  }
+  if (/duplicate|unique/i.test(message) && /plate/i.test(message)) {
+    return new Error('Esta placa ya está registrada.');
+  }
+  if (/duplicate|unique/i.test(message) && /serial/i.test(message)) {
+    return new Error('Este número de serie ya está registrado.');
+  }
+  logger.error('Vehicle mutation failed', error);
+  return new Error('No fue posible guardar el vehículo. Revisa los datos e inténtalo nuevamente.');
+}
+
+function validateVehicleMutation(data: Partial<DomainVehicle>, existingCurrentMileage?: number): void {
+  if (data.color !== undefined && !String(data.color ?? '').trim()) {
+    throw new Error('El color es requerido.');
+  }
+
+  for (const [value, label] of [
+    [data.cost, 'El costo de adquisición'],
+    [data.weeklyRentalValue, 'La renta por semana'],
+    [data.adminCommission, 'El costo de administración'],
+  ] as const) {
+    if (value !== undefined && (!Number.isFinite(Number(value)) || Number(value) < 0)) {
+      throw new Error(`${label} no puede ser negativo.`);
+    }
+  }
+
+  if (data.currentMileage !== undefined && (!Number.isFinite(Number(data.currentMileage)) || Number(data.currentMileage) < 0)) {
+    throw new Error('El kilometraje no puede ser negativo.');
+  }
+
+  if (data.lastMaintenanceMileage !== undefined && (!Number.isFinite(Number(data.lastMaintenanceMileage)) || Number(data.lastMaintenanceMileage) < 0)) {
+    throw new Error('El kilometraje del último mantenimiento no puede ser negativo.');
+  }
+
+  const currentMileage = data.currentMileage !== undefined ? Number(data.currentMileage) : existingCurrentMileage;
+  const lastMaintenanceMileage = data.lastMaintenanceMileage !== undefined ? Number(data.lastMaintenanceMileage) : undefined;
+  if (lastMaintenanceMileage !== undefined && currentMileage !== undefined && lastMaintenanceMileage > currentMileage) {
+    throw new Error('El último mantenimiento no puede ser mayor que el kilometraje actual.');
+  }
+}
+
 function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileageLog[], companyMaintenanceInterval?: number): DomainVehicleWithMileage {
   const vehicleLogs = logs.filter(log => log.vehicleId === vehicle.id && !log.isDeleted).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const currentMileage = vehicle.currentMileage || 0;
@@ -128,8 +176,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const loadingData = useMemo(() => authLoading || loadingClients || loadingVehicles || loadingFinancialRecords || loadingCategories, [authLoading, loadingClients, loadingVehicles, loadingFinancialRecords, loadingCategories]);
   const refreshData = useCallback(async () => { await queryClient.invalidateQueries(); }, [queryClient]);
 
-  const addVehicleMutation = useMutation({ mutationFn: async (data: Partial<DomainVehicle>) => { const { data: result, error } = await supabase.from('vehicles').insert(toSbVehicle(data) as any).select().single(); if (error) throw error; return toDomainVehicle(result); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo agregado exitosamente'); }, onError: (error) => toast.error('Error al agregar vehículo', { description: error.message }) });
-  const updateVehicleMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainVehicle> & { id: string }) => { const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo actualizado'); }, onError: (error) => toast.error('Error al actualizar vehículo', { description: error.message }) });
+  const addVehicleMutation = useMutation({
+    mutationFn: async (data: Partial<DomainVehicle>) => {
+      try {
+        validateVehicleMutation(data);
+        const { data: result, error } = await supabase.from('vehicles').insert(toSbVehicle(data) as any).select().single();
+        if (error) throw error;
+        return toDomainVehicle(result);
+      } catch (error) {
+        throw getSafeVehicleError(error);
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo agregado exitosamente'); },
+    onError: (error) => toast.error('Error al agregar vehículo', { description: error.message }),
+  });
+  const updateVehicleMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<DomainVehicle> & { id: string }) => {
+      try {
+        validateVehicleMutation(data);
+        if (data.lastMaintenanceMileage !== undefined && data.currentMileage === undefined) {
+          const { data: existing, error: fetchError } = await supabase.from('vehicles').select('current_mileage').eq('id', id).single();
+          if (fetchError) throw fetchError;
+          validateVehicleMutation(data, Number(existing.current_mileage ?? 0));
+        }
+        const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id);
+        if (error) throw error;
+      } catch (error) {
+        throw getSafeVehicleError(error);
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo actualizado'); },
+    onError: (error) => toast.error('Error al actualizar vehículo', { description: error.message }),
+  });
   const deleteVehicleMutation = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from('vehicles').update({ is_deleted: true }).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo eliminado'); }, onError: (error) => toast.error('Error al eliminar vehículo', { description: error.message }) });
   const addClientMutation = useMutation({ mutationFn: async (data: Partial<DomainClient>) => { const { data: result, error } = await supabase.from('clients').insert(toSbClient(data) as any).select().single(); if (error) throw error; return toDomainClient(result); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente agregado exitosamente'); }, onError: (error) => toast.error('Error al agregar cliente', { description: error.message }) });
   const updateClientMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainClient> & { id: string }) => { const { error } = await supabase.from('clients').update(toSbClient(data) as any).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente actualizado'); }, onError: (error) => toast.error('Error al actualizar cliente', { description: error.message }) });

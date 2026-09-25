@@ -46,10 +46,10 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= new Date().toISOString().slice(0, 10)), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
   clientId: z.string().nullable(),
   partnerId: z.string().nullable(),
-  cost: z.coerce.number().optional(),
-  weeklyRentalValue: z.coerce.number().optional(),
+  cost: z.coerce.number().min(0, "El costo de adquisición no puede ser negativo.").optional(),
+  weeklyRentalValue: z.coerce.number().min(0, "La renta por semana no puede ser negativa.").optional(),
   adminCommission: z.coerce.number().min(0, "El costo de administración no puede ser negativo.").optional(),
-  lastMaintenanceMileage: z.coerce.number().optional(),
+  lastMaintenanceMileage: z.coerce.number().min(0, "El kilometraje del último mantenimiento no puede ser negativo.").optional(),
   currentMileage: z.coerce.number().min(0, "El kilometraje no puede ser negativo."),
   acquisitionDate: z.string().min(1, "La fecha de adquisición es requerida."),
   insurancePolicyNumber: z.string().optional().or(z.literal('')).refine(value => {
@@ -57,7 +57,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
     return !allVehicles.some(v => v.insurancePolicyNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de póliza ya está en uso." }),
   insuranceExpiryDate: z.string().optional().or(z.literal('')),
-  color: z.string().optional().or(z.literal('')),
+  color: z.string().trim().min(1, "El color es requerido."),
   imageUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   circulationCardUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   insurancePolicyDocumentUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
@@ -67,6 +67,18 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
     return !allVehicles.some(v => v.gpsPhoneNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de teléfono GPS ya está en uso." }),
   gpsPhoneCompany: z.string().optional().or(z.literal('')),
+}).superRefine((values, ctx) => {
+  if (
+    values.lastMaintenanceMileage !== undefined &&
+    values.currentMileage !== undefined &&
+    values.lastMaintenanceMileage > values.currentMileage
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['lastMaintenanceMileage'],
+      message: "El último mantenimiento no puede ser mayor que el kilometraje actual.",
+    });
+  }
 });
 
 export type VehicleFormValues = z.infer<ReturnType<typeof createVehicleSchema>>;
@@ -195,7 +207,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                   <FormField name="year" control={form.control} render={({field}) => <FormItem><FormLabel>Año</FormLabel><FormControl><Input type="number" {...field} onFocus={e => e.currentTarget.select()} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="plate" control={form.control} render={({field}) => <FormItem><FormLabel>Placa</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="serialNumber" control={form.control} render={({field}) => <FormItem className="sm:col-span-2"><FormLabel>No. Serie</FormLabel><FormControl><Input {...field} className="uppercase" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="color" control={form.control} render={({field}) => <FormItem><FormLabel>Color</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="color" control={form.control} render={({field}) => <FormItem><FormLabel>Color <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="status" control={form.control} render={({field}) => <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger></FormControl><SelectContent>{statusOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
                 </div>
               </section>
