@@ -74,6 +74,15 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
 
   const topFiveVehicles = useMemo(() => {
     return vehicleMetrics
+      .filter(metric => {
+        const vehicle = vehicles.find(v => v.id === metric.vehicleId);
+        return Boolean(
+          vehicle &&
+          !vehicle.isDeleted &&
+          vehicle.status !== 'sold' &&
+          (metric.totalIncome !== 0 || metric.totalExpenses !== 0)
+        );
+      })
       .sort((a, b) => b.netProfit - a.netProfit)
       .slice(0, 5)
       .map(metric => {
