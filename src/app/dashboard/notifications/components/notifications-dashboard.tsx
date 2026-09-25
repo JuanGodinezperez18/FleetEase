@@ -108,7 +108,7 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-3.5">
             <h2 className="font-heading text-sm font-semibold text-white">Distribución por categoría</h2>
             <p className="text-xs text-white/40">Volumen por área de operación</p>
@@ -130,7 +130,7 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="border-b border-white/[0.06] px-5 py-3.5">
             <h2 className="font-heading flex items-center gap-2 text-sm font-semibold text-white">
               <AlertTriangle className="h-4 w-4 text-rose-400" strokeWidth={1.75} />
