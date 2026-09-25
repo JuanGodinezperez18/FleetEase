@@ -54,6 +54,12 @@ export default function RegisterPage() {
       if (!response.ok) throw new Error(result.message || 'Error al crear la cuenta');
       if (!result.success) throw new Error(result.message || 'Error al crear la cuenta');
 
+      if (result.checkoutUrl) {
+        toast.success('Cuenta creada. Te llevaremos a Stripe para completar el pago.');
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
       if (result.requiresPaymentMethod === false || data.selectedPlan === 'free') {
         toast.success('¡Tu prueba gratuita de 14 días está activa!');
         toast.info('Sin tarjeta. Puedes comenzar con hasta 2 vehículos y 1 usuario.');
