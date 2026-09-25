@@ -121,7 +121,7 @@ export default function PayableSettlementPage() {
           </div>
         </header>
 
-        <div className="max-w-2xl overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
+        <div className="max-w-2xl overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label className="text-white/50">Importe a aplicar</Label>
