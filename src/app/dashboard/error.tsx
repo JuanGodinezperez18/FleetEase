@@ -60,8 +60,8 @@ export default function DashboardError({
   };
 
   return (
-    <main className="flex min-h-[70vh] items-center justify-center rounded-[30px] bg-[#080a0f] p-6 text-white">
-      <section className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 text-center shadow-2xl">
+    <main className="flex min-h-[70vh] items-center justify-center rounded-[18px] bg-[#080a0f] p-6 text-white">
+      <section className="w-full max-w-md rounded-[14px] border border-white/[0.08] bg-white/[0.03] p-8 text-center shadow-2xl">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
           <AlertTriangle className="h-7 w-7" />
         </div>
@@ -83,7 +83,7 @@ export default function DashboardError({
             type="button"
             onClick={handleRetry}
             disabled={retrying}
-            className="inline-flex items-center justify-center rounded-xl bg-[#d7ff3f] px-5 py-3 text-sm font-semibold text-[#080a0f] disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#d7ff3f] px-5 py-3 text-sm font-semibold text-[#080a0f] disabled:opacity-60"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${retrying ? 'animate-spin' : ''}`} />
             {retrying ? 'Reintentando…' : 'Reintentar'}
@@ -92,7 +92,7 @@ export default function DashboardError({
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/75 hover:bg-white/5"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/75 hover:bg-white/5"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver
