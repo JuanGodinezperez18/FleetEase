@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
 const inputClass =
-  'h-10 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
+  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
 const labelClass = 'text-xs font-medium text-white/55';
 const sectionClass =
-  'rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
+  'rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
 
 export default function SecuritySettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -89,7 +89,7 @@ export default function SecuritySettingsPage() {
   };
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
@@ -157,7 +157,7 @@ export default function SecuritySettingsPage() {
           ) : !enrolling ? (
             <Button
               onClick={startEnrollment}
-              className="mt-5 h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+              className="mt-5 h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
             >
               <ShieldCheck className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               Activar 2FA
@@ -196,7 +196,7 @@ export default function SecuritySettingsPage() {
                 <Button
                   onClick={verifyEnrollment}
                   disabled={code.length !== 6}
-                  className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] disabled:opacity-40"
+                  className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] disabled:opacity-40"
                 >
                   Verificar y activar
                 </Button>
