@@ -217,7 +217,7 @@ export default function IncomesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsMassIncomeFormOpen(true)}
-                className="h-10 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+                className="h-11 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
               >
                 <Users className="mr-2 h-4 w-4" strokeWidth={1.75} />
                 Masivo
