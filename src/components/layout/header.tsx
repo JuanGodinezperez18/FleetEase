@@ -83,7 +83,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
+            className="h-11 w-11 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
             aria-label="Abrir menú"
           >
             <Menu className="h-5 w-5" strokeWidth={1.75} />
@@ -117,7 +117,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-10 w-10 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary transition-all hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
+            className="relative h-11 w-11 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] fe-text-secondary transition-all hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]"
             aria-label="Notificaciones"
           >
             <Bell className="h-[18px] w-[18px]" strokeWidth={1.75} />
@@ -133,7 +133,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-10 gap-2 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] px-2 fe-text hover:bg-[var(--fe-hover-strong)]"
+              className="relative h-11 gap-2 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] px-2 fe-text hover:bg-[var(--fe-hover-strong)]"
             >
               <Avatar className="h-8 w-8 border border-[#d7ff3f]/25">
                 <AvatarFallback className="bg-[#d7ff3f]/[0.12] text-xs font-semibold text-[#d7ff3f]">
