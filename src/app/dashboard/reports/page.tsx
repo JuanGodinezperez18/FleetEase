@@ -302,7 +302,7 @@ export default function ReportsPageImproved() {
 
   if (!financialSummary) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[30px] bg-[#080a0f] text-white/50">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
       </div>
     );
@@ -313,19 +313,19 @@ export default function ReportsPageImproved() {
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <header className="fe-module-header">
           <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="fe-module-eyebrow">Análisis</div>
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
               Operación
             </div>
-            <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            <h1 className="fe-module-title">
               Reporte ejecutivo
             </h1>
-            <p className="mt-1 text-sm text-white/40">Análisis con exportación PDF y Excel</p>
+            <p className="fe-module-subtitle">Análisis con exportación PDF y Excel</p>
           </div>
 
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="fe-module-actions flex flex-wrap items-end gap-2">
             <Select value={reportType} onValueChange={(v: ReportType) => setReportType(v)}>
               <SelectTrigger className="w-[180px] border-white/10 bg-white/[0.03] text-white">
                 <SelectValue />
@@ -380,7 +380,7 @@ export default function ReportsPageImproved() {
               onClick={handleExportExcel}
               disabled={isGeneratingExcel}
               variant="outline"
-              className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
             >
               {isGeneratingExcel ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" strokeWidth={1.75} />
@@ -433,7 +433,7 @@ export default function ReportsPageImproved() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-[16px] border border-white/[0.07] bg-[#0e1117] p-1 sm:grid-cols-4">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-1 sm:grid-cols-4">
             {(['overview', 'trends', 'details', 'analysis'] as const).map(tab => (
               <TabsTrigger
                 key={tab}
@@ -566,7 +566,7 @@ export default function ReportsPageImproved() {
                       ],
                     ] as const
                   ).map(([label, val, color]) => (
-                    <div key={label} className="rounded-[16px] border border-white/[0.07] bg-white/[0.02] p-4">
+                    <div key={label} className="rounded-[12px] border border-white/[0.07] bg-white/[0.02] p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">{label}</p>
                       <p className={cn('mt-1 font-heading text-xl font-semibold tabular-nums', color)}>{val}</p>
                     </div>
@@ -628,7 +628,7 @@ export default function ReportsPageImproved() {
 
 function ChartPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+    <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
       <div className="border-b border-white/[0.06] px-5 py-3.5">
         <h2 className="font-heading text-sm font-semibold text-white">{title}</h2>
       </div>
@@ -647,7 +647,7 @@ function MetricsList({
   items: { id: string; primary: string; secondary?: string; value: string; meta?: string; positive?: boolean }[];
 }) {
   return (
-    <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+    <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
       <div className="border-b border-white/[0.06] px-5 py-3.5">
         <h2 className="font-heading text-sm font-semibold text-white">{title}</h2>
       </div>
