@@ -152,7 +152,7 @@ const faqs = [
     category: 'settings',
     question: '¿Qué límites tiene mi plan?',
     answer:
-      'Cada plan tiene límites de vehículos y usuarios: Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios), Enterprise (ilimitado). Puedes ver tu uso actual en la página de Suscripción.',
+      'Cada plan tiene límites de vehículos y usuarios: Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios), Enterprise (50 vehículos, 10 usuarios). Puedes ver tu uso actual en la página de Suscripción.',
   },
   {
     category: 'settings',
@@ -194,7 +194,7 @@ const faqs = [
     category: 'alerts',
     question: '¿Puedo recibir alertas por WhatsApp?',
     answer:
-      'Sí, la notificación por WhatsApp está disponible en planes Pro y Enterprise. Configúralo en la configuración de la empresa. Requiere número de teléfono válido e integración activa.',
+      'La integración de WhatsApp Intelligence y Fleet Intelligence vía WhatsApp está en desarrollo y todavía no forma parte de los planes actuales. No se debe presentar como una función disponible hasta que la integración real de envío esté activa.',
   },
   {
     category: 'messages',
