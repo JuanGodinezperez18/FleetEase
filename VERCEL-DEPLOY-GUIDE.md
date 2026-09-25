@@ -18,9 +18,12 @@ Configura estas variables en **Vercel Dashboard → Project Settings → Environ
 | `STRIPE_SECRET_KEY` | `sk_live_...` o `sk_test_...` | ⚠️ **SOLO servidor** |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | ⚠️ **SOLO servidor**, del dashboard de Stripe |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` o `pk_test_...` | Pública, safe para cliente |
-| `NEXT_PUBLIC_STRIPE_PRICE_ID_STARTER` | `price_xxx` | Price ID del plan Starter |
-| `NEXT_PUBLIC_STRIPE_PRICE_ID_PRO` | `price_xxx` | Price ID del plan Pro |
-| `NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE` | `price_xxx` | Price ID del plan Enterprise |
+| `STRIPE_PRICE_ID_STARTER_MONTHLY` | `price_xxx` | Price ID Starter mensual, solo servidor |
+| `STRIPE_PRICE_ID_STARTER_YEARLY` | `price_xxx` | Price ID Starter anual, solo servidor |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | `price_xxx` | Price ID Pro mensual, solo servidor |
+| `STRIPE_PRICE_ID_PRO_YEARLY` | `price_xxx` | Price ID Pro anual, solo servidor |
+| `STRIPE_PRICE_ID_ENTERPRISE_MONTHLY` | `price_xxx` | Price ID Enterprise mensual, solo servidor |
+| `STRIPE_PRICE_ID_ENTERPRISE_YEARLY` | `price_xxx` | Price ID Enterprise anual, solo servidor |
 
 ### Cron Jobs
 | Variable | Valor | Notas |
@@ -45,12 +48,13 @@ Configura estas variables en **Vercel Dashboard → Project Settings → Environ
 
 1. Ve a **Stripe Dashboard → Developers → Webhooks**
 2. Click **"Add endpoint"**
-3. URL: `https://tu-app.vercel.app/api/stripe/webhook`
+3. URL: `https://www.fleetease.com.mx/api/stripe/webhook`
 4. Selecciona estos eventos:
    - `checkout.session.completed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
    - `invoice.payment_failed`
+   - `invoice.payment_succeeded`
 5. Copia el **Signing Secret** (`whsec_...`) y pégalo en `STRIPE_WEBHOOK_SECRET` en Vercel
 
 ### Para testing local con Stripe CLI:
@@ -98,13 +102,13 @@ Verifica que estén activos en: **Vercel Dashboard → Cron Jobs**
 # Push a tu rama principal
 git add .
 git commit -m "feat: security fixes + stripe migration + cron jobs"
-git push origin main
+git push origin master
 ```
 
 Vercel detectará el push automáticamente y hará deploy.
 
 ### Verificar deploy:
-1. Abre `https://tu-app.vercel.app/api/health` → debe devolver `{"status":"healthy"}`
+1. Abre `https://www.fleetease.com.mx/api/health` → debe devolver `{"status":"healthy"}`
 2. Abre `https://tu-app.vercel.app/api/stripe/status` (autenticado) → debe devolver datos de suscripción
 3. Verifica los cron jobs en Vercel Dashboard → Cron Jobs
 
