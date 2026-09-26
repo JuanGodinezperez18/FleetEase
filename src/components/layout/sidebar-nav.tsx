@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users as UsersIconLucide,
   DollarSign as DollarSignIcon,
-  BarChart3 as BarChart3Icon,
   Bell as BellIcon,
   FileText,
   FolderKanban,
@@ -225,8 +224,8 @@ export const navItemsBase: NavItem[] = [
   // Análisis
   { href: "/dashboard/profitability", label: "Rentabilidad", icon: AreaChart, roles: ["admin", "superAdmin", "editor"] },
   {
-    label: "Reporte Ejecutivo",
-    icon: BarChart3Icon,
+    label: "Reportes",
+    icon: FileText,
     basePath: "/dashboard/reports",
     subItems: [
       { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3Icon },
