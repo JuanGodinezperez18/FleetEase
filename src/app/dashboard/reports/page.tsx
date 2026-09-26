@@ -52,7 +52,7 @@ import { supabase } from '@/lib/supabase';
 import { MetricCard } from '@/components/dashboard/components/MetricCard';
 import Link from 'next/link';
 
-type ReportType = 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
+type ReportType = 'financial' | 'vehicle' | 'client' | 'partner';
 
 const CHART_COLORS = ['#d7ff3f', '#a3e635', '#84cc16', '#65a30d', '#4d7c0f'];
 const TOOLTIP_STYLE = {
@@ -194,8 +194,6 @@ export default function ReportsPageImproved() {
         return { ...baseData, clientMetrics };
       case 'partner':
         return { ...baseData, partnerMetrics };
-      case 'executive':
-        return { ...baseData, vehicleMetrics, clientMetrics, partnerMetrics };
       default:
         return baseData;
     }
@@ -211,8 +209,6 @@ export default function ReportsPageImproved() {
         return 'Reporte de Análisis de Clientes';
       case 'partner':
         return 'Reporte de Análisis de Socios';
-      case 'executive':
-        return 'Reporte Ejecutivo Integral';
       default:
         return 'Reporte';
     }
@@ -228,8 +224,6 @@ export default function ReportsPageImproved() {
         return 'Análisis de comportamiento de pago y balances';
       case 'partner':
         return 'Análisis de rendimiento y balance de socios';
-      case 'executive':
-        return 'Resumen ejecutivo de todas las métricas clave';
       default:
         return '';
     }
@@ -316,8 +310,8 @@ export default function ReportsPageImproved() {
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">Análisis</div>
-            <h1 className="fe-module-title">Reporte ejecutivo</h1>
-            <p className="fe-module-subtitle">Análisis con exportación PDF y Excel</p>
+            <h1 className="fe-module-title">Reportes</h1>
+            <p className="fe-module-subtitle">Genera reportes a partir de los análisis financieros y operativos</p>
           </div>
           <div className="fe-module-actions flex flex-wrap items-end gap-2">
             <Select value={reportType} onValueChange={(v: ReportType) => setReportType(v)}>
@@ -329,7 +323,6 @@ export default function ReportsPageImproved() {
                 <SelectItem value="vehicle">Vehículos</SelectItem>
                 <SelectItem value="client">Clientes</SelectItem>
                 <SelectItem value="partner">Socios</SelectItem>
-                <SelectItem value="executive">Ejecutivo</SelectItem>
               </SelectContent>
             </Select>
 
@@ -504,7 +497,7 @@ export default function ReportsPageImproved() {
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4">
-            {(reportType === 'vehicle' || reportType === 'executive') && (
+            {reportType === 'vehicle' && (
               <MetricsList
                 title="Rentabilidad por vehículo"
                 empty="Sin datos de vehículos"
@@ -518,7 +511,7 @@ export default function ReportsPageImproved() {
                 }))}
               />
             )}
-            {(reportType === 'client' || reportType === 'executive') && (
+            {reportType === 'client' && (
               <MetricsList
                 title="Análisis de clientes"
                 empty="Sin datos de clientes"
@@ -532,7 +525,7 @@ export default function ReportsPageImproved() {
                 }))}
               />
             )}
-            {(reportType === 'partner' || reportType === 'executive') && (
+            {reportType === 'partner' && (
               <MetricsList
                 title="Análisis de socios"
                 empty="Sin datos de socios"
