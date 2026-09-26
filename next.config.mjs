@@ -46,9 +46,11 @@ const nextConfig = {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin',
           },
+          // require-corp bloqueaba previews de imágenes de Supabase Storage (sin CORP).
+          // credentialless mantiene aislamiento sin impedir imágenes públicas cross-origin.
           {
             key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
+            value: 'credentialless',
           },
         ],
       },
@@ -63,6 +65,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com', pathname: '/v0/b/fleetease-manager.firebasestorage.app/**' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com', pathname: '/v0/b/**' },
       { protocol: 'https', hostname: 'storage.googleapis.com', pathname: '/**' },
+      // Supabase Storage (logos de empresa, documentos, fotos)
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/sign/**' },
     ],
     dangerouslyAllowSVG: false,
   },
