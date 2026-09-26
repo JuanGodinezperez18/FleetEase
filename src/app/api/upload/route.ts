@@ -22,6 +22,7 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 function isValidFolder(folder: unknown): folder is AllowedFolder {
   return typeof folder === 'string' && ALLOWED_FOLDERS.includes(folder as AllowedFolder);
 }
+
 function getBucketName(folder: AllowedFolder): string {
   switch (folder) {
     case 'vehicle_images': return 'vehicle-images';
@@ -37,16 +38,23 @@ function isSuperAdmin(role: string | null | undefined): boolean {
   return role === 'super_admin' || role === 'superAdmin';
 }
 
-/** Crea el bucket si no existe (público, para URLs de logo en PDF/reportes). */
-async function ensurePublicBucket(bucketName: string): Promise<void> {
+/**
+ * Crea el bucket si no existe.
+ * public: true porque la app usa getPublicUrl + next/Image en previews/PDF.
+ * Si el bucket ya existe (aunque sea privado), no se modifica.
+ */
+async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<void> {
   const { data: buckets } = await supabaseAdmin.storage.listBuckets();
   if (buckets?.some(b => b.name === bucketName)) return;
+
+  const mimeTypes = ALLOWED_MIME_TYPES[folder];
   const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
     public: true,
     fileSizeLimit: MAX_SIZE_BYTES,
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
+    allowedMimeTypes: mimeTypes.length > 0 ? mimeTypes : undefined,
   });
-  // Si otro request lo creó en paralelo, ignorar el conflicto
+
+  // Conflicto si otro request lo creó en paralelo
   if (error && !/already exists|duplicate/i.test(error.message)) {
     throw error;
   }
@@ -76,7 +84,11 @@ export async function POST(request: NextRequest) {
       file.type ||
       (originalName.match(/\.jpe?g$/i) ? 'image/jpeg' :
         originalName.match(/\.png$/i) ? 'image/png' :
-          originalName.match(/\.webp$/i) ? 'image/webp' : file.type);
+          originalName.match(/\.webp$/i) ? 'image/webp' :
+            originalName.match(/\.pdf$/i) ? 'application/pdf' :
+              originalName.match(/\.docx$/i) ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                originalName.match(/\.doc$/i) ? 'application/msword' :
+                  file.type);
     if (!allowedMimes.includes(effectiveType) && !allowedMimes.includes(file.type)) {
       return NextResponse.json({
         error: `Tipo de archivo no permitido (${file.type || 'desconocido'}). Permitidos: ${allowedMimes.join(', ')}`,
@@ -138,24 +150,23 @@ export async function POST(request: NextRequest) {
     const bucketName = getBucketName(folder);
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
 
-    if (folder === 'company_logos') {
-      try {
-        await ensurePublicBucket(bucketName);
-      } catch (bucketErr) {
-        if (isDev) console.error('[API Upload] ensurePublicBucket:', bucketErr);
-        return NextResponse.json({
-          error: `No se pudo preparar el bucket "${bucketName}". Créalo en Supabase Storage (público) o revisa permisos del service role.`,
-        }, { status: 500 });
-      }
+    try {
+      await ensureBucket(folder, bucketName);
+    } catch (bucketErr) {
+      if (isDev) console.error('[API Upload] ensureBucket:', bucketErr);
+      return NextResponse.json({
+        error: `No se pudo preparar el bucket "${bucketName}". Créalo en Supabase Storage (público) o revisa permisos del service role.`,
+      }, { status: 500 });
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const contentType = effectiveType || file.type || 'application/octet-stream';
     let uploadError = (await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
 
+    // Reintento si el bucket desapareció o hubo carrera al crearlo
     if (uploadError && /bucket not found/i.test(uploadError.message)) {
       try {
-        await ensurePublicBucket(bucketName);
+        await ensureBucket(folder, bucketName);
         uploadError = (await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
       } catch (retryErr) {
         if (isDev) console.error('[API Upload] retry after create bucket:', retryErr);
