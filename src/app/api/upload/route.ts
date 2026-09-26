@@ -7,14 +7,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-type AllowedFolder = 'vehicle_images' | 'driver_documents' | 'financial_receipts' | 'general_documents' | 'contract_templates';
-const ALLOWED_FOLDERS: readonly AllowedFolder[] = ['vehicle_images', 'driver_documents', 'financial_receipts', 'general_documents', 'contract_templates'] as const;
+type AllowedFolder = 'vehicle_images' | 'driver_documents' | 'financial_receipts' | 'general_documents' | 'contract_templates' | 'company_logos';
+const ALLOWED_FOLDERS: readonly AllowedFolder[] = ['vehicle_images', 'driver_documents', 'financial_receipts', 'general_documents', 'contract_templates', 'company_logos'] as const;
 const ALLOWED_MIME_TYPES: Record<AllowedFolder, string[]> = {
   vehicle_images: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'],
   driver_documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   financial_receipts: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   general_documents: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  contract_templates: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  contract_templates: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  company_logos: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
 };
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -28,6 +29,7 @@ function getBucketName(folder: AllowedFolder): string {
     case 'financial_receipts': return 'financial-receipts';
     case 'general_documents': return 'general-documents';
     case 'contract_templates': return 'contract-templates';
+    case 'company_logos': return 'vehicle-images'; // reutiliza bucket de imágenes
   }
 }
 
@@ -67,6 +69,9 @@ export async function POST(request: NextRequest) {
         const { data: vehicle, error: vehicleError } = await supabaseAdmin.from('vehicles').select('company_id').eq('id', entityId).single();
         if (vehicleError || !vehicle?.company_id) return NextResponse.json({ error: 'No se pudo determinar la empresa del vehículo para la subida.' }, { status: 400 });
         companyId = vehicle.company_id;
+      } else if (folder === 'company_logos') {
+        // entityId es el company id al editar
+        companyId = entityId;
       }
     }
     if (!companyId) return NextResponse.json({ error: 'No se pudo determinar la empresa para la subida.' }, { status: 400 });
@@ -83,6 +88,7 @@ export async function POST(request: NextRequest) {
       case 'driver_documents': pathPrefix = `companies/${companyId}/clients/${entityId}/documents`; break;
       case 'financial_receipts': pathPrefix = `companies/${companyId}/receipts/${year}/${month}`; break;
       case 'contract_templates': pathPrefix = `companies/${companyId}/templates`; break;
+      case 'company_logos': pathPrefix = `companies/${companyId}/branding`; break;
       default: pathPrefix = `companies/${companyId}/general/${year}/${month}`; break;
     }
 
