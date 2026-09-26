@@ -53,6 +53,7 @@ export default function DashboardPage() {
     setQuickActionModal,
     handleQuickAction,
     handleDragEnd,
+    handleDateChange,
     handleKpiClick,
     handleIncomeSubmit,
     handleExpenseSubmit,
@@ -175,12 +176,12 @@ export default function DashboardPage() {
             userName={currentUser.name}
             isConfigOpen={isConfigOpen}
             onOpenConfig={() => setIsConfigOpen(true)}
-            onDateChange={() => undefined}
+            onDateChange={handleDateChange}
             onExportPdf={handleExportPdf}
             isExportingPdf={isExportingPdf}
           />
 
-          <section aria-label="Indicadores principales" className="space-y-3"><div className="flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen ejecutivo</p><h2 className="mt-1 text-sm font-semibold text-white/80">Estado actual de la operación</h2></div><span className="hidden text-[10px] text-white/25 sm:inline">Arrastra para personalizar</span></div>
+          <section aria-label="Indicadores principales" className="space-y-3"><div className="flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen</p><h2 className="mt-1 text-sm font-semibold text-white/80">Estado actual de la operación</h2></div><span className="hidden text-[10px] text-white/25 sm:inline">Arrastra para personalizar</span></div>
             <KpiGrid
               enabledWidgets={
                 enabledWidgets.length > 0
