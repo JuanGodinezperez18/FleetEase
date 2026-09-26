@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useMemo, useState } from 'react';
 import { Activity, BarChart3, Car, CreditCard, ShieldAlert, Users } from 'lucide-react';
 import {
   Bar,
@@ -24,7 +25,8 @@ interface DashboardChartCardProps {
 }
 
 const money = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
-const moneyText = (value: number) => value < 0 ? `-${money.format(Math.abs(value))}` : `${money.format(value)}`;
+const moneyText = (value: number) =>
+  value < 0 ? `-${money.format(Math.abs(value))}` : `${money.format(value)}`;
 
 function valueOf(allKPIs: Record<string, MetricKPIData>, id: string) {
   const value = allKPIs[id]?.value;
@@ -32,17 +34,9 @@ function valueOf(allKPIs: Record<string, MetricKPIData>, id: string) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-/** Active sector for pie charts – expands slightly on hover */
+/** Active sector expands + soft outer ring */
 function renderActiveShape(props: any) {
-  const {
-    cx,
-    cy,
-    innerRadius,
-    outerRadius,
-    startAngle,
-    endAngle,
-    fill,
-  } = props;
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
 
   return (
     <g>
@@ -50,21 +44,21 @@ function renderActiveShape(props: any) {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 7}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        style={{ filter: 'brightness(1.08)', transition: 'all 0.2s ease-out' }}
+        style={{ filter: 'brightness(1.1)', transition: 'all 0.2s ease-out' }}
       />
       <Sector
         cx={cx}
         cy={cy}
-        innerRadius={outerRadius + 8}
-        outerRadius={outerRadius + 11}
+        innerRadius={outerRadius + 9}
+        outerRadius={outerRadius + 13}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        opacity={0.35}
+        opacity={0.32}
       />
     </g>
   );
@@ -162,6 +156,20 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
     }
   })();
 
+  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
+
+  const onPieEnter = useCallback((_: unknown, index: number) => {
+    setActiveIndex(index);
+  }, []);
+
+  const onPieLeave = useCallback(() => {
+    setActiveIndex(undefined);
+  }, []);
+
+  const onLegendToggle = useCallback((index: number) => {
+    setActiveIndex(prev => (prev === index ? undefined : index));
+  }, []);
+
   if (!chart) return null;
 
   const total = chart.data.reduce((sum, item) => sum + Math.max(item.value, 0), 0);
@@ -177,8 +185,16 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
         ? ['#d7ff3f', '#f59e0b']
         : ['#d7ff3f', '#f59e0b', '#ef4444'];
 
-  // Key forces Recharts to re-run the entrance animation whenever the data changes
   const chartKey = `${widget.dataKey}-${chart.data.map(d => d.value).join('-')}`;
+
+  const activeItem =
+    activeIndex !== undefined && chart.data[activeIndex] ? chart.data[activeIndex] : null;
+  const centerValue = activeItem ? activeItem.value : total;
+  const centerLabel = activeItem
+    ? activeItem.name
+    : isMoney
+      ? 'capital'
+      : 'elementos';
 
   return (
     <article
@@ -301,13 +317,26 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   animationDuration={950}
                   animationEasing="ease-out"
                   animationBegin={60}
+                  activeIndex={activeIndex}
                   activeShape={renderActiveShape}
+                  onMouseEnter={onPieEnter}
+                  onMouseLeave={onPieLeave}
+                  onClick={(_: unknown, index: number) => {
+                    // Stop card onClick when interacting with the pie
+                    setActiveIndex(prev => (prev === index ? undefined : index));
+                  }}
                 >
                   {chart.data.map((item, index) => (
                     <Cell
                       key={item.name}
                       fill={pieLabels[index % pieLabels.length]}
-                      style={{ cursor: onClick ? 'pointer' : 'default', outline: 'none' }}
+                      style={{
+                        cursor: 'pointer',
+                        outline: 'none',
+                        opacity:
+                          activeIndex === undefined || activeIndex === index ? 1 : 0.45,
+                        transition: 'opacity 0.2s ease',
+                      }}
                     />
                   ))}
                 </Pie>
@@ -327,11 +356,11 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-[#0a0c12] dark:text-white">
-                {isMoney ? moneyText(total) : total}
+              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
+                {isMoney ? moneyText(centerValue) : centerValue}
               </span>
-              <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
-                {isMoney ? 'capital' : 'elementos'}
+              <span className="mt-0.5 max-w-[90px] truncate text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
+                {centerLabel}
               </span>
             </div>
           </div>
@@ -339,22 +368,43 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       </div>
 
       {hasData && (
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-2 border-t border-black/[0.06] pt-3 text-[11px] text-black/50 dark:border-white/[0.05] dark:text-white/45">
-          {chart.data.map((item, index) => (
-            <div key={item.name} className="flex items-center gap-1.5">
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: pieLabels[index % pieLabels.length] }}
-              />
-              <span>{item.name}</span>
-              <strong className={cn(
-                  "font-medium tabular-nums",
-                  isMoney && item.value < 0 ? "text-rose-500 dark:text-rose-400" : "text-black/70 dark:text-white/70"
-                )}>
-                {isMoney ? moneyText(item.value) : item.value}
-              </strong>
-            </div>
-          ))}
+        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1.5 border-t border-black/[0.06] pt-3 text-[11px] text-black/50 dark:border-white/[0.05] dark:text-white/45">
+          {chart.data.map((item, index) => {
+            const isActive = activeIndex === index;
+            const isDimmed = chart.kind === 'pie' && activeIndex !== undefined && !isActive;
+            return (
+              <button
+                key={item.name}
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  if (chart.kind === 'pie') onLegendToggle(index);
+                }}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all duration-150',
+                  chart.kind === 'pie' && 'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
+                  isActive && 'bg-black/[0.06] dark:bg-white/[0.1]',
+                  isDimmed && 'opacity-40'
+                )}
+              >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: pieLabels[index % pieLabels.length] }}
+                />
+                <span>{item.name}</span>
+                <strong
+                  className={cn(
+                    'font-medium tabular-nums',
+                    isMoney && item.value < 0
+                      ? 'text-rose-500 dark:text-rose-400'
+                      : 'text-black/70 dark:text-white/70'
+                  )}
+                >
+                  {isMoney ? moneyText(item.value) : item.value}
+                </strong>
+              </button>
+            );
+          })}
         </div>
       )}
     </article>
