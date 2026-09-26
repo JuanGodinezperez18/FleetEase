@@ -53,6 +53,8 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({
     };
   }, [analyzedNotifications]);
 
+  const chartKey = overallStats.categoryDistribution.map(d => d.Notificaciones).join('-');
+
   const criticalNotifications = useMemo(() => {
     return analyzedNotifications.filter(n => n.priority === 'Crítica' && !n.isRead);
   }, [analyzedNotifications]);
@@ -114,19 +116,37 @@ export const NotificationsDashboard: React.FC<NotificationsDashboardProps> = ({
             <p className="text-xs text-white/40">Volumen por área de operación</p>
           </div>
           <div className="p-4 sm:p-5">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={overallStats.categoryDistribution} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={100}
-                  tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
-                />
-                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar dataKey="Notificaciones" fill="#d7ff3f" radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[220px] sm:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart key={chartKey} data={overallStats.categoryDistribution} layout="vertical" margin={{ left: 4, right: 12 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={100}
+                    tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Bar
+                    dataKey="Notificaciones"
+                    fill="#d7ff3f"
+                    radius={[0, 8, 8, 0]}
+                    maxBarSize={22}
+                    isAnimationActive
+                    animationDuration={850}
+                    animationEasing="ease-out"
+                    activeBar={{
+                      fill: '#e8ff6b',
+                      stroke: '#d7ff3f',
+                      strokeWidth: 1,
+                      radius: [0, 8, 8, 0],
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </section>
 
