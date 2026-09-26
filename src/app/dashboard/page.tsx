@@ -4,7 +4,7 @@
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
+import { generatePDFReport, downloadPDF, type KpiFormat } from '@/lib/reports/pdf-generator';
 import { useDashboardPage } from './hooks/use-dashboard-page';
 import { DashboardHeader } from './components/dashboard-header';
 import { KpiGrid } from './components/kpi-grid';
@@ -26,7 +26,30 @@ import {
   VehicleInspectionModal,
 } from './components/dashboard-modals-bundle';
 
-function kpiNumber(allKPIs: Record<string, { value?: string | number }>, id: string): number | undefined {
+/** KPI ids that represent counts, not money */
+const COUNT_KPI_IDS = new Set([
+  'licenses-expiring',
+  'insurance-expiring',
+  'total-vehicles',
+  'active-vehicles',
+  'total-clients',
+  'active-clients',
+  'total-partners',
+  'pending-credits',
+  'multas-pending',
+  'inspections-due',
+]);
+
+function kpiFormatForId(id: string): KpiFormat {
+  if (COUNT_KPI_IDS.has(id)) return 'number';
+  if (id.includes('margin') || id.includes('rate') || id.includes('percent')) return 'percent';
+  return 'currency';
+}
+
+function kpiNumber(
+  allKPIs: Record<string, { value?: string | number }>,
+  id: string
+): number | undefined {
   const raw = allKPIs[id]?.value;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   if (typeof raw === 'string') {
@@ -86,9 +109,17 @@ export default function DashboardPage() {
           label: widget.title,
           value: data.value,
           subtitle: data.subtitle,
+          format: kpiFormatForId(widget.id),
         };
       })
-      .filter((kpi): kpi is { label: string; value: string | number; subtitle?: string } => Boolean(kpi));
+      .filter(
+        (kpi): kpi is {
+          label: string;
+          value: string | number;
+          subtitle?: string;
+          format: KpiFormat;
+        } => Boolean(kpi)
+      );
 
     if (selectedKpis.length === 0) {
       toast.error('Configura al menos un KPI para generar el PDF');
@@ -204,7 +235,20 @@ export default function DashboardPage() {
             isExportingPdf={isExportingPdf}
           />
 
-          <section aria-label="Indicadores principales" className="space-y-3"><div className="flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen</p><h2 className="mt-1 text-sm font-semibold text-white/80">Estado actual de la operación</h2></div><span className="hidden text-[10px] text-white/25 sm:inline">Arrastra para personalizar</span></div>
+          <section aria-label="Indicadores principales" className="space-y-3">
+            <div className="flex items-end justify-between gap-4 px-1">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                  Resumen
+                </p>
+                <h2 className="mt-1 text-sm font-semibold text-white/80">
+                  Estado actual de la operación
+                </h2>
+              </div>
+              <span className="hidden text-[10px] text-white/25 sm:inline">
+                Arrastra para personalizar
+              </span>
+            </div>
             <KpiGrid
               enabledWidgets={
                 enabledWidgets.length > 0
@@ -221,7 +265,18 @@ export default function DashboardPage() {
             />
           </section>
 
-          <section aria-label="Acciones rápidas" className="border-t border-white/[0.06] pt-6 sm:pt-7"><div className="mb-3 flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Operación</p><h2 className="mt-1 text-sm font-semibold text-white/80">Acciones rápidas</h2></div></div>
+          <section
+            aria-label="Acciones rápidas"
+            className="border-t border-white/[0.06] pt-6 sm:pt-7"
+          >
+            <div className="mb-3 flex items-end justify-between gap-4 px-1">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                  Operación
+                </p>
+                <h2 className="mt-1 text-sm font-semibold text-white/80">Acciones rápidas</h2>
+              </div>
+            </div>
             <QuickActions
               quickActionModal={quickActionModal}
               isSubmittingForm={isSubmittingForm}
