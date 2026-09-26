@@ -36,13 +36,6 @@ El módulo de reportes permite generar análisis completos del negocio con expor
 - Ingresos y gastos por socio
 - Comparativa de rentabilidad
 
-#### Reporte Ejecutivo
-- Combina todos los análisis anteriores
-- Vista panorámica del negocio
-- KPIs principales
-- Tendencias y proyecciones
-- Resumen ejecutivo completo
-
 ### 2. Formatos de Exportación
 
 #### PDF Profesional
@@ -58,7 +51,7 @@ El módulo de reportes permite generar análisis completos del negocio con expor
 - Múltiples hojas de trabajo
 - Datos estructurados y formateados
 - Anchos de columna optimizados
-- Resumen ejecutivo en primera hoja
+- Resumen del reporte en primera hoja
 - Fácil de analizar y manipular
 - Compatible con Excel/LibreOffice/Google Sheets
 
@@ -88,7 +81,7 @@ Generador profesional de PDFs usando jsPDF.
 **Características**:
 - Clase `PDFReportGenerator`
 - Encabezados personalizados
-- Resumen ejecutivo
+- Resumen del reporte
 - Tablas con autoTable
 - Paginación automática
 - Pie de página
@@ -230,7 +223,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 ### ReportData
 ```typescript
 interface ReportData {
-  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
+  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'partner';
   title: string;
   subtitle?: string;
   dateRange: { from: Date; to: Date };
@@ -297,9 +290,9 @@ interface PartnerMetric {
 }
 ```
 
-## Firestore Collections
+## Persistencia del historial
 
-### generatedReports
+### generatedReports (referencia histórica)
 Almacena el historial de reportes generados.
 
 **Estructura**:
@@ -307,7 +300,7 @@ Almacena el historial de reportes generados.
 {
   id: string;
   companyId: string;
-  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
+  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'partner';
   format: 'pdf' | 'excel';
   filename: string;
   dateRange: {
@@ -407,13 +400,13 @@ const trends = ReportAnalyticsService.calculateMonthlyTrends(
 #### Después:
 - ✅ Exportación real a PDF profesional
 - ✅ Exportación real a Excel con múltiples hojas
-- ✅ 5 tipos de reportes diferentes
+- ✅ 4 tipos de reportes
 - ✅ Análisis completo de vehículos con rentabilidad
 - ✅ Análisis de clientes con comportamiento de pago
 - ✅ Análisis de socios con balance y rendimiento
 - ✅ Gráficos avanzados (líneas, áreas, barras, pie)
 - ✅ Tendencias mensuales (6 meses)
-- ✅ Historial de reportes en Firestore
+- ✅ Historial de reportes generados
 - ✅ Comparación automática con período anterior
 - ✅ Top rankings (vehículos, clientes)
 - ✅ KPIs con indicadores visuales
@@ -447,7 +440,7 @@ const trends = ReportAnalyticsService.calculateMonthlyTrends(
 ### Caché de Datos
 - Métricas calculadas se almacenan en memoria
 - Re-cálculo solo cuando cambian dependencias
-- Optimización de consultas a Firestore
+- Optimización de consultas a Supabase
 
 ## Troubleshooting
 
