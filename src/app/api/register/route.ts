@@ -25,17 +25,21 @@ export async function POST(request: NextRequest) {
     const body: RegisterRequest = await request.json();
     const { email, password, name, phone, companyName, plan } = body;
     const selectedPlan = plan as PlanType;
-    const planConfig = plans[selectedPlan];
+    const selectedPlanConfig = plans[selectedPlan];
 
     if (!email || !password || !name || !companyName) {
       return NextResponse.json({ success: false, message: 'Faltan campos requeridos' }, { status: 400 });
     }
-    if (!planConfig) {
+    if (!selectedPlanConfig) {
       return NextResponse.json({ success: false, message: 'Plan de suscripción no válido' }, { status: 400 });
     }
 
-    const trialEndsAt = planConfig.trialDays
-      ? new Date(Date.now() + planConfig.trialDays * 24 * 60 * 60 * 1000).toISOString()
+    // La cuenta se crea siempre con Free hasta que Stripe confirme el pago.
+    // Así abandonar/cancelar Checkout nunca concede capacidades de un plan pagado.
+    const initialPlan: PlanType = 'free';
+    const initialPlanConfig = plans.free;
+    const trialEndsAt = initialPlanConfig.trialDays
+      ? new Date(Date.now() + initialPlanConfig.trialDays * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
     // 1. Crear usuario en Supabase Auth
@@ -54,17 +58,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'No se pudo crear el usuario' }, { status: 500 });
     }
 
-    // 2. Crear compañía con límites reales del plan.
+    // 2. Crear compañía inicialmente como Free.
+    // El plan seleccionado se conserva únicamente en Stripe metadata hasta confirmar el pago.
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
         name: companyName,
         email,
-        plan: selectedPlan,
+        plan: initialPlan,
         is_deleted: false,
-        max_vehicles: planConfig.maxVehicles === -1 ? null : planConfig.maxVehicles,
-        max_users: planConfig.maxUsers === -1 ? null : planConfig.maxUsers,
-        subscription_status: selectedPlan === 'free' ? 'trialing' : 'pending_payment',
+        max_vehicles: initialPlanConfig.maxVehicles === -1 ? null : initialPlanConfig.maxVehicles,
+        max_users: initialPlanConfig.maxUsers === -1 ? null : initialPlanConfig.maxUsers,
+        subscription_status: 'trialing',
         trial_ends_at: trialEndsAt,
       })
       .select()
@@ -77,7 +82,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Completar el perfil creado automáticamente por el trigger on_auth_user_created.
-    // No insertamos otro registro con el mismo UUID.
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .update({
@@ -98,7 +102,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Categorías iniciales separadas por flujo.
-    // Los pagos NO se crean como ingresos: viven en Finanzas > Pagos.
     const defaultCategories = [
       { name: 'Renta Semanal', type: 'income', affects: 'client_balance', is_default: true, category: 'Renta', company_id: company.id },
       { name: 'Depósito en Garantía', type: 'income', affects: 'security_deposit', is_default: true, category: 'Depósito', company_id: company.id },
@@ -115,7 +118,6 @@ export async function POST(request: NextRequest) {
       .insert(defaultCategories);
 
     if (categoriesError) {
-      // No dejamos una cuenta parcialmente inicializada si falló la configuración financiera.
       await supabaseAdmin.from('users').delete().eq('id', authData.user.id);
       await supabaseAdmin.from('companies').delete().eq('id', company.id);
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
@@ -129,15 +131,13 @@ export async function POST(request: NextRequest) {
         message: 'Cuenta creada. Tu prueba gratuita de 14 días ha comenzado.',
         userId: authData.user.id,
         companyId: company.id,
-        plan: selectedPlan,
+        plan: initialPlan,
         trialEndsAt,
         requiresPaymentMethod: false,
       });
     }
 
     // 5. Crear customer y Checkout con el Price ID canónico de Stripe.
-    // El customer se guarda directamente en companies; no existe una tabla
-    // stripe_customers en el esquema actual.
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) throw new Error('STRIPE_SECRET_KEY no está configurada.');
     const stripe = new Stripe(secretKey, { apiVersion: '2025-10-29.clover' });
@@ -187,7 +187,8 @@ export async function POST(request: NextRequest) {
       message: 'Cuenta creada. Continúa con el pago para activar tu suscripción.',
       userId: authData.user.id,
       companyId: company.id,
-      plan: selectedPlan,
+      plan: initialPlan,
+      selectedPlan,
       trialEndsAt,
       requiresPaymentMethod: true,
       checkoutUrl: session.url,
