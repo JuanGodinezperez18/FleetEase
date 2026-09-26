@@ -46,7 +46,7 @@ const CompanyComparisonDashboard = () => {
         const beneficio = calculateNetProfit(companyRecords);
         const totalExpenses = totalIncome - beneficio;
         return {
-          name: company.name,
+          name: company.name.trim(),
           ingresos: totalIncome,
           gastos: totalExpenses,
           beneficio,
@@ -98,9 +98,13 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
   );
 
   const overallStats = useMemo(() => {
-    const totalPartners = partners.filter(p => !p.isDeleted).length;
+    const activePartners = partners.filter(p => !p.isDeleted);
+    const totalPartners = activePartners.length;
     const totalNetProfit = partnerMetrics.reduce((sum, metric) => sum + metric.netProfit, 0);
-    const topPerformer = partnerMetrics.length > 0 ? partnerMetrics[0] : null;
+    const topMetric = partnerMetrics.length > 0 ? partnerMetrics[0] : null;
+    // A "top performer" is only meaningful when there is a non-negative result and a real comparison set.
+    const topPerformer =
+      partnerMetrics.length > 1 && topMetric && topMetric.netProfit >= 0 ? topMetric : null;
 
     const performanceDistribution = {
       Excelente: partnerMetrics.filter(p => p.performanceLevel === 'Excelente').length,
@@ -140,6 +144,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
           onClick={onBalanceCardClick}
           variant={totalPartnerBalance >= 0 ? 'success' : 'danger'}
+          valueClassName="text-[26px] sm:text-[30px]"
         />
 
         <MetricCard
@@ -148,21 +153,22 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
           description="Beneficio neto combinado"
           icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
           variant={overallStats.totalNetProfit >= 0 ? 'success' : 'danger'}
+          valueClassName="text-[26px] sm:text-[30px]"
         />
 
         <MetricCard
           title="Top performer"
-          value={overallStats.topPerformer?.partnerName || 'N/A'}
+          value={overallStats.topPerformer?.partnerName || 'Sin comparación'}
           description={
             overallStats.topPerformer
               ? `Beneficio: ${formatCurrency(overallStats.topPerformer.netProfit)}`
-              : 'Sin datos'
+              : 'Sin datos suficientes para comparar'
           }
           icon={<Award className="h-5 w-5" strokeWidth={1.75} />}
+          valueClassName="text-[25px] sm:text-[30px]"
         />
       </div>
 
-      {/* Analytics: desktop only */}
       <div className="hidden gap-4 md:grid md:grid-cols-2">
         <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <CardHeader className="pb-2">
