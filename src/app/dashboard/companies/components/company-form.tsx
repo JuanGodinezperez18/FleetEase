@@ -7,12 +7,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import type { Company } from '@/types';
 import { MultipleFileInput } from '@/components/common/multiple-file-input';
 import { AddressAutocomplete } from '@/components/common/address-autocomplete';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2, FileText, Download, Trash2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -31,6 +30,7 @@ const createCompanySchema = (initialData: Company | null, currentVehicleCount?: 
     (val) => val === '' || val === null || val === undefined ? undefined : Number(val),
     z.number().int().min(0, "El límite no puede ser negativo.").optional()
   ),
+  logoUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   contractTemplateUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
 }).refine((data) => {
   if (initialData && typeof data.vehicleLimit === 'number') {
@@ -50,7 +50,7 @@ interface CompanyFormProps {
   initialData?: Company | null;
   isSubmitting: boolean;
   onClose: () => void;
-  companies: Company[]; // Passed for potential validation, though not used in this snippet
+  companies: Company[];
   currentVehicleCount?: number;
 }
 
@@ -72,6 +72,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSubmit, initialData,
         zipCode: initialData?.zipCode || '',
         country: initialData?.country || 'México',
         vehicleLimit: initialData?.vehicleLimit ?? undefined,
+        logoUrl: initialData?.logoUrl ? [initialData.logoUrl] : [],
         contractTemplateUrl: initialData?.contractTemplateUrl ? [initialData.contractTemplateUrl] : [],
       }
     });
@@ -144,6 +145,37 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSubmit, initialData,
                     </FormItem>
                 )} />
             </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Logotipo</h3>
+            <p className="text-sm text-muted-foreground">
+              Se mostrará en reportes PDF y documentos generados. PNG o JPG, ideal cuadrado.
+            </p>
+            <FormField
+              control={form.control}
+              name="logoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagen del logotipo</FormLabel>
+                  <FormControl>
+                    <MultipleFileInput
+                      onFilesSelected={(files) => field.onChange(files)}
+                      initialValue={field.value || []}
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      multiple={false}
+                      previewType="file"
+                      folder="company_logos"
+                      entityId={initialData?.id}
+                    />
+                  </FormControl>
+                  <FormDescription>Máximo 1 imagen. Se sube al guardar si la empresa es nueva.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
           
           <Separator />
