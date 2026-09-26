@@ -157,7 +157,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
         />
 
         <MetricCard
-          title="Top performer"
+          title="Mejor rendimiento"
           value={overallStats.topPerformer?.partnerName || 'Sin comparación'}
           description={
             overallStats.topPerformer
@@ -194,7 +194,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
         <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
-              Top 5 por rentabilidad
+              Socios por rentabilidad
             </CardTitle>
             <CardDescription className="text-xs text-white/40">
               Mayores beneficios netos
@@ -222,7 +222,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-white/60">{p.vehicleCount}</TableCell>
-                      <TableCell className="text-right font-mono text-emerald-300">
+                      <TableCell className={`text-right font-mono ${p.netProfit < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
                         {formatCurrency(p.netProfit)}
                       </TableCell>
                     </TableRow>
