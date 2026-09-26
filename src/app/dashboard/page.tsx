@@ -2,6 +2,9 @@
 'use client';
 
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
 import { useDashboardPage } from './hooks/use-dashboard-page';
 import { DashboardHeader } from './components/dashboard-header';
 import { KpiGrid } from './components/kpi-grid';
@@ -24,6 +27,7 @@ import {
 } from './components/dashboard-modals-bundle';
 
 export default function DashboardPage() {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { announce, message: announcementMessage } = useAnnounce();
 
   const {
@@ -59,6 +63,49 @@ export default function DashboardPage() {
     saveWidgetOrder,
     modalTitles,
   } = useDashboardPage();
+
+  const handleExportPdf = async () => {
+    const selectedKpis = enabledWidgets
+      .filter(widget => widget.type === 'metric')
+      .map(widget => {
+        const data = allKPIs[widget.id];
+        if (!data || data.value === undefined) return null;
+        return {
+          label: widget.title,
+          value: data.value,
+          subtitle: data.subtitle,
+        };
+      })
+      .filter((kpi): kpi is { label: string; value: string | number; subtitle?: string } => Boolean(kpi));
+
+    if (selectedKpis.length === 0) {
+      toast.error('Configura al menos un KPI para generar el PDF');
+      setIsConfigOpen(true);
+      return;
+    }
+
+    setIsExportingPdf(true);
+    try {
+      const from = startOfMonth(new Date());
+      const to = endOfMonth(new Date());
+      const blob = await generatePDFReport({
+        type: 'financial',
+        title: 'Reporte de KPIs del Dashboard',
+        subtitle: 'Indicadores seleccionados por el usuario',
+        dateRange: { from, to },
+        companyName: 'FleetEase Manager',
+        generatedBy: currentUser?.name || undefined,
+        kpis: selectedKpis,
+      });
+      downloadPDF(blob, `dashboard_kpis_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`);
+      toast.success('PDF generado con los KPIs seleccionados');
+    } catch (error) {
+      console.error('Error generating dashboard PDF:', error);
+      toast.error('No se pudo generar el PDF');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const effectiveDashboardConfig = currentUser
     ? (dashboardConfig ?? {
@@ -129,6 +176,8 @@ export default function DashboardPage() {
             isConfigOpen={isConfigOpen}
             onOpenConfig={() => setIsConfigOpen(true)}
             onDateChange={() => undefined}
+            onExportPdf={handleExportPdf}
+            isExportingPdf={isExportingPdf}
           />
 
           <section aria-label="Indicadores principales" className="space-y-3"><div className="flex items-end justify-between gap-4 px-1"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">Resumen ejecutivo</p><h2 className="mt-1 text-sm font-semibold text-white/80">Estado actual de la operación</h2></div><span className="hidden text-[10px] text-white/25 sm:inline">Arrastra para personalizar</span></div>
