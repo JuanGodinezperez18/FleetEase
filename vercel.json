@@ -1,10 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/inspection-cleanup",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/maintenance-check",
       "schedule": "0 8 * * *"
     },
