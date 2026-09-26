@@ -1,7 +1,7 @@
 
 "use client";
-import React, { useState, useCallback, useEffect, ReactNode, useRef, useMemo } from 'react';
-import { useDropzone } from 'react-dropzone';
+import React, { useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
+import { useDropzone, type Accept } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Camera, File as FileIcon, Trash2, UploadCloud, UserCircle, Loader2, Share2, Download } from 'lucide-react';
 import Image from 'next/image';
@@ -25,6 +25,25 @@ interface MultipleFileInputProps {
   entityId?: string;
 }
 
+/** Convierte "image/jpeg,image/png" o "image/*" al formato Accept de react-dropzone */
+function parseAccept(accept?: string): Accept | undefined {
+  if (!accept || !accept.trim()) return undefined;
+  const parts = accept.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const result: Accept = {};
+  for (const part of parts) {
+    // Extensiones tipo .pdf
+    if (part.startsWith('.')) {
+      const key = part.toLowerCase();
+      if (!result['application/octet-stream']) result['application/octet-stream'] = [];
+      (result['application/octet-stream'] as string[]).push(key);
+      continue;
+    }
+    result[part] = [];
+  }
+  return result;
+}
+
 export function MultipleFileInput({ 
   onFilesSelected: onFilesChange, 
   accept = 'image/*,application/pdf', 
@@ -46,7 +65,8 @@ export function MultipleFileInput({
     return Array.isArray(initialValue) ? initialValue : [initialValue];
   }, [initialValue]);
 
-  // Effect to manage local object URLs for File objects
+  const dropzoneAccept = useMemo(() => parseAccept(accept), [accept]);
+
   useEffect(() => {
     const newLocalUrls = new Map<File, string>();
     files.forEach(file => {
@@ -56,7 +76,6 @@ export function MultipleFileInput({
     });
     setLocalPreviewUrls(newLocalUrls);
 
-    // Cleanup function
     return () => {
       newLocalUrls.forEach(url => URL.revokeObjectURL(url));
     };
@@ -66,9 +85,8 @@ export function MultipleFileInput({
     if (file instanceof File) {
       return localPreviewUrls.get(file) || '';
     }
-    return file; // It's already a URL string
+    return file;
   }, [localPreviewUrls]);
-
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -109,7 +127,7 @@ export function MultipleFileInput({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: accept ? { [accept]: [] } : undefined,
+    accept: dropzoneAccept,
     multiple,
     disabled: disabled || isComponentUploading,
   });
@@ -122,8 +140,8 @@ export function MultipleFileInput({
         try {
             await deleteFileByUrl(fileToRemove);
             toast.success("Archivo eliminado del servidor.");
-        } catch (error) {
-            // Error is already handled/warned in deleteFileByUrl
+        } catch {
+            // handled in deleteFileByUrl
         }
     }
     onFilesChange(newFiles);
@@ -136,8 +154,8 @@ export function MultipleFileInput({
         try {
           await deleteFileByUrl(fileToRemove);
           toast.success("Archivo eliminado del servidor.");
-        } catch (e) {
-            // Error is handled in useStorage
+        } catch {
+            // handled in useStorage
         }
     }
     onFilesChange([]);
@@ -152,7 +170,7 @@ export function MultipleFileInput({
       } else {
         toast.error('Guarda el archivo primero para poder compartir');
       }
-    } catch (err) {
+    } catch {
       toast.error('Error al generar link');
     }
   };
@@ -162,7 +180,6 @@ export function MultipleFileInput({
       if (typeof file === 'string') {
         await downloadFile(file);
       } else {
-        // Si es un File, descargar directamente del blob
         const url = URL.createObjectURL(file);
         const a = document.createElement('a');
         a.href = url;
@@ -170,7 +187,7 @@ export function MultipleFileInput({
         a.click();
         URL.revokeObjectURL(url);
       }
-    } catch (err) {
+    } catch {
       toast.error('Error al descargar archivo');
     }
   };
