@@ -26,6 +26,16 @@ import {
   VehicleInspectionModal,
 } from './components/dashboard-modals-bundle';
 
+function kpiNumber(allKPIs: Record<string, { value?: string | number }>, id: string): number | undefined {
+  const raw = allKPIs[id]?.value;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string') {
+    const n = parseFloat(raw.replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
 export default function DashboardPage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { announce, message: announcementMessage } = useAnnounce();
@@ -90,6 +100,11 @@ export default function DashboardPage() {
     try {
       const from = customDateRange?.from ?? startOfMonth(new Date());
       const to = customDateRange?.to ?? endOfMonth(new Date());
+
+      const income = kpiNumber(allKPIs, 'income-month');
+      const expenses = kpiNumber(allKPIs, 'expenses-month');
+      const netProfit = kpiNumber(allKPIs, 'net-income');
+
       const blob = await generatePDFReport({
         type: 'financial',
         title: 'Reporte de KPIs del Dashboard',
@@ -98,6 +113,13 @@ export default function DashboardPage() {
         companyName: 'FleetEase Manager',
         generatedBy: currentUser?.name || undefined,
         kpis: selectedKpis,
+        income,
+        expenses,
+        netProfit,
+        profitMargin:
+          income !== undefined && income !== 0 && netProfit !== undefined
+            ? (netProfit / income) * 100
+            : undefined,
       });
       downloadPDF(blob, `dashboard_kpis_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`);
       toast.success('PDF generado con los KPIs seleccionados');
