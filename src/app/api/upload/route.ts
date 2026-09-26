@@ -33,6 +33,10 @@ function getBucketName(folder: AllowedFolder): string {
   }
 }
 
+function isSuperAdmin(role: string | null | undefined): boolean {
+  return role === 'super_admin' || role === 'superAdmin';
+}
+
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
   try {
@@ -53,14 +57,37 @@ export async function POST(request: NextRequest) {
     if (!file) return NextResponse.json({ error: 'No se encontró archivo en la solicitud.' }, { status: 400 });
     if (!isValidFolder(folder)) return NextResponse.json({ error: `Carpeta inválida. Debe ser una de: ${ALLOWED_FOLDERS.join(', ')}` }, { status: 400 });
     const allowedMimes = ALLOWED_MIME_TYPES[folder];
-    if (!allowedMimes.includes(file.type)) return NextResponse.json({ error: `Tipo de archivo no permitido. Permitidos: ${allowedMimes.join(', ')}` }, { status: 415 });
+    // Algunos navegadores/compresores envían type vacío
+    const effectiveType =
+      file.type ||
+      (originalName.match(/\.jpe?g$/i) ? 'image/jpeg' :
+        originalName.match(/\.png$/i) ? 'image/png' :
+          originalName.match(/\.webp$/i) ? 'image/webp' : file.type);
+    if (!allowedMimes.includes(effectiveType) && !allowedMimes.includes(file.type)) {
+      return NextResponse.json({
+        error: `Tipo de archivo no permitido (${file.type || 'desconocido'}). Permitidos: ${allowedMimes.join(', ')}`,
+      }, { status: 415 });
+    }
     if (file.size > MAX_SIZE_BYTES) return NextResponse.json({ error: 'Archivo demasiado grande. Límite: 10MB' }, { status: 413 });
 
     const entityId = rawEntityId && rawEntityId !== 'unassigned' ? getSafeStorageSegment(rawEntityId, 'entityId') : 'unassigned';
     if (rawEntityId && rawEntityId !== 'unassigned' && !entityId) return NextResponse.json({ error: 'Identificador de entidad no válido.' }, { status: 400 });
 
-    let companyId = userProfile.company_id;
-    if (userProfile.role === 'super_admin' && entityId && entityId !== 'unassigned') {
+    let companyId = userProfile.company_id as string | null;
+
+    // company_logos: entityId es el id de la empresa
+    if (folder === 'company_logos' && entityId && entityId !== 'unassigned') {
+      if (isSuperAdmin(userProfile.role)) {
+        companyId = entityId;
+      } else if (userProfile.role === 'admin') {
+        if (userProfile.company_id && userProfile.company_id !== entityId) {
+          return NextResponse.json({ error: 'No puedes subir el logotipo de otra empresa.' }, { status: 403 });
+        }
+        companyId = entityId;
+      } else {
+        return NextResponse.json({ error: 'Solo administradores pueden subir el logotipo de la empresa.' }, { status: 403 });
+      }
+    } else if (isSuperAdmin(userProfile.role) && entityId && entityId !== 'unassigned') {
       if (folder === 'driver_documents') {
         const { data: client, error: clientError } = await supabaseAdmin.from('clients').select('company_id').eq('id', entityId).single();
         if (clientError || !client?.company_id) return NextResponse.json({ error: 'No se pudo determinar la empresa del cliente para la subida.' }, { status: 400 });
@@ -69,12 +96,14 @@ export async function POST(request: NextRequest) {
         const { data: vehicle, error: vehicleError } = await supabaseAdmin.from('vehicles').select('company_id').eq('id', entityId).single();
         if (vehicleError || !vehicle?.company_id) return NextResponse.json({ error: 'No se pudo determinar la empresa del vehículo para la subida.' }, { status: 400 });
         companyId = vehicle.company_id;
-      } else if (folder === 'company_logos') {
-        // entityId es el company id al editar
-        companyId = entityId;
       }
     }
-    if (!companyId) return NextResponse.json({ error: 'No se pudo determinar la empresa para la subida.' }, { status: 400 });
+
+    if (!companyId) {
+      return NextResponse.json({
+        error: 'No se pudo determinar la empresa para la subida. Verifica que tu usuario tenga una empresa asignada.',
+      }, { status: 400 });
+    }
 
     const fileExtension = originalName.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'bin';
     const uniqueFileName = `${user.id}-${uuidv4()}.${fileExtension}`;
@@ -96,8 +125,12 @@ export async function POST(request: NextRequest) {
     const bucketName = getBucketName(folder);
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType: file.type, upsert: false });
-    if (uploadError) throw uploadError;
+    const contentType = effectiveType || file.type || 'application/octet-stream';
+    const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false });
+    if (uploadError) {
+      if (isDev) console.error('[API Upload] storage error:', uploadError);
+      return NextResponse.json({ error: `Error al subir al storage: ${uploadError.message}` }, { status: 500 });
+    }
     const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fullPath);
     return NextResponse.json({ success: true, downloadUrl: publicUrl, fullPath });
   } catch (error: unknown) {
