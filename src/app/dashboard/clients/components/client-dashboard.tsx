@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { StaggerContainer, StaggerItem } from '@/components/animations/modern-transitions';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import {
   MetricCard,
   InteractiveMetricCard,
@@ -29,10 +29,18 @@ interface ClientDashboardProps {
   onCardClick: (cardType: 'debtors' | 'criticalClients') => void;
 }
 
+const BEHAVIOR_COLORS: Record<string, string> = {
+  Excelente: '#34d399',
+  Bueno: '#d7ff3f',
+  Regular: '#fbbf24',
+  Riesgoso: '#fb923c',
+  Crítico: '#fb7185',
+};
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-xl border border-white/10 bg-[#0e1117] p-3 text-xs text-white shadow-xl">
+      <div className="rounded-xl border border-white/10 bg-[#0e1117]/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
         <p className="mb-1 font-semibold text-white/80">{label}</p>
         {payload.map((p: any, index: number) => (
           <p key={index} className="text-white/60">
@@ -85,6 +93,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clients, clien
     };
   }, [clients, clientMetrics]);
 
+  const chartKey = overallStats.behaviorDistribution.map(d => d.Clientes).join('-');
+
   const getClientName = (clientId: string): string => {
     const client = clients.find(c => c.id === clientId);
     return client ? `${client.firstname} ${client.lastname}` : 'Desconocido';
@@ -132,8 +142,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clients, clien
         </StaggerItem>
       </StaggerContainer>
 
-      {/* Analytics secundarios: en móvil quedan debajo de la lista vía orden del padre;
-          aquí se mantienen para desktop. */}
       <div className="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3">
         <Card className="rounded-[20px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)] lg:col-span-1">
           <CardHeader className="pb-2">
@@ -144,9 +152,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clients, clien
               Distribución por historial
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[260px]">
+          <CardContent className="h-[240px] sm:h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={overallStats.behaviorDistribution} layout="vertical">
+              <BarChart
+                key={chartKey}
+                data={overallStats.behaviorDistribution}
+                layout="vertical"
+                margin={{ left: 4, right: 12 }}
+              >
                 <XAxis type="number" hide />
                 <YAxis
                   dataKey="name"
@@ -157,7 +170,21 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clients, clien
                   tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar dataKey="Clientes" fill="#d7ff3f" radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="Clientes"
+                  radius={[0, 6, 6, 0]}
+                  maxBarSize={22}
+                  isAnimationActive
+                  animationDuration={850}
+                  animationEasing="ease-out"
+                >
+                  {overallStats.behaviorDistribution.map(entry => (
+                    <Cell
+                      key={entry.name}
+                      fill={BEHAVIOR_COLORS[entry.name] || '#d7ff3f'}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
