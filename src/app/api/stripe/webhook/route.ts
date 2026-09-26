@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe';
+import { plans, type PlanType } from '@/config/plans';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -11,22 +12,66 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// Extrae el timestamp de fin del periodo actual. Desde la API version
-// 2025-03-31 este campo se movió del objeto Subscription al primer
-// SubscriptionItem (antes: subscription.current_period_end).
+const PAID_PLANS: PlanType[] = ['starter', 'pro', 'enterprise'];
+
 function getCurrentPeriodEnd(subscription: Stripe.Subscription): string | null {
   const rawTimestamp = subscription.items.data[0]?.current_period_end;
   return rawTimestamp ? new Date(rawTimestamp * 1000).toISOString() : null;
 }
 
-// Extrae el subscription id de un Invoice. Desde la API version
-// 2025-03-31 este campo se movió de invoice.subscription a
-// invoice.parent.subscription_details.subscription.
 function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   const subscriptionDetails = invoice.parent?.subscription_details;
   const subscription = subscriptionDetails?.subscription;
   if (!subscription) return null;
   return typeof subscription === 'string' ? subscription : subscription.id;
+}
+
+function getPaidPlan(value: string | null | undefined): PlanType | null {
+  return value && PAID_PLANS.includes(value as PlanType) ? value as PlanType : null;
+}
+
+async function applyCompanyPlan(
+  companyId: string,
+  plan: PlanType,
+  subscriptionStatus: string,
+  stripeSubscriptionId: string | null,
+  stripeCustomerId?: string | null,
+) {
+  const config = plans[plan];
+  await supabaseAdmin
+    .from('companies')
+    .update({
+      plan,
+      max_vehicles: config.maxVehicles === -1 ? null : config.maxVehicles,
+      max_users: config.maxUsers === -1 ? null : config.maxUsers,
+      subscription_status: subscriptionStatus,
+      stripe_subscription_id: stripeSubscriptionId,
+      ...(stripeCustomerId !== undefined ? { stripe_customer_id: stripeCustomerId } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', companyId);
+}
+
+async function findCompanyId(subscriptionId: string | null, customerId: string | null): Promise<string | null> {
+  if (subscriptionId) {
+    const { data } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('stripe_subscription_id', subscriptionId)
+      .maybeSingle();
+    if (data?.id) return data.id;
+  }
+
+  if (customerId) {
+    const { data } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle();
+    if (data?.id) return data.id;
+  }
+
+  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -57,19 +102,17 @@ export async function POST(request: NextRequest) {
             typeof session.subscription === 'string' ? session.subscription : session.subscription.id
           );
           const companyId = session.metadata?.company_id;
-          const planId = session.metadata?.plan_id;
+          const requestedPlan = getPaidPlan(session.metadata?.plan_id);
 
           if (companyId) {
-            await supabaseAdmin
-              .from('companies')
-              .update({
-                plan: planId || undefined,
-                stripe_subscription_id: subscription.id,
-                stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
-                subscription_status: subscription.status,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', companyId);
+            const paid = session.payment_status === 'paid' && ['active', 'trialing'].includes(subscription.status);
+            await applyCompanyPlan(
+              companyId,
+              paid && requestedPlan ? requestedPlan : 'free',
+              paid ? subscription.status : 'trialing',
+              subscription.id,
+              typeof session.customer === 'string' ? session.customer : session.customer?.id,
+            );
           }
         }
         break;
@@ -78,32 +121,19 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-
-        const { data: companyBySubscription } = await supabaseAdmin
-          .from('companies')
-          .select('id')
-          .eq('stripe_subscription_id', subscription.id)
-          .maybeSingle();
-
-        let companyId = companyBySubscription?.id;
-        if (!companyId) {
-          const { data: companyByCustomer } = await supabaseAdmin
-            .from('companies')
-            .select('id')
-            .eq('stripe_customer_id', customerId)
-            .maybeSingle();
-          companyId = companyByCustomer?.id;
-        }
+        const companyId = await findCompanyId(subscription.id, customerId);
 
         if (companyId) {
-          await supabaseAdmin
-            .from('companies')
-            .update({
-              subscription_status: subscription.status,
-              stripe_subscription_id: subscription.id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', companyId);
+          const paidPlan = getPaidPlan(subscription.metadata?.plan_id);
+          const paid = ['active', 'trialing'].includes(subscription.status) && !!paidPlan;
+
+          await applyCompanyPlan(
+            companyId,
+            paid ? paidPlan! : 'free',
+            subscription.status,
+            subscription.id,
+            customerId,
+          );
         }
         break;
       }
@@ -111,23 +141,10 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+        const companyId = await findCompanyId(subscription.id, customerId);
 
-        const { data: company } = await supabaseAdmin
-          .from('companies')
-          .select('id')
-          .or(`stripe_subscription_id.eq.${subscription.id},stripe_customer_id.eq.${customerId}`)
-          .maybeSingle();
-
-        if (company) {
-          await supabaseAdmin
-            .from('companies')
-            .update({
-              plan: 'starter',
-              stripe_subscription_id: null,
-              subscription_status: 'canceled',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', company.id);
+        if (companyId) {
+          await applyCompanyPlan(companyId, 'free', 'canceled', null, customerId);
         }
         break;
       }
@@ -135,11 +152,17 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = getInvoiceSubscriptionId(invoice);
+
         if (subscriptionId) {
-          await supabaseAdmin
-            .from('companies')
-            .update({ subscription_status: 'past_due', updated_at: new Date().toISOString() })
-            .eq('stripe_subscription_id', subscriptionId);
+          const { data: subscription } = await stripe.subscriptions.retrieve(subscriptionId).then(data => ({ data })).catch(() => ({ data: null }));
+          const customerId = subscription
+            ? (typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id)
+            : null;
+          const companyId = await findCompanyId(subscriptionId, customerId);
+
+          if (companyId) {
+            await applyCompanyPlan(companyId, 'free', 'past_due', subscriptionId, customerId);
+          }
         }
         break;
       }
@@ -147,11 +170,16 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = getInvoiceSubscriptionId(invoice);
+
         if (subscriptionId) {
-          await supabaseAdmin
-            .from('companies')
-            .update({ subscription_status: 'active', updated_at: new Date().toISOString() })
-            .eq('stripe_subscription_id', subscriptionId);
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+          const companyId = await findCompanyId(subscriptionId, customerId);
+          const paidPlan = getPaidPlan(subscription.metadata?.plan_id);
+
+          if (companyId && paidPlan) {
+            await applyCompanyPlan(companyId, paidPlan, 'active', subscriptionId, customerId);
+          }
         }
         break;
       }
