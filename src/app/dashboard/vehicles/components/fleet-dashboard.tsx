@@ -10,7 +10,7 @@ import { Car, DollarSign, Award, AlertTriangle } from 'lucide-react';
 import { StaggerContainer, StaggerItem } from '@/components/animations/modern-transitions';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { MetricCard } from '@/components/dashboard/components/MetricCard';
 import { PerformanceBadge } from '@/components/vehicles/vehicle-status-badges';
 
@@ -19,10 +19,18 @@ interface FleetDashboardProps {
   vehicleMetrics: VehicleMetric[];
 }
 
+const PERF_COLORS: Record<string, string> = {
+  Excelente: '#34d399',
+  Bueno: '#d7ff3f',
+  Promedio: '#fbbf24',
+  Pobre: '#fb923c',
+  Crítico: '#fb7185',
+};
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-xl border border-white/10 bg-[#0e1117] p-3 text-xs text-white shadow-xl">
+      <div className="rounded-xl border border-white/10 bg-[#0e1117]/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
         <p className="mb-1 font-semibold text-white/80">{label}</p>
         {payload.map((p: any, index: number) => (
           <p key={index} className="text-white/60">
@@ -71,6 +79,8 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
     name,
     Vehículos: value,
   }));
+
+  const chartKey = chartData.map(d => d.Vehículos).join('-');
 
   const topFiveVehicles = useMemo(() => {
     return vehicleMetrics
@@ -146,7 +156,6 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
         </StaggerItem>
       </StaggerContainer>
 
-      {/* Analytics: desktop only — reduce mobile noise */}
       <div className="hidden gap-4 md:grid md:grid-cols-2">
         <Card className="rounded-[14px] border-white/[0.07] bg-[#0e1117] text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <CardHeader className="pb-2">
@@ -157,9 +166,9 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
               Distribución por clasificación
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[260px]">
+          <CardContent className="h-[240px] sm:h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
+              <BarChart key={chartKey} data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <XAxis
                   dataKey="name"
                   tickLine={false}
@@ -170,9 +179,24 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ vehicles, vehicl
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                  allowDecimals={false}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar dataKey="Vehículos" fill="#d7ff3f" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="Vehículos"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={48}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                >
+                  {chartData.map(entry => (
+                    <Cell
+                      key={entry.name}
+                      fill={PERF_COLORS[entry.name] || '#d7ff3f'}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
