@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings, Activity } from 'lucide-react';
+import { Settings, Activity, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardDateFilter } from '@/components/dashboard/components/DashboardDateFilter';
 import type { DateRange } from 'react-day-picker';
@@ -10,6 +10,8 @@ interface DashboardHeaderProps {
   isConfigOpen: boolean;
   onOpenConfig: () => void;
   onDateChange: (range: DateRange | undefined) => void;
+  onExportPdf?: () => void;
+  isExportingPdf?: boolean;
 }
 
 export function DashboardHeader({
@@ -17,6 +19,8 @@ export function DashboardHeader({
   isConfigOpen,
   onOpenConfig,
   onDateChange,
+  onExportPdf,
+  isExportingPdf = false,
 }: DashboardHeaderProps) {
   return (
     <header className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0e1117] px-4 py-5 shadow-[0_18px_48px_rgba(0,0,0,.20)] sm:px-6 sm:py-6">
@@ -39,6 +43,15 @@ export function DashboardHeader({
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-1 [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-white/60">
             <DashboardDateFilter onDateChange={onDateChange} />
           </div>
+          <Button
+            variant="outline"
+            onClick={onExportPdf}
+            disabled={!onExportPdf || isExportingPdf}
+            className="h-10 gap-2 rounded-xl border-white/[0.1] bg-white/[0.035] px-4 text-xs font-semibold text-white/70 hover:border-[#d7ff3f]/30 hover:bg-[#d7ff3f]/[0.06] hover:text-[#d7ff3f]"
+          >
+            {isExportingPdf ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <FileText className="h-4 w-4" strokeWidth={1.75} />}
+            <span>PDF</span>
+          </Button>
           <Button
             variant="outline"
             onClick={onOpenConfig}
