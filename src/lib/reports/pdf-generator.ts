@@ -52,32 +52,44 @@ export interface ReportData {
   records?: FinancialRecord[];
 }
 
-/** FleetEase brand palette (RGB) */
+/** Light theme — printable, FleetEase accent */
 const BRAND = {
-  bg: [8, 10, 15] as [number, number, number],
-  surface: [14, 17, 23] as [number, number, number],
-  surfaceAlt: [18, 22, 30] as [number, number, number],
-  lime: [215, 255, 63] as [number, number, number],
-  emerald: [52, 211, 153] as [number, number, number],
-  rose: [251, 113, 133] as [number, number, number],
-  amber: [251, 191, 36] as [number, number, number],
-  white: [255, 255, 255] as [number, number, number],
-  muted: [148, 152, 168] as [number, number, number],
-  border: [40, 44, 56] as [number, number, number],
-  tableHead: [22, 26, 36] as [number, number, number],
-  tableStripe: [12, 14, 20] as [number, number, number],
+  bg: [246, 247, 242] as [number, number, number],
+  surface: [255, 255, 255] as [number, number, number],
+  surfaceAlt: [238, 240, 234] as [number, number, number],
+  lime: [180, 210, 40] as [number, number, number],
+  limeBright: [215, 255, 63] as [number, number, number],
+  limeDark: [92, 109, 8] as [number, number, number],
+  emerald: [16, 185, 129] as [number, number, number],
+  rose: [244, 63, 94] as [number, number, number],
+  amber: [245, 158, 11] as [number, number, number],
+  text: [10, 12, 18] as [number, number, number],
+  muted: [100, 106, 120] as [number, number, number],
+  border: [220, 224, 214] as [number, number, number],
+  tableHead: [24, 28, 36] as [number, number, number],
+  tableStripe: [248, 249, 246] as [number, number, number],
 };
 
 const CHART_PALETTE: [number, number, number][] = [
-  [215, 255, 63],
-  [163, 230, 53],
-  [132, 204, 22],
-  [52, 211, 153],
+  [180, 210, 40],
+  [16, 185, 129],
   [56, 189, 248],
-  [251, 191, 36],
-  [251, 113, 133],
-  [167, 139, 250],
+  [245, 158, 11],
+  [244, 63, 94],
+  [139, 92, 246],
+  [20, 184, 166],
+  [251, 146, 60],
 ];
+
+function toNumber(value: string | number): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^0-9.,-]/g, '').replace(/,/g, '');
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
 
 export class PDFReportGenerator {
   private doc: jsPDF;
@@ -100,6 +112,11 @@ export class PDFReportGenerator {
     this.paintPageBackground();
     this.addHeader(data);
     this.addKpiCards(data);
+
+    // Always try a comparison chart from KPI values
+    if (data.kpis && data.kpis.length >= 2) {
+      this.addKpiComparisonChart(data.kpis);
+    }
 
     if (data.income !== undefined && data.expenses !== undefined) {
       this.addIncomeExpenseVisual(data);
@@ -140,30 +157,29 @@ export class PDFReportGenerator {
   private addHeader(data: ReportData) {
     const w = this.pageWidth - this.margin * 2;
 
-    // Accent strip
-    this.doc.setFillColor(...BRAND.lime);
-    this.doc.rect(0, 0, this.pageWidth, 3, 'F');
+    this.doc.setFillColor(...BRAND.limeBright);
+    this.doc.rect(0, 0, this.pageWidth, 3.5, 'F');
 
-    // Brand row
     this.doc.setFont('helvetica', 'bold');
-    this.doc.setFontSize(11);
-    this.doc.setTextColor(...BRAND.lime);
+    this.doc.setFontSize(12);
+    this.doc.setTextColor(...BRAND.limeDark);
     this.doc.text('FLEETEASE', this.margin, this.currentY + 6);
 
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
-    this.doc.text('Reporte ejecutivo', this.margin + 32, this.currentY + 6);
+    this.doc.text('Reporte ejecutivo', this.margin + 34, this.currentY + 6);
 
     this.currentY += 14;
 
-    // Title block
     this.doc.setFillColor(...BRAND.surface);
-    this.doc.roundedRect(this.margin, this.currentY, w, 28, 3, 3, 'F');
+    this.doc.setDrawColor(...BRAND.border);
+    this.doc.setLineWidth(0.3);
+    this.doc.roundedRect(this.margin, this.currentY, w, 28, 3, 3, 'FD');
 
     this.doc.setFont('helvetica', 'bold');
-    this.doc.setFontSize(16);
-    this.doc.setTextColor(...BRAND.white);
+    this.doc.setFontSize(15);
+    this.doc.setTextColor(...BRAND.text);
     this.doc.text(data.title, this.margin + 6, this.currentY + 10);
 
     this.doc.setFont('helvetica', 'normal');
@@ -176,7 +192,7 @@ export class PDFReportGenerator {
       this.doc.text(data.subtitle, this.margin + 6, this.currentY + 24);
     }
 
-    const gen = format(new Date(), "dd MMM yyyy · HH:mm", { locale: es });
+    const gen = format(new Date(), 'dd MMM yyyy · HH:mm', { locale: es });
     this.doc.setFontSize(8);
     this.doc.text(
       data.generatedBy ? `Por ${data.generatedBy} · ${gen}` : gen,
@@ -186,7 +202,8 @@ export class PDFReportGenerator {
     );
 
     if (data.companyName) {
-      this.doc.setTextColor(...BRAND.lime);
+      this.doc.setTextColor(...BRAND.limeDark);
+      this.doc.setFont('helvetica', 'bold');
       this.doc.text(data.companyName, this.pageWidth - this.margin - 6, this.currentY + 18, {
         align: 'right',
       });
@@ -196,13 +213,11 @@ export class PDFReportGenerator {
   }
 
   private addKpiCards(data: ReportData) {
-    this.ensureSpace(42);
-
     type Card = { label: string; value: string; accent: [number, number, number]; hint?: string };
     const cards: Card[] = [];
 
     if (data.kpis && data.kpis.length > 0) {
-      data.kpis.slice(0, 4).forEach((kpi, i) => {
+      data.kpis.slice(0, 8).forEach((kpi, i) => {
         const value =
           typeof kpi.value === 'number' ? this.formatCurrency(kpi.value) : String(kpi.value);
         cards.push({
@@ -249,43 +264,115 @@ export class PDFReportGenerator {
 
     if (cards.length === 0) return;
 
-    const gap = 4;
-    const cardW = (this.pageWidth - this.margin * 2 - gap * (cards.length - 1)) / cards.length;
-    const cardH = 28;
+    // Layout: max 4 per row
+    const perRow = Math.min(4, cards.length);
+    const rows = Math.ceil(cards.length / perRow);
+    const gap = 3.5;
+    const cardH = 26;
 
-    cards.forEach((card, i) => {
-      const x = this.margin + i * (cardW + gap);
-      this.doc.setFillColor(...BRAND.surface);
-      this.doc.roundedRect(x, this.currentY, cardW, cardH, 2.5, 2.5, 'F');
+    for (let row = 0; row < rows; row++) {
+      this.ensureSpace(cardH + 6);
+      const slice = cards.slice(row * perRow, row * perRow + perRow);
+      const cardW = (this.pageWidth - this.margin * 2 - gap * (slice.length - 1)) / slice.length;
 
-      // Accent bar on left
-      this.doc.setFillColor(...card.accent);
-      this.doc.roundedRect(x, this.currentY, 1.8, cardH, 1, 1, 'F');
+      slice.forEach((card, i) => {
+        const x = this.margin + i * (cardW + gap);
+        this.doc.setFillColor(...BRAND.surface);
+        this.doc.setDrawColor(...BRAND.border);
+        this.doc.setLineWidth(0.25);
+        this.doc.roundedRect(x, this.currentY, cardW, cardH, 2.5, 2.5, 'FD');
 
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setFontSize(7);
-      this.doc.setTextColor(...BRAND.muted);
-      this.doc.text(card.label.toUpperCase(), x + 5, this.currentY + 8);
+        this.doc.setFillColor(...card.accent);
+        this.doc.roundedRect(x, this.currentY, 2, cardH, 1, 1, 'F');
 
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setFontSize(card.value.length > 14 ? 10 : 12);
-      this.doc.setTextColor(...BRAND.white);
-      this.doc.text(card.value, x + 5, this.currentY + 17);
-
-      if (card.hint) {
         this.doc.setFont('helvetica', 'normal');
-        this.doc.setFontSize(7);
+        this.doc.setFontSize(6.5);
         this.doc.setTextColor(...BRAND.muted);
-        this.doc.text(card.hint, x + 5, this.currentY + 23);
-      }
-    });
+        const label =
+          card.label.length > 22 ? card.label.slice(0, 21) + '…' : card.label.toUpperCase();
+        this.doc.text(label, x + 5, this.currentY + 7);
 
-    this.currentY += cardH + 10;
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(card.value.length > 12 ? 10 : 12);
+        this.doc.setTextColor(...BRAND.text);
+        this.doc.text(card.value, x + 5, this.currentY + 16);
+
+        if (card.hint) {
+          this.doc.setFont('helvetica', 'normal');
+          this.doc.setFontSize(6.5);
+          this.doc.setTextColor(...BRAND.muted);
+          const hint = card.hint.length > 28 ? card.hint.slice(0, 27) + '…' : card.hint;
+          this.doc.text(hint, x + 5, this.currentY + 22);
+        }
+      });
+
+      this.currentY += cardH + 5;
+    }
+
+    this.currentY += 4;
   }
 
-  /** Mini donut + legend for income vs expenses */
+  /** Horizontal bars comparing numeric KPIs */
+  private addKpiComparisonChart(
+    kpis: Array<{ label: string; value: string | number; subtitle?: string }>
+  ) {
+    const numeric = kpis
+      .map(k => ({ label: k.label, value: toNumber(k.value) }))
+      .filter((k): k is { label: string; value: number } => k.value !== null && k.value !== 0)
+      .slice(0, 8);
+
+    if (numeric.length < 2) return;
+
+    const maxAbs = Math.max(...numeric.map(k => Math.abs(k.value))) || 1;
+    const rowH = 11;
+    const chartH = 14 + numeric.length * rowH;
+
+    this.ensureSpace(chartH + 8);
+
+    const boxW = this.pageWidth - this.margin * 2;
+    this.doc.setFillColor(...BRAND.surface);
+    this.doc.setDrawColor(...BRAND.border);
+    this.doc.setLineWidth(0.25);
+    this.doc.roundedRect(this.margin, this.currentY, boxW, chartH, 3, 3, 'FD');
+
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFontSize(10);
+    this.doc.setTextColor(...BRAND.text);
+    this.doc.text('Comparativa de indicadores', this.margin + 6, this.currentY + 8);
+
+    const labelW = 48;
+    const barX = this.margin + labelW;
+    const barMaxW = boxW - labelW - 36;
+    const startY = this.currentY + 14;
+
+    numeric.forEach((item, i) => {
+      const y = startY + i * rowH;
+      const color = CHART_PALETTE[i % CHART_PALETTE.length];
+      const width = Math.max(2, (Math.abs(item.value) / maxAbs) * barMaxW);
+
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(7.5);
+      this.doc.setTextColor(...BRAND.muted);
+      const label = item.label.length > 20 ? item.label.slice(0, 19) + '…' : item.label;
+      this.doc.text(label, this.margin + 6, y + 4);
+
+      this.doc.setFillColor(...BRAND.surfaceAlt);
+      this.doc.roundedRect(barX, y, barMaxW, 5.5, 1.5, 1.5, 'F');
+
+      this.doc.setFillColor(...color);
+      this.doc.roundedRect(barX, y, width, 5.5, 1.5, 1.5, 'F');
+
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.setFontSize(7);
+      this.doc.setTextColor(...BRAND.text);
+      this.doc.text(this.formatCurrency(item.value), barX + barMaxW + 2, y + 4);
+    });
+
+    this.currentY += chartH + 8;
+  }
+
   private addIncomeExpenseVisual(data: ReportData) {
-    this.ensureSpace(55);
+    this.ensureSpace(52);
 
     const income = Math.max(0, data.income || 0);
     const expenses = Math.max(0, data.expenses || 0);
@@ -293,45 +380,42 @@ export class PDFReportGenerator {
     if (total <= 0) return;
 
     const boxW = this.pageWidth - this.margin * 2;
-    const boxH = 48;
+    const boxH = 46;
     this.doc.setFillColor(...BRAND.surface);
-    this.doc.roundedRect(this.margin, this.currentY, boxW, boxH, 3, 3, 'F');
+    this.doc.setDrawColor(...BRAND.border);
+    this.doc.setLineWidth(0.25);
+    this.doc.roundedRect(this.margin, this.currentY, boxW, boxH, 3, 3, 'FD');
 
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(10);
-    this.doc.setTextColor(...BRAND.white);
+    this.doc.setTextColor(...BRAND.text);
     this.doc.text('Composición del periodo', this.margin + 6, this.currentY + 8);
 
-    // Donut center
     const cx = this.margin + 28;
     const cy = this.currentY + 28;
     const outerR = 14;
     const innerR = 8;
 
     const incomeAngle = (income / total) * 360;
-    this.drawDonutSlice(cx, cy, outerR, innerR, -90, -90 + incomeAngle, BRAND.emerald);
-    this.drawDonutSlice(cx, cy, outerR, innerR, -90 + incomeAngle, 270, BRAND.rose);
-
-    // Center hole already drawn by innerR; redraw bg circle for clean hole
+    this.drawDonutSlice(cx, cy, outerR, -90, -90 + incomeAngle, BRAND.emerald);
+    this.drawDonutSlice(cx, cy, outerR, -90 + incomeAngle, 270, BRAND.rose);
     this.doc.setFillColor(...BRAND.surface);
     this.doc.circle(cx, cy, innerR, 'F');
 
-    // Legend + bars on the right
     const legendX = this.margin + 52;
     const barMaxW = boxW - 70;
 
-    // Income row
     this.doc.setFillColor(...BRAND.emerald);
     this.doc.circle(legendX, this.currentY + 18, 1.8, 'F');
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
     this.doc.text('Ingresos', legendX + 5, this.currentY + 19);
-    this.doc.setTextColor(...BRAND.white);
+    this.doc.setTextColor(...BRAND.text);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(this.formatCurrency(income), legendX + 28, this.currentY + 19);
 
-    this.doc.setFillColor(...BRAND.border);
+    this.doc.setFillColor(...BRAND.surfaceAlt);
     this.doc.roundedRect(legendX, this.currentY + 22, barMaxW, 4, 1, 1, 'F');
     this.doc.setFillColor(...BRAND.emerald);
     this.doc.roundedRect(
@@ -344,18 +428,17 @@ export class PDFReportGenerator {
       'F'
     );
 
-    // Expenses row
     this.doc.setFillColor(...BRAND.rose);
     this.doc.circle(legendX, this.currentY + 34, 1.8, 'F');
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
     this.doc.text('Gastos', legendX + 5, this.currentY + 35);
-    this.doc.setTextColor(...BRAND.white);
+    this.doc.setTextColor(...BRAND.text);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(this.formatCurrency(expenses), legendX + 28, this.currentY + 35);
 
-    this.doc.setFillColor(...BRAND.border);
+    this.doc.setFillColor(...BRAND.surfaceAlt);
     this.doc.roundedRect(legendX, this.currentY + 38, barMaxW, 4, 1, 1, 'F');
     this.doc.setFillColor(...BRAND.rose);
     this.doc.roundedRect(
@@ -375,12 +458,10 @@ export class PDFReportGenerator {
     cx: number,
     cy: number,
     outerR: number,
-    _innerR: number,
     startDeg: number,
     endDeg: number,
     color: [number, number, number]
   ) {
-    // Approximate slice with triangles from center (outer ring only; hole painted after)
     this.doc.setFillColor(...color);
     const steps = Math.max(8, Math.ceil(Math.abs(endDeg - startDeg) / 6));
     for (let i = 0; i < steps; i++) {
@@ -390,7 +471,6 @@ export class PDFReportGenerator {
       const y1 = cy + outerR * Math.sin(a1);
       const x2 = cx + outerR * Math.cos(a2);
       const y2 = cy + outerR * Math.sin(a2);
-      // jsPDF triangle via lines path
       this.doc.triangle(cx, cy, x1, y1, x2, y2, 'F');
     }
   }
@@ -399,17 +479,16 @@ export class PDFReportGenerator {
     this.ensureSpace(20);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(11);
-    this.doc.setTextColor(...BRAND.white);
+    this.doc.setTextColor(...BRAND.text);
     this.doc.text(title, this.margin, this.currentY);
 
     this.doc.setDrawColor(...BRAND.lime);
-    this.doc.setLineWidth(0.6);
+    this.doc.setLineWidth(0.7);
     this.doc.line(this.margin, this.currentY + 2, this.margin + 18, this.currentY + 2);
 
     this.currentY += 8;
   }
 
-  /** Horizontal bar chart for category breakdown */
   private addCategoryBars(
     title: string,
     categories: Record<string, number>,
@@ -444,16 +523,16 @@ export class PDFReportGenerator {
       const label = name.length > 18 ? name.slice(0, 17) + '…' : name;
       this.doc.text(label, this.margin, y + 4);
 
-      this.doc.setFillColor(...BRAND.border);
+      this.doc.setFillColor(...BRAND.surfaceAlt);
       this.doc.roundedRect(barX, y, barMaxW, 5, 1.2, 1.2, 'F');
 
       this.doc.setFillColor(...color);
       this.doc.roundedRect(barX, y, Math.max(1.5, pct * barMaxW), 5, 1.2, 1.2, 'F');
 
       this.doc.setFontSize(7);
-      this.doc.setTextColor(...BRAND.white);
+      this.doc.setTextColor(...BRAND.text);
       this.doc.text(
-        `${this.formatCurrency(amount)}  ${((pct) * 100).toFixed(0)}%`,
+        `${this.formatCurrency(amount)}  ${(pct * 100).toFixed(0)}%`,
         barX + barMaxW + 2,
         y + 4
       );
@@ -467,14 +546,14 @@ export class PDFReportGenerator {
       theme: 'plain' as const,
       headStyles: {
         fillColor: BRAND.tableHead,
-        textColor: BRAND.lime,
+        textColor: BRAND.limeBright,
         fontSize: 8,
         fontStyle: 'bold' as const,
         cellPadding: 3,
       },
       bodyStyles: {
         fillColor: BRAND.surface,
-        textColor: BRAND.white,
+        textColor: BRAND.text,
         fontSize: 7.5,
         cellPadding: 2.5,
       },
@@ -483,7 +562,7 @@ export class PDFReportGenerator {
       },
       styles: {
         lineColor: BRAND.border,
-        lineWidth: 0.1,
+        lineWidth: 0.15,
       },
       margin: { left: this.margin, right: this.margin },
     };
@@ -491,25 +570,18 @@ export class PDFReportGenerator {
 
   private addFinancialReport(data: ReportData) {
     if (data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0) {
-      this.addCategoryBars(
-        'Gastos por categoría',
-        data.expensesByCategory,
-        data.expenses || 0
-      );
+      this.addCategoryBars('Gastos por categoría', data.expensesByCategory, data.expenses || 0);
     }
 
     if (data.incomeByCategory && Object.keys(data.incomeByCategory).length > 0) {
-      this.addCategoryBars(
-        'Ingresos por categoría',
-        data.incomeByCategory,
-        data.income || 0
-      );
+      this.addCategoryBars('Ingresos por categoría', data.incomeByCategory, data.income || 0);
     }
 
-    // Only show a compact sample of transactions (not full ledger dump)
     if (data.records && data.records.length > 0) {
       this.ensureSpace(40);
-      this.addSectionTitle(`Movimientos recientes (${Math.min(data.records.length, 15)} de ${data.records.length})`);
+      this.addSectionTitle(
+        `Movimientos recientes (${Math.min(data.records.length, 15)} de ${data.records.length})`
+      );
 
       const sorted = [...data.records]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -528,10 +600,10 @@ export class PDFReportGenerator {
         head: [['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto']],
         body,
         ...this.tableTheme(),
-        didParseCell: data => {
-          if (data.section === 'body' && data.column.index === 1) {
-            const v = String(data.cell.raw);
-            data.cell.styles.textColor = v === 'Ingreso' ? BRAND.emerald : BRAND.rose;
+        didParseCell: cellData => {
+          if (cellData.section === 'body' && cellData.column.index === 1) {
+            const v = String(cellData.cell.raw);
+            cellData.cell.styles.textColor = v === 'Ingreso' ? BRAND.emerald : BRAND.rose;
           }
         },
       });
@@ -642,16 +714,16 @@ export class PDFReportGenerator {
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i);
 
-      // Footer bar
       this.doc.setFillColor(...BRAND.surface);
       this.doc.rect(0, this.pageHeight - 12, this.pageWidth, 12, 'F');
-      this.doc.setFillColor(...BRAND.lime);
-      this.doc.rect(0, this.pageHeight - 12.4, this.pageWidth, 0.6, 'F');
+      this.doc.setFillColor(...BRAND.limeBright);
+      this.doc.rect(0, this.pageHeight - 12.4, this.pageWidth, 0.7, 'F');
 
       this.doc.setFontSize(7);
       this.doc.setTextColor(...BRAND.muted);
       this.doc.text('FleetEase · Gestión de flotas', this.margin, this.pageHeight - 5);
-      this.doc.setTextColor(...BRAND.lime);
+      this.doc.setTextColor(...BRAND.limeDark);
+      this.doc.setFont('helvetica', 'bold');
       this.doc.text(`Pág. ${i} / ${pageCount}`, this.pageWidth - this.margin, this.pageHeight - 5, {
         align: 'right',
       });
