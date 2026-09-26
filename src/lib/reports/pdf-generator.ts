@@ -138,12 +138,38 @@ function fmtDateTime(d: Date): string {
   return format(d, 'dd/MM/yyyy HH:mm');
 }
 
+function detectImageFormat(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' {
+  if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
+  if (dataUrl.startsWith('data:image/webp')) return 'WEBP';
+  return 'PNG';
+}
+
+/** Carga una imagen (ruta pública o URL) como data URL para jsPDF.addImage */
+async function loadImageAsDataUrl(src: string): Promise<string | null> {
+  try {
+    const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) return null;
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export class PDFReportGenerator {
   private doc: jsPDF;
   private pageWidth: number;
   private pageHeight: number;
   private margin = 16;
   private currentY = 16;
+  private fleetLogoDataUrl: string | null = null;
+  private companyLogoDataUrl: string | null = null;
 
   constructor() {
     this.doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -151,7 +177,8 @@ export class PDFReportGenerator {
     this.pageHeight = this.doc.internal.pageSize.getHeight();
   }
 
-  generate(data: ReportData): Blob {
+  async generate(data: ReportData): Promise<Blob> {
+    await this.loadLogos(data);
     this.paintPageBackground();
     this.addHeader(data);
     this.addCompanyBlock(data);
@@ -222,23 +249,38 @@ export class PDFReportGenerator {
     this.doc.setFillColor(...BRAND.limeBright);
     this.doc.rect(0, 0, this.pageWidth, 3.5, 'F');
 
-    // FleetEase brand mark (text logo)
-    this.doc.setFillColor(...BRAND.limeDark);
-    this.doc.roundedRect(this.margin, this.currentY, 8, 8, 1.5, 1.5, 'F');
-    this.doc.setFont('helvetica', 'bold');
-    this.doc.setFontSize(8);
-    this.doc.setTextColor(...BRAND.limeBright);
-    this.doc.text('FE', this.margin + 4, this.currentY + 5.5, { align: 'center' });
+    // FleetEase logo from /public
+    const logoSize = 10;
+    let textX = this.margin;
+    if (this.fleetLogoDataUrl) {
+      try {
+        this.doc.addImage(
+          this.fleetLogoDataUrl,
+          detectImageFormat(this.fleetLogoDataUrl),
+          this.margin,
+          this.currentY - 1,
+          logoSize,
+          logoSize
+        );
+        textX = this.margin + logoSize + 3;
+      } catch {
+        this.drawTextLogoMark();
+        textX = this.margin + 11;
+      }
+    } else {
+      this.drawTextLogoMark();
+      textX = this.margin + 11;
+    }
 
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(12);
     this.doc.setTextColor(...BRAND.limeDark);
-    this.doc.text('FLEETEASE', this.margin + 11, this.currentY + 6);
+    this.doc.text('FLEETEASE', textX, this.currentY + 6);
 
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
-    this.doc.text('Reporte ejecutivo', this.margin + 45, this.currentY + 6);
+    this.doc.text('Reporte ejecutivo', textX + 34, this.currentY + 6);
 
     this.currentY += 14;
 
@@ -290,34 +332,51 @@ export class PDFReportGenerator {
     const info = data.companyInfo;
     if (!info) return;
 
-    this.ensureSpace(22);
+    this.ensureSpace(24);
     const w = this.pageWidth - this.margin * 2;
     this.doc.setFillColor(...BRAND.surface);
     this.doc.setDrawColor(...BRAND.border);
     this.doc.setLineWidth(0.25);
-    this.doc.roundedRect(this.margin, this.currentY, w, 18, 2.5, 2.5, 'FD');
+    this.doc.roundedRect(this.margin, this.currentY, w, 20, 2.5, 2.5, 'FD');
+
+    let textLeft = this.margin + 5;
+    if (this.companyLogoDataUrl) {
+      try {
+        this.doc.addImage(
+          this.companyLogoDataUrl,
+          detectImageFormat(this.companyLogoDataUrl),
+          this.margin + 3,
+          this.currentY + 3,
+          14,
+          14
+        );
+        textLeft = this.margin + 20;
+      } catch {
+        // ignore
+      }
+    }
 
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(9);
     this.doc.setTextColor(...BRAND.text);
-    this.doc.text(info.name, this.margin + 5, this.currentY + 7);
+    this.doc.text(info.name, textLeft, this.currentY + 8);
 
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(7.5);
     this.doc.setTextColor(...BRAND.muted);
     const line2 = [info.email, info.phone].filter(Boolean).join('  ·  ');
-    if (line2) this.doc.text(line2, this.margin + 5, this.currentY + 13);
+    if (line2) this.doc.text(line2, textLeft, this.currentY + 14);
 
     const addr = [info.street, info.city, info.state, info.zipCode, info.country]
       .filter(Boolean)
       .join(', ');
     if (addr) {
-      this.doc.text(addr.slice(0, 70), this.pageWidth - this.margin - 5, this.currentY + 7, {
+      this.doc.text(addr.slice(0, 60), this.pageWidth - this.margin - 5, this.currentY + 8, {
         align: 'right',
       });
     }
 
-    this.currentY += 22;
+    this.currentY += 24;
   }
 
   private addAlertDetails(data: ReportData) {
@@ -571,155 +630,108 @@ export class PDFReportGenerator {
     this.doc.circle(cx, cy, 8, 'F');
 
     const legendX = this.margin + 52;
-    const barMaxW = boxW - 70;
-
     this.doc.setFillColor(...BRAND.emerald);
-    this.doc.circle(legendX, this.currentY + 18, 1.8, 'F');
+    this.doc.circle(legendX, this.currentY + 20, 2.2, 'F');
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
-    this.doc.text('Ingresos', legendX + 5, this.currentY + 19);
+    this.doc.text('Ingresos', legendX + 5, this.currentY + 21);
     this.doc.setTextColor(...BRAND.text);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text(this.formatCurrency(income), legendX + 28, this.currentY + 19);
+    this.doc.text(this.formatCurrency(income), legendX + 28, this.currentY + 21);
     this.doc.setFillColor(...BRAND.surfaceAlt);
-    this.doc.roundedRect(legendX, this.currentY + 22, barMaxW, 4, 1, 1, 'F');
+    this.doc.roundedRect(legendX + 70, this.currentY + 17, 50, 5, 1, 1, 'F');
     this.doc.setFillColor(...BRAND.emerald);
-    this.doc.roundedRect(legendX, this.currentY + 22, Math.max(2, (income / total) * barMaxW), 4, 1, 1, 'F');
+    this.doc.roundedRect(legendX + 70, this.currentY + 17, Math.max(4, (income / total) * 50), 5, 1, 1, 'F');
 
     this.doc.setFillColor(...BRAND.rose);
-    this.doc.circle(legendX, this.currentY + 34, 1.8, 'F');
+    this.doc.circle(legendX, this.currentY + 32, 2.2, 'F');
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(8);
     this.doc.setTextColor(...BRAND.muted);
-    this.doc.text('Gastos', legendX + 5, this.currentY + 35);
+    this.doc.text('Gastos', legendX + 5, this.currentY + 33);
     this.doc.setTextColor(...BRAND.text);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text(this.formatCurrency(expenses), legendX + 28, this.currentY + 35);
+    this.doc.text(this.formatCurrency(expenses), legendX + 28, this.currentY + 33);
     this.doc.setFillColor(...BRAND.surfaceAlt);
-    this.doc.roundedRect(legendX, this.currentY + 38, barMaxW, 4, 1, 1, 'F');
+    this.doc.roundedRect(legendX + 70, this.currentY + 29, 50, 5, 1, 1, 'F');
     this.doc.setFillColor(...BRAND.rose);
-    this.doc.roundedRect(legendX, this.currentY + 38, Math.max(2, (expenses / total) * barMaxW), 4, 1, 1, 'F');
+    this.doc.roundedRect(legendX + 70, this.currentY + 29, Math.max(4, (expenses / total) * 50), 5, 1, 1, 'F');
 
-    this.currentY += boxH + 10;
+    this.currentY += boxH + 8;
   }
 
   private drawDonutSlice(
     cx: number,
     cy: number,
-    outerR: number,
+    r: number,
     startDeg: number,
     endDeg: number,
     color: [number, number, number]
   ) {
-    this.doc.setFillColor(...color);
     const steps = Math.max(8, Math.ceil(Math.abs(endDeg - startDeg) / 6));
-    for (let i = 0; i < steps; i++) {
-      const a1 = ((startDeg + ((endDeg - startDeg) * i) / steps) * Math.PI) / 180;
-      const a2 = ((startDeg + ((endDeg - startDeg) * (i + 1)) / steps) * Math.PI) / 180;
-      this.doc.triangle(
-        cx,
-        cy,
-        cx + outerR * Math.cos(a1),
-        cy + outerR * Math.sin(a1),
-        cx + outerR * Math.cos(a2),
-        cy + outerR * Math.sin(a2),
-        'F'
-      );
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    this.doc.setFillColor(...color);
+    const pts: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = toRad(startDeg + ((endDeg - startDeg) * i) / steps);
+      pts.push(cx + r * Math.cos(a), cy + r * Math.sin(a));
     }
+    // jsPDF doesn't have path fill easily - use lines as approximation via triangle fan
+    for (let i = 0; i < steps; i++) {
+      const a1 = toRad(startDeg + ((endDeg - startDeg) * i) / steps);
+      const a2 = toRad(startDeg + ((endDeg - startDeg) * (i + 1)) / steps);
+      this.doc.setDrawColor(...color);
+      this.doc.setFillColor(...color);
+      // thin arc segments
+      this.doc.setLineWidth(r * 0.55);
+      this.doc.line(cx + r * 0.72 * Math.cos(a1), cy + r * 0.72 * Math.sin(a1), cx + r * 0.72 * Math.cos(a2), cy + r * 0.72 * Math.sin(a2));
+    }
+    this.doc.setLineWidth(0.2);
   }
 
   private addSectionTitle(title: string) {
-    this.ensureSpace(20);
+    this.ensureSpace(12);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(11);
     this.doc.setTextColor(...BRAND.text);
-    this.doc.text(title, this.margin, this.currentY);
+    this.doc.text(title, this.margin, this.currentY + 4);
     this.doc.setDrawColor(...BRAND.lime);
-    this.doc.setLineWidth(0.7);
-    this.doc.line(this.margin, this.currentY + 2, this.margin + 18, this.currentY + 2);
-    this.currentY += 8;
-  }
-
-  private addCategoryBars(title: string, categories: Record<string, number>, totalFallback: number) {
-    const entries = Object.entries(categories)
-      .filter(([, v]) => v > 0)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6);
-    if (entries.length === 0) return;
-    const total = totalFallback || entries.reduce((s, [, v]) => s + v, 0) || 1;
-    this.ensureSpace(10 + entries.length * 9 + 12);
-    this.addSectionTitle(title);
-    const labelW = 42;
-    const barX = this.margin + labelW;
-    const barMaxW = this.pageWidth - this.margin - barX - 28;
-    entries.forEach(([name, amount], i) => {
-      const y = this.currentY + i * 9;
-      const pct = amount / total;
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setFontSize(8);
-      this.doc.setTextColor(...BRAND.muted);
-      this.doc.text(name.length > 18 ? name.slice(0, 17) + '…' : name, this.margin, y + 4);
-      this.doc.setFillColor(...BRAND.surfaceAlt);
-      this.doc.roundedRect(barX, y, barMaxW, 5, 1.2, 1.2, 'F');
-      this.doc.setFillColor(...CHART_PALETTE[i % CHART_PALETTE.length]);
-      this.doc.roundedRect(barX, y, Math.max(1.5, pct * barMaxW), 5, 1.2, 1.2, 'F');
-      this.doc.setFontSize(7);
-      this.doc.setTextColor(...BRAND.text);
-      this.doc.text(
-        `${this.formatCurrency(amount)}  ${(pct * 100).toFixed(0)}%`,
-        barX + barMaxW + 2,
-        y + 4
-      );
-    });
-    this.currentY += entries.length * 9 + 8;
+    this.doc.setLineWidth(0.6);
+    this.doc.line(this.margin, this.currentY + 6, this.margin + 28, this.currentY + 6);
+    this.currentY += 10;
   }
 
   private tableTheme() {
     return {
-      theme: 'plain' as const,
+      margin: { left: this.margin, right: this.margin },
       headStyles: {
         fillColor: BRAND.tableHead,
         textColor: BRAND.limeBright,
-        fontSize: 8,
         fontStyle: 'bold' as const,
-        cellPadding: 3,
+        fontSize: 8,
       },
       bodyStyles: {
         fillColor: BRAND.surface,
         textColor: BRAND.text,
         fontSize: 7.5,
-        cellPadding: 2.5,
       },
       alternateRowStyles: { fillColor: BRAND.tableStripe },
-      styles: { lineColor: BRAND.border, lineWidth: 0.15 },
-      margin: { left: this.margin, right: this.margin },
+      styles: { lineColor: BRAND.border, lineWidth: 0.15, cellPadding: 2.2 },
     };
   }
 
   private addFinancialReport(data: ReportData) {
-    if (data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0) {
-      this.addCategoryBars('Gastos por categoria', data.expensesByCategory, data.expenses || 0);
-    }
-    if (data.incomeByCategory && Object.keys(data.incomeByCategory).length > 0) {
-      this.addCategoryBars('Ingresos por categoria', data.incomeByCategory, data.income || 0);
-    }
     if (data.records && data.records.length > 0) {
       this.ensureSpace(40);
-      this.addSectionTitle(
-        `Movimientos recientes (${Math.min(data.records.length, 15)} de ${data.records.length})`
-      );
-      const sorted = [...data.records]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 15);
+      this.addSectionTitle('Movimientos recientes');
       autoTable(this.doc, {
         startY: this.currentY,
-        head: [['Fecha', 'Tipo', 'Categoria', 'Descripcion', 'Monto']],
-        body: sorted.map(r => [
-          format(new Date(r.date), 'dd/MM/yy'),
-          r.type === 'income' ? 'Ingreso' : 'Gasto',
-          (r.category || '-').slice(0, 22),
-          (r.description || '-').slice(0, 36),
+        head: [['Fecha', 'Tipo', 'Descripcion', 'Monto']],
+        body: data.records.slice(0, 25).map(r => [
+          fmtDate(new Date(r.date)),
+          r.type === 'income' ? 'Ingreso' : r.type === 'expense' ? 'Gasto' : 'Pago',
+          (r.description || r.category || '-').slice(0, 40),
           this.formatCurrency(r.amount),
         ]),
         ...this.tableTheme(),
@@ -737,17 +749,16 @@ export class PDFReportGenerator {
   private addVehicleReport(data: ReportData) {
     if (!data.vehicleMetrics?.length) return;
     this.ensureSpace(40);
-    this.addSectionTitle('Rentabilidad por vehiculo');
+    this.addSectionTitle('Analisis de vehiculos');
     autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Vehiculo', 'Placa', 'Ingresos', 'Gastos', 'Beneficio', 'Rent.']],
+      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Utilizacion']],
       body: data.vehicleMetrics.map(m => [
-        (m.vehicle.alias || `${m.vehicle.make} ${m.vehicle.model}`).slice(0, 24),
-        m.vehicle.plate,
+        `${m.vehicle.alias || m.vehicle.plate}`.slice(0, 22),
         this.formatCurrency(m.totalIncome),
         this.formatCurrency(m.totalExpenses),
         this.formatCurrency(m.netProfit),
-        `${m.profitability.toFixed(0)}%`,
+        `${m.utilizationRate.toFixed(0)}%`,
       ]),
       ...this.tableTheme(),
     });
@@ -760,7 +771,7 @@ export class PDFReportGenerator {
     this.addSectionTitle('Analisis de clientes');
     autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Cliente', 'Pagos', 'Saldo', 'Ultimo', 'Comportamiento']],
+      head: [['Cliente', 'Pagos', 'Saldo', 'Ult. pago', 'Comportamiento']],
       body: data.clientMetrics.map(m => [
         `${m.client.firstname} ${m.client.lastname}`.slice(0, 28),
         this.formatCurrency(m.totalPayments),
@@ -808,6 +819,35 @@ export class PDFReportGenerator {
       this.doc.text(`Pag. ${i} / ${pageCount}`, this.pageWidth - this.margin, this.pageHeight - 5, {
         align: 'right',
       });
+    }
+  }
+
+  private drawTextLogoMark() {
+    this.doc.setFillColor(...BRAND.limeDark);
+    this.doc.roundedRect(this.margin, this.currentY, 8, 8, 1.5, 1.5, 'F');
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setFontSize(8);
+    this.doc.setTextColor(...BRAND.limeBright);
+    this.doc.text('FE', this.margin + 4, this.currentY + 5.5, { align: 'center' });
+  }
+
+  /** Carga logos desde /public y (opcional) logo de la empresa */
+  private async loadLogos(data: ReportData) {
+    const fleetCandidates = [
+      '/logo.png',
+      '/web-app-manifest-192x192.png',
+      '/favicon-96x96.png',
+      '/icono-touch-de-apple.png',
+    ];
+    for (const path of fleetCandidates) {
+      const dataUrl = await loadImageAsDataUrl(path);
+      if (dataUrl) {
+        this.fleetLogoDataUrl = dataUrl;
+        break;
+      }
+    }
+    if (data.companyInfo?.logoUrl) {
+      this.companyLogoDataUrl = await loadImageAsDataUrl(data.companyInfo.logoUrl);
     }
   }
 
