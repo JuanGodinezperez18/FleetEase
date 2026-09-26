@@ -44,7 +44,7 @@ const HealthScoreGauge = ({ score, title }: { score: number; title: string }) =>
       <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">{title}</p>
       <div className="relative mt-2 h-36 w-36">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart key={score}>
             <Pie
               data={data}
               cx="50%"
@@ -55,6 +55,9 @@ const HealthScoreGauge = ({ score, title }: { score: number; title: string }) =>
               endAngle={0}
               dataKey="value"
               stroke="none"
+              isAnimationActive
+              animationDuration={1100}
+              animationEasing="ease-out"
             >
               {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -63,7 +66,7 @@ const HealthScoreGauge = ({ score, title }: { score: number; title: string }) =>
           </PieChart>
         </ResponsiveContainer>
         <div
-          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/3 font-heading text-4xl font-semibold tabular-nums ${scoreColor}`}
+          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/3 font-heading text-4xl font-semibold tabular-nums transition-colors duration-300 ${scoreColor}`}
         >
           {score}
         </div>
