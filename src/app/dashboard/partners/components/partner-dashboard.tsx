@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Briefcase, DollarSign, Award, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
 import { MetricCard, InteractiveMetricCard } from '@/components/dashboard/components/MetricCard';
@@ -20,14 +20,26 @@ interface PartnerDashboardProps {
   onBalanceCardClick: () => void;
 }
 
+const PERF_COLORS: Record<string, string> = {
+  Excelente: '#34d399',
+  Bueno: '#d7ff3f',
+  Regular: '#fbbf24',
+  Bajo: '#fb7185',
+};
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-xl border border-white/10 bg-[#0e1117] p-3 text-xs text-white shadow-xl">
+      <div className="rounded-xl border border-white/10 bg-[#0e1117]/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
         <p className="mb-1 font-semibold text-white/80">{label}</p>
         {payload.map((p: any, index: number) => (
           <p key={index} className="text-white/60">
-            {p.name}: <span className="font-semibold text-white">{formatCurrency(p.value)}</span>
+            {p.name}:{' '}
+            <span className="font-semibold text-white">
+              {typeof p.value === 'number' && Math.abs(p.value) > 100
+                ? formatCurrency(p.value)
+                : p.value}
+            </span>
           </p>
         ))}
       </div>
@@ -55,6 +67,8 @@ const CompanyComparisonDashboard = () => {
       .sort((a, b) => b.beneficio - a.beneficio);
   }, [companies, financialRecords, clients, vehicles, partners]);
 
+  const chartKey = analyticsByCompany.map(d => `${d.ingresos}-${d.gastos}`).join('|');
+
   if (companies.length <= 1) return null;
 
   return (
@@ -67,16 +81,56 @@ const CompanyComparisonDashboard = () => {
           Ingresos, gastos y beneficio por empresa
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-[320px]">
+      <CardContent className="h-[280px] sm:h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={analyticsByCompany} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} tickFormatter={(v) => formatCurrency(v)} />
+          <BarChart
+            key={chartKey}
+            data={analyticsByCompany}
+            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+          >
+            <XAxis
+              dataKey="name"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+              tickFormatter={v => formatCurrency(v)}
+            />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
             <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-            <Bar dataKey="ingresos" fill="#34d399" name="Ingresos" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="gastos" fill="#fb7185" name="Gastos" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="beneficio" fill="#d7ff3f" name="Beneficio" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="ingresos"
+              fill="#34d399"
+              name="Ingresos"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive
+              animationDuration={850}
+              animationEasing="ease-out"
+            />
+            <Bar
+              dataKey="gastos"
+              fill="#fb7185"
+              name="Gastos"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive
+              animationDuration={850}
+              animationEasing="ease-out"
+              animationBegin={80}
+            />
+            <Bar
+              dataKey="beneficio"
+              fill="#d7ff3f"
+              name="Beneficio"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive
+              animationDuration={850}
+              animationEasing="ease-out"
+              animationBegin={160}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
@@ -102,7 +156,6 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     const totalPartners = activePartners.length;
     const totalNetProfit = partnerMetrics.reduce((sum, metric) => sum + metric.netProfit, 0);
     const topMetric = partnerMetrics.length > 0 ? partnerMetrics[0] : null;
-    // A "top performer" is only meaningful when there is a non-negative result and a real comparison set.
     const topPerformer =
       partnerMetrics.length > 1 && topMetric && topMetric.netProfit >= 0 ? topMetric : null;
 
@@ -120,6 +173,8 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
     name,
     Socios: value,
   }));
+
+  const chartKey = chartData.map(d => d.Socios).join('-');
 
   const topFivePartners = useMemo(() => partnerMetrics.slice(0, 5), [partnerMetrics]);
   const lowPerformancePartners = useMemo(
@@ -179,13 +234,34 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
               Clasificación por rentabilidad
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[260px]">
+          <CardContent className="h-[240px] sm:h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
+              <BarChart key={chartKey} data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                  allowDecimals={false}
+                />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar dataKey="Socios" fill="#d7ff3f" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="Socios"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={48}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                >
+                  {chartData.map(entry => (
+                    <Cell key={entry.name} fill={PERF_COLORS[entry.name] || '#d7ff3f'} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -222,7 +298,11 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="text-white/60">{p.vehicleCount}</TableCell>
-                      <TableCell className={`text-right font-mono ${p.netProfit < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                      <TableCell
+                        className={`text-right font-mono ${
+                          p.netProfit < 0 ? 'text-rose-300' : 'text-emerald-300'
+                        }`}
+                      >
                         {formatCurrency(p.netProfit)}
                       </TableCell>
                     </TableRow>
