@@ -11,7 +11,8 @@ export type StorageFolderPath =
   | "driver_documents"
   | "financial_receipts"
   | "general_documents"
-  | "contract_templates";
+  | "contract_templates"
+  | "company_logos";
 
 export function useStorage() {
   const [loading, setLoading] = useState(false);
@@ -99,7 +100,6 @@ export function useStorage() {
     }
   };
 
-  // ✅ NUEVA: Generar URL temporal para compartir (15 minutos)
   const getShareableUrl = async (fileUrl: string): Promise<string> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -127,17 +127,14 @@ export function useStorage() {
     }
   };
 
-  // ✅ NUEVA: Descargar archivo directamente
   const downloadFile = async (fileUrl: string, fileName?: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error('No autenticado');
 
-      // Obtener URL firmada temporal
       const signedUrl = await getShareableUrl(fileUrl);
 
-      // Descargar el archivo
       const response = await fetch(signedUrl);
       if (!response.ok) throw new Error('Error descargando archivo');
 
@@ -159,7 +156,6 @@ export function useStorage() {
     }
   };
 
-  // ✅ NUEVA: Preview de imagen con URL firmada
   const getPreviewUrl = async (fileUrl: string | File): Promise<string> => {
     if (fileUrl instanceof File || fileUrl.startsWith('blob:') || fileUrl.startsWith('data:')) {
       return fileUrl as string;
@@ -169,7 +165,7 @@ export function useStorage() {
       return await getShareableUrl(fileUrl);
     } catch (err) {
       console.warn('Error obteniendo preview, usando URL original:', err);
-      return fileUrl; // Fallback a la URL original
+      return fileUrl;
     }
   };
 
@@ -184,7 +180,6 @@ export function useStorage() {
   };
 }
 
-// ✅ Utility: Extraer nombre de archivo de URL
 function extractFileNameFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
