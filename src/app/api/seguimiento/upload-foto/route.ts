@@ -7,6 +7,23 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'];
+const BUCKET_NAME = 'seguimientos';
+
+/** Crea el bucket si no existe (público: la app usa getPublicUrl). */
+async function ensureBucket(): Promise<void> {
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+  if (buckets?.some(b => b.name === BUCKET_NAME)) return;
+
+  const { error } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
+    public: true,
+    fileSizeLimit: MAX_SIZE_BYTES,
+    allowedMimeTypes: ALLOWED_MIME_TYPES,
+  });
+
+  if (error && !/already exists|duplicate/i.test(error.message)) {
+    throw error;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
@@ -34,23 +51,55 @@ export async function POST(request: NextRequest) {
     if (!rawVehicleId) return NextResponse.json({ error: 'Falta vehicleId' }, { status: 400 });
     const vehicleId = getSafeStorageSegment(rawVehicleId);
     if (!vehicleId) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) return NextResponse.json({ error: `Tipo de archivo no permitido. Permitidos: ${ALLOWED_MIME_TYPES.join(', ')}` }, { status: 415 });
+
+    const effectiveType =
+      file.type ||
+      (file.name.match(/\.jpe?g$/i) ? 'image/jpeg' :
+        file.name.match(/\.png$/i) ? 'image/png' :
+          file.name.match(/\.webp$/i) ? 'image/webp' :
+            file.name.match(/\.heic$/i) ? 'image/heic' : file.type);
+
+    if (!ALLOWED_MIME_TYPES.includes(effectiveType) && !ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: `Tipo de archivo no permitido. Permitidos: ${ALLOWED_MIME_TYPES.join(', ')}` }, { status: 415 });
+    }
     if (file.size > MAX_SIZE_BYTES) return NextResponse.json({ error: 'Archivo demasiado grande. Límite: 10MB' }, { status: 413 });
 
     const { data: vehicle, error: vehicleError } = await supabaseAdmin.from('vehicles').select('id, company_id').eq('id', vehicleId).single();
     if (vehicleError || !vehicle) return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 });
-    if (vehicle.company_id !== userProfile.company_id && userProfile.role !== 'super_admin') return NextResponse.json({ error: 'No tienes permisos para este vehículo' }, { status: 403 });
+    if (vehicle.company_id !== userProfile.company_id && userProfile.role !== 'super_admin' && userProfile.role !== 'superAdmin') {
+      return NextResponse.json({ error: 'No tienes permisos para este vehículo' }, { status: 403 });
+    }
+
+    try {
+      await ensureBucket();
+    } catch (bucketErr) {
+      if (isDev) console.error('[seguimiento/upload-foto] ensureBucket:', bucketErr);
+      return NextResponse.json({
+        error: `No se pudo preparar el bucket "${BUCKET_NAME}". Créalo en Supabase Storage (público) o revisa permisos del service role.`,
+      }, { status: 500 });
+    }
 
     const fileExtension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
     const uniqueFileName = `${user.id}-${Date.now()}.${fileExtension}`;
-    const bucketName = 'seguimientos';
     const fullPath = `vehicles/${vehicleId}/${uniqueFileName}`;
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
+
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType: file.type, upsert: false });
+    const contentType = effectiveType || file.type || 'image/jpeg';
+    let uploadError = (await supabaseAdmin.storage.from(BUCKET_NAME).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
+
+    if (uploadError && /bucket not found/i.test(uploadError.message)) {
+      try {
+        await ensureBucket();
+        uploadError = (await supabaseAdmin.storage.from(BUCKET_NAME).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
+      } catch (retryErr) {
+        if (isDev) console.error('[seguimiento/upload-foto] retry after create bucket:', retryErr);
+      }
+    }
+
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fullPath);
+    const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(fullPath);
     const { data: seguimiento, error: seguimientoError } = await supabaseAdmin.from('seguimientos').insert({
       vehicle_id: vehicleId,
       client_id: clientId,
