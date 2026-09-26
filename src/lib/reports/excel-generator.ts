@@ -1,7 +1,36 @@
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import type { ReportData } from './pdf-generator';
+import type { ReportData, ReportKpi, KpiFormat } from './pdf-generator';
+
+function toNumber(value: string | number): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^0-9.,-]/g, '').replace(/,/g, '');
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function formatKpiDisplay(kpi: ReportKpi): string {
+  const fmt: KpiFormat = kpi.format || 'currency';
+  const n = toNumber(kpi.value);
+
+  if (fmt === 'number' && n !== null) {
+    return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(n);
+  }
+  if (fmt === 'percent' && n !== null) {
+    return `${n.toFixed(1)}%`;
+  }
+  if (fmt === 'currency' && n !== null) {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      maximumFractionDigits: 0,
+    }).format(n);
+  }
+  return String(kpi.value);
+}
 
 /**
  * Genera un reporte Excel profesional con múltiples hojas
@@ -13,11 +42,12 @@ export class ExcelReportGenerator {
     this.workbook = XLSX.utils.book_new();
   }
 
-  /**
-   * Genera el reporte completo
-   */
   generate(data: ReportData): Blob {
     this.addSummarySheet(data);
+
+    if (data.kpis && data.kpis.length > 0) {
+      this.addKpisSheet(data.kpis);
+    }
 
     switch (data.type) {
       case 'financial':
@@ -34,7 +64,6 @@ export class ExcelReportGenerator {
         break;
     }
 
-    // Generar archivo Excel
     const excelBuffer = XLSX.write(this.workbook, {
       bookType: 'xlsx',
       type: 'array',
@@ -45,64 +74,84 @@ export class ExcelReportGenerator {
     });
   }
 
-  /**
-   * Agrega hoja de resumen
-   */
   private addSummarySheet(data: ReportData) {
-    const summaryData: any[][] = [
+    const summaryData: (string | number)[][] = [
       ['RESUMEN DEL REPORTE'],
       [''],
-      ['Título:', data.title],
-      ['Subtítulo:', data.subtitle || ''],
-      ['Período:', `${format(data.dateRange.from, 'PPP', { locale: es })} - ${format(data.dateRange.to, 'PPP', { locale: es })}`],
-      ['Generado:', format(new Date(), 'PPP p', { locale: es })],
-      ['Generado por:', data.generatedBy || ''],
+      ['Titulo', data.title],
+      ['Subtitulo', data.subtitle || ''],
+      [
+        'Periodo',
+        `${format(data.dateRange.from, 'dd/MM/yyyy')} - ${format(data.dateRange.to, 'dd/MM/yyyy')}`,
+      ],
+      ['Generado', format(new Date(), 'dd/MM/yyyy HH:mm')],
+      ['Generado por', data.generatedBy || ''],
       [''],
       ['RESUMEN FINANCIERO'],
       [''],
     ];
 
     if (data.income !== undefined) {
-      summaryData.push(['Ingresos Totales', this.formatCurrency(data.income)]);
+      summaryData.push(['Ingresos Totales', data.income]);
     }
-
     if (data.expenses !== undefined) {
-      summaryData.push(['Gastos Totales', this.formatCurrency(data.expenses)]);
+      summaryData.push(['Gastos Totales', data.expenses]);
     }
-
     if (data.netProfit !== undefined) {
-      summaryData.push(['Beneficio Neto', this.formatCurrency(data.netProfit)]);
+      summaryData.push(['Beneficio Neto', data.netProfit]);
     }
-
     if (data.profitMargin !== undefined) {
-      summaryData.push(['Margen de Beneficio', `${data.profitMargin.toFixed(2)}%`]);
+      summaryData.push(['Margen de Beneficio %', Number(data.profitMargin.toFixed(2))]);
+    }
+    if (data.transactionsCount !== undefined) {
+      summaryData.push(['Numero de Transacciones', data.transactionsCount]);
     }
 
-    if (data.transactionsCount !== undefined) {
-      summaryData.push(['Número de Transacciones', data.transactionsCount]);
+    if (data.kpis && data.kpis.length > 0) {
+      summaryData.push(['']);
+      summaryData.push(['KPIs SELECCIONADOS']);
+      summaryData.push(['']);
+      data.kpis.forEach(kpi => {
+        summaryData.push([kpi.label, formatKpiDisplay(kpi)]);
+        if (kpi.subtitle) {
+          summaryData.push(['  detalle', kpi.subtitle]);
+        }
+      });
     }
 
     const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
-
-    // Aplicar estilos (ancho de columnas)
-    worksheet['!cols'] = [
-      { wch: 30 },
-      { wch: 20 },
-    ];
-
+    worksheet['!cols'] = [{ wch: 32 }, { wch: 28 }];
     XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Resumen');
   }
 
-  /**
-   * Agrega hojas de reporte financiero
-   */
+  private addKpisSheet(kpis: ReportKpi[]) {
+    const rows: (string | number)[][] = [
+      ['Indicadores del Dashboard'],
+      [''],
+      ['Indicador', 'Valor', 'Formato', 'Detalle'],
+    ];
+
+    kpis.forEach(kpi => {
+      const n = toNumber(kpi.value);
+      rows.push([
+        kpi.label,
+        n !== null ? n : String(kpi.value),
+        kpi.format || 'auto',
+        kpi.subtitle || '',
+      ]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 12 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'KPIs');
+  }
+
   private addFinancialSheets(data: ReportData) {
-    // Hoja de gastos por categoría
     if (data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0) {
-      const expensesData: any[][] = [
-        ['Gastos por Categoría'],
+      const expensesData: (string | number)[][] = [
+        ['Gastos por Categoria'],
         [''],
-        ['Categoría', 'Monto', '% del Total'],
+        ['Categoria', 'Monto', '% del Total'],
       ];
 
       Object.entries(data.expensesByCategory)
@@ -111,25 +160,23 @@ export class ExcelReportGenerator {
           expensesData.push([
             category,
             amount,
-            ((amount / (data.expenses || 1)) * 100).toFixed(2) + '%',
+            Number(((amount / (data.expenses || 1)) * 100).toFixed(2)),
           ]);
         });
 
       expensesData.push(['']);
-      expensesData.push(['Total', data.expenses, '100%']);
+      expensesData.push(['Total', data.expenses || 0, 100]);
 
       const worksheet = XLSX.utils.aoa_to_sheet(expensesData);
-      worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }];
-
-      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Gastos por Categoría');
+      worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Gastos por Categoria');
     }
 
-    // Hoja de ingresos por categoría
     if (data.incomeByCategory && Object.keys(data.incomeByCategory).length > 0) {
-      const incomeData: any[][] = [
-        ['Ingresos por Categoría'],
+      const incomeData: (string | number)[][] = [
+        ['Ingresos por Categoria'],
         [''],
-        ['Categoría', 'Monto', '% del Total'],
+        ['Categoria', 'Monto', '% del Total'],
       ];
 
       Object.entries(data.incomeByCategory)
@@ -138,30 +185,28 @@ export class ExcelReportGenerator {
           incomeData.push([
             category,
             amount,
-            ((amount / (data.income || 1)) * 100).toFixed(2) + '%',
+            Number(((amount / (data.income || 1)) * 100).toFixed(2)),
           ]);
         });
 
       incomeData.push(['']);
-      incomeData.push(['Total', data.income, '100%']);
+      incomeData.push(['Total', data.income || 0, 100]);
 
       const worksheet = XLSX.utils.aoa_to_sheet(incomeData);
-      worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }];
-
-      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Ingresos por Categoría');
+      worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Ingresos por Categoria');
     }
 
-    // Hoja de transacciones detalladas
     if (data.records && data.records.length > 0) {
-      const recordsData: any[][] = [
+      const recordsData: (string | number)[][] = [
         ['Detalle de Transacciones'],
         [''],
-        ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto', 'Vehículo'],
+        ['Fecha', 'Tipo', 'Categoria', 'Descripcion', 'Monto', 'Vehiculo'],
       ];
 
       data.records.forEach(record => {
         recordsData.push([
-          format(new Date(record.date), 'dd/MM/yyyy', { locale: es }),
+          format(new Date(record.date), 'dd/MM/yyyy'),
           record.type === 'income' ? 'Ingreso' : 'Gasto',
           record.category || 'N/A',
           record.description || '',
@@ -179,21 +224,28 @@ export class ExcelReportGenerator {
         { wch: 15 },
         { wch: 15 },
       ];
-
       XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Transacciones');
     }
   }
 
-  /**
-   * Agrega hojas de reporte de vehículos
-   */
   private addVehicleSheets(data: ReportData) {
     if (!data.vehicleMetrics || data.vehicleMetrics.length === 0) return;
 
-    const vehicleData: any[][] = [
-      ['Análisis de Rentabilidad por Vehículo'],
+    const vehicleData: (string | number)[][] = [
+      ['Analisis de Rentabilidad por Vehiculo'],
       [''],
-      ['Vehículo', 'Placa', 'Marca', 'Modelo', 'Año', 'Ingresos', 'Gastos', 'Beneficio Neto', 'Rentabilidad %', 'Tasa Utilización %'],
+      [
+        'Vehiculo',
+        'Placa',
+        'Marca',
+        'Modelo',
+        'Ano',
+        'Ingresos',
+        'Gastos',
+        'Beneficio Neto',
+        'Rentabilidad %',
+        'Tasa Utilizacion %',
+      ],
     ];
 
     data.vehicleMetrics.forEach(metric => {
@@ -206,8 +258,8 @@ export class ExcelReportGenerator {
         metric.totalIncome,
         metric.totalExpenses,
         metric.netProfit,
-        metric.profitability.toFixed(2),
-        metric.utilizationRate?.toFixed(2) || 'N/A',
+        Number(metric.profitability.toFixed(2)),
+        metric.utilizationRate != null ? Number(metric.utilizationRate.toFixed(2)) : 'N/A',
       ]);
     });
 
@@ -221,23 +273,27 @@ export class ExcelReportGenerator {
       { wch: 15 },
       { wch: 15 },
       { wch: 15 },
-      { wch: 15 },
-      { wch: 18 },
+      { wch: 14 },
+      { wch: 16 },
     ];
-
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehículos');
+    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehiculos');
   }
 
-  /**
-   * Agrega hojas de reporte de clientes
-   */
   private addClientSheets(data: ReportData) {
     if (!data.clientMetrics || data.clientMetrics.length === 0) return;
 
-    const clientData: any[][] = [
-      ['Análisis de Clientes'],
+    const clientData: (string | number)[][] = [
+      ['Analisis de Clientes'],
       [''],
-      ['Cliente', 'Teléfono', 'Email', 'Pagos Totales', 'Balance', 'Días Último Pago', 'Comportamiento de Pago'],
+      [
+        'Cliente',
+        'Telefono',
+        'Email',
+        'Pagos Totales',
+        'Balance',
+        'Dias Ultimo Pago',
+        'Comportamiento',
+      ],
     ];
 
     data.clientMetrics.forEach(metric => {
@@ -259,23 +315,19 @@ export class ExcelReportGenerator {
       { wch: 25 },
       { wch: 15 },
       { wch: 15 },
-      { wch: 18 },
+      { wch: 16 },
       { wch: 20 },
     ];
-
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Análisis Clientes');
+    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Clientes');
   }
 
-  /**
-   * Agrega hojas de reporte de socios
-   */
   private addPartnerSheets(data: ReportData) {
     if (!data.partnerMetrics || data.partnerMetrics.length === 0) return;
 
-    const partnerData: any[][] = [
-      ['Análisis de Socios'],
+    const partnerData: (string | number)[][] = [
+      ['Analisis de Socios'],
       [''],
-      ['Socio', 'Teléfono', 'Email', 'Vehículos Activos', 'Ingresos', 'Gastos', 'Balance Neto'],
+      ['Socio', 'Telefono', 'Email', 'Vehiculos Activos', 'Ingresos', 'Gastos', 'Balance Neto'],
     ];
 
     data.partnerMetrics.forEach(metric => {
@@ -295,37 +347,20 @@ export class ExcelReportGenerator {
       { wch: 30 },
       { wch: 15 },
       { wch: 25 },
-      { wch: 18 },
+      { wch: 16 },
       { wch: 15 },
       { wch: 15 },
       { wch: 15 },
     ];
-
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Análisis Socios');
-  }
-
-  /**
-   * Formatea un número como moneda
-   */
-  private formatCurrency(value: number): string {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    }).format(value);
+    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Socios');
   }
 }
 
-/**
- * Función auxiliar para generar un reporte Excel
- */
 export async function generateExcelReport(data: ReportData): Promise<Blob> {
   const generator = new ExcelReportGenerator();
   return generator.generate(data);
 }
 
-/**
- * Función para descargar el Excel generado
- */
 export function downloadExcel(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
