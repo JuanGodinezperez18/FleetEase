@@ -71,7 +71,7 @@ export class PDFReportGenerator {
 
   constructor() {
     this.doc = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'landscape',
       unit: 'mm',
       format: 'a4',
     });
