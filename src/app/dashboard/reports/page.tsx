@@ -565,7 +565,7 @@ export default function ReportsPageImproved() {
 
           <TabsContent value="analysis" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {(reportType === 'vehicle' || reportType === 'executive') && (
+              {reportType === 'vehicle' && (
                 <MetricsList
                   title="Top vehículos por utilidad"
                   empty="Sin datos"
@@ -581,7 +581,7 @@ export default function ReportsPageImproved() {
                   }))}
                 />
               )}
-              {(reportType === 'client' || reportType === 'executive') && (
+              {reportType === 'client' && (
                 <MetricsList
                   title="Top clientes por pagos"
                   empty="Sin datos"
