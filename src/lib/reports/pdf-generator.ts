@@ -1,8 +1,17 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
+
+export type KpiFormat = 'currency' | 'number' | 'percent' | 'text';
+
+export interface ReportKpi {
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  /** How to display the value. Defaults to auto-detect. */
+  format?: KpiFormat;
+}
 
 export interface ReportData {
   type: 'financial' | 'vehicle' | 'client' | 'partner';
@@ -11,7 +20,7 @@ export interface ReportData {
   dateRange: { from: Date; to: Date };
   companyName?: string;
   generatedBy?: string;
-  kpis?: Array<{ label: string; value: string | number; subtitle?: string }>;
+  kpis?: ReportKpi[];
 
   income?: number;
   expenses?: number;
@@ -81,6 +90,10 @@ const CHART_PALETTE: [number, number, number][] = [
   [251, 146, 60],
 ];
 
+/** Labels that are counts, not money */
+const COUNT_LABEL_RE =
+  /licencia|seguro|vencer|veh[ií]culo|cliente|unidad|inspecci[oó]n|multa|cr[eé]dito|pendiente|alerta|expir/i;
+
 function toNumber(value: string | number): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -89,6 +102,30 @@ function toNumber(value: string | number): number | null {
     return Number.isFinite(n) ? n : null;
   }
   return null;
+}
+
+function resolveFormat(kpi: ReportKpi): KpiFormat {
+  if (kpi.format) return kpi.format;
+  if (typeof kpi.value === 'string' && /%/.test(kpi.value)) return 'percent';
+  if (typeof kpi.value === 'string' && /[^0-9.,$\s-]/.test(kpi.value.replace(/[$,.\s-]/g, ''))) {
+    return 'text';
+  }
+  if (COUNT_LABEL_RE.test(kpi.label)) return 'number';
+  const n = toNumber(kpi.value);
+  if (n !== null && Number.isInteger(n) && Math.abs(n) < 1000 && COUNT_LABEL_RE.test(kpi.label)) {
+    return 'number';
+  }
+  if (n !== null) return 'currency';
+  return 'text';
+}
+
+/** ASCII-safe date — avoids broken glyphs with Helvetica + Spanish locale */
+function fmtDate(d: Date): string {
+  return format(d, 'dd/MM/yyyy');
+}
+
+function fmtDateTime(d: Date): string {
+  return format(d, 'dd/MM/yyyy HH:mm');
 }
 
 export class PDFReportGenerator {
@@ -113,9 +150,8 @@ export class PDFReportGenerator {
     this.addHeader(data);
     this.addKpiCards(data);
 
-    // Always try a comparison chart from KPI values
     if (data.kpis && data.kpis.length >= 2) {
-      this.addKpiComparisonChart(data.kpis);
+      this.addKpiComparisonCharts(data.kpis);
     }
 
     if (data.income !== undefined && data.expenses !== undefined) {
@@ -154,6 +190,25 @@ export class PDFReportGenerator {
     }
   }
 
+  private formatKpiValue(kpi: ReportKpi): string {
+    const fmt = resolveFormat(kpi);
+    const n = toNumber(kpi.value);
+
+    switch (fmt) {
+      case 'currency':
+        return n !== null ? this.formatCurrency(n) : String(kpi.value);
+      case 'number':
+        return n !== null
+          ? new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(n)
+          : String(kpi.value);
+      case 'percent':
+        if (n !== null) return `${n.toFixed(1)}%`;
+        return String(kpi.value);
+      default:
+        return String(kpi.value);
+    }
+  }
+
   private addHeader(data: ReportData) {
     const w = this.pageWidth - this.margin * 2;
 
@@ -185,14 +240,14 @@ export class PDFReportGenerator {
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(9);
     this.doc.setTextColor(...BRAND.muted);
-    const period = `${format(data.dateRange.from, 'dd MMM yyyy', { locale: es })}  →  ${format(data.dateRange.to, 'dd MMM yyyy', { locale: es })}`;
+    const period = `${fmtDate(data.dateRange.from)}  -  ${fmtDate(data.dateRange.to)}`;
     this.doc.text(period, this.margin + 6, this.currentY + 18);
 
     if (data.subtitle) {
       this.doc.text(data.subtitle, this.margin + 6, this.currentY + 24);
     }
 
-    const gen = format(new Date(), 'dd MMM yyyy · HH:mm', { locale: es });
+    const gen = fmtDateTime(new Date());
     this.doc.setFontSize(8);
     this.doc.text(
       data.generatedBy ? `Por ${data.generatedBy} · ${gen}` : gen,
@@ -218,11 +273,9 @@ export class PDFReportGenerator {
 
     if (data.kpis && data.kpis.length > 0) {
       data.kpis.slice(0, 8).forEach((kpi, i) => {
-        const value =
-          typeof kpi.value === 'number' ? this.formatCurrency(kpi.value) : String(kpi.value);
         cards.push({
           label: kpi.label,
-          value,
+          value: this.formatKpiValue(kpi),
           accent: CHART_PALETTE[i % CHART_PALETTE.length],
           hint: kpi.subtitle,
         });
@@ -264,11 +317,10 @@ export class PDFReportGenerator {
 
     if (cards.length === 0) return;
 
-    // Layout: max 4 per row
     const perRow = Math.min(4, cards.length);
     const rows = Math.ceil(cards.length / perRow);
     const gap = 3.5;
-    const cardH = 26;
+    const cardH = 28;
 
     for (let row = 0; row < rows; row++) {
       this.ensureSpace(cardH + 6);
@@ -288,21 +340,40 @@ export class PDFReportGenerator {
         this.doc.setFont('helvetica', 'normal');
         this.doc.setFontSize(6.5);
         this.doc.setTextColor(...BRAND.muted);
+        const maxLabel = Math.max(12, Math.floor(cardW / 2.2));
         const label =
-          card.label.length > 22 ? card.label.slice(0, 21) + '…' : card.label.toUpperCase();
-        this.doc.text(label, x + 5, this.currentY + 7);
+          card.label.length > maxLabel
+            ? card.label.slice(0, maxLabel - 1) + '…'
+            : card.label.toUpperCase();
+        this.doc.text(label, x + 5, this.currentY + 8);
 
         this.doc.setFont('helvetica', 'bold');
         this.doc.setFontSize(card.value.length > 12 ? 10 : 12);
         this.doc.setTextColor(...BRAND.text);
-        this.doc.text(card.value, x + 5, this.currentY + 16);
+        this.doc.text(card.value, x + 5, this.currentY + 17);
 
         if (card.hint) {
           this.doc.setFont('helvetica', 'normal');
-          this.doc.setFontSize(6.5);
+          this.doc.setFontSize(6);
           this.doc.setTextColor(...BRAND.muted);
-          const hint = card.hint.length > 28 ? card.hint.slice(0, 27) + '…' : card.hint;
-          this.doc.text(hint, x + 5, this.currentY + 22);
+          const maxHint = Math.max(18, Math.floor(cardW / 1.6));
+          // Prefer keeping both parts of "Entradas · Salidas"
+          let hint = card.hint;
+          if (hint.length > maxHint) {
+            const parts = hint.split('·').map(s => s.trim());
+            if (parts.length === 2) {
+              const half = Math.floor((maxHint - 3) / 2);
+              hint =
+                parts[0].slice(0, half) +
+                (parts[0].length > half ? '…' : '') +
+                ' · ' +
+                parts[1].slice(0, half) +
+                (parts[1].length > half ? '…' : '');
+            } else {
+              hint = hint.slice(0, maxHint - 1) + '…';
+            }
+          }
+          this.doc.text(hint, x + 5, this.currentY + 24);
         }
       });
 
@@ -312,20 +383,48 @@ export class PDFReportGenerator {
     this.currentY += 4;
   }
 
-  /** Horizontal bars comparing numeric KPIs */
-  private addKpiComparisonChart(
-    kpis: Array<{ label: string; value: string | number; subtitle?: string }>
+  /** Separate money vs count charts so scales stay readable */
+  private addKpiComparisonCharts(kpis: ReportKpi[]) {
+    const money: Array<{ label: string; value: number; format: KpiFormat }> = [];
+    const counts: Array<{ label: string; value: number; format: KpiFormat }> = [];
+
+    kpis.forEach(k => {
+      const n = toNumber(k.value);
+      if (n === null || n === 0) return;
+      const fmt = resolveFormat(k);
+      if (fmt === 'currency' || fmt === 'percent') {
+        money.push({ label: k.label, value: n, format: fmt });
+      } else if (fmt === 'number') {
+        counts.push({ label: k.label, value: n, format: fmt });
+      } else if (Math.abs(n) >= 100) {
+        money.push({ label: k.label, value: n, format: 'currency' });
+      } else {
+        counts.push({ label: k.label, value: n, format: 'number' });
+      }
+    });
+
+    if (money.length >= 2) {
+      this.drawComparisonBlock('Comparativa financiera', money.slice(0, 6), 'currency');
+    } else if (money.length === 1 && counts.length === 0) {
+      // single money KPI — still show bar for consistency
+      this.drawComparisonBlock('Comparativa financiera', money, 'currency');
+    }
+
+    if (counts.length >= 1) {
+      this.drawComparisonBlock('Indicadores operativos', counts.slice(0, 6), 'number');
+    }
+  }
+
+  private drawComparisonBlock(
+    title: string,
+    items: Array<{ label: string; value: number; format: KpiFormat }>,
+    defaultFormat: KpiFormat
   ) {
-    const numeric = kpis
-      .map(k => ({ label: k.label, value: toNumber(k.value) }))
-      .filter((k): k is { label: string; value: number } => k.value !== null && k.value !== 0)
-      .slice(0, 8);
+    if (items.length === 0) return;
 
-    if (numeric.length < 2) return;
-
-    const maxAbs = Math.max(...numeric.map(k => Math.abs(k.value))) || 1;
+    const maxAbs = Math.max(...items.map(k => Math.abs(k.value))) || 1;
     const rowH = 11;
-    const chartH = 14 + numeric.length * rowH;
+    const chartH = 14 + items.length * rowH;
 
     this.ensureSpace(chartH + 8);
 
@@ -338,17 +437,17 @@ export class PDFReportGenerator {
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(10);
     this.doc.setTextColor(...BRAND.text);
-    this.doc.text('Comparativa de indicadores', this.margin + 6, this.currentY + 8);
+    this.doc.text(title, this.margin + 6, this.currentY + 8);
 
     const labelW = 48;
     const barX = this.margin + labelW;
     const barMaxW = boxW - labelW - 36;
     const startY = this.currentY + 14;
 
-    numeric.forEach((item, i) => {
+    items.forEach((item, i) => {
       const y = startY + i * rowH;
       const color = CHART_PALETTE[i % CHART_PALETTE.length];
-      const width = Math.max(2, (Math.abs(item.value) / maxAbs) * barMaxW);
+      const width = Math.max(3, (Math.abs(item.value) / maxAbs) * barMaxW);
 
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(7.5);
@@ -365,7 +464,13 @@ export class PDFReportGenerator {
       this.doc.setFont('helvetica', 'bold');
       this.doc.setFontSize(7);
       this.doc.setTextColor(...BRAND.text);
-      this.doc.text(this.formatCurrency(item.value), barX + barMaxW + 2, y + 4);
+      const display =
+        (item.format || defaultFormat) === 'currency'
+          ? this.formatCurrency(item.value)
+          : (item.format || defaultFormat) === 'percent'
+            ? `${item.value.toFixed(1)}%`
+            : new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(item.value);
+      this.doc.text(display, barX + barMaxW + 2, y + 4);
     });
 
     this.currentY += chartH + 8;
@@ -389,7 +494,7 @@ export class PDFReportGenerator {
     this.doc.setFont('helvetica', 'bold');
     this.doc.setFontSize(10);
     this.doc.setTextColor(...BRAND.text);
-    this.doc.text('Composición del periodo', this.margin + 6, this.currentY + 8);
+    this.doc.text('Composicion del periodo', this.margin + 6, this.currentY + 8);
 
     const cx = this.margin + 28;
     const cy = this.currentY + 28;
@@ -570,11 +675,11 @@ export class PDFReportGenerator {
 
   private addFinancialReport(data: ReportData) {
     if (data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0) {
-      this.addCategoryBars('Gastos por categoría', data.expensesByCategory, data.expenses || 0);
+      this.addCategoryBars('Gastos por categoria', data.expensesByCategory, data.expenses || 0);
     }
 
     if (data.incomeByCategory && Object.keys(data.incomeByCategory).length > 0) {
-      this.addCategoryBars('Ingresos por categoría', data.incomeByCategory, data.income || 0);
+      this.addCategoryBars('Ingresos por categoria', data.incomeByCategory, data.income || 0);
     }
 
     if (data.records && data.records.length > 0) {
@@ -588,16 +693,16 @@ export class PDFReportGenerator {
         .slice(0, 15);
 
       const body = sorted.map(record => [
-        format(new Date(record.date), 'dd/MM/yy', { locale: es }),
+        format(new Date(record.date), 'dd/MM/yy'),
         record.type === 'income' ? 'Ingreso' : 'Gasto',
-        (record.category || '—').slice(0, 22),
-        (record.description || '—').slice(0, 36),
+        (record.category || '-').slice(0, 22),
+        (record.description || '-').slice(0, 36),
         this.formatCurrency(record.amount),
       ]);
 
       autoTable(this.doc, {
         startY: this.currentY,
-        head: [['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto']],
+        head: [['Fecha', 'Tipo', 'Categoria', 'Descripcion', 'Monto']],
         body,
         ...this.tableTheme(),
         didParseCell: cellData => {
@@ -616,7 +721,7 @@ export class PDFReportGenerator {
     if (!data.vehicleMetrics || data.vehicleMetrics.length === 0) return;
 
     this.ensureSpace(40);
-    this.addSectionTitle('Rentabilidad por vehículo');
+    this.addSectionTitle('Rentabilidad por vehiculo');
 
     const body = data.vehicleMetrics.map(m => [
       (m.vehicle.alias || `${m.vehicle.make} ${m.vehicle.model}`).slice(0, 24),
@@ -629,7 +734,7 @@ export class PDFReportGenerator {
 
     autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Vehículo', 'Placa', 'Ingresos', 'Gastos', 'Beneficio', 'Rent.']],
+      head: [['Vehiculo', 'Placa', 'Ingresos', 'Gastos', 'Beneficio', 'Rent.']],
       body,
       ...this.tableTheme(),
       didParseCell: d => {
@@ -650,19 +755,19 @@ export class PDFReportGenerator {
     if (!data.clientMetrics || data.clientMetrics.length === 0) return;
 
     this.ensureSpace(40);
-    this.addSectionTitle('Análisis de clientes');
+    this.addSectionTitle('Analisis de clientes');
 
     const body = data.clientMetrics.map(m => [
       `${m.client.firstname} ${m.client.lastname}`.slice(0, 28),
       this.formatCurrency(m.totalPayments),
       this.formatCurrency(m.balance),
-      m.daysSinceLastPayment >= 0 ? `${m.daysSinceLastPayment}d` : '—',
+      m.daysSinceLastPayment >= 0 ? `${m.daysSinceLastPayment}d` : '-',
       m.paymentBehavior,
     ]);
 
     autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Cliente', 'Pagos', 'Saldo', 'Último', 'Comportamiento']],
+      head: [['Cliente', 'Pagos', 'Saldo', 'Ultimo', 'Comportamiento']],
       body,
       ...this.tableTheme(),
       didParseCell: d => {
@@ -679,7 +784,7 @@ export class PDFReportGenerator {
     if (!data.partnerMetrics || data.partnerMetrics.length === 0) return;
 
     this.ensureSpace(40);
-    this.addSectionTitle('Análisis de socios');
+    this.addSectionTitle('Analisis de socios');
 
     const body = data.partnerMetrics.map(m => [
       `${m.partner.firstname} ${m.partner.lastname}`.slice(0, 28),
@@ -721,10 +826,10 @@ export class PDFReportGenerator {
 
       this.doc.setFontSize(7);
       this.doc.setTextColor(...BRAND.muted);
-      this.doc.text('FleetEase · Gestión de flotas', this.margin, this.pageHeight - 5);
+      this.doc.text('FleetEase · Gestion de flotas', this.margin, this.pageHeight - 5);
       this.doc.setTextColor(...BRAND.limeDark);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text(`Pág. ${i} / ${pageCount}`, this.pageWidth - this.margin, this.pageHeight - 5, {
+      this.doc.text(`Pag. ${i} / ${pageCount}`, this.pageWidth - this.margin, this.pageHeight - 5, {
         align: 'right',
       });
     }
