@@ -24,7 +24,7 @@ const proFeatures = [
   'Todo lo incluido en Starter','Dashboard avanzado y configurable','Rentabilidad por vehículo',
   'Análisis financiero y tendencias','Client Score y análisis de comportamiento',
   'Analítica de vehículos, socios, créditos y kilometraje','Alertas inteligentes priorizadas',
-  'Reportes ejecutivos','Exportación PDF y Excel','Historial de reportes generados',
+  'Reportes configurables','Exportación PDF y Excel','Historial de reportes generados',
   'Auditoría y trazabilidad de operaciones','Operaciones masivas disponibles actualmente','Hasta 3 usuarios','Soporte prioritario',
 ];
 export const plans: Record<PlanType, PlanConfig> = {
