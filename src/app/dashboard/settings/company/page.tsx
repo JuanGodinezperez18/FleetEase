@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,13 +18,24 @@ import {
 } from '@/components/ui/form';
 import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
+import { useStorage } from '@/hooks/use-storage';
+import { MultipleFileInput } from '@/components/common/multiple-file-input';
 import { toast } from 'sonner';
-import { Loader2, Settings, AlertTriangle, Building2, Bell } from 'lucide-react';
+import { Loader2, Settings, AlertTriangle, Building2, Bell, ImageIcon } from 'lucide-react';
 
 const companySettingsSchema = z.object({
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
+  email: z.string().email('Correo inválido.').optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  street: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
+  zipCode: z.string().optional().or(z.literal('')),
+  country: z.string().optional().or(z.literal('')),
+  logoUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   defaultRentalDays: z.coerce.number().int().positive().optional(),
   maintenanceInterval: z.coerce.number().int().positive().optional(),
-  latePaymentFee: z.coerce.number().positive().optional(),
+  latePaymentFee: z.coerce.number().nonnegative().optional(),
   gracePeriodDays: z.coerce.number().int().nonnegative().optional(),
   emailNotifications: z.boolean().optional(),
   whatsappNotifications: z.boolean().optional(),
@@ -39,22 +50,57 @@ const sectionClass =
   'rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] sm:p-5';
 
 export default function CompanySettingsPage() {
-  const { selectedCompanyId, companies, loadingData, updateCompany } = useData();
+  const { selectedCompanyId, companies, loadingData, updateCompany, refreshData } = useData();
   const { currentUser } = useAuth();
+  const { uploadFile, deleteFileByUrl } = useStorage();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const company = React.useMemo(
-    () => companies.find(c => c.id === selectedCompanyId),
-    [selectedCompanyId, companies]
+  const canAccess =
+    currentUser?.role === 'superAdmin' || currentUser?.role === 'admin';
+
+  const companyId = useMemo(() => {
+    if (currentUser?.role === 'admin') return currentUser.companyId || null;
+    return selectedCompanyId || currentUser?.companyId || null;
+  }, [currentUser, selectedCompanyId]);
+
+  const company = useMemo(
+    () => companies.find(c => c.id === companyId),
+    [companyId, companies]
   );
 
   const form = useForm<CompanySettingsFormValues>({
     resolver: zodResolver(companySettingsSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'México',
+      logoUrl: [],
+      defaultRentalDays: 7,
+      maintenanceInterval: 10000,
+      latePaymentFee: 50,
+      gracePeriodDays: 3,
+      emailNotifications: true,
+      whatsappNotifications: false,
+    },
   });
 
   useEffect(() => {
     if (company) {
       form.reset({
+        name: company.name || '',
+        email: company.email || '',
+        phone: company.phone || '',
+        street: company.street || '',
+        city: company.city || '',
+        state: company.state || '',
+        zipCode: company.zipCode || '',
+        country: company.country || 'México',
+        logoUrl: company.logoUrl ? [company.logoUrl] : [],
         defaultRentalDays: company.defaultRentalDays ?? 7,
         maintenanceInterval: company.maintenanceInterval ?? 10000,
         latePaymentFee: company.latePaymentFee ?? 50,
@@ -66,14 +112,53 @@ export default function CompanySettingsPage() {
   }, [company, form]);
 
   const handleSave = async (data: CompanySettingsFormValues) => {
-    if (!selectedCompanyId) {
+    if (!companyId) {
       toast.error('No se ha seleccionado ninguna empresa.');
       return;
     }
     setIsSubmitting(true);
     const toastId = toast.loading('Guardando configuración...');
     try {
-      await updateCompany(selectedCompanyId, data);
+      const oldLogoUrl = company?.logoUrl;
+      let newLogoUrl: string | null | undefined = oldLogoUrl;
+
+      const logoField = data.logoUrl;
+      if (Array.isArray(logoField)) {
+        if (logoField.length > 0) {
+          const file = logoField[0];
+          if (file instanceof File) {
+            newLogoUrl = await uploadFile(file, 'company_logos', true, companyId);
+          } else if (typeof file === 'string') {
+            newLogoUrl = file;
+          }
+        } else if (oldLogoUrl) {
+          newLogoUrl = null;
+        }
+      }
+
+      await updateCompany(companyId, {
+        name: data.name.trim(),
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        street: data.street || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
+        zipCode: data.zipCode || undefined,
+        country: data.country || undefined,
+        logoUrl: newLogoUrl,
+        defaultRentalDays: data.defaultRentalDays,
+        maintenanceInterval: data.maintenanceInterval,
+        latePaymentFee: data.latePaymentFee,
+        gracePeriodDays: data.gracePeriodDays,
+        emailNotifications: data.emailNotifications,
+        whatsappNotifications: data.whatsappNotifications,
+      });
+
+      if (oldLogoUrl && oldLogoUrl !== newLogoUrl) {
+        await deleteFileByUrl(oldLogoUrl).catch(() => undefined);
+      }
+
+      await refreshData();
       toast.success('Configuración guardada', { id: toastId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'No se pudo guardar.';
@@ -83,7 +168,7 @@ export default function CompanySettingsPage() {
     }
   };
 
-  if (currentUser?.role !== 'superAdmin') {
+  if (!canAccess) {
     return (
       <div className="relative min-h-full overflow-hidden rounded-[18px] bg-[#080a0f] p-6 text-white">
         <div className="mx-auto max-w-md rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-8 text-center">
@@ -92,7 +177,7 @@ export default function CompanySettingsPage() {
           </div>
           <h2 className="font-heading text-lg font-semibold">Acceso denegado</h2>
           <p className="mt-2 text-sm text-white/50">
-            Solo los Super Administradores pueden acceder a esta sección.
+            Solo administradores de la empresa pueden acceder a esta sección.
           </p>
         </div>
       </div>
@@ -114,9 +199,11 @@ export default function CompanySettingsPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
             <Building2 className="h-6 w-6" strokeWidth={1.75} />
           </div>
-          <h2 className="font-heading text-lg font-semibold">Selecciona una empresa</h2>
+          <h2 className="font-heading text-lg font-semibold">Empresa no encontrada</h2>
           <p className="mt-2 text-sm text-white/50">
-            Elige una empresa desde el menú lateral para ver su configuración.
+            {currentUser?.role === 'superAdmin'
+              ? 'Elige una empresa desde el selector del menú lateral.'
+              : 'Tu usuario no tiene una empresa asignada. Contacta al super administrador.'}
           </p>
         </div>
       </div>
@@ -136,11 +223,172 @@ export default function CompanySettingsPage() {
           <h1 className="font-heading text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
             Configuración de empresa
           </h1>
-          <p className="mt-1 text-sm text-white/45">{company.name}</p>
+          <p className="mt-1 text-sm text-white/45">
+            Datos de contacto, logotipo y reglas de negocio · {company.name}
+          </p>
         </header>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+            <section className={sectionClass}>
+              <div className="mb-5 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+                  <Building2 className="h-5 w-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white">Datos de la empresa</h2>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    Nombre y contacto que aparecen en reportes PDF
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel className={labelClass}>Nombre</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>Correo</FormLabel>
+                      <FormControl>
+                        <Input type="email" className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="street"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel className={labelClass}>Calle</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>Ciudad</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>Estado</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="zipCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>C.P.</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className={labelClass}>País</FormLabel>
+                      <FormControl>
+                        <Input className={inputClass} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </section>
+
+            <section className={sectionClass}>
+              <div className="mb-5 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+                  <ImageIcon className="h-5 w-5" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white">Logotipo</h2>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    PNG o JPG. Se usa en reportes PDF (cuando la columna logo_url existe en BD)
+                  </p>
+                </div>
+              </div>
+              <FormField
+                control={form.control}
+                name="logoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <MultipleFileInput
+                        onFilesSelected={files => field.onChange(files)}
+                        initialValue={field.value || []}
+                        accept="image/jpeg,image/png,image/webp,image/jpg"
+                        multiple={false}
+                        previewType="file"
+                        folder="company_logos"
+                        entityId={companyId || undefined}
+                        className="border-white/10 bg-white/[0.02]"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-white/35">
+                      Arrastra una imagen o haz clic para seleccionar
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </section>
+
             <section className={sectionClass}>
               <div className="mb-5 flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
@@ -219,9 +467,7 @@ export default function CompanySettingsPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-semibold text-white">Notificaciones</h2>
-                  <p className="mt-0.5 text-xs text-white/40">
-                    Canales de alerta para la empresa
-                  </p>
+                  <p className="mt-0.5 text-xs text-white/40">Canales de alerta para la empresa</p>
                 </div>
               </div>
 
