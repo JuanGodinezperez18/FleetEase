@@ -223,7 +223,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 ### ReportData
 ```typescript
 interface ReportData {
-  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'partner';
+  type: 'financial' | 'vehicle' | 'client' | 'partner';
   title: string;
   subtitle?: string;
   dateRange: { from: Date; to: Date };
@@ -300,7 +300,7 @@ Almacena el historial de reportes generados.
 {
   id: string;
   companyId: string;
-  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'partner';
+  type: 'financial' | 'vehicle' | 'client' | 'partner';
   format: 'pdf' | 'excel';
   filename: string;
   dateRange: {
