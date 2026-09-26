@@ -1,0 +1,2 @@
+create index if not exists idx_vehicle_inspections_client_id on public.vehicle_inspections(client_id);
+create index if not exists idx_vehicle_inspections_created_by on public.vehicle_inspections(created_by);
