@@ -32,9 +32,6 @@ export class ExcelReportGenerator {
       case 'partner':
         this.addPartnerSheets(data);
         break;
-      case 'executive':
-        this.addExecutiveSheets(data);
-        break;
     }
 
     // Generar archivo Excel
@@ -53,7 +50,7 @@ export class ExcelReportGenerator {
    */
   private addSummarySheet(data: ReportData) {
     const summaryData: any[][] = [
-      ['REPORTE EJECUTIVO'],
+      ['RESUMEN DEL REPORTE'],
       [''],
       ['Título:', data.title],
       ['Subtítulo:', data.subtitle || ''],
@@ -305,16 +302,6 @@ export class ExcelReportGenerator {
     ];
 
     XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Análisis Socios');
-  }
-
-  /**
-   * Agrega hojas de reporte ejecutivo (combinado)
-   */
-  private addExecutiveSheets(data: ReportData) {
-    this.addFinancialSheets(data);
-    this.addVehicleSheets(data);
-    this.addClientSheets(data);
-    this.addPartnerSheets(data);
   }
 
   /**
