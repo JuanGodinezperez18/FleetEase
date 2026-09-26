@@ -5,14 +5,15 @@ import { Building2, Users, Car, FileWarning, AlertCircle } from 'lucide-react';
 import type { Company } from '@/types';
 import { formatNumber } from '@/lib/utils';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from 'recharts';
 import {
   subMonths,
@@ -178,6 +179,11 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
     });
   }, [companies]);
 
+  const chartKey = useMemo(
+    () => growthData.map(d => d.empresas).join('-'),
+    [growthData]
+  );
+
   const tooltipStyle = {
     backgroundColor: '#0e1117',
     border: '1px solid rgba(255,255,255,0.1)',
@@ -242,33 +248,47 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
             Crecimiento de empresas
           </h3>
           <p className="mb-4 text-xs text-white/40">Últimos 6 meses</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={growthData}>
-              <XAxis
-                dataKey="month"
-                stroke="rgba(255,255,255,0.35)"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="rgba(255,255,255,0.35)"
-                fontSize={11}
-                allowDecimals={false}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Line
-                type="monotone"
-                dataKey="empresas"
-                stroke="#d7ff3f"
-                strokeWidth={2}
-                dot={{ r: 3, fill: '#d7ff3f' }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="h-[200px] sm:h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart key={chartKey} data={growthData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradEmpresas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#d7ff3f" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#d7ff3f" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="rgba(255,255,255,0.35)"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="rgba(255,255,255,0.35)"
+                  fontSize={11}
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(215,255,63,0.3)' }} />
+                <Area
+                  type="monotone"
+                  dataKey="empresas"
+                  stroke="#d7ff3f"
+                  strokeWidth={2.25}
+                  fill="url(#gradEmpresas)"
+                  dot={{ r: 3, fill: '#d7ff3f', strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#0e1117' }}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {stats.stateDistribution.length > 0 && (
@@ -280,27 +300,39 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
               Distribución por estado
             </h3>
             <p className="mb-4 text-xs text-white/40">Top 5</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stats.stateDistribution} layout="vertical">
-                <XAxis type="number" hide />
-                <YAxis
-                  dataKey="state"
-                  type="category"
-                  width={88}
-                  tickLine={false}
-                  axisLine={false}
-                  stroke="rgba(255,255,255,0.45)"
-                  fontSize={11}
-                />
-                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar
-                  dataKey="count"
-                  name="Empresas"
-                  fill="#d7ff3f"
-                  radius={[0, 6, 6, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[200px] sm:h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.stateDistribution} layout="vertical" margin={{ left: 4, right: 12 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="state"
+                    type="category"
+                    width={88}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="rgba(255,255,255,0.45)"
+                    fontSize={11}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Bar
+                    dataKey="count"
+                    name="Empresas"
+                    fill="#d7ff3f"
+                    radius={[0, 6, 6, 0]}
+                    maxBarSize={22}
+                    isAnimationActive
+                    animationDuration={850}
+                    animationEasing="ease-out"
+                    activeBar={{
+                      fill: '#e8ff6b',
+                      stroke: '#d7ff3f',
+                      strokeWidth: 1,
+                      radius: [0, 8, 8, 0],
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>
@@ -324,7 +356,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
                   <div
-                    className="h-full rounded-full bg-amber-400 transition-all"
+                    className="h-full rounded-full bg-amber-400 transition-all duration-500"
                     style={{ width: `${Math.min(c.usage, 100)}%` }}
                   />
                 </div>
