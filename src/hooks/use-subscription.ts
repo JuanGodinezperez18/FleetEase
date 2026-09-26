@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import type { PlanType } from '@/config/plans';
 import { getSafeExternalUrl } from '@/lib/security/safe-url';
+import { supabase } from '@/lib/supabase';
 
 export interface SubscriptionStatus {
   plan: PlanType;
@@ -59,9 +60,16 @@ export function useSubscription() {
   const upgradePlan = useCallback(async (planId: PlanType, companyId: string) => {
     try {
       setProcessing(true);
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sesión de autenticación no disponible. Inicia sesión nuevamente.');
+      }
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ planId, companyId }),
       });
 
@@ -95,9 +103,16 @@ export function useSubscription() {
   const openPortal = useCallback(async (companyId?: string) => {
     try {
       setProcessing(true);
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sesión de autenticación no disponible. Inicia sesión nuevamente.');
+      }
       const res = await fetch('/api/stripe/portal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ companyId: companyId || undefined }),
       });
 
