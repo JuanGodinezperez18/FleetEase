@@ -48,6 +48,7 @@ export default function DashboardPage() {
     allKPIs,
     KPI_MAP,
     enabledWidgets,
+    customDateRange,
     setIsConfigOpen,
     setActiveModal,
     setQuickActionModal,
@@ -87,8 +88,8 @@ export default function DashboardPage() {
 
     setIsExportingPdf(true);
     try {
-      const from = startOfMonth(new Date());
-      const to = endOfMonth(new Date());
+      const from = customDateRange?.from ?? startOfMonth(new Date());
+      const to = customDateRange?.to ?? endOfMonth(new Date());
       const blob = await generatePDFReport({
         type: 'financial',
         title: 'Reporte de KPIs del Dashboard',
