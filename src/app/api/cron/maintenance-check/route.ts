@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       .from('vehicles')
       .select('*')
       .eq('is_deleted', false)
-      .eq('sold', false);
+      ;
 
     if (fetchError) {
       console.error('Error fetching vehicles:', fetchError);
