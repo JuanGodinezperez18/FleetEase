@@ -223,7 +223,7 @@ export default function CompaniesPage() {
     );
 
     try {
-      const normalizedCompanyName = data.name.trim().replace(/\\s+/g, ' ');
+      const normalizedCompanyName = data.name.trim().replace(/\s+/g, ' ');
       if (!normalizedCompanyName) {
         throw new Error('El nombre de la empresa es obligatorio.');
       }
@@ -245,7 +245,6 @@ export default function CompaniesPage() {
 
       const oldContractUrl = editingCompany?.contractTemplateUrl;
       let newContractUrl: string | undefined | null = editingCompany?.contractTemplateUrl;
-
       const fileField = data.contractTemplateUrl;
 
       if (Array.isArray(fileField)) {
@@ -261,10 +260,33 @@ export default function CompaniesPage() {
         }
       }
 
-      const { contractTemplateUrl, ...restOfData } = data;
+      const oldLogoUrl = editingCompany?.logoUrl;
+      let newLogoUrl: string | undefined | null = editingCompany?.logoUrl;
+      const logoField = data.logoUrl;
+
+      if (Array.isArray(logoField)) {
+        if (logoField.length > 0) {
+          const file = logoField[0];
+          if (file instanceof File) {
+            newLogoUrl = await uploadFile(
+              file,
+              'company_logos',
+              true,
+              editingCompany?.id
+            );
+          } else if (typeof file === 'string') {
+            newLogoUrl = file;
+          }
+        } else if (oldLogoUrl) {
+          newLogoUrl = null;
+        }
+      }
+
+      const { contractTemplateUrl, logoUrl, ...restOfData } = data;
       const companyPayload = {
         ...sanitizeAndFormatData({ ...restOfData, name: normalizedCompanyName }),
         contractTemplateUrl: newContractUrl,
+        logoUrl: newLogoUrl,
       };
 
       if (editingCompany) {
@@ -285,6 +307,11 @@ export default function CompaniesPage() {
       if (oldContractUrl && oldContractUrl !== newContractUrl) {
         await deleteFileByUrl(oldContractUrl).catch(err => {
           console.warn('Failed to delete old contract file:', err);
+        });
+      }
+      if (oldLogoUrl && oldLogoUrl !== newLogoUrl) {
+        await deleteFileByUrl(oldLogoUrl).catch(err => {
+          console.warn('Failed to delete old logo:', err);
         });
       }
 
@@ -334,6 +361,9 @@ export default function CompaniesPage() {
     try {
       if (companyToDelete.contractTemplateUrl) {
         await deleteFileByUrl(companyToDelete.contractTemplateUrl).catch(console.warn);
+      }
+      if (companyToDelete.logoUrl) {
+        await deleteFileByUrl(companyToDelete.logoUrl).catch(console.warn);
       }
 
       await deleteCompany(companyToDelete.id);
@@ -419,7 +449,7 @@ export default function CompaniesPage() {
               Empresas
             </h1>
             <p className="mt-1 text-sm text-white/45">
-              Límites de flota, contratos y empresas registradas
+              Límites de flota, contratos, logotipo y empresas registradas
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
