@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 
 export interface ReportData {
-  type: 'financial' | 'vehicle' | 'client' | 'partner' | 'executive';
+  type: 'financial' | 'vehicle' | 'client' | 'partner';
   title: string;
   subtitle?: string;
   dateRange: { from: Date; to: Date };
@@ -98,9 +98,6 @@ export class PDFReportGenerator {
       case 'partner':
         this.addPartnerReport(data);
         break;
-      case 'executive':
-        this.addExecutiveReport(data);
-        break;
     }
 
     this.addFooter();
@@ -163,7 +160,7 @@ export class PDFReportGenerator {
     this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(0, 0, 0);
-    this.doc.text('Resumen Ejecutivo', this.margin, this.currentY);
+    this.doc.text('Resumen del Reporte', this.margin, this.currentY);
 
     this.currentY += 8;
 
@@ -434,23 +431,6 @@ export class PDFReportGenerator {
     });
 
     this.currentY = (this.doc as any).lastAutoTable.finalY + 10;
-  }
-
-  /**
-   * Agrega el reporte ejecutivo (combinado)
-   */
-  private addExecutiveReport(data: ReportData) {
-    this.addFinancialReport(data);
-
-    if (data.vehicleMetrics && data.vehicleMetrics.length > 0) {
-      this.checkPageBreak(80);
-      this.addVehicleReport(data);
-    }
-
-    if (data.clientMetrics && data.clientMetrics.length > 0) {
-      this.checkPageBreak(80);
-      this.addClientReport(data);
-    }
   }
 
   /**
