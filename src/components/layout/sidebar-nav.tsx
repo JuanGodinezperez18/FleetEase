@@ -19,6 +19,7 @@ import {
   Tags,
   AreaChart,
   History,
+  BarChart3,
   MessageSquare,
   ChevronRight,
   Camera,
@@ -228,7 +229,7 @@ export const navItemsBase: NavItem[] = [
     icon: FileText,
     basePath: "/dashboard/reports",
     subItems: [
-      { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3Icon },
+      { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3 },
       { href: "/dashboard/reports/history", label: "Historial", icon: History },
     ],
   },
@@ -465,7 +466,7 @@ export function SidebarNav() {
               </SidebarMenuButton>
             )
           ) : null}
-          </SidebarMenuItem>
+            </SidebarMenuItem>
           </React.Fragment>
         );
       })}
