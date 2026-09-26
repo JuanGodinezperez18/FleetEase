@@ -26,7 +26,6 @@ import {
   VehicleInspectionModal,
 } from './components/dashboard-modals-bundle';
 
-/** KPI ids that represent counts / quantities, not money */
 const COUNT_KPI_IDS = new Set([
   'licenses-expiring',
   'insurance-expiring',
@@ -58,7 +57,6 @@ function kpiFormatForId(id: string): KpiFormat {
   if (id.includes('margin') || id.includes('rate') || id.includes('percent') || id === 'recovery-rate') {
     return 'percent';
   }
-  // Category labels (top-income-category) are text
   if (id.startsWith('top-')) return 'text';
   return 'currency';
 }
@@ -153,12 +151,67 @@ export default function DashboardPage() {
       const expenses = kpiNumber(allKPIs, 'expenses-month');
       const netProfit = kpiNumber(allKPIs, 'net-income');
 
+      const company =
+        companies?.find(c => c.id === currentUser?.companyId) || companies?.[0];
+
+      const licenseDetails = (allKPIs['licenses-expiring']?.details || [])
+        .slice(0, 15)
+        .map((c: any) => ({
+          name: `${c.firstname || ''} ${c.lastname || ''}`.trim() || 'Cliente',
+          detail: c.licenseNumber || '',
+          expiry: c.licenseExpiry
+            ? format(new Date(c.licenseExpiry), 'dd/MM/yyyy')
+            : '',
+          status: c.licenseStatus || '',
+        }));
+
+      const insuranceDetails = (allKPIs['insurance-expiring']?.details || [])
+        .slice(0, 15)
+        .map((v: any) => ({
+          name: v.alias || `${v.make || ''} ${v.model || ''}`.trim(),
+          plate: v.plate || '',
+          company: v.insuranceCompany || '',
+          policy: v.insurancePolicyNumber || '',
+          expiry: v.insuranceExpiryDate
+            ? format(new Date(v.insuranceExpiryDate), 'dd/MM/yyyy')
+            : '',
+        }));
+
+      const maintOverdue = (allKPIs['maintenance-overdue']?.details || []).map((v: any) => ({
+        name: v.alias || `${v.make || ''} ${v.model || ''}`.trim(),
+        plate: v.plate || '',
+        kmToNext: v.kmToNextMaintenance,
+        currentKm: v.currentMileage,
+        status: 'Vencido',
+      }));
+      const maintSoon = (allKPIs['maintenance-soon']?.details || []).map((v: any) => ({
+        name: v.alias || `${v.make || ''} ${v.model || ''}`.trim(),
+        plate: v.plate || '',
+        kmToNext: v.kmToNextMaintenance,
+        currentKm: v.currentMileage,
+        status: 'Proximo',
+      }));
+      const maintenanceDetails = [...maintOverdue, ...maintSoon].slice(0, 20);
+
       const blob = await generatePDFReport({
         type: 'financial',
         title: 'Reporte de KPIs del Dashboard',
         subtitle: 'Indicadores seleccionados por el usuario',
         dateRange: { from, to },
-        companyName: 'FleetEase Manager',
+        companyName: company?.name || 'FleetEase Manager',
+        companyInfo: company
+          ? {
+              name: company.name,
+              email: company.email,
+              phone: company.phone,
+              street: company.street,
+              city: company.city,
+              state: company.state,
+              zipCode: company.zipCode,
+              country: company.country,
+              logoUrl: company.logoUrl || undefined,
+            }
+          : undefined,
         generatedBy: currentUser?.name || undefined,
         kpis: selectedKpis,
         income,
@@ -168,6 +221,11 @@ export default function DashboardPage() {
           income !== undefined && income !== 0 && netProfit !== undefined
             ? (netProfit / income) * 100
             : undefined,
+        alertDetails: {
+          licenses: licenseDetails,
+          insurance: insuranceDetails,
+          maintenance: maintenanceDetails,
+        },
       });
       downloadPDF(blob, `dashboard_kpis_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`);
       toast.success('PDF generado con los KPIs seleccionados');
