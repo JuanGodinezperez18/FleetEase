@@ -1,22 +1,27 @@
 
-
 "use client";
 
 import React, { useMemo } from 'react';
 import type { UserProfile } from '@/types';
 import type { UserMetric } from '@/hooks/use-user-analytics';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Users,
   UserX,
-  ShieldCheck,
   AlertTriangle,
   BarChart,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface UserAdminDashboardProps {
   users: UserProfile[];
@@ -26,10 +31,12 @@ interface UserAdminDashboardProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-2 bg-background border rounded-lg shadow-sm">
-        <p className="font-bold">{label}</p>
+      <div className="rounded-xl border border-white/10 bg-[#0e1117]/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
+        <p className="mb-1 font-semibold text-white/80">{label}</p>
         {payload.map((p: any, index: number) => (
-            <p key={index} style={{ color: p.fill }}>{`${p.name}: ${p.value}`}</p>
+          <p key={index} className="text-white/60">
+            {p.name}: <span className="font-semibold text-white">{p.value}</span>
+          </p>
         ))}
       </div>
     );
@@ -42,13 +49,13 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
     const totalUsers = users.length;
     const activeUsers = users.filter(u => !u.isDeleted).length;
     const inactiveUsers = totalUsers - activeUsers;
-    
+
     const roleDistribution = users.reduce((acc, user) => {
       const role = user.role || 'Desconocido';
       acc[role] = (acc[role] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const activityDistribution = userMetrics.reduce((acc, metric) => {
       acc[metric.activityLevel] = (acc[metric.activityLevel] || 0) + 1;
       return acc;
@@ -60,21 +67,34 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
       totalUsers,
       activeUsers,
       inactiveUsers,
-      roleDistribution: Object.entries(roleDistribution).map(([name, value]) => ({ name, Usuarios: value })),
-      activityDistribution: Object.entries(activityDistribution).map(([name, value]) => ({ name, Usuarios: value })),
+      roleDistribution: Object.entries(roleDistribution).map(([name, value]) => ({
+        name,
+        Usuarios: value,
+      })),
+      activityDistribution: Object.entries(activityDistribution).map(([name, value]) => ({
+        name,
+        Usuarios: value,
+      })),
       highRiskUsers,
     };
   }, [users, userMetrics]);
-  
+
+  const roleKey = overallStats.roleDistribution.map(d => d.Usuarios).join('-');
+  const activityKey = overallStats.activityDistribution.map(d => d.Usuarios).join('-');
+
   const getPermissionBadge = (level: UserMetric['permissionLevel']) => {
     switch (level) {
-      case 'Acceso Total': return <Badge variant="destructive">Total</Badge>;
-      case 'Acceso de Edición': return <Badge variant="secondary">Edición</Badge>;
-      case 'Acceso Limitado': return <Badge variant="outline">Limitado</Badge>;
-      default: return <Badge variant="outline">{level}</Badge>;
+      case 'Acceso Total':
+        return <Badge variant="destructive">Total</Badge>;
+      case 'Acceso de Edición':
+        return <Badge variant="secondary">Edición</Badge>;
+      case 'Acceso Limitado':
+        return <Badge variant="outline">Limitado</Badge>;
+      default:
+        return <Badge variant="outline">{level}</Badge>;
     }
   };
-  
+
   const getUserDetails = (metric: UserMetric) => {
     return users.find(u => u.uid === metric.userId);
   };
@@ -130,30 +150,88 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
             <CardTitle>Distribución por Rol</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-                <RechartsBarChart data={overallStats.roleDistribution} layout="vertical">
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={80} tickLine={false} axisLine={false} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-                    <RechartsBar dataKey="Usuarios" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+            <div className="h-[220px] sm:h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart
+                  key={roleKey}
+                  data={overallStats.roleDistribution}
+                  layout="vertical"
+                  margin={{ left: 4, right: 12 }}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={90}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <RechartsBar
+                    dataKey="Usuarios"
+                    fill="#d7ff3f"
+                    radius={[0, 6, 6, 0]}
+                    maxBarSize={22}
+                    isAnimationActive
+                    animationDuration={850}
+                    animationEasing="ease-out"
+                    activeBar={{
+                      fill: '#e8ff6b',
+                      stroke: '#d7ff3f',
+                      strokeWidth: 1,
+                      radius: [0, 8, 8, 0],
+                    }}
+                  />
                 </RechartsBarChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Distribución por Actividad</CardTitle>
           </CardHeader>
           <CardContent>
-             <ResponsiveContainer width="100%" height={250}>
-                <RechartsBarChart data={overallStats.activityDistribution}>
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-                    <RechartsBar dataKey="Usuarios" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <div className="h-[220px] sm:h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart
+                  key={activityKey}
+                  data={overallStats.activityDistribution}
+                  margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+                >
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <RechartsBar
+                    dataKey="Usuarios"
+                    fill="#d7ff3f"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={48}
+                    isAnimationActive
+                    animationDuration={900}
+                    animationEasing="ease-out"
+                    activeBar={{
+                      fill: '#e8ff6b',
+                      stroke: '#d7ff3f',
+                      strokeWidth: 1,
+                      radius: [8, 8, 0, 0],
+                    }}
+                  />
                 </RechartsBarChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -163,7 +241,10 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Revisión de Seguridad Recomendada</AlertTitle>
           <AlertDescription>
-            <p>Los siguientes usuarios tienen roles de alto privilegio. Se recomienda revisar su actividad periódicamente.</p>
+            <p>
+              Los siguientes usuarios tienen roles de alto privilegio. Se recomienda revisar su
+              actividad periódicamente.
+            </p>
             <Table className="mt-2">
               <TableHeader>
                 <TableRow>
@@ -180,7 +261,11 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
                       <TableCell>{user?.name || 'Desconocido'}</TableCell>
                       <TableCell>{getPermissionBadge(metric.permissionLevel)}</TableCell>
                       <TableCell>
-                        <Badge variant={metric.activityLevel === 'Inactivo' ? 'destructive' : 'outline'}>{metric.activityLevel}</Badge>
+                        <Badge
+                          variant={metric.activityLevel === 'Inactivo' ? 'destructive' : 'outline'}
+                        >
+                          {metric.activityLevel}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   );
