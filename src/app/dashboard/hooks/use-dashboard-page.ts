@@ -224,6 +224,11 @@ export function useDashboardPage() {
     },
     [kpiActions]
   );
+  const handleDateChange = React.useCallback((range: DateRange | undefined) => {
+    if (!range?.from) return;
+    setCustomDateRange(range);
+  }, []);
+
   const handleDatePresetChange = React.useCallback((preset: DateFilterPreset) => {
     const now = new Date();
     setDateFilterType(preset);
@@ -282,6 +287,7 @@ export function useDashboardPage() {
     setQuickActionModal: modals.setQuickActionModal,
     handleQuickAction: modals.handleOpenQuickAction,
     handleDatePresetChange,
+    handleDateChange,
     handleDragEnd,
     handleKpiClick,
     handleIncomeSubmit: actions.handleIncomeSubmit,
