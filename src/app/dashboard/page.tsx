@@ -26,23 +26,40 @@ import {
   VehicleInspectionModal,
 } from './components/dashboard-modals-bundle';
 
-/** KPI ids that represent counts, not money */
+/** KPI ids that represent counts / quantities, not money */
 const COUNT_KPI_IDS = new Set([
   'licenses-expiring',
   'insurance-expiring',
   'total-vehicles',
-  'active-vehicles',
+  'vehicles-rented',
+  'vehicles-available',
   'total-clients',
-  'active-clients',
+  'clients-with-debt',
+  'critical-clients',
+  'active-credits',
+  'overdue-credits',
   'total-partners',
-  'pending-credits',
-  'multas-pending',
-  'inspections-due',
+  'partners-positive-balance',
+  'partners-negative-balance',
+  'vehicles-by-partners',
+  'maintenance-overdue',
+  'maintenance-soon',
+  'high-mileage-vehicles',
+  'total-mileage-logs',
+  'total-multas',
+  'multas-pendientes',
+  'multas-pagadas',
+  'vehiculos-con-multas',
+  'vehiculos-limpios',
 ]);
 
 function kpiFormatForId(id: string): KpiFormat {
   if (COUNT_KPI_IDS.has(id)) return 'number';
-  if (id.includes('margin') || id.includes('rate') || id.includes('percent')) return 'percent';
+  if (id.includes('margin') || id.includes('rate') || id.includes('percent') || id === 'recovery-rate') {
+    return 'percent';
+  }
+  // Category labels (top-income-category) are text
+  if (id.startsWith('top-')) return 'text';
   return 'currency';
 }
 
