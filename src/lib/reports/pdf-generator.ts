@@ -11,6 +11,7 @@ export interface ReportData {
   dateRange: { from: Date; to: Date };
   companyName?: string;
   generatedBy?: string;
+  kpis?: Array<{ label: string; value: string | number; subtitle?: string }>;
 
   // Financial data
   income?: number;
@@ -166,7 +167,12 @@ export class PDFReportGenerator {
 
     const summaryData: string[][] = [];
 
-    if (data.income !== undefined) {
+    if (data.kpis && data.kpis.length > 0) {
+      data.kpis.forEach(kpi => {
+        const value = typeof kpi.value === 'number' ? this.formatCurrency(kpi.value) : String(kpi.value);
+        summaryData.push([kpi.label, kpi.subtitle ? `${value} · ${kpi.subtitle}` : value]);
+      });
+    } else if (data.income !== undefined) {
       summaryData.push(['Ingresos Totales', this.formatCurrency(data.income)]);
     }
 
@@ -183,7 +189,7 @@ export class PDFReportGenerator {
       summaryData.push(['Margen de Beneficio', `${data.profitMargin.toFixed(2)}%`]);
     }
 
-    if (data.transactionsCount !== undefined) {
+    if (!data.kpis && data.transactionsCount !== undefined) {
       summaryData.push(['Número de Transacciones', data.transactionsCount.toString()]);
     }
 
