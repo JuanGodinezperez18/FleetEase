@@ -29,12 +29,27 @@ function getBucketName(folder: AllowedFolder): string {
     case 'financial_receipts': return 'financial-receipts';
     case 'general_documents': return 'general-documents';
     case 'contract_templates': return 'contract-templates';
-    case 'company_logos': return 'vehicle-images'; // reutiliza bucket de imágenes
+    case 'company_logos': return 'company-logos';
   }
 }
 
 function isSuperAdmin(role: string | null | undefined): boolean {
   return role === 'super_admin' || role === 'superAdmin';
+}
+
+/** Crea el bucket si no existe (público, para URLs de logo en PDF/reportes). */
+async function ensurePublicBucket(bucketName: string): Promise<void> {
+  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+  if (buckets?.some(b => b.name === bucketName)) return;
+  const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
+    public: true,
+    fileSizeLimit: MAX_SIZE_BYTES,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
+  });
+  // Si otro request lo creó en paralelo, ignorar el conflicto
+  if (error && !/already exists|duplicate/i.test(error.message)) {
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -57,7 +72,6 @@ export async function POST(request: NextRequest) {
     if (!file) return NextResponse.json({ error: 'No se encontró archivo en la solicitud.' }, { status: 400 });
     if (!isValidFolder(folder)) return NextResponse.json({ error: `Carpeta inválida. Debe ser una de: ${ALLOWED_FOLDERS.join(', ')}` }, { status: 400 });
     const allowedMimes = ALLOWED_MIME_TYPES[folder];
-    // Algunos navegadores/compresores envían type vacío
     const effectiveType =
       file.type ||
       (originalName.match(/\.jpe?g$/i) ? 'image/jpeg' :
@@ -75,7 +89,6 @@ export async function POST(request: NextRequest) {
 
     let companyId = userProfile.company_id as string | null;
 
-    // company_logos: entityId es el id de la empresa
     if (folder === 'company_logos' && entityId && entityId !== 'unassigned') {
       if (isSuperAdmin(userProfile.role)) {
         companyId = entityId;
@@ -124,9 +137,31 @@ export async function POST(request: NextRequest) {
     const fullPath = `${pathPrefix}/${uniqueFileName}`;
     const bucketName = getBucketName(folder);
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
+
+    if (folder === 'company_logos') {
+      try {
+        await ensurePublicBucket(bucketName);
+      } catch (bucketErr) {
+        if (isDev) console.error('[API Upload] ensurePublicBucket:', bucketErr);
+        return NextResponse.json({
+          error: `No se pudo preparar el bucket "${bucketName}". Créalo en Supabase Storage (público) o revisa permisos del service role.`,
+        }, { status: 500 });
+      }
+    }
+
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const contentType = effectiveType || file.type || 'application/octet-stream';
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false });
+    let uploadError = (await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
+
+    if (uploadError && /bucket not found/i.test(uploadError.message)) {
+      try {
+        await ensurePublicBucket(bucketName);
+        uploadError = (await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType, upsert: false })).error;
+      } catch (retryErr) {
+        if (isDev) console.error('[API Upload] retry after create bucket:', retryErr);
+      }
+    }
+
     if (uploadError) {
       if (isDev) console.error('[API Upload] storage error:', uploadError);
       return NextResponse.json({ error: `Error al subir al storage: ${uploadError.message}` }, { status: 500 });
