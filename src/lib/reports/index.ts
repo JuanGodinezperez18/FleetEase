@@ -5,6 +5,8 @@ export {
   generatePDFReport,
   downloadPDF,
   type ReportData,
+  type ReportKpi,
+  type KpiFormat,
 } from './pdf-generator';
 
 export {
