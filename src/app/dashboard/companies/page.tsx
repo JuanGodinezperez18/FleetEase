@@ -223,10 +223,15 @@ export default function CompaniesPage() {
     );
 
     try {
+      const normalizedCompanyName = data.name.trim().replace(/\\s+/g, ' ');
+      if (!normalizedCompanyName) {
+        throw new Error('El nombre de la empresa es obligatorio.');
+      }
+
       let supabaseQuery = supabase
         .from('companies')
         .select('id')
-        .eq('name', data.name)
+        .ilike('name', normalizedCompanyName)
         .eq('is_deleted', false);
       if (editingCompany) {
         supabaseQuery = supabaseQuery.neq('id', editingCompany.id);
@@ -258,7 +263,7 @@ export default function CompaniesPage() {
 
       const { contractTemplateUrl, ...restOfData } = data;
       const companyPayload = {
-        ...sanitizeAndFormatData(restOfData),
+        ...sanitizeAndFormatData({ ...restOfData, name: normalizedCompanyName }),
         contractTemplateUrl: newContractUrl,
       };
 
@@ -274,7 +279,7 @@ export default function CompaniesPage() {
 
       toast.success(editingCompany ? 'Empresa actualizada' : 'Empresa agregada', {
         id: toastId,
-        description: `${data.name} ha sido ${editingCompany ? 'actualizada' : 'agregada'}.`,
+        description: `${normalizedCompanyName} ha sido ${editingCompany ? 'actualizada' : 'agregada'}.`,
       });
 
       if (oldContractUrl && oldContractUrl !== newContractUrl) {
