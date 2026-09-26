@@ -96,7 +96,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md sm:p-5"
+          className="fixed inset-0 z-[60] flex min-h-0 items-center justify-center bg-black/75 p-2.5 backdrop-blur-md sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -108,7 +108,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
             role="dialog"
             aria-modal="true"
             aria-labelledby="dashboard-config-title"
-            className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)]"
+            className="relative flex max-h-[calc(100dvh-1.25rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)]"
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
@@ -157,7 +157,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </div>
             </div>
 
-            <div className="relative flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
               <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 {filteredWidgets.map(item => {
                   const widget = widgets.find(w => w.id === item.id);
