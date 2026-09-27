@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Compatibility shim: previous Aceternity GooeyInput API
- * now renders Bencho Search (Seek) so all DataTable search bars update.
+ * Compatibility shim: DataTable GooeyInput API → Bencho Search (Seek).
+ * Do NOT pass width-overriding classNames (e.g. w-auto) — they break the circle geometry.
  */
 import { Search } from "./search";
 
@@ -33,7 +33,6 @@ export interface GooeyInputProps {
 
 export function GooeyInput({
   placeholder = "Buscar...",
-  className,
   expandedWidth = 280,
   value,
   defaultValue,
@@ -43,7 +42,6 @@ export function GooeyInput({
   return (
     <Search
       placeholder={placeholder}
-      className={className}
       width={expandedWidth}
       value={value}
       defaultValue={defaultValue}

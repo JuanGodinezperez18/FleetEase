@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/common/data-table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { Input } from '@/components/ui/input';
+import { Search } from '@/components/ui/search';
 
 interface ResponsiveTableProps<TData, TValue> {
   data: TData[];
@@ -54,7 +54,6 @@ export function ResponsiveTable<TData, TValue>({
     if (!globalFilter) return data;
     const searchTerm = globalFilter.toLowerCase();
     
-    // This is a generic filter. For more specific filtering, it should be handled by the parent component or tanstack-table itself.
     return data.filter(item => 
         Object.values(item as any).some(value => 
             String(value).toLowerCase().includes(searchTerm)
@@ -71,12 +70,12 @@ export function ResponsiveTable<TData, TValue>({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
-          <Input
-              placeholder={searchPlaceholder || "Buscar..."}
-              value={globalFilter}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="w-full"
-            />
+          <Search
+            placeholder={searchPlaceholder || "Buscar..."}
+            value={globalFilter}
+            onValueChange={setGlobalFilter}
+            width={280}
+          />
           <span className="text-sm text-muted-foreground self-end sm:self-center">
             {filteredData.length} resultados
           </span>
