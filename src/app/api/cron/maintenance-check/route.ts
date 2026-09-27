@@ -75,30 +75,45 @@ export async function GET(request: NextRequest) {
   let notificationsSent = 0;
 
   try {
-    const { data: vehicles, error: fetchError } = await supabase
-      .from('vehicles')
-      .select('*')
-      .eq('is_deleted', false)
-      ;
-
-    if (fetchError) {
-      console.error('Error fetching vehicles:', fetchError);
-      return NextResponse.json({ error: 'Failed to fetch vehicles', details: fetchError.message }, { status: 500 });
-    }
+    const [vehiclesResult, companiesResult, adminsResult] = await Promise.all([
+          supabase
+            .from('vehicles')
+            .select('id, plate, company_id, client_id, partner_id, current_mileage, last_maintenance_mileage')
+            .eq('is_deleted', false)
+            .eq('sold', false),
+          supabase
+            .from('companies')
+            .select('id, maintenance_interval')
+            .eq('is_deleted', false),
+          supabase
+            .from('users')
+            .select('id, company_id')
+            .in('role', ['admin', 'editor']),
+        ]);
+    
+        if (vehiclesResult.error) {
+          console.error('Error fetching vehicles:', vehiclesResult.error);
+          return NextResponse.json({ error: 'Failed to fetch vehicles', details: vehiclesResult.error.message }, { status: 500 });
+        }
+        if (companiesResult.error) {
+          console.error('Error fetching company maintenance intervals:', companiesResult.error);
+          return NextResponse.json({ error: 'Failed to fetch company maintenance settings', details: companiesResult.error.message }, { status: 500 });
+        }
+        if (adminsResult.error) {
+          console.error('Error fetching admin users:', adminsResult.error);
+          return NextResponse.json({ error: 'Failed to fetch admin users', details: adminsResult.error.message }, { status: 500 });
+        }
+    
+        const vehicles = vehiclesResult.data;
+        const companies = companiesResult.data;
+        const adminIdsByCompany = new Map<string, string[]>();
+        for (const admin of adminsResult.data ?? []) {
+          const ids = adminIdsByCompany.get(admin.company_id) ?? [];
+          ids.push(admin.id);
+          adminIdsByCompany.set(admin.company_id, ids);
+        }
 
     vehiclesChecked = vehicles?.length ?? 0;
-
-    // El intervalo vigente es propiedad de la empresa. Nunca usamos un
-    // fallback fijo ni una copia histórica del vehículo para este cálculo.
-    const { data: companies, error: companiesError } = await supabase
-      .from('companies')
-      .select('id, maintenance_interval')
-      .eq('is_deleted', false);
-
-    if (companiesError) {
-      console.error('Error fetching company maintenance intervals:', companiesError);
-      return NextResponse.json({ error: 'Failed to fetch company maintenance settings', details: companiesError.message }, { status: 500 });
-    }
 
     const companyIntervals = new Map<string, number>();
     for (const company of companies ?? []) {
@@ -122,7 +137,7 @@ export async function GET(request: NextRequest) {
         const kmToNext = lastMileage + interval - currentMileage;
 
         if (kmToNext < 0) {
-          const adminUsers = await getAdminUsers(vehicle.company_id);
+          const adminUsers = adminIdsByCompany.get(vehicle.company_id) ?? [];
           const message = `Mantenimiento vencido para el vehiculo ${vehicle.plate}. Kilometraje actual: ${currentMileage} km.`;
 
           allNotifications.push({
