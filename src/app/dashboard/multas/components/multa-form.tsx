@@ -154,6 +154,31 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         return;
       }
 
+      if (!data.fechaInfraccion || data.fechaInfraccion > today) {
+        toast.error("La fecha de infracción no puede ser futura.");
+        return;
+      }
+
+      const importeValue = Number(data.importe);
+      const recargosValue = Number(data.recargos || 0);
+
+      if (!Number.isFinite(importeValue) || importeValue <= 0) {
+        toast.error("El importe debe ser mayor a 0.");
+        return;
+      }
+
+      if (!Number.isFinite(recargosValue) || recargosValue < 0) {
+        toast.error("Los recargos no pueden ser negativos.");
+        return;
+      }
+
+      if (recargosValue > importeValue * 10) {
+        toast.error("Los recargos son desproporcionados.", {
+          description: "No pueden superar 10 veces el importe de la multa.",
+        });
+        return;
+      }
+
       if (!currentUser?.companyId) {
         toast.error("Error: No se encontró la compañía del usuario");
         return;
@@ -172,9 +197,9 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         fechaInfraccion: data.fechaInfraccion,
         direccion: data.direccion,
         descripcion: data.descripcion,
-        importe: data.importe,
-        recargos: data.recargos || 0,
-        total,
+        importe: importeValue,
+        recargos: recargosValue,
+        total: importeValue + recargosValue,
         status: data.status,
         asignadoAutomaticamente: assignedClient.auto,
         assignmentDate: fechaInfraccion,
@@ -199,7 +224,16 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       onClose();
     } catch (error: any) {
       console.error("[Multas] Error al guardar la multa:", error);
-      const message = error?.message || error?.details || error?.hint || "Error desconocido";
+      const rawMessage = String(error?.message || error?.details || error?.hint || "");
+      const message = /recargos.*(10 veces|desproporcionad)/i.test(rawMessage)
+        ? "Los recargos son desproporcionados y no pueden superar 10 veces el importe."
+        : /fecha.*futur|future.*date/i.test(rawMessage)
+          ? "La fecha de infracción no puede ser futura."
+          : /importe.*mayor|importe.*positivo|invalid.*amount/i.test(rawMessage)
+            ? "El importe debe ser mayor a 0."
+            : /recargos.*negativ/i.test(rawMessage)
+              ? "Los recargos no pueden ser negativos."
+              : "No fue posible guardar la multa. Revisa los datos e inténtalo nuevamente.";
       toast.error("Error al guardar la multa", { description: message });
     } finally {
       setLoading(false);
@@ -321,10 +355,12 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             id="importe"
             type="number"
             step="0.01"
+            min="0.01"
             {...register("importe", {
               required: "El importe es requerido",
               valueAsNumber: true,
-              min: { value: 0, message: "Debe ser mayor a 0" },
+              validate: value =>
+                Number.isFinite(Number(value)) && Number(value) > 0 || "El importe debe ser mayor a 0",
             })}
             className={inputClass}
           />
@@ -338,9 +374,20 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             id="recargos"
             type="number"
             step="0.01"
-            {...register("recargos", { valueAsNumber: true })}
+            min="0"
+            {...register("recargos", {
+              valueAsNumber: true,
+              validate: value => {
+                const amount = Number(watch("importe") || 0);
+                const surcharge = Number(value || 0);
+                if (!Number.isFinite(surcharge) || surcharge < 0) return "Los recargos no pueden ser negativos.";
+                if (amount > 0 && surcharge > amount * 10) return "Los recargos no pueden superar 10 veces el importe.";
+                return true;
+              },
+            })}
             className={inputClass}
           />
+          {errors.recargos && <p className="text-sm text-rose-300">{errors.recargos.message}</p>}
         </div>
         <div className="space-y-2">
           <Label className={labelClass}>Total</Label>
