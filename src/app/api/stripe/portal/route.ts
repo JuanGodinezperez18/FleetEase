@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings/subscription`,
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ success: true, url: session.url });
   } catch (error) {
     console.error('Error creating portal session:', error);
     return NextResponse.json(
