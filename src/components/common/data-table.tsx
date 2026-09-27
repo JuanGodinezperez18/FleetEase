@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import { GooeyInput } from "@/components/ui/gooey-input"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { FileDown, SlidersHorizontal, Maximize2, Minimize2, Trash2, Copy, Archive, CheckCircle } from "lucide-react";
@@ -289,14 +290,14 @@ export function DataTable<TData, TValue>({
         )}
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
-            <Input
-              data-datatable-search-input="true"
+            <GooeyInput
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
-              onChange={(event) =>
-                setGlobalFilter(event.target.value)
-              }
-              className="max-w-xs w-full"
+              onValueChange={setGlobalFilter}
+              collapsedWidth={140}
+              expandedWidth={280}
+              expandedOffset={44}
+              className="w-auto"
             />
             <div className="flex items-center gap-2">
                 <Button
