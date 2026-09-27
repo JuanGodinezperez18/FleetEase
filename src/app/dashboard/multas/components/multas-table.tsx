@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Search, Trash2, CreditCard, Loader2, MoreHorizontal, ShieldAlert } from "lucide-react";
+import { Edit, Trash2, CreditCard, Loader2, MoreHorizontal, ShieldAlert } from "lucide-react";
+import { Search } from "@/components/ui/search";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -209,16 +210,13 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" strokeWidth={1.75} />
-          <Input
-            placeholder="Buscar folio, vehículo, cliente..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="border-white/10 bg-white/[0.03] pl-10 text-white"
-          />
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Search
+          placeholder="Buscar folio, vehículo, cliente..."
+          value={searchTerm}
+          onValueChange={setSearchTerm}
+          width={280}
+        />
         <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
           <SelectTrigger className="w-full border-white/10 bg-white/[0.03] text-white sm:w-[200px]">
             <SelectValue placeholder="Vehículo" />
