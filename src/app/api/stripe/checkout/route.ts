@@ -37,6 +37,14 @@ export async function POST(request: NextRequest) {
     const { data: company, error: companyError } = await supabaseAdmin.from('companies').select('id, name, email, stripe_customer_id').eq('id', userProfile.company_id).single();
     if (companyError || !company) return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404 });
 
+    // Mi Empresa es una cuenta interna no facturable. No puede iniciar una suscripción recurrente.
+    if (company.id === 'cca57015-9633-42a2-870e-72e713d8e17b') {
+      return NextResponse.json(
+        { error: 'Mi Empresa es una cuenta Enterprise interna y no requiere pagos recurrentes.' },
+        { status: 403 }
+      );
+    }
+
     let stripeCustomerId = company.stripe_customer_id as string | null;
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({ email: company.email || user.email, name: company.name, metadata: { company_id: company.id } });
