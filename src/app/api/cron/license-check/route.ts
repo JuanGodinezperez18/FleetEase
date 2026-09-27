@@ -93,19 +93,41 @@ export async function GET(request: NextRequest) {
   let notificationsSent = 0;
 
   try {
-    const { data: clients, error: fetchError } = await supabase
-      .from('clients')
-      .select('id, user_id, company_id, license_expiry')
-      .eq('is_deleted', false)
-      .not('license_expiry', 'is', null);
-
-    if (fetchError) {
-      console.error('Error fetching clients:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch clients', details: fetchError.message },
-        { status: 500 },
-      );
-    }
+    const [clientsResult, adminsResult] = await Promise.all([
+          supabase
+            .from('clients')
+            .select('id, user_id, company_id, license_expiry')
+            .eq('is_deleted', false)
+            .not('license_expiry', 'is', null),
+          supabase
+            .from('users')
+            .select('id, company_id')
+            .in('role', ['admin', 'editor']),
+        ]);
+    
+        if (clientsResult.error) {
+          console.error('Error fetching clients:', clientsResult.error);
+          return NextResponse.json(
+            { error: 'Failed to fetch clients', details: clientsResult.error.message },
+            { status: 500 },
+          );
+        }
+    
+        if (adminsResult.error) {
+          console.error('Error fetching admin users:', adminsResult.error);
+          return NextResponse.json(
+            { error: 'Failed to fetch admin users', details: adminsResult.error.message },
+            { status: 500 },
+          );
+        }
+    
+        const clients = clientsResult.data;
+        const adminIdsByCompany = new Map<string, string[]>();
+        for (const admin of adminsResult.data ?? []) {
+          const ids = adminIdsByCompany.get(admin.company_id) ?? [];
+          ids.push(admin.id);
+          adminIdsByCompany.set(admin.company_id, ids);
+        }
 
     clientsChecked = clients?.length ?? 0;
     const allNotifications: NotificationRecord[] = [];
@@ -136,7 +158,7 @@ export async function GET(request: NextRequest) {
           });
 
           // Notify admins in the same company
-          const adminIds = await getAdminUsers(client.company_id);
+          const adminIds = adminIdsByCompany.get(client.company_id) ?? [];
 
           for (const adminId of adminIds) {
             allNotifications.push({
