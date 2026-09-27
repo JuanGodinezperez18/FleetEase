@@ -14,7 +14,7 @@ const PROTECTED_ROUTES: Record<string, { feature: string; label: string }> = {
 };
 
 function normalizePath(pathname: string) {
-  const exact = pathname.replace(/\\/$/, '') || '/';
+  const exact = pathname.replace(/\/$/, '') || '/';
   return exact;
 }
 
