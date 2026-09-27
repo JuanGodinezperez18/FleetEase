@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardDateProvider } from '@/contexts/dashboard-date-context';
+import { PlanAccessGuard } from '@/components/subscription/plan-access-guard';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
@@ -20,18 +21,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSuperAdmin = currentUser?.role === 'superAdmin';
 
   useEffect(() => {
-    if (!loading && !currentUser) {
-      router.replace('/login');
-    }
+    if (!loading && !currentUser) router.replace('/login');
   }, [currentUser, loading, router]);
 
-  if (loading) {
-    return <GlobalLoader />;
-  }
-
-  if (!currentUser) {
-    return null;
-  }
+  if (loading) return <GlobalLoader />;
+  if (!currentUser) return null;
 
   return (
     <DashboardDateProvider>
@@ -39,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <ClientsProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
           <FinancesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
             <SidebarLayout>
-              {children}
+              <PlanAccessGuard>{children}</PlanAccessGuard>
             </SidebarLayout>
           </FinancesProvider>
         </ClientsProvider>
