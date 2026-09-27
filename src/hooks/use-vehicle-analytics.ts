@@ -27,18 +27,15 @@ export type VehicleMetric = {
 
 function calculateVehicleMetrics(
   vehicle: Vehicle,
-  financialRecords: FinancialRecord[],
-  assignmentLogs: VehicleAssignmentLog[],
+  recordsForVehicle: FinancialRecord[],
+  logsForVehicle: VehicleAssignmentLog[],
   hydrated: boolean,
   companyIntervals: Map<string, number>
 ): VehicleMetric {
-  const recordsForVehicle = financialRecords.filter(r => r.vehicleId === vehicle.id && !r.isDeleted);
   const totalIncome = sumRentalIncome(recordsForVehicle);
   const totalExpenses = sumExpense(recordsForVehicle);
   const netProfit = calculateNetProfit(recordsForVehicle);
   const profitMargin = calculateProfitMargin(totalIncome, totalExpenses);
-
-  const logsForVehicle = assignmentLogs.filter(log => log.vehicleId === vehicle.id);
   const acquisitionDate = infallibleNormalizeDate(vehicle.acquisitionDate);
   let totalDaysInFleet = 0;
   if (hydrated && acquisitionDate) totalDaysInFleet = differenceInDays(new Date(), acquisitionDate);
@@ -124,7 +121,31 @@ export const useVehicleAnalytics = (
 
   const vehicleMetrics = useMemo(() => {
     if (!vehicles || !financialRecords || !assignmentLogs) return [];
-    return vehicles.map(vehicle => calculateVehicleMetrics(vehicle, financialRecords, assignmentLogs, hydrated, intervalMap));
+
+    const recordsByVehicle = new Map<string, FinancialRecord[]>();
+    for (const record of financialRecords) {
+      if (!record.vehicleId || record.isDeleted) continue;
+      const records = recordsByVehicle.get(record.vehicleId);
+      if (records) records.push(record);
+      else recordsByVehicle.set(record.vehicleId, [record]);
+    }
+
+    const logsByVehicle = new Map<string, VehicleAssignmentLog[]>();
+    for (const log of assignmentLogs) {
+      const logs = logsByVehicle.get(log.vehicleId);
+      if (logs) logs.push(log);
+      else logsByVehicle.set(log.vehicleId, [log]);
+    }
+
+    return vehicles.map(vehicle =>
+      calculateVehicleMetrics(
+        vehicle,
+        recordsByVehicle.get(vehicle.id) || [],
+        logsByVehicle.get(vehicle.id) || [],
+        hydrated,
+        intervalMap
+      )
+    );
   }, [vehicles, financialRecords, assignmentLogs, hydrated, intervalMap]);
 
   return { vehicleMetrics };
