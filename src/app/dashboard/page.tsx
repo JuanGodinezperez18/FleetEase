@@ -12,6 +12,8 @@ import { QuickActions } from './components/quick-actions';
 import { DashboardConfigurator } from '@/components/dashboard/dashboard-configurator';
 import { LiveRegion, useAnnounce } from '@/components/accessibility/live-region';
 import { DEFAULT_DASHBOARD_CONFIG } from '@/types/dashboard';
+import { useSubscription } from '@/hooks/use-subscription';
+import { isFeatureEnabled } from '@/config/feature-flags';
 
 import {
   ClientListModal,
@@ -77,6 +79,9 @@ function kpiNumber(
 export default function DashboardPage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { announce, message: announcementMessage } = useAnnounce();
+  const { subscription } = useSubscription();
+  const canUseAdvancedDashboard = isFeatureEnabled(subscription?.plan ?? 'free', 'dashboard_advanced');
+  const canConfigureDashboard = isFeatureEnabled(subscription?.plan ?? 'free', 'dashboard_config');
 
   const {
     currentUser,
@@ -304,7 +309,7 @@ export default function DashboardPage() {
           <DashboardHeader
             userName={currentUser.name}
             isConfigOpen={isConfigOpen}
-            onOpenConfig={() => setIsConfigOpen(true)}
+            onOpenConfig={() => canConfigureDashboard && setIsConfigOpen(true)}
             onDateChange={handleDateChange}
             onExportPdf={handleExportPdf}
             isExportingPdf={isExportingPdf}
@@ -325,13 +330,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <KpiGrid
-              enabledWidgets={
-                enabledWidgets.length > 0
-                  ? enabledWidgets
-                  : (effectiveDashboardConfig?.widgets
-                      .filter(w => w.enabled)
-                      .sort((a, b) => a.order - b.order) ?? [])
-              }
+              enabledWidgets={(enabledWidgets.length > 0
+                ? enabledWidgets
+                : (effectiveDashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) ?? [])
+              ).filter(widget => canUseAdvancedDashboard || widget.type === 'metric')}
               kpiMap={KPI_MAP}
               allKPIs={allKPIs}
               onKpiClick={handleKpiClick}
@@ -373,7 +375,7 @@ export default function DashboardPage() {
           </section>
 
           {isConfigOpen && effectiveDashboardConfig && (
-            <DashboardConfigurator
+            {canConfigureDashboard && <DashboardConfigurator
               isOpen={isConfigOpen}
               onClose={() => setIsConfigOpen(false)}
               currentWidgets={effectiveDashboardConfig.widgets}
@@ -382,7 +384,7 @@ export default function DashboardPage() {
                 setIsConfigOpen(false);
                 announce('Configuración guardada exitosamente');
               }}
-            />
+            />}
           )}
 
           {activeModal === 'clients' && (
