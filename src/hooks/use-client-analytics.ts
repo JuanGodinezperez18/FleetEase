@@ -51,43 +51,48 @@ export const useClientAnalytics = (
       const clientRecords = recordsByClient.get(client.id) || [];
       // A security deposit is held money, not an account receivable.
       // It remains visible in the transaction history but never contributes to debt KPIs.
-      const balanceRecords = clientRecords.filter(r => r.category !== SECURITY_DEPOSIT_CATEGORY);
-      const incomeRecords = balanceRecords.filter(r => r.type === 'income');
-      const paymentRecords = balanceRecords.filter(
-        r => r.type === 'payment' || (r.type === 'expense' && r.category === DRIVER_PAYMENT_CATEGORY)
-      );
+      let totalIncome = 0;
+      let totalPayments = 0;
+      let balanceRecordCount = 0;
+      let latestRecordDate: Date | null = null;
+      let earliestPaymentDate: Date | null = null;
+      let latestPaymentDate: Date | null = null;
+      let paymentCount = 0;
 
-      const totalIncome = incomeRecords.reduce((sum, r) => sum + r.amount, 0);
-      const totalPayments = paymentRecords.reduce((sum, r) => sum + r.amount, 0);
-      const totalTransactions = clientRecords.length;
-      const canonicalBalance = calculateClientBalance(client, clientRecords);
-      const currentBalance = canonicalBalance.balance;
-      const avgTransactionValue = balanceRecords.length > 0
-        ? (totalIncome + totalPayments) / balanceRecords.length
-        : 0;
+      for (const record of clientRecords) {
+        const recordDate = infallibleNormalizeDate(record.date);
+        if (recordDate && (!latestRecordDate || recordDate.getTime() > latestRecordDate.getTime())) {
+          latestRecordDate = recordDate;
+        }
+        if (record.category === SECURITY_DEPOSIT_CATEGORY) continue;
 
-      const sortedRecordDates = clientRecords
-        .map(r => infallibleNormalizeDate(r.date))
-        .filter((d): d is Date => d !== null)
-        .sort((a, b) => b.getTime() - a.getTime());
-
-      const sortedPaymentDates = paymentRecords
-        .map(r => infallibleNormalizeDate(r.date))
-        .filter((d): d is Date => d !== null)
-        .sort((a, b) => a.getTime() - b.getTime());
-
-      let paymentFrequencyDays: number | null = null;
-      if (sortedPaymentDates.length > 1) {
-        const totalTimeSpan = differenceInDays(
-          sortedPaymentDates[sortedPaymentDates.length - 1],
-          sortedPaymentDates[0]
-        );
-        paymentFrequencyDays = totalTimeSpan > 0 ? totalTimeSpan / (sortedPaymentDates.length - 1) : 0;
+        balanceRecordCount++;
+        if (record.type === 'income') totalIncome += record.amount;
+        if (record.type === 'payment' || (record.type === 'expense' && record.category === DRIVER_PAYMENT_CATEGORY)) {
+          totalPayments += record.amount;
+          if (recordDate) {
+            paymentCount++;
+            if (!earliestPaymentDate || recordDate.getTime() < earliestPaymentDate.getTime()) earliestPaymentDate = recordDate;
+            if (!latestPaymentDate || recordDate.getTime() > latestPaymentDate.getTime()) latestPaymentDate = recordDate;
+          }
+        }
       }
 
-      const lastPaymentDate = sortedPaymentDates.length > 0 ? sortedPaymentDates[sortedPaymentDates.length - 1] : null;
+      const totalTransactions = clientRecords.length;
+      const currentBalance = (client.initialBalance || 0) + totalIncome - totalPayments;
+      const avgTransactionValue = balanceRecordCount > 0
+        ? (totalIncome + totalPayments) / balanceRecordCount
+        : 0;
+
+      let paymentFrequencyDays: number | null = null;
+      if (paymentCount > 1 && earliestPaymentDate && latestPaymentDate) {
+        const totalTimeSpan = differenceInDays(latestPaymentDate, earliestPaymentDate);
+        paymentFrequencyDays = totalTimeSpan > 0 ? totalTimeSpan / (paymentCount - 1) : 0;
+      }
+
+      const lastPaymentDate = latestPaymentDate;
       const daysSinceLastPayment = hydrated && lastPaymentDate ? differenceInDays(new Date(), lastPaymentDate) : null;
-      const lastActivityDate = sortedRecordDates.length > 0 ? sortedRecordDates[0] : null;
+      const lastActivityDate = latestRecordDate;
       const daysSinceLastActivity = hydrated && lastActivityDate ? differenceInDays(new Date(), lastActivityDate) : null;
 
       let paymentBehavior: ClientMetric['paymentBehavior'] = 'Regular';
