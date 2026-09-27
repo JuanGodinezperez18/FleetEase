@@ -13,6 +13,7 @@ export { EmptyState } from "./empty-state";
 export { Sparkline } from "./sparkline";
 export { PageTransition } from "./page-transition";
 export { GooeyInput } from "./gooey-input";
+export { Search, Seek } from "./search";
 
 // Re-export existing components with enhancements
 export * from "./card";

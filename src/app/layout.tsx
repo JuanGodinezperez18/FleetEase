@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Inter, Manrope } from 'next/font/google';
 import "./globals.css";
 import "./fleetease-ui.css";
+import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
