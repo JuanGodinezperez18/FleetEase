@@ -177,8 +177,92 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [allVehicles, allMileageLogs, allCompanies]);
   const { vehicleMetrics } = useVehicleAnalytics(allVehicles, allFinancialRecords, allVehicleAssignmentLogs);
   const { clientMetrics } = useClientAnalytics(allClients, allFinancialRecords, vehicles);
-  const clientBalances = useMemo(() => allClients.filter(client => !client.isDeleted).map(client => ({ id: client.id, balance: calculateClientBalance(client, allFinancialRecords).balance })), [allClients, allFinancialRecords]);
-  const partnerBalances = useMemo(() => { if (!allPartners?.length) return []; return allPartners.filter(p => !p.isDeleted).map(partner => { const partnerVehicles = allVehicles.filter(v => v.partnerId === partner.id && !v.isDeleted); const balance = calculatePartnerBalance(partner, partnerVehicles, allFinancialRecords); const firstName = partner.firstname || ''; const lastName = partner.lastname || ''; const fullName = `${firstName} ${lastName}`.trim(); const displayName = fullName || partner.email || 'Socio sin nombre'; return { id: partner.id, name: displayName, balance, vehicleCount: partnerVehicles.length, email: partner.email || undefined }; }); }, [allPartners, allVehicles, allFinancialRecords]);
+
+  // Indexamos los movimientos una sola vez. Las funciones financieras canónicas
+  // siguen siendo la fuente de verdad de las fórmulas; solo evitamos repetir el
+  // recorrido completo de financial_records por cada cliente.
+  const clientBalances = useMemo(() => {
+    const recordsByClient = new Map<string, DomainFinancialRecord[]>();
+    for (const record of allFinancialRecords) {
+      if (record.isDeleted || !record.clientId) continue;
+      const bucket = recordsByClient.get(record.clientId);
+      if (bucket) bucket.push(record);
+      else recordsByClient.set(record.clientId, [record]);
+    }
+
+    return allClients
+      .filter(client => !client.isDeleted)
+      .map(client => ({
+        id: client.id,
+        balance: calculateClientBalance(client, recordsByClient.get(client.id) || []).balance,
+      }));
+  }, [allClients, allFinancialRecords]);
+
+  // Un vehículo puede tener historial con más de un socio. Esto replica la
+  // semántica de getPartnerFinancialRecords sin hacer un filter() completo por
+  // socio y preserva movimientos históricos incluso después de vender el vehículo.
+  const partnerBalances = useMemo(() => {
+    if (!allPartners?.length) return [];
+
+    const vehiclePartnerIds = new Map<string, Set<string>>();
+    const addVehiclePartner = (vehicleId: string, partnerId: string) => {
+      const partnersForVehicle = vehiclePartnerIds.get(vehicleId);
+      if (partnersForVehicle) partnersForVehicle.add(partnerId);
+      else vehiclePartnerIds.set(vehicleId, new Set([partnerId]));
+    };
+
+    for (const vehicle of allVehicles) {
+      if (!vehicle.isDeleted && vehicle.partnerId) addVehiclePartner(vehicle.id, vehicle.partnerId);
+    }
+
+    // También reconstruimos las relaciones históricas que usa el cálculo
+    // canónico cuando un vehículo ya no pertenece al socio actual.
+    for (const record of allFinancialRecords) {
+      if (record.isDeleted || !record.vehicleId || !record.partnerId) continue;
+      addVehiclePartner(record.vehicleId, record.partnerId);
+    }
+
+    const recordsByPartner = new Map<string, DomainFinancialRecord[]>();
+    const appendRecord = (partnerId: string, record: DomainFinancialRecord) => {
+      const bucket = recordsByPartner.get(partnerId);
+      if (bucket) bucket.push(record);
+      else recordsByPartner.set(partnerId, [record]);
+    };
+
+    for (const record of allFinancialRecords) {
+      if (record.isDeleted) continue;
+      const partnerIds = new Set<string>();
+      if (record.partnerId) partnerIds.add(record.partnerId);
+      if (record.vehicleId) {
+        for (const partnerId of vehiclePartnerIds.get(record.vehicleId) || []) partnerIds.add(partnerId);
+      }
+      for (const partnerId of partnerIds) appendRecord(partnerId, record);
+    }
+
+    const vehicleCountByPartner = new Map<string, number>();
+    for (const vehicle of allVehicles) {
+      if (!vehicle.isDeleted && vehicle.partnerId) {
+        vehicleCountByPartner.set(vehicle.partnerId, (vehicleCountByPartner.get(vehicle.partnerId) || 0) + 1);
+      }
+    }
+
+    return allPartners
+      .filter(partner => !partner.isDeleted)
+      .map(partner => {
+        const balance = calculatePartnerBalance(partner, [], recordsByPartner.get(partner.id) || []);
+        const firstName = partner.firstname || '';
+        const lastName = partner.lastname || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        const displayName = fullName || partner.email || 'Socio sin nombre';
+        return {
+          id: partner.id,
+          name: displayName,
+          balance,
+          vehicleCount: vehicleCountByPartner.get(partner.id) || 0,
+          email: partner.email || undefined,
+        };
+      });
+  }, [allPartners, allVehicles, allFinancialRecords]);
   const rawCompanies = useMemo(() => isSuperAdmin ? allCompanies : allCompanies.filter(c => c.id === currentUser?.companyId), [allCompanies, isSuperAdmin, currentUser]);
   const loadingData = useMemo(() => authLoading || loadingClients || loadingVehicles || loadingFinancialRecords || loadingCategories, [authLoading, loadingClients, loadingVehicles, loadingFinancialRecords, loadingCategories]);
   const refreshData = useCallback(async () => { await queryClient.invalidateQueries(); }, [queryClient]);
