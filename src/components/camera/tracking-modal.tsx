@@ -15,6 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { CameraCapture } from './camera-capture';
 import { MapPin, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { compressImageIfNeeded } from '@/lib/image-compression';
+import { supabase } from '@/lib/supabase';
 
 interface TrackingModalProps {
   open: boolean;
@@ -54,7 +56,6 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
           longitude: position.coords.longitude,
         });
         setLoadingLocation(false);
-        console.log('📍 Ubicación obtenida:', position.coords);
       },
       (error) => {
         console.warn('No se pudo obtener la ubicación:', error);
@@ -83,10 +84,29 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
     setUploading(true);
 
     try {
+      // Compresión obligatoria antes de subir (fotos de cámara suelen ser 3–8+ MB)
+      const compressed =
+        (await compressImageIfNeeded(capturedPhoto, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        })) ?? capturedPhoto;
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        throw new Error('No autenticado. Inicia sesión de nuevo.');
+      }
+
       const formData = new FormData();
-      formData.append('photo', capturedPhoto);
+      // La API espera `file` (no `photo`) y `notes` (no `description`)
+      formData.append('file', compressed, compressed.name || `seguimiento_${Date.now()}.jpg`);
       formData.append('vehicleId', vehicleId);
-      formData.append('description', description);
+      if (description.trim()) {
+        formData.append('notes', description.trim());
+      }
 
       if (location) {
         formData.append('latitude', location.latitude.toString());
@@ -95,6 +115,9 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
 
       const response = await fetch('/api/seguimiento/upload-foto', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
@@ -104,18 +127,16 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
         throw new Error(data.error || 'Error al subir la foto');
       }
 
-      console.log('✅ Foto subida exitosamente:', data);
-
       toast.success('Seguimiento registrado', {
         description: 'La foto se subió correctamente y fue registrada en el sistema.',
       });
 
       resetModal();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al subir foto:', error);
       toast.error('Error al subir la foto', {
-        description: error.message || 'Intenta nuevamente',
+        description: error instanceof Error ? error.message : 'Intenta nuevamente',
       });
     } finally {
       setUploading(false);
@@ -148,14 +169,12 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
           <CameraCapture onPhotoCapture={handlePhotoCapture} onCancel={handleCancel} />
         ) : (
           <div className="space-y-4">
-            {/* Preview de la foto */}
             {photoPreview && (
               <div className="rounded-lg overflow-hidden border">
                 <img src={photoPreview} alt="Preview" className="w-full h-auto max-h-64 object-contain" />
               </div>
             )}
 
-            {/* Campo de descripción */}
             <div className="space-y-2">
               <Label htmlFor="description">Descripción (opcional)</Label>
               <Textarea
@@ -168,7 +187,6 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
               />
             </div>
 
-            {/* Ubicación */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
               {loadingLocation ? (
@@ -182,7 +200,6 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
               )}
             </div>
 
-            {/* Botones de acción */}
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setStep('camera')} className="flex-1" disabled={uploading}>
                 Volver a Capturar
