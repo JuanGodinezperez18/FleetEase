@@ -1,0 +1,159 @@
+/* Bencho Search (Seek) — MIT, https://bencho.dev/?c=seek
+   Tokens mapped to FleetEase / shadcn theme variables on .sek root.
+   Nothing leaks as globals. */
+
+.sek {
+  /* Bencho tokens → project theme */
+  --bg: hsl(var(--background));
+  --font-ui: inherit;
+  --g-blur: 8px;
+  --g-sat: 140%;
+  --ink: hsl(var(--foreground));
+  --ink-2: hsl(var(--foreground) / 0.85);
+  --ink-3: hsl(var(--muted-foreground));
+  --ink-4: hsl(var(--muted-foreground) / 0.85);
+  --ink-5: hsl(var(--muted-foreground) / 0.55);
+  /* Approximate ink-rgb from typical light/dark foregrounds */
+  --ink-rgb: 10, 12, 18;
+  --pane: hsl(var(--card));
+  --pane-edge: hsl(var(--border));
+
+  width: var(--frame, 306px);
+  height: var(--frameh, 48px);
+  font-family: var(--font-ui);
+  place-items: center;
+  display: grid;
+  position: relative;
+}
+
+.dark .sek {
+  --ink-rgb: 248, 250, 252;
+  --pane: hsl(var(--secondary));
+  --g-blur: 12px;
+}
+
+.sek-skin {
+  width: var(--w);
+  height: var(--shut);
+  border-radius: var(--sek-r, 999px);
+  background: var(--pane);
+  backdrop-filter: blur(var(--g-blur, 2px)) saturate(var(--g-sat, 150%))
+    brightness(var(--g-bright, 100%));
+  isolation: isolate;
+  transform: translate(var(--lx), var(--ly)) scale(var(--sk, 1));
+  transition: transform 0.26s cubic-bezier(0.22, 0.9, 0.28, 1),
+    background 0.22s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--pane-edge),
+    0 1px 2px hsl(var(--foreground) / 0.04);
+}
+
+.sek-skin::before {
+  content: "";
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  border: 1px solid transparent;
+  position: absolute;
+  inset: 0;
+}
+
+.sek:not([data-open="true"]) .sek-skin:hover {
+  --sk: 1.045;
+  --g-bright: 104%;
+}
+
+.sek[data-press="true"] .sek-skin {
+  --sk: 0.93;
+  transition: transform 90ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.sek[data-open="true"] .sek-skin {
+  cursor: text;
+}
+
+.sek-lens {
+  left: var(--inset);
+  width: var(--lens);
+  height: var(--lens);
+  margin-top: calc(var(--lens) / -2);
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  pointer-events: none;
+  transition: stroke 0.2s, stroke-width 0.2s;
+  position: absolute;
+  top: 50%;
+}
+
+.sek-skin:hover .sek-lens {
+  stroke: var(--ink);
+}
+
+.sek[data-open="true"] .sek-lens {
+  stroke: var(--ink-4);
+}
+
+.sek[data-busy="true"] .sek-lens {
+  stroke: var(--ink-2);
+  stroke-width: 1.8px;
+}
+
+.sek-field {
+  left: calc(var(--inset) + var(--lens) + 11px);
+  height: 100%;
+  font: inherit;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  opacity: var(--say);
+  transform: translateX(calc((1 - var(--say)) * -6px));
+  pointer-events: var(--say-hit, none);
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 14px;
+  position: absolute;
+  top: 0;
+  right: 14px;
+}
+
+.sek[data-open="true"] .sek-field {
+  --say-hit: auto;
+}
+
+.sek-field::placeholder {
+  color: var(--ink-5);
+}
+
+.sek-field::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.sek-hit {
+  border-radius: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  position: absolute;
+  inset: 0;
+}
+
+.sek-hit:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(var(--ink-rgb), 0.4);
+  outline: none;
+}
+
+.sek-hit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sek-skin,
+  .sek-lens,
+  .sek-field {
+    transition-duration: 1ms;
+  }
+}
