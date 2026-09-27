@@ -32,20 +32,6 @@ async function verifyAuth(request: NextRequest): Promise<boolean> {
   return authHeader === expected;
 }
 
-async function getAdminUsers(companyId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('company_id', companyId)
-    .in('role', ['admin', 'editor']);
-
-  if (error) {
-    console.error('Error fetching admin users:', error);
-    return [];
-  }
-
-  return data?.map((u) => u.id) ?? [];
-}
 
 async function insertNotificationsBatched(
   notifications: NotificationRecord[],
