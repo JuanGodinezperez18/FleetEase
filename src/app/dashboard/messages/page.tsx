@@ -4,12 +4,10 @@ import React, { useMemo } from 'react';
 import { useData } from '@/hooks/use-data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Send, Users, Briefcase } from 'lucide-react';
-import { useClientAnalytics } from '@/hooks/use-client-analytics';
 import { MessageSender } from './components/message-sender';
 
 export default function MessagesPage() {
-  const { clients, partners, vehicles, companies, users } = useData();
-  const { clientMetrics } = useClientAnalytics(clients, [], vehicles);
+  const { clients, partners, vehicles, companies, users, clientMetrics } = useData();
 
   const clientOptions = useMemo(() =>
     clients.filter(c => !c.isDeleted && c.status === 'active').map(c => ({
