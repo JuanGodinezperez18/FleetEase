@@ -1,8 +1,7 @@
 /**
  * Catálogo comercial de FleetEase.
- * El catálogo de producción debe mantenerse sincronizado con los Price IDs de Stripe.
- * Este archivo describe capacidades que hoy existen en el producto.
- * Las capacidades en comingSoon no deben presentarse como incluidas todavía.
+ * Debe mantenerse sincronizado con los Price IDs de Stripe.
+ * Este archivo describe capacidades que hoy existen; comingSoon no se considera acceso.
  */
 export type PlanType = 'free' | 'starter' | 'pro' | 'enterprise';
 export interface PlanConfig {
@@ -11,6 +10,7 @@ export interface PlanConfig {
   requiresPaymentMethod?: boolean; description: string; features: string[];
   comingSoon?: string[]; popular?: boolean;
 }
+
 const starterFeatures = [
   'Gestión de vehículos y asignaciones','Clientes y expediente digital','Socios y control de unidades',
   'Ingresos, gastos y pagos','Saldos y cobranza de clientes','Créditos y calendario de pagos',
@@ -20,6 +20,7 @@ const starterFeatures = [
   'Cuentas por pagar y compras a proveedores','Dashboard operativo y flujo de efectivo',
   'Notificaciones dentro de FleetEase','Exportaciones de datos','Soporte por email',
 ];
+
 const proFeatures = [
   'Todo lo incluido en Starter','Dashboard avanzado y configurable','Rentabilidad por vehículo',
   'Análisis financiero y tendencias','Client Score y análisis de comportamiento',
@@ -27,20 +28,33 @@ const proFeatures = [
   'Reportes configurables','Exportación PDF y Excel','Historial de reportes generados',
   'Auditoría y trazabilidad de operaciones','Operaciones masivas disponibles actualmente','Hasta 3 usuarios','Soporte prioritario',
 ];
+
 export const plans: Record<PlanType, PlanConfig> = {
-  free: { id:'free', name:'Free', price:0, currency:'MXN', period:'14 días', maxVehicles:2, maxUsers:1, trialDays:14, requiresPaymentMethod:false,
-    description:'Prueba FleetEase durante 14 días sin tarjeta', features:['14 días gratis','Hasta 2 vehículos','1 usuario','Acceso de prueba a las funciones de Starter','Sin tarjeta de crédito'] },
-  starter: { id:'starter', name:'Starter', price:299, currency:'MXN', period:'mes', maxVehicles:5, maxUsers:1, requiresPaymentMethod:true,
+  free: {
+    id:'free', name:'Free', price:0, currency:'MXN', period:'14 días', maxVehicles:2, maxUsers:1, trialDays:14, requiresPaymentMethod:false,
+    description:'Prueba FleetEase durante 14 días sin tarjeta',
+    // Free es una prueba de Starter: no incluye ninguna capacidad Pro/Enterprise.
+    features:['14 días gratis','Hasta 2 vehículos','1 usuario','Acceso de prueba a las funciones de Starter','Sin tarjeta de crédito'],
+  },
+  starter: {
+    id:'starter', name:'Starter', price:299, currency:'MXN', period:'mes', maxVehicles:5, maxUsers:1, requiresPaymentMethod:true,
     description:'Control operativo y financiero para flotillas pequeñas', features:starterFeatures,
-    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp'] },
-  pro: { id:'pro', name:'Pro', price:699, currency:'MXN', period:'mes', maxVehicles:15, maxUsers:3, requiresPaymentMethod:true,
+    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp'],
+  },
+  pro: {
+    id:'pro', name:'Pro', price:699, currency:'MXN', period:'mes', maxVehicles:15, maxUsers:3, requiresPaymentMethod:true,
     description:'Rentabilidad, análisis y control avanzado para operaciones en crecimiento', features:proFeatures,
-    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp para administradores, socios y clientes','Automatizaciones operativas avanzadas'], popular:true },
-  enterprise: { id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:50, maxUsers:10, requiresPaymentMethod:true,
+    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp para administradores, socios y clientes','Automatizaciones operativas avanzadas'], popular:true,
+  },
+  enterprise: {
+    id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:50, maxUsers:10, requiresPaymentMethod:true,
     description:'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
     features:['Todo lo incluido en Pro','Hasta 50 vehículos','Hasta 10 usuarios','Soporte y acompañamiento empresarial'],
-    comingSoon:['API de integración y webhooks','Multiempresa','Personalización de marca (white-label)','Reportes personalizados','Integraciones GPS multi-proveedor'] },
+    // No se anuncian como disponibles hasta que exista implementación real.
+    comingSoon:['API de integración y webhooks','Multiempresa','Personalización de marca (white-label)','Reportes personalizados','Integraciones GPS multi-proveedor'],
+  },
 };
+
 export function getPlanConfig(planId: PlanType): PlanConfig { return plans[planId]; }
 export function hasVehicleLimit(planId: PlanType): boolean { return plans[planId].maxVehicles !== -1; }
 export function hasUserLimit(planId: PlanType): boolean { return plans[planId].maxUsers !== -1; }
