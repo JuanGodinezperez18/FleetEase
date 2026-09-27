@@ -12,6 +12,7 @@ export { AnimatedToast } from "./animated-toast";
 export { EmptyState } from "./empty-state";
 export { Sparkline } from "./sparkline";
 export { PageTransition } from "./page-transition";
+export { GooeyInput } from "./gooey-input";
 
 // Re-export existing components with enhancements
 export * from "./card";
