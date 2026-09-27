@@ -93,20 +93,42 @@ export async function GET(request: NextRequest) {
   let notificationsSent = 0;
 
   try {
-    const { data: vehicles, error: fetchError } = await supabase
-      .from('vehicles')
-      .select('id, plate, company_id, partner_id, insurance_expiry_date')
-      .eq('is_deleted', false)
-      .eq('sold', false)
-      .not('insurance_expiry_date', 'is', null);
-
-    if (fetchError) {
-      console.error('Error fetching vehicles:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch vehicles', details: fetchError.message },
-        { status: 500 },
-      );
-    }
+    const [vehiclesResult, adminsResult] = await Promise.all([
+          supabase
+            .from('vehicles')
+            .select('id, plate, company_id, partner_id, insurance_expiry_date')
+            .eq('is_deleted', false)
+            .eq('sold', false)
+            .not('insurance_expiry_date', 'is', null),
+          supabase
+            .from('users')
+            .select('id, company_id')
+            .in('role', ['admin', 'editor']),
+        ]);
+    
+        if (vehiclesResult.error) {
+          console.error('Error fetching vehicles:', vehiclesResult.error);
+          return NextResponse.json(
+            { error: 'Failed to fetch vehicles', details: vehiclesResult.error.message },
+            { status: 500 },
+          );
+        }
+    
+        if (adminsResult.error) {
+          console.error('Error fetching admin users:', adminsResult.error);
+          return NextResponse.json(
+            { error: 'Failed to fetch admin users', details: adminsResult.error.message },
+            { status: 500 },
+          );
+        }
+    
+        const vehicles = vehiclesResult.data;
+        const adminIdsByCompany = new Map<string, string[]>();
+        for (const admin of adminsResult.data ?? []) {
+          const ids = adminIdsByCompany.get(admin.company_id) ?? [];
+          ids.push(admin.id);
+          adminIdsByCompany.set(admin.company_id, ids);
+        }
 
     vehiclesChecked = vehicles?.length ?? 0;
     const allNotifications: NotificationRecord[] = [];
@@ -120,7 +142,7 @@ export async function GET(request: NextRequest) {
         );
 
         if (daysUntilExpiry === INSURANCE_WARNING_DAYS) {
-          const adminIds = await getAdminUsers(vehicle.company_id);
+          const adminIds = adminIdsByCompany.get(vehicle.company_id) ?? [];
 
           for (const adminId of adminIds) {
             allNotifications.push({
