@@ -374,8 +374,7 @@ export default function DashboardPage() {
             />
           </section>
 
-          {isConfigOpen && effectiveDashboardConfig && (
-            {canConfigureDashboard && <DashboardConfigurator
+          {isConfigOpen && effectiveDashboardConfig && canConfigureDashboard && (\n            <DashboardConfigurator
               isOpen={isConfigOpen}
               onClose={() => setIsConfigOpen(false)}
               currentWidgets={effectiveDashboardConfig.widgets}
@@ -384,8 +383,7 @@ export default function DashboardPage() {
                 setIsConfigOpen(false);
                 announce('Configuración guardada exitosamente');
               }}
-            />}
-          )}
+            />\n          )}
 
           {activeModal === 'clients' && (
             <ClientListModal
