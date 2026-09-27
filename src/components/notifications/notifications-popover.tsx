@@ -54,13 +54,16 @@ export function NotificationsPopover({ children }: NotificationsPopoverProps) {
 
   const markAllAsRead = async () => {
     try {
-      const unreadNotifications = userNotifications.filter(n => !n.isRead);
-      const results = await Promise.all(
-        unreadNotifications.map(n => supabase.from('notifications').update({ is_read: true }).eq('id', n.id))
-      );
-      const firstError = results.find(result => result.error)?.error;
-      if (firstError) throw firstError;
-      toast.success('Todas las notificaciones marcadas como le\u00eddas');
+      const unreadIds = userNotifications.filter(n => !n.isRead).map(n => n.id);
+      if (unreadIds.length === 0 || !currentUser?.uid) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds)
+        .eq('uid', currentUser.uid);
+
+      if (error) throw error;
     } catch {
       toast.error('Error al marcar notificaciones');
     }
