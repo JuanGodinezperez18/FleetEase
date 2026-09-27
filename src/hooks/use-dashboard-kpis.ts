@@ -2,8 +2,6 @@
 import { useMemo } from 'react';
 import type { MetricKPIData } from '@/types/dashboard';
 import { useFinancialAnalytics } from './use-financial-analytics';
-import { useClientAnalytics } from './use-client-analytics';
-import { useVehicleAnalytics } from './use-vehicle-analytics';
 import { useNotificationsAnalytics } from './use-notifications-analytics';
 import { useData } from './use-data';
 import { useMileageAnalytics } from './use-mileage-analytics';
@@ -34,12 +32,12 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     partnerBalances: partnerBalancesFromData = [],
     multas = [],
     financialCategories = [],
-    companies = []
+    companies = [],
+    clientMetrics = [],
+    vehicleMetrics = []
   } = dataContext || {};
 
   const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, partners, dateRange, financialCategories);
-  const { clientMetrics = [] } = useClientAnalytics(clients, financialRecords, vehicles) || {};
-  const { vehicleMetrics = [] } = useVehicleAnalytics(vehicles, financialRecords, vehicleAssignmentLogs) || {};
   
   const { analyzedNotifications = [] } = useNotificationsAnalytics(
     notifications,
