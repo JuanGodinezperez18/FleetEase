@@ -6,6 +6,7 @@
  *   2. supabase/migrations/002_*.sql        (plans, user_invitations, plan_limit_logs)
  *   3. supabase/migrations/001_*.sql        (RLS corregido)
  *   4. supabase/migrations/003_*.sql        (storage buckets + policies)
+ *   5. supabase/migrations/20260927100000_*.sql (validación de multas)
  *
  * Uso:
  *   node scripts/build-setup-sql.js
@@ -24,6 +25,7 @@ const parts = [
   path.join('supabase', 'migrations', '002_create_missing_tables.sql'),
   path.join('supabase', 'migrations', '001_enable_rls_policies.sql'),
   path.join('supabase', 'migrations', '003_storage_buckets_policies.sql'),
+  path.join('supabase', 'migrations', '20260927100000_harden_multa_amount_validation.sql'),
 ];
 
 const header = `-- =====================================================
