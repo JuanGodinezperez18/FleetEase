@@ -94,9 +94,9 @@ const FormLabel = React.forwardRef<
     <Label
       ref={ref}
       className={cn(
-        "text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70 transition-colors",
+        "text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--fe-text-secondary)] transition-colors",
         "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        error && "text-destructive",
+        error && "text-[var(--fe-danger)]",
         className
       )}
       htmlFor={formItemId}
@@ -138,7 +138,7 @@ const FormDescription = React.forwardRef<
     <p
       ref={ref}
       id={formDescriptionId}
-      className={cn("text-xs leading-5 text-white/45", className)}
+      className={cn("text-xs leading-5 text-[var(--fe-text-muted)]", className)}
       {...props}
     />
   )
@@ -160,7 +160,7 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-xs font-medium leading-5 text-destructive", className)}
+      className={cn("text-xs font-medium leading-5 text-[var(--fe-danger)]", className)}
       {...props}
     >
       {body}
