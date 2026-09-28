@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
+import { Skeleton } from "@/components/ui/skeleton";\n\nimport React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, Trash2 } from 'lucide-react';
 import { useData } from '@/hooks/use-data';
@@ -331,10 +331,10 @@ export default function ClientsPage() {
         <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+            <Skeleton key={i} className="h-32 rounded-[20px]" />
           ))}
         </div>
-        <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
+        <Skeleton className="h-64 rounded-[20px]" />
       </div>
     );
   }
