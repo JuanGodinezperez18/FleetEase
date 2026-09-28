@@ -75,9 +75,6 @@ function validateVehicleMutation(data: Partial<DomainVehicle>, existingCurrentMi
     if (!String(data.insuranceExpiryDate ?? '').trim()) {
       throw new Error('La fecha de vencimiento de la póliza de seguro es requerida.');
     }
-    if (!String(data.insurancePolicyDocumentUrl ?? '').trim()) {
-      throw new Error('El documento de la póliza de seguro es requerido.');
-    }
   }
 
   if (data.color !== undefined && !String(data.color ?? '').trim()) {
