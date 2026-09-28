@@ -44,6 +44,14 @@
   --fe-warning: #f59e0b;
   --fe-danger: #f87171;
   --fe-info: #60a5fa;
+  /* Shared interaction/layout tokens: consume these before adding local values. */
+  --fe-control-height: 44px;
+  --fe-control-height-sm: 36px;
+  --fe-focus-ring: rgba(215, 255, 63, 0.3);
+  --fe-card-padding: 24px;
+  --fe-motion-fast: 160ms;
+  --fe-motion-base: 240ms;
+  --fe-motion-slow: 360ms;
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
