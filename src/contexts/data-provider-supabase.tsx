@@ -304,12 +304,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (fetchError) throw fetchError;
 
         const mergedForValidation: Partial<DomainVehicle> = {
-          ...existing && {
-            currentMileage: Number(existing.current_mileage ?? 0),
-            insurancePolicyNumber: existing.insurance_policy_number,
-            insuranceExpiryDate: existing.insurance_expiry_date,
-            insurancePolicyDocumentUrl: existing.insurance_policy_document_url,
-          },
+          currentMileage: Number(existing.current_mileage ?? 0),
+          insurancePolicyNumber: existing.insurance_policy_number,
+          insuranceExpiryDate: existing.insurance_expiry_date,
+          insurancePolicyDocumentUrl: existing.insurance_policy_document_url,
           ...data,
         };
 
