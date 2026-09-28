@@ -69,10 +69,35 @@ export const useMileageAnalytics = (
         .map(company => [company.id, company.maintenanceInterval as number])
     );
 
+    const logsByVehicle = new Map<string, MileageLog[]>();
+    for (const log of mileageLogs) {
+      if (log.isDeleted || !log.vehicleId) continue;
+      const existing = logsByVehicle.get(log.vehicleId);
+      if (existing) existing.push(log);
+      else logsByVehicle.set(log.vehicleId, [log]);
+    }
+    logsByVehicle.forEach(logs => {
+      logs.sort(
+        (a, b) =>
+          (infallibleNormalizeDate(a.date)?.getTime() || 0) -
+          (infallibleNormalizeDate(b.date)?.getTime() || 0)
+      );
+    });
+
+    const maintenanceRecordsByVehicle = new Map<string, FinancialRecord[]>();
+    for (const record of financialRecords) {
+      if (
+        record.isDeleted ||
+        record.category !== MAINTENANCE_CATEGORY ||
+        !record.vehicleId
+      ) continue;
+      const existing = maintenanceRecordsByVehicle.get(record.vehicleId);
+      if (existing) existing.push(record);
+      else maintenanceRecordsByVehicle.set(record.vehicleId, [record]);
+    }
+
     return vehicles.map(vehicle => {
-      const logsForVehicle = mileageLogs
-        .filter(log => log.vehicleId === vehicle.id && !log.isDeleted)
-        .sort((a, b) => (infallibleNormalizeDate(a.date)?.getTime() || 0) - (infallibleNormalizeDate(b.date)?.getTime() || 0));
+      const logsForVehicle = logsByVehicle.get(vehicle.id) || [];
 
       // El registro de kilometraje es la fuente operativa de verdad.
       // El trigger de Supabase sincroniza vehicles.current_mileage con el máximo
@@ -127,9 +152,7 @@ export const useMileageAnalytics = (
         ? addDays(new Date(), Math.max(0, kmToNextMaintenance / dailyAverageKm))
         : null;
 
-      const maintenanceRecords = financialRecords.filter(
-        r => r.vehicleId === vehicle.id && r.category === MAINTENANCE_CATEGORY && !r.isDeleted
-      );
+      const maintenanceRecords = maintenanceRecordsByVehicle.get(vehicle.id) || [];
       const totalMaintenanceCosts = maintenanceRecords.reduce((sum, r) => sum + r.amount, 0);
       const costPerKm = currentMileage > 0 ? totalMaintenanceCosts / currentMileage : 0;
       const maintenanceScore = maintenanceInterval > 0
