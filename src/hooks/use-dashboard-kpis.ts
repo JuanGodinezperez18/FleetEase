@@ -289,10 +289,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       'maintenance-overdue': {
         value: maintenanceDue,
         details: vehicles.filter(v => {
-          const metric = mileageMetrics.find(m => m.vehicleId === v.id);
+          const metric = mileageMetricsByVehicleId.get(v.id);
           return metric && metric.kmToNextMaintenance <= 0;
         }).map(v => {
-          const metric = mileageMetrics.find(m => m.vehicleId === v.id);
+          const metric = mileageMetricsByVehicleId.get(v.id);
           return {
             ...v,
             currentMileage: metric?.currentMileage,
@@ -307,10 +307,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       'maintenance-soon': {
         value: maintenanceSoon,
         details: vehicles.filter(v => {
-          const metric = mileageMetrics.find(m => m.vehicleId === v.id);
+          const metric = mileageMetricsByVehicleId.get(v.id);
           return metric && metric.kmToNextMaintenance > 0 && metric.kmToNextMaintenance <= 1500;
         }).map(v => {
-          const metric = mileageMetrics.find(m => m.vehicleId === v.id);
+          const metric = mileageMetricsByVehicleId.get(v.id);
           return {
             ...v,
             currentMileage: metric?.currentMileage,
