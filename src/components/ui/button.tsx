@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[var(--fe-lime)] text-[var(--fe-ink)] font-semibold hover:brightness-95 shadow-[0_0_0_1px_rgba(215,255,63,0.15)]",
+          "bg-[var(--fe-lime)] text-[var(--fe-ink)] font-semibold hover:brightness-95 shadow-[0_0_0_1px_var(--fe-focus-ring)]",
         destructive:
           "bg-[var(--fe-danger)]/15 text-[var(--fe-danger)] border border-[var(--fe-danger)]/20 hover:bg-[var(--fe-danger)]/25",
         outline:
@@ -20,7 +20,7 @@ const buttonVariants = cva(
         ghost:
           "text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
         link:
-          "text-[var(--fe-lime-text)] underline-offset-4 hover:underline",
+          "text-[var(--fe-link)] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-4 py-2",
