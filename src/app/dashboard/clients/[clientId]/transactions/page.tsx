@@ -82,17 +82,21 @@ export default function ClientTransactionsPage() {
         categoryMap.get(fr.categoryId || '') !== SECURITY_DEPOSIT_CATEGORY
     );
 
-    const totalCharges = recordsForBalance
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    let totalCharges = 0;
+    let totalPayments = 0;
 
-    const totalPayments = recordsForBalance
-      .filter(
-        t =>
-          t.type === 'payment' ||
-          categoryMap.get(t.categoryId || '') === DRIVER_PAYMENT_CATEGORY
-      )
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    for (const record of recordsForBalance) {
+      const amount = record.amount || 0;
+      if (record.type === 'income') {
+        totalCharges += amount;
+      }
+      if (
+        record.type === 'payment' ||
+        categoryMap.get(record.categoryId || '') === DRIVER_PAYMENT_CATEGORY
+      ) {
+        totalPayments += amount;
+      }
+    }
 
     return {
       initialBalance: client.initialBalance || 0,
