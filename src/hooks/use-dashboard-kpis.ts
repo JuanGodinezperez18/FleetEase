@@ -69,6 +69,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const incomeRecords = filteredFinancialRecords.filter(r => r.type === 'income');
     const expenseRecords = filteredFinancialRecords.filter(r => r.type === 'expense');
 
+    const clientsById = new Map(clients.map(client => [client.id, client]));
+    const creditsById = new Map(credits.map(credit => [credit.id, credit]));
+    const mileageMetricsByVehicleId = new Map(mileageMetrics.map(metric => [metric.vehicleId, metric]));
+
     const clientBalances = clientMetrics.map(cm => ({
       clientId: cm.clientId,
       balance: cm.currentBalance || 0
@@ -81,7 +85,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const totalActiveClients = clients.filter(c => c.status === 'active' && !c.isDeleted).length;
 
     const enrichedClientMetrics = clientMetrics.map(metric => {
-      const client = clients.find(c => c.id === metric.clientId);
+      const client = clientsById.get(metric.clientId);
       if (!client) return null;
 
       return {
@@ -119,7 +123,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const recoveryRate = totalLent > 0 ? ((totalLent - totalRemaining) / totalLent) * 100 : 0;
 
     const activeCreditDetails = activeCredits.map(credit => {
-      const client = clients.find(c => c.id === credit.clientId);
+      const client = clientsById.get(credit.clientId);
       const clientName = client ? `${client.firstname} ${client.lastname}`.trim() : 'Cliente Desconocido';
 
       return {
@@ -138,8 +142,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const overdueCreditDetails = creditMetrics
       .filter(cm => cm.paymentBehavior === 'Retraso Severo')
       .map(metric => {
-        const credit = credits.find(c => c.id === metric.creditId);
-        const client = clients.find(c => c.id === metric.clientId);
+        const credit = creditsById.get(metric.creditId);
+        const client = clientsById.get(metric.clientId);
         const clientName = client ? `${client.firstname} ${client.lastname}`.trim() : 'Cliente Desconocido';
 
         return {
@@ -197,7 +201,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       'vehicles-available': {
         value: availableVehicles,
         details: availableVehiclesData.map(v => {
-          const metric = mileageMetrics.find(m => m.vehicleId === v.id);
+          const metric = mileageMetricsByVehicleId.get(v.id);
           return { ...v, currentMileage: metric?.currentMileage, nextMaintenanceAt: metric?.nextMaintenanceDue };
         }),
         loading: false
