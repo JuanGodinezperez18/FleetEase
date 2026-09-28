@@ -49,11 +49,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const CompanyComparisonDashboard = () => {
-  const { companies, financialRecords, clients, vehicles, partners } = useData();
+  const { companies, financialRecords } = useData();
   const analyticsByCompany = useMemo(() => {
+    const recordsByCompany = new Map<string, typeof financialRecords>();
+    for (const record of financialRecords) {
+      if (record.isDeleted || !record.companyId) continue;
+      const records = recordsByCompany.get(record.companyId);
+      if (records) records.push(record);
+      else recordsByCompany.set(record.companyId, [record]);
+    }
+
     return companies
       .map(company => {
-        const companyRecords = financialRecords.filter(r => r.companyId === company.id && !r.isDeleted);
+        const companyRecords = recordsByCompany.get(company.id) ?? [];
         const totalIncome = sumRentalIncome(companyRecords);
         const beneficio = calculateNetProfit(companyRecords);
         const totalExpenses = totalIncome - beneficio;
@@ -65,7 +73,7 @@ const CompanyComparisonDashboard = () => {
         };
       })
       .sort((a, b) => b.beneficio - a.beneficio);
-  }, [companies, financialRecords, clients, vehicles, partners]);
+  }, [companies, financialRecords]);
 
   const chartKey = analyticsByCompany.map(d => `${d.ingresos}-${d.gastos}`).join('|');
 
