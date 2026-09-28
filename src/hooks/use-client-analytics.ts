@@ -103,7 +103,7 @@ export const useClientAnalytics = (
         else paymentBehavior = 'Crítico';
       } else if (currentBalance <= 0) {
         paymentBehavior = 'Excelente';
-      } else if (balanceRecords.length > 0) {
+      } else if (balanceRecordCount > 0) {
         paymentBehavior = 'Malo';
       }
 
