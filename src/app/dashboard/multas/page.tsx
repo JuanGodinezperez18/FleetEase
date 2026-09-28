@@ -124,21 +124,21 @@ export default function MultasPage() {
 
   if (loadingData) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
-        <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
+      <div className="fe-page-shell min-h-[40vh] items-center justify-center fe-text-muted">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--fe-lime)]" strokeWidth={1.75} />
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="fe-page-shell space-y-5 sm:space-y-6">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
               Operación
             </div>
             <h1 className="fe-module-title">
@@ -147,7 +147,7 @@ export default function MultasPage() {
             <p className="fe-module-subtitle">Infracciones de tránsito de la flota</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[color:var(--fe-lime)]/15 bg-[color:var(--fe-lime)]/[0.08] text-[var(--fe-lime)]">
               <ShieldAlert className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <Button
@@ -155,7 +155,7 @@ export default function MultasPage() {
                 setSelectedMulta(null);
                 setIsFormOpen(true);
               }}
-              className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-11 rounded-xl px-4 text-xs font-semibold"
             >
               <Plus className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Registrar multa
@@ -192,10 +192,10 @@ export default function MultasPage() {
           />
         </div>
 
-        <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-          <div className="border-b border-white/[0.06] px-5 py-4">
-            <h2 className="font-heading text-base font-semibold text-white">Lista de multas</h2>
-            <p className="mt-0.5 text-xs text-white/40">{multasWithDetails.length} registro{multasWithDetails.length !== 1 ? "s" : ""}</p>
+        <section className="overflow-hidden fe-panel-bg rounded-[14px] shadow-[0_18px_50px_rgba(0,0,0,.16)]">
+          <div className="border-b border-[color:var(--fe-border)] px-5 py-4">
+            <h2 className="font-heading text-base font-semibold fe-text">Lista de multas</h2>
+            <p className="mt-0.5 text-xs fe-text-muted">{multasWithDetails.length} registro{multasWithDetails.length !== 1 ? "s" : ""}</p>
           </div>
           <div className="p-4 sm:p-5">
             <MultasTable multas={multasWithDetails} onEdit={handleEdit} />
@@ -210,12 +210,12 @@ export default function MultasPage() {
           else setIsFormOpen(true);
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-white/10 bg-[#0e1117] text-white">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-[color:var(--fe-border)] bg-[var(--fe-panel)] fe-text">
           <DialogHeader>
             <DialogTitle className="font-heading text-white">
               {selectedMulta ? "Editar multa" : "Registrar multa"}
             </DialogTitle>
-            <DialogDescription className="text-white/40">
+            <DialogDescription className="fe-text-muted">
               {selectedMulta
                 ? "Actualiza la información de la infracción"
                 : "Registra una multa y asígnala al cliente responsable"}
