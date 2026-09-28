@@ -1,6 +1,8 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";\n\nimport React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
+import { Skeleton } from "@/components/ui/skeleton";
+
+import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, Trash2 } from 'lucide-react';
 import { useData } from '@/hooks/use-data';
