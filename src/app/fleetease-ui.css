@@ -31,6 +31,9 @@
   --fe-hover: rgba(255, 255, 255, 0.06);
   --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
+  --fe-menu-bg: var(--fe-dark-surface);
+  --fe-menu-text: #ffffff;
+  --fe-menu-border: var(--fe-dark-border);
   --fe-scrollbar: rgba(255, 255, 255, 0.1);
   --fe-nav-active: rgba(215, 255, 63, 0.12);
   --fe-input-bg: rgba(255, 255, 255, 0.035);
@@ -117,6 +120,9 @@
   --fe-hover: rgba(8, 10, 15, 0.06);
   --fe-hover-strong: rgba(8, 10, 15, 0.1);
   --fe-panel: rgba(255, 255, 255, 0.98);
+  --fe-menu-bg: #ffffff;
+  --fe-menu-text: var(--fe-text);
+  --fe-menu-border: var(--fe-light-border);
   --fe-scrollbar: rgba(8, 10, 15, 0.14);
   --fe-nav-active: rgba(215, 255, 63, 0.28);
   --fe-input-bg: #ffffff;
@@ -485,48 +491,35 @@
   -webkit-text-fill-color: #0a0c12;
 }
 
-/* Dropdowns/selects: ALWAYS dark panel + white text (readable on open list)
+/* Dropdowns/selects use the active FleetEase theme.
    Do NOT target generic [role="menu"] — FAB uses that role. */
 [data-radix-select-content],
 [data-radix-dropdown-menu-content],
 [data-radix-dropdown-menu-sub-content],
 [data-radix-menu-content],
 [data-radix-popover-content],
-[role="listbox"],
-.light [data-radix-select-content],
-.light [data-radix-dropdown-menu-content],
-.light [data-radix-dropdown-menu-sub-content],
-.light [data-radix-menu-content],
-.light [data-radix-popover-content],
-.light [role="listbox"] {
-  background-color: #11151b !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35) !important;
+[role="listbox"] {
+  background-color: var(--fe-menu-bg) !important;
+  color: var(--fe-menu-text) !important;
+  border-color: var(--fe-menu-border) !important;
+  box-shadow: var(--fe-shadow-menu) !important;
 }
 [data-radix-select-item],
 [data-radix-dropdown-menu-item],
-[role="option"],
-.light [data-radix-select-item],
-.light [data-radix-dropdown-menu-item],
-.light [role="option"] {
-  color: rgba(255, 255, 255, 0.9) !important;
+[role="option"] {
+  color: var(--fe-text-secondary) !important;
   background-color: transparent !important;
 }
 [data-radix-select-item][data-highlighted],
 [data-radix-dropdown-menu-item][data-highlighted],
 [data-radix-select-item][data-state="checked"],
-[role="option"][data-highlighted],
-.light [data-radix-select-item][data-highlighted],
-.light [data-radix-dropdown-menu-item][data-highlighted],
-.light [data-radix-select-item][data-state="checked"] {
-  background-color: rgba(215, 255, 63, 0.15) !important;
-  color: #ffffff !important;
+[role="option"][data-highlighted] {
+  background-color: var(--fe-nav-active) !important;
+  color: var(--fe-text) !important;
 }
 [data-radix-select-item][data-highlighted] *,
 [data-radix-dropdown-menu-item][data-highlighted] *,
-.light [data-radix-select-item][data-highlighted] *,
-.light [data-radix-select-item] * {
+[data-radix-select-item] * {
   color: inherit !important;
 }
 
