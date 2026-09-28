@@ -3,8 +3,9 @@
 
 import { useMemo } from 'react';
 import type { FinancialRecord, Client, Vehicle, Partner, FinancialCategory } from '@/types';
-import { startOfMonth, endOfMonth, subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { infallibleNormalizeDate } from '@/lib/date-utils';
 import {
   filterRecordsByDateRange,
   calculateProfitMargin,
@@ -201,8 +202,8 @@ export const useFinancialAnalytics = (
     const monthKey = (date: Date) => format(date, 'yyyy-MM');
     for (const record of financialRecords) {
       if (record.isDeleted) continue;
-      const recordDate = new Date(record.date);
-      if (Number.isNaN(recordDate.getTime())) continue;
+      const recordDate = infallibleNormalizeDate(record.date);
+      if (!recordDate) continue;
       const key = monthKey(recordDate);
       const existing = monthlyRecords.get(key);
       if (existing) existing.push(record);
