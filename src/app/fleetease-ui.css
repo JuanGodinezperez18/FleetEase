@@ -237,6 +237,76 @@
 }
 
 /* ---- Module headers / filter surfaces ---- */
+
+/* ---- Canonical metric surface ---- */
+.fe-metric-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--fe-border);
+  border-radius: var(--fe-radius-lg);
+  background: var(--fe-surface);
+  color: var(--fe-text);
+  box-shadow: var(--fe-shadow-md);
+  padding: 1.25rem;
+  backdrop-filter: blur(16px);
+  transition:
+    transform var(--fe-motion-base) ease,
+    border-color var(--fe-motion-base) ease,
+    box-shadow var(--fe-motion-base) ease;
+}
+.fe-metric-card:hover {
+  border-color: var(--fe-hover-strong);
+  box-shadow: var(--fe-shadow-md);
+}
+.fe-metric-card[data-interactive="true"] {
+  cursor: pointer;
+}
+.fe-metric-card[data-interactive="true"]:hover {
+  transform: translateY(-2px);
+}
+.fe-metric-card[data-interactive="true"]:focus-visible {
+  outline: 2px solid var(--fe-focus-ring);
+  outline-offset: 2px;
+}
+.fe-metric-title {
+  color: var(--fe-text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.fe-metric-value {
+  color: var(--fe-text);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.fe-metric-description {
+  color: var(--fe-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.fe-metric-divider {
+  border-top: 1px solid var(--fe-border);
+}
+.fe-metric-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--fe-lime) 18%, var(--fe-border));
+  border-radius: var(--fe-radius-sm);
+  background: color-mix(in srgb, var(--fe-lime) 7%, transparent);
+  color: var(--fe-lime-text);
+}
+.dark .fe-metric-icon { color: var(--fe-lime); }
+
 .fe-module-header {
   display: flex;
   flex-direction: column;
