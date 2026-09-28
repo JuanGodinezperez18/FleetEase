@@ -113,13 +113,17 @@ export default function PaymentsPage() {
 
   const refundCategory = useMemo(() => financialCategories.find(c => c.type === "expense" && c.name.trim().toLowerCase() === "devolución de depósito"), [financialCategories]);
 
+  const clientsById = useMemo(() => new Map(clients.map(client => [client.id, client])), [clients]);
+
+  const financialRecordsById = useMemo(() => new Map(financialRecords.map(record => [record.id, record])), [financialRecords]);
+
   const creditEntities = useMemo(() => credits
     .filter(c => c.status === "active" && !c.isDeleted && (!companyId || c.companyId === companyId))
     .map(c => {
-      const client = clients.find(cl => cl.id === c.clientId);
+      const client = clientsById.get(c.clientId);
       const clientName = client ? `${client.firstname || ""} ${client.lastname || ""}`.trim() : "Cliente sin nombre";
       return { ...c, name: clientName };
-    }), [credits, clients]);
+    }), [credits, clientsById, companyId]);
 
   const entities = kind === "client_payment" || kind === "multa_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted)
     : kind === "partner_payment" ? partners.filter(p => !p.isDeleted)
@@ -131,13 +135,13 @@ export default function PaymentsPage() {
     for (const link of links) {
       // Los vínculos históricos de un pago eliminado se conservan para trazabilidad,
       // pero no deben seguir reduciendo el saldo pendiente del ingreso.
-      const sourceRecord = financialRecords.find(r => r.id === link.source_financial_record_id);
+      const sourceRecord = financialRecordsById.get(link.source_financial_record_id);
       if (!sourceRecord || sourceRecord.isDeleted) continue;
       const applied = Number(link.amount_applied ?? sourceRecord.amount ?? 0);
       if (applied > 0) map.set(link.target_financial_record_id, (map.get(link.target_financial_record_id) || 0) + applied);
     }
     return map;
-  }, [links, financialRecords]);
+  }, [links, financialRecordsById]);
 
   const depositAvailableByClient = useMemo(() => {
     const received = new Map<string, number>();
@@ -149,9 +153,9 @@ export default function PaymentsPage() {
     const used = new Map<string, number>();
     for (const link of links) {
       if (link.relationship_type !== "security_deposit_application" && link.relationship_type !== "security_deposit_refund") continue;
-      const deposit = financialRecords.find(r => r.id === link.target_financial_record_id);
+      const deposit = financialRecordsById.get(link.target_financial_record_id);
       if (!deposit?.clientId || deposit.isDeleted || deposit.category !== SECURITY_DEPOSIT_CATEGORY) continue;
-      const sourceRecord = financialRecords.find(r => r.id === link.source_financial_record_id);
+      const sourceRecord = financialRecordsById.get(link.source_financial_record_id);
       if (!sourceRecord || sourceRecord.isDeleted) continue;
       const applied = Number(link.amount_applied ?? sourceRecord.amount ?? 0);
       used.set(deposit.clientId, (used.get(deposit.clientId) || 0) + applied);
@@ -159,7 +163,7 @@ export default function PaymentsPage() {
     const result = new Map<string, number>();
     for (const [clientId, total] of received) result.set(clientId, Math.max(0, total - (used.get(clientId) || 0)));
     return result;
-  }, [financialRecords, links]);
+  }, [financialRecords, links, financialRecordsById]);
 
   const targets = useMemo(() => {
     if (!entityId) return [];
