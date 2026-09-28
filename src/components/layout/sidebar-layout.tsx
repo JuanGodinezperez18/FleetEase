@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Menu, X } from "lucide-react";
 import { Sidebar } from "./sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { GlobalLoader } from "../common/GlobalLoader";
 import { ThemeToggle } from "./theme-toggle";
@@ -15,18 +14,18 @@ interface SidebarLayoutProps {
   children: React.ReactNode;
 }
 
-export function SidebarLayout({ children }: SidebarLayoutProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+function SidebarLayoutContent({ children }: SidebarLayoutProps) {
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
+  const { openMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => setIsMounted(true), []);
-  useEffect(() => setIsMobileMenuOpen(false), [pathname]);
+  useEffect(() => setOpenMobile(false), [pathname, setOpenMobile]);
 
   if (!isMounted) return <GlobalLoader />;
 
   return (
-    <SidebarProvider>
+    <>
       <style jsx global>{`
         @keyframes fe-sidebar-item-in {
           from { opacity: 0; transform: translateX(-8px); }
@@ -73,20 +72,21 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header
             className="sticky top-0 z-30 border-b fe-border-subtle backdrop-blur-2xl xl:hidden"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--fe-bg) 90%, transparent)' }}
+            style={{ backgroundColor: "color-mix(in srgb, var(--fe-bg) 90%, transparent)" }}
           >
             <div className="grid h-14 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 sm:h-16 sm:px-6">
               <Button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                onClick={() => setOpenMobile(!openMobile)}
                 variant="ghost"
                 size="sm"
                 className={cn(
                   "h-10 w-10 rounded-xl p-0 fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
-                  isMobileMenuOpen && "bg-[var(--fe-hover)] fe-text"
+                  openMobile && "bg-[var(--fe-hover)] fe-text"
                 )}
-                aria-label="Abrir menú"
+                aria-label={openMobile ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={openMobile}
               >
-                {isMobileMenuOpen ? (
+                {openMobile ? (
                   <X className="h-5 w-5" strokeWidth={1.75} />
                 ) : (
                   <Menu className="h-5 w-5" strokeWidth={1.75} />
@@ -94,19 +94,6 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
               </Button>
               <span className="justify-self-center font-heading text-sm font-semibold tracking-[-0.02em] fe-text sm:text-base">FleetEase</span>
               <div className="justify-self-end"><ThemeToggle /></div>
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetContent
-                  side="left"
-                  className="fe-shell-bg w-72 border-r fe-border-subtle p-0 fe-text"
-                  onInteractOutside={() => setIsMobileMenuOpen(false)}
-                >
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>Menú</SheetTitle>
-                    <SheetDescription>Navegación principal de la aplicación</SheetDescription>
-                  </SheetHeader>
-                  <Sidebar />
-                </SheetContent>
-              </Sheet>
             </div>
           </header>
 
@@ -115,6 +102,14 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </main>
         </div>
       </div>
+    </>
+  );
+}
+
+export function SidebarLayout({ children }: SidebarLayoutProps) {
+  return (
+    <SidebarProvider>
+      <SidebarLayoutContent>{children}</SidebarLayoutContent>
     </SidebarProvider>
   );
 }
