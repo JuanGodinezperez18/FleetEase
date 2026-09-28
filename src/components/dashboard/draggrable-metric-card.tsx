@@ -43,7 +43,7 @@ const MONETARY_KPI_IDS = new Set([
 
 function MetricCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+    <div className="fe-metric-card">
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-3">
           <Skeleton className="h-3 w-28 bg-white/[0.08]" />
@@ -100,6 +100,7 @@ function DraggableMetricCardBase({
 
   return (
     <article
+      data-interactive={onClick ? 'true' : 'false'}
       onClick={onClick}
       onKeyDown={(e) => {
         if (onClick && (e.key === 'Enter' || e.key === ' ')) {
@@ -111,10 +112,7 @@ function DraggableMetricCardBase({
       role={onClick ? 'button' : 'article'}
       aria-label={`${widget.title}: ${displayValue}`}
       className={cn(
-        'group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0e1117] p-5 shadow-[0_10px_30px_rgba(0,0,0,.16)]',
-        'select-none backdrop-blur-xl transition-all duration-300',
-        'before:pointer-events-none before:absolute before:-right-16 before:-top-16 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.035] before:blur-3xl before:transition-opacity',
-        'hover:-translate-y-0.5 hover:border-white/[0.14] hover:shadow-[0_16px_40px_rgba(0,0,0,.24)]',
+        'fe-metric-card',
         onClick && 'cursor-pointer active:translate-y-0'
       )}
     >
@@ -122,20 +120,20 @@ function DraggableMetricCardBase({
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]/80" />
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            <p className="fe-metric-title truncate">
               {widget.title}
             </p>
           </div>
 
           <h3 className={cn(
-            "font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[34px]",
+            "fe-metric-value font-heading sm:text-[34px]",
             isNegativeMoney ? "text-rose-400" : "text-white"
           )} aria-live="polite">
             {displayValue}
           </h3>
 
           {kpiData?.subtitle && (
-            <p className="mt-2 text-xs font-medium leading-relaxed text-white/40">{kpiData.subtitle}</p>
+            <p className="fe-metric-description mt-2">{kpiData.subtitle}</p>
           )}
 
           {kpiData?.trend !== undefined && changePercent !== undefined && (
@@ -154,7 +152,7 @@ function DraggableMetricCardBase({
           )}
 
           {kpiData?.trendData && kpiData.trendData.length >= 2 && (
-            <div className="mt-4 border-t border-white/[0.06] pt-3 opacity-80 transition-opacity group-hover:opacity-100">
+            <div className="fe-metric-divider mt-4 border-t pt-3 opacity-80 transition-opacity group-hover:opacity-100">
               <Sparkline
                 data={kpiData.trendData}
                 height={32}
@@ -167,8 +165,8 @@ function DraggableMetricCardBase({
         </div>
 
         <div className="flex shrink-0 items-start gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] transition-colors duration-200 group-hover:border-[#d7ff3f]/20 group-hover:bg-[#d7ff3f]/[0.06]">
-            <IconComponent className="h-5 w-5 text-[#d7ff3f]/90" aria-hidden="true" strokeWidth={1.75} />
+          <div className="fe-metric-icon transition-transform duration-200 group-hover:scale-105">
+            <IconComponent className="h-5 w-5" aria-hidden="true" strokeWidth={1.75} />
           </div>
           <button
             type="button"
