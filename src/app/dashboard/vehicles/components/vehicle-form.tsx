@@ -59,7 +59,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   color: z.string().trim().min(1, "El color es requerido."),
   imageUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   circulationCardUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
-  insurancePolicyDocumentUrl: z.array(z.union([z.string(), z.instanceof(File)])).min(1, "El documento de la póliza es requerido."),
+  insurancePolicyDocumentUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   companyId: z.string().nullable(),
   gpsPhoneNumber: z.string().optional().or(z.literal('')).refine(value => {
     if (!value) return true;
