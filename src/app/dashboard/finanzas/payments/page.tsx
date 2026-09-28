@@ -90,8 +90,9 @@ export default function PaymentsPage() {
       const sourceIds = rows.map(r => r.source_financial_record_id).filter(Boolean);
       let paymentLinks: any[] = [];
       if (sourceIds.length) { const lr = await supabase.from("financial_record_links").select("target_financial_record_id,amount_applied,source_financial_record_id").eq("company_id", companyId).in("target_financial_record_id", sourceIds).eq("relationship_type", "supplier_payment_to_financial_record"); if (!lr.error) paymentLinks = lr.data || []; }
+      const recordsById = new Map(financialRecords.map(r => [r.id, r]));
       const applied = new Map<string, number>();
-      for (const link of paymentLinks) { const payment = financialRecords.find(r => r.id === link.source_financial_record_id); if (!payment || payment.isDeleted) continue; applied.set(link.target_financial_record_id, (applied.get(link.target_financial_record_id) || 0) + Number(link.amount_applied ?? payment.amount ?? 0)); }
+      for (const link of paymentLinks) { const payment = recordsById.get(link.source_financial_record_id); if (!payment || payment.isDeleted) continue; applied.set(link.target_financial_record_id, (applied.get(link.target_financial_record_id) || 0) + Number(link.amount_applied ?? payment.amount ?? 0)); }
       if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009));
     })();
     return () => { cancelled = true; };
