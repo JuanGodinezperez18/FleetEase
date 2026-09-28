@@ -66,8 +66,12 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         })
       : financialRecords;
 
-    const incomeRecords = filteredFinancialRecords.filter(r => r.type === 'income');
-    const expenseRecords = filteredFinancialRecords.filter(r => r.type === 'expense');
+    const incomeRecords: typeof filteredFinancialRecords = [];
+    const expenseRecords: typeof filteredFinancialRecords = [];
+    for (const record of filteredFinancialRecords) {
+      if (record.type === 'income') incomeRecords.push(record);
+      else if (record.type === 'expense') expenseRecords.push(record);
+    }
 
     const clientsById = new Map(clients.map(client => [client.id, client]));
     const creditsById = new Map(credits.map(credit => [credit.id, credit]));
@@ -80,7 +84,14 @@ export function useDashboardKPIs(dateRange?: DateRange) {
 
     const totalClientBalance = clientBalances.reduce((sum, cb) => sum + cb.balance, 0);
     const partnerBalances = partnerBalancesFromData;
-    const totalPartnerBalance = partnerBalances.reduce((sum, pb) => sum + pb.balance, 0);
+    let totalPartnerBalance = 0;
+    let partnersPositiveBalance = 0;
+    let partnersNegativeBalance = 0;
+    for (const partnerBalance of partnerBalances) {
+      totalPartnerBalance += partnerBalance.balance;
+      if (partnerBalance.balance > 0) partnersPositiveBalance++;
+      else if (partnerBalance.balance < 0) partnersNegativeBalance++;
+    }
 
     const totalActiveClients = clients.filter(c => c.status === 'active' && !c.isDeleted).length;
 
@@ -109,11 +120,12 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-    const insuranceExpiring = operationalVehicles.filter(v => {
+    const insuranceExpiringVehicles = operationalVehicles.filter(v => {
       if (!v.insuranceExpiryDate) return false;
       const expiry = new Date(v.insuranceExpiryDate);
       return expiry < thirtyDaysFromNow && expiry > now;
-    }).length;
+    });
+    const insuranceExpiring = insuranceExpiringVehicles.length;
 
     const activeCredits = credits.filter(c => c.status === 'active' && !c.isDeleted);
     const overdueCredits = creditMetrics.filter(cm => cm.paymentBehavior === 'Retraso Severo').length;
@@ -191,11 +203,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       'vehicles-rented': { value: totalRented, loading: false },
       'insurance-expiring': {
         value: insuranceExpiring,
-        details: operationalVehicles.filter(v => {
-          if (!v.insuranceExpiryDate) return false;
-          const expiry = new Date(v.insuranceExpiryDate);
-          return expiry < thirtyDaysFromNow && expiry > now;
-        }),
+        details: insuranceExpiringVehicles,
         loading: false
       },
       'vehicles-available': {
@@ -281,8 +289,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
 
       'total-partners': { value: partnerMetrics.length, loading: false },
       'total-partner-balance': { value: totalPartnerBalance, details: partnerBalances, loading: false },
-      'partners-positive-balance': { value: partnerBalances.filter(pb => pb.balance > 0).length, loading: false },
-      'partners-negative-balance': { value: partnerBalances.filter(pb => pb.balance < 0).length, loading: false },
+      'partners-positive-balance': { value: partnersPositiveBalance, loading: false },
+      'partners-negative-balance': { value: partnersNegativeBalance, loading: false },
       'vehicles-by-partners': { value: vehicles.filter(v => !!v.partnerId).length, loading: false },
       'avg-partner-balance': { value: partnerMetrics.length > 0 ? totalPartnerBalance / partnerMetrics.length : 0, loading: false },
 
