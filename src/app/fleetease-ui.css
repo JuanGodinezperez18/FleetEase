@@ -230,7 +230,7 @@
 
 .light [class*="hover:bg-white/"]:hover { background-color: var(--fe-hover) !important; }
 .light [class*="bg-white/[0.0"] { background-color: var(--fe-hover) !important; }
-.light [class*="bg-[#d7ff3f]"] { color: #080a0f !important; }
+.light [class*="bg-[#d7ff3f]"] { color: var(--fe-ink) !important; }
 .light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
 
 .light [class*="from-[#080a0f]"],
@@ -429,7 +429,7 @@
 }
 .light [data-radix-dialog-content] button[class*="bg-[#d7ff3f]"],
 .light [role="dialog"] button[class*="bg-[#d7ff3f]"] {
-  color: #080a0f !important;
+  color: var(--fe-ink) !important;
 }
 
 /* Chart / metric / article cards */
@@ -550,7 +550,7 @@
 .light .bg-card { background-color: var(--fe-light-surface) !important; }
 .light .bg-sidebar { background-color: var(--fe-light-surface) !important; }
 .light .bg-muted,
-.light main [class*="bg-muted"] { background-color: rgba(8, 10, 15, 0.07) !important; }
+.light main [class*="bg-muted"] { background-color: var(--fe-hover) !important; }
 
 .animate-pulse:not(.fe-keep-pulse),
 [class*="animate-pulse"] { background-color: var(--fe-skeleton) !important; }
