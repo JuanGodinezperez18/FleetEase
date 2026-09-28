@@ -15,8 +15,12 @@ export {
   CLIENT_SECURITY_DEPOSIT_CATEGORY_ID,
   PARTNER_PAYMENT_CATEGORY_NAME,
   PARTNER_PAYMENT_CATEGORY_ID,
+} from './data-provider-supabase';
+
+export {
   calculatePartnerBalance,
   calculatePartnerBalanceBreakdown,
   getPartnerFinancialRecords,
-} from './data-provider-supabase';
+} from '@/lib/financial-metrics';
+
 export type { DataContextType } from './data-provider-supabase';
