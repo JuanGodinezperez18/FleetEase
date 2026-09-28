@@ -47,7 +47,7 @@ const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-2xl border border-white/[0.07] bg-[#0e1117]/80 p-6",
+          "rounded-[var(--fe-radius-lg)] border border-[var(--fe-border)] bg-[var(--fe-surface)] p-6",
           className
         )}
         {...props}
