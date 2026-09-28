@@ -1,5 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
-import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, getPartnerFinancialRecords, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -109,16 +109,67 @@ export class ReportAnalyticsService {
   }
 
   static calculatePartnerMetrics(partners: Partner[], vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): PartnerMetric[] {
+    // Index once; preserve getPartnerFinancialRecords semantics, including historical
+    // vehicle identity from active partner-linked records outside the report date range.
+    const vehiclesByPartner = new Map<string, Vehicle[]>();
+    for (const vehicle of vehicles) {
+      if (vehicle.isDeleted || !vehicle.partnerId) continue;
+      const list = vehiclesByPartner.get(vehicle.partnerId);
+      if (list) list.push(vehicle);
+      else vehiclesByPartner.set(vehicle.partnerId, [vehicle]);
+    }
+
+    const activeRecords = financialRecords.filter(r => !r.isDeleted);
+    const recordsByPartner = new Map<string, FinancialRecord[]>();
+    const recordsByVehicle = new Map<string, FinancialRecord[]>();
+
+    for (const record of activeRecords) {
+      if (record.partnerId) {
+        const list = recordsByPartner.get(record.partnerId);
+        if (list) list.push(record);
+        else recordsByPartner.set(record.partnerId, [record]);
+      }
+      if (record.vehicleId) {
+        const list = recordsByVehicle.get(record.vehicleId);
+        if (list) list.push(record);
+        else recordsByVehicle.set(record.vehicleId, [record]);
+      }
+    }
+
     return partners.map(partner => {
-      const partnerVehicles = vehicles.filter(v => v.partnerId === partner.id && !v.isDeleted);
+      const partnerVehicles = vehiclesByPartner.get(partner.id) ?? [];
       const activeVehicles = partnerVehicles.filter(v => v.status === 'active' || v.status === 'rented').length;
-      let partnerRecords = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
-      if (dateRange) partnerRecords = partnerRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
-      const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecords);
+
+      const partnerRecords = recordsByPartner.get(partner.id) ?? [];
+      const partnerVehicleIds = new Set(partnerVehicles.map(v => v.id));
+      for (const record of partnerRecords) {
+        if (record.vehicleId) partnerVehicleIds.add(record.vehicleId);
+      }
+
+      const seenRecords = new Set<FinancialRecord>();
+      const relatedRecords: FinancialRecord[] = [];
+      for (const record of partnerRecords) {
+        seenRecords.add(record);
+        relatedRecords.push(record);
+      }
+      for (const vehicleId of partnerVehicleIds) {
+        for (const record of recordsByVehicle.get(vehicleId) ?? []) {
+          if (!seenRecords.has(record)) {
+            seenRecords.add(record);
+            relatedRecords.push(record);
+          }
+        }
+      }
+
+      const partnerRecordsInRange = dateRange
+        ? relatedRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }))
+        : relatedRecords;
+
+      const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
       const totalIncome = profitability.totalIncome;
       const totalExpenses = profitability.totalExpenses;
       const netBalance = profitability.netProfit;
-      const transactionsCount = partnerRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
+      const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
       return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
   }
