@@ -173,13 +173,22 @@ export const useFinancialAnalytics = (
       }
     });
 
+    const recordsByClient = new Map<string, FinancialRecord[]>();
+    for (const record of filteredRecords) {
+      if (!record.clientId) continue;
+      const existing = recordsByClient.get(record.clientId);
+      if (existing) existing.push(record);
+      else recordsByClient.set(record.clientId, [record]);
+    }
+
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
-      const clientRecords = filteredRecords.filter(r => r.clientId === client.id);
-      const financedSales = clientRecords.filter(r => r.type === 'income' && r.creditGranted === true);
+      const clientRecords = recordsByClient.get(client.id) || [];
       const revenue = clientRecords
         .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía')
         .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const operatingExpenses = clientRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const operatingExpenses = clientRecords
+        .filter(r => r.type === 'expense')
+        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const financedSaleCosts = sumVehicleSalesCost(clientRecords, vehicles);
       const expenses = operatingExpenses + financedSaleCosts;
       const netProfit = revenue - expenses;
@@ -188,20 +197,28 @@ export const useFinancialAnalytics = (
       return { clientId: client.id, clientName: `${client.firstname} ${client.lastname}`, revenue, expenses, netProfit, profitMargin, level };
     }).sort((a, b) => b.netProfit - a.netProfit);
 
+    const monthlyRecords = new Map<string, FinancialRecord[]>();
+    const monthKey = (date: Date) => format(date, 'yyyy-MM');
+    for (const record of financialRecords) {
+      if (record.isDeleted) continue;
+      const recordDate = new Date(record.date);
+      if (Number.isNaN(recordDate.getTime())) continue;
+      const key = monthKey(recordDate);
+      const existing = monthlyRecords.get(key);
+      if (existing) existing.push(record);
+      else monthlyRecords.set(key, [record]);
+    }
+
     const cashFlowAnalysis: MonthlyCashFlow[] = Array.from({ length: 12 }, (_, i) => {
       const date = subMonths(now, 11 - i);
-      const monthStart = startOfMonth(date);
-      const monthEnd = endOfMonth(date);
-      const monthRecords = filterRecordsByDateRange(financialRecords, { from: monthStart, to: monthEnd });
+      const monthRecords = monthlyRecords.get(monthKey(date)) || [];
       const monthOperationalIncome = sumRentalIncome(monthRecords, depositCategoryIds);
       const monthVehicleSales = sumVehicleSales(monthRecords);
       const monthIncome = monthOperationalIncome + monthVehicleSales;
       const monthExpenses = sumExpense(monthRecords.filter(r => !isDepositRefund(r)));
-      const monthCategoryMap = new Map<string, string>();
-      financialCategories?.forEach(cat => monthCategoryMap.set(cat.id, cat.name));
       const monthCashFlow = calculateCashFlowBreakdown(
         monthRecords,
-        monthCategoryMap,
+        categoryMap,
         depositCategoryIds,
         refundDepositCategoryIds,
       );
