@@ -5,27 +5,27 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/25 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--fe-radius-sm)] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-focus-ring)] focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-[#d7ff3f] text-black font-semibold hover:bg-[#c8f02e] shadow-[0_0_0_1px_rgba(215,255,63,0.15)]",
+          "bg-[var(--fe-lime)] text-[var(--fe-ink)] font-semibold hover:brightness-95 shadow-[0_0_0_1px_rgba(215,255,63,0.15)]",
         destructive:
-          "bg-rose-500/15 text-rose-300 border border-rose-400/20 hover:bg-rose-500/25 hover:text-rose-200",
+          "bg-[var(--fe-danger)]/15 text-[var(--fe-danger)] border border-[var(--fe-danger)]/20 hover:bg-[var(--fe-danger)]/25",
         outline:
-          "border border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.06] hover:text-white",
+          "border border-[var(--fe-border)] bg-[var(--fe-input-bg)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
         secondary:
-          "bg-white/[0.06] text-white/85 hover:bg-white/[0.1]",
+          "bg-[var(--fe-hover)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover-strong)]",
         ghost:
-          "text-white/60 hover:bg-white/[0.06] hover:text-white",
+          "text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
         link:
-          "text-[#d7ff3f] underline-offset-4 hover:underline",
+          "text-[var(--fe-lime-text)] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-4 py-2",
-        sm: "h-9 rounded-xl px-3 text-xs",
-        lg: "h-11 rounded-xl px-8",
+        sm: "h-9 rounded-[var(--fe-radius-sm)] px-3 text-xs",
+        lg: "h-11 rounded-[var(--fe-radius-sm)] px-8",
         icon: "h-11 w-11",
       },
     },
