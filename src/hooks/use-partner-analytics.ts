@@ -31,9 +31,59 @@ export const usePartnerAnalytics = (
   const partnerMetrics = useMemoDeep(() => {
     if (!partners || !vehicles || !financialRecords) return [];
 
+    const vehiclesByPartner = new Map<string, Vehicle[]>();
+    for (const vehicle of vehicles) {
+      if (vehicle.isDeleted || !vehicle.partnerId) continue;
+      const list = vehiclesByPartner.get(vehicle.partnerId);
+      if (list) list.push(vehicle);
+      else vehiclesByPartner.set(vehicle.partnerId, [vehicle]);
+    }
+
+    const activeRecords = financialRecords.filter(record => !record.isDeleted);
+    const recordsByPartner = new Map<string, FinancialRecord[]>();
+    const recordsByVehicle = new Map<string, FinancialRecord[]>();
+
+    for (const record of activeRecords) {
+      if (record.partnerId) {
+        const list = recordsByPartner.get(record.partnerId);
+        if (list) list.push(record);
+        else recordsByPartner.set(record.partnerId, [record]);
+      }
+      if (record.vehicleId) {
+        const list = recordsByVehicle.get(record.vehicleId);
+        if (list) list.push(record);
+        else recordsByVehicle.set(record.vehicleId, [record]);
+      }
+    }
+
     const metrics: PartnerMetric[] = partners.map(partner => {
-      const partnerVehicles = vehicles.filter(v => v.partnerId === partner.id && !v.isDeleted);
-      const recordsForPartner = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
+      const partnerVehicles = vehiclesByPartner.get(partner.id) ?? [];
+
+      // Preserve getPartnerFinancialRecords semantics:
+      // include direct partner records plus records tied to current or historical
+      // vehicles associated with the partner, without duplicating a record.
+      const partnerRecords = recordsByPartner.get(partner.id) ?? [];
+      const partnerVehicleIds = new Set(partnerVehicles.map(vehicle => vehicle.id));
+      for (const record of partnerRecords) {
+        if (record.vehicleId) partnerVehicleIds.add(record.vehicleId);
+      }
+
+      const recordsForPartner: FinancialRecord[] = [];
+      const seenRecords = new Set<FinancialRecord>();
+      for (const record of partnerRecords) {
+        if (!seenRecords.has(record)) {
+          seenRecords.add(record);
+          recordsForPartner.push(record);
+        }
+      }
+      for (const vehicleId of partnerVehicleIds) {
+        for (const record of recordsByVehicle.get(vehicleId) ?? []) {
+          if (!seenRecords.has(record)) {
+            seenRecords.add(record);
+            recordsForPartner.push(record);
+          }
+        }
+      }
 
       const profitability = calculatePartnerProfitability(partnerVehicles, recordsForPartner);
       const totalIncome = profitability.totalIncome;
