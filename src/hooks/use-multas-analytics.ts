@@ -50,19 +50,27 @@ export function useMultasAnalytics(
   return useMemo(() => {
     const activeMultas = multas.filter(m => !m.isDeleted);
 
-    // Estadísticas generales
-    const multasPendientes = activeMultas.filter(m => m.status === 'pendiente').length;
-    const multasPagadas = activeMultas.filter(m => m.status === 'pagada').length;
-    const multasEnProceso = activeMultas.filter(m => m.status === 'en_proceso').length;
-    const multasCanceladas = activeMultas.filter(m => m.status === 'cancelada').length;
+    // Estadísticas generales: una sola pasada sobre las multas activas.
+    let multasPendientes = 0;
+    let multasPagadas = 0;
+    let multasEnProceso = 0;
+    let multasCanceladas = 0;
+    let totalPendienteAmount = 0;
+    let totalPagadoAmount = 0;
 
-    const totalPendienteAmount = activeMultas
-      .filter(m => m.status === 'pendiente')
-      .reduce((sum, m) => sum + m.total, 0);
-
-    const totalPagadoAmount = activeMultas
-      .filter(m => m.status === 'pagada')
-      .reduce((sum, m) => sum + m.total, 0);
+    for (const multa of activeMultas) {
+      if (multa.status === 'pendiente') {
+        multasPendientes++;
+        totalPendienteAmount += multa.total;
+      } else if (multa.status === 'pagada') {
+        multasPagadas++;
+        totalPagadoAmount += multa.total;
+      } else if (multa.status === 'en_proceso') {
+        multasEnProceso++;
+      } else if (multa.status === 'cancelada') {
+        multasCanceladas++;
+      }
+    }
 
     // Multas por vehículo
     const multasPorVehiculoMap = new Map<string, {
@@ -88,8 +96,9 @@ export function useMultasAnalytics(
       });
     });
 
+    const vehiclesById = new Map(vehicles.map(vehicle => [vehicle.id, vehicle]));
     const multasPorVehiculo = Array.from(multasPorVehiculoMap.entries()).map(([vehicleId, stats]) => {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
+      const vehicle = vehiclesById.get(vehicleId);
       return {
         vehicleId,
         plate: vehicle?.plate,
@@ -121,8 +130,9 @@ export function useMultasAnalytics(
       });
     });
 
+    const clientsById = new Map(clients.map(client => [client.id, client]));
     const multasPorCliente = Array.from(multasPorClienteMap.entries()).map(([clientId, stats]) => {
-      const client = clients.find(c => c.id === clientId);
+      const client = clientsById.get(clientId);
       return {
         clientId,
         name: client ? `${client.firstname} ${client.lastname}` : 'Desconocido',
