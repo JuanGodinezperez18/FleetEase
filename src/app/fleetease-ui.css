@@ -63,7 +63,7 @@
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
-.light body { background: var(--fe-light-bg); color: #0a0c12; }
+.light body { background: var(--fe-light-bg); color: var(--fe-text); }
 
 .dark {
   --fe-shell-glow: var(--fe-dark-shell-glow);
@@ -180,8 +180,7 @@
 @media (min-width: 640px) { .fe-page-shell { padding: 1.5rem; } }
 @media (min-width: 1024px) { .fe-page-shell { padding: 1.75rem; } }
 
-/* ---- Light bridge: hardcoded dark surfaces EXCEPT portaled menus/selects ---- */
-/* Convert hardcoded dark surfaces — EXCEPT portaled menus/selects (stay dark) */
+/* ---- Light bridge: legacy hardcoded surfaces (migration layer) ---- */
 .light [class*="bg-[#080a0f]"]:not([data-radix-select-content]):not([data-radix-dropdown-menu-content]):not([data-radix-popover-content]):not([data-radix-menu-content]),
 .light [class*="bg-[#0b0e13]"]:not([data-radix-select-content]):not([data-radix-dropdown-menu-content]),
 .light [class*="bg-[#0b0d12]"]:not([data-radix-select-content]),
@@ -213,15 +212,6 @@
   color: var(--fe-text) !important;
 }
 
-/* Keep white text inside dark select/dropdown portals */
-.light [data-radix-select-content] .text-white,
-.light [data-radix-select-content] [class*="text-white"],
-.light [data-radix-dropdown-menu-content] .text-white,
-.light [data-radix-dropdown-menu-content] [class*="text-white"],
-.light [data-radix-select-item],
-.light [data-radix-dropdown-menu-item] {
-  color: rgba(255, 255, 255, 0.88) !important;
-}
 .light [class*="text-white/35"],
 .light [class*="text-white/40"],
 .light [class*="text-white/45"],
@@ -240,7 +230,7 @@
 
 .light [class*="hover:bg-white/"]:hover { background-color: var(--fe-hover) !important; }
 .light [class*="bg-white/[0.0"] { background-color: var(--fe-hover) !important; }
-.light [class*="bg-[#d7ff3f]"] { color: #080a0f !important; }
+.light [class*="bg-[#d7ff3f]"] { color: var(--fe-ink) !important; }
 .light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
 
 .light [class*="from-[#080a0f]"],
@@ -410,9 +400,9 @@
 /* Dialog / Modal content — white surface in light */
 .light [data-radix-dialog-content],
 .light [role="dialog"] {
-  background-color: #ffffff !important;
-  color: #0a0c12 !important;
-  border-color: rgba(8, 10, 15, 0.1) !important;
+  background-color: var(--fe-surface) !important;
+  color: var(--fe-text) !important;
+  border-color: var(--fe-border) !important;
 }
 .light [data-radix-dialog-content] h1,
 .light [data-radix-dialog-content] h2,
@@ -425,7 +415,7 @@
 }
 .light [data-radix-dialog-content] p,
 .light [role="dialog"] p {
-  color: rgba(8, 10, 15, 0.55) !important;
+  color: var(--fe-text-muted) !important;
 }
 .light [data-radix-dialog-content] input,
 .light [data-radix-dialog-content] textarea,
@@ -433,13 +423,13 @@
 .light [role="dialog"] input,
 .light [role="dialog"] textarea,
 .light [role="dialog"] select {
-  color: #0a0c12 !important;
-  background-color: #f6f7f2 !important;
-  border-color: rgba(8, 10, 15, 0.12) !important;
+  color: var(--fe-input-text) !important;
+  background-color: var(--fe-input-bg) !important;
+  border-color: var(--fe-input-border) !important;
 }
 .light [data-radix-dialog-content] button[class*="bg-[#d7ff3f]"],
 .light [role="dialog"] button[class*="bg-[#d7ff3f]"] {
-  color: #080a0f !important;
+  color: var(--fe-ink) !important;
 }
 
 /* Chart / metric / article cards */
@@ -447,34 +437,34 @@
 .light article[class*="bg-[#0e1117]"],
 .light [class*="rounded"][class*="bg-[#0d1016]"],
 .light [class*="rounded"][class*="bg-[#0e1117]"] {
-  background-color: #ffffff !important;
-  color: #0a0c12 !important;
-  border-color: rgba(8, 10, 15, 0.09) !important;
-  box-shadow: 0 8px 28px rgba(8, 10, 15, 0.06) !important;
+  background-color: var(--fe-surface) !important;
+  color: var(--fe-text) !important;
+  border-color: var(--fe-border) !important;
+  box-shadow: var(--fe-shadow-sm) !important;
 }
 .light article .text-white,
 .light article [class*="text-white"] {
-  color: #0a0c12 !important;
+  color: var(--fe-text) !important;
 }
 .light article [class*="text-white/35"],
 .light article [class*="text-white/40"],
 .light article [class*="text-white/45"] {
-  color: rgba(8, 10, 15, 0.5) !important;
+  color: var(--fe-text-muted) !important;
 }
 .light article [class*="text-white/25"],
 .light article [class*="text-white/30"] {
-  color: rgba(8, 10, 15, 0.38) !important;
+  color: var(--fe-text-faint) !important;
 }
 .light article [class*="text-white/70"],
 .light article [class*="text-white/55"] {
-  color: rgba(8, 10, 15, 0.65) !important;
+  color: var(--fe-text-secondary) !important;
 }
 .light article [class*="border-white/"] {
-  border-color: rgba(8, 10, 15, 0.08) !important;
+  border-color: var(--fe-border) !important;
 }
 .light .recharts-cartesian-axis-tick text,
 .light .recharts-text {
-  fill: rgba(8, 10, 15, 0.55) !important;
+  fill: var(--fe-text-muted) !important;
 }
 
 /* Date inputs — always readable in light */
@@ -485,10 +475,10 @@
 .light input[type="time"],
 .light input[type="number"] {
   color-scheme: light !important;
-  color: #0a0c12 !important;
-  background-color: #ffffff !important;
-  border-color: rgba(8, 10, 15, 0.12) !important;
-  -webkit-text-fill-color: #0a0c12;
+  color: var(--fe-input-text) !important;
+  background-color: var(--fe-input-bg) !important;
+  border-color: var(--fe-input-border) !important;
+  -webkit-text-fill-color: var(--fe-input-text);
 }
 
 /* Dropdowns/selects use the active FleetEase theme.
@@ -560,7 +550,7 @@
 .light .bg-card { background-color: var(--fe-light-surface) !important; }
 .light .bg-sidebar { background-color: var(--fe-light-surface) !important; }
 .light .bg-muted,
-.light main [class*="bg-muted"] { background-color: rgba(8, 10, 15, 0.07) !important; }
+.light main [class*="bg-muted"] { background-color: var(--fe-hover) !important; }
 
 .animate-pulse:not(.fe-keep-pulse),
 [class*="animate-pulse"] { background-color: var(--fe-skeleton) !important; }
