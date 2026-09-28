@@ -75,7 +75,13 @@ export const filterRecordsByVehicle = (
 
 export const sumAmount = (records: FinancialRecord[]): number => records.reduce((sum, r) => sum + (r.amount || 0), 0);
 export const sumIncome = (records: FinancialRecord[]): number => sumAmount(filterIncome(records).filter(r => r.category !== 'Multa'));
-export const sumExpense = (records: FinancialRecord[]): number => sumAmount(filterExpense(records));
+export const CREDIT_CANCELLATION_NOTE_SOURCE = 'credit_cancellation_note';
+
+export const isCreditCancellationNote = (r: FinancialRecord): boolean =>
+  r.sourceRecordType === CREDIT_CANCELLATION_NOTE_SOURCE;
+
+export const sumExpense = (records: FinancialRecord[]): number =>
+  sumAmount(filterExpense(records).filter(r => !isCreditCancellationNote(r)));
 export const sumPayment = (records: FinancialRecord[]): number => sumAmount(filterPayment(records));
 
 
@@ -200,7 +206,9 @@ export const calculatePartnerBalanceBreakdown = (
     return category === 'renta semanal' || category === 'crédito otorgado' || category === 'credito otorgado';
   }));
   const totalExpenses = sumAmount(records.filter(
-    r => r.type === 'expense' && r.paymentMethod !== 'partner_pays',
+    r => r.type === 'expense' && r.paymentMethod !== 'partner_pays' && !isCreditCancellationNote(r),
+  )) + sumAmount(records.filter(
+    r => isCreditCancellationNote(r) && r.partnerId === partner.id,
   ));
   const totalPartnerPayments = sumAmount(records.filter(
     r => r.type === 'payment' && r.partnerId === partner.id,
@@ -238,7 +246,10 @@ export const calculateClientBalance = (
     r => !r.isDeleted && r.clientId === client.id && r.category !== SECURITY_DEPOSIT_CATEGORY,
   );
   const totalIncome = sumAmount(records.filter(r => r.type === 'income'));
-  const totalPayments = sumAmount(records.filter(r => r.type === 'payment' || (r.type === 'expense' && r.category === DRIVER_PAYMENT_CATEGORY)));
+  const totalPayments = sumAmount(records.filter(r =>
+    r.type === 'payment' ||
+    (r.type === 'expense' && (r.category === DRIVER_PAYMENT_CATEGORY || isCreditCancellationNote(r)))
+  ));
   const initialBalance = client.initialBalance || 0;
   return {
     initialBalance,
