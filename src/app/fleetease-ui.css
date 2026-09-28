@@ -2,6 +2,7 @@
 :root {
   --fe-lime: #d7ff3f;
   --fe-ink: #080a0f;
+  --fe-ink-rgb: 8, 10, 15;
   --fe-dark-surface: #0e1117;
   --fe-dark-main: #0a0c12;
   --fe-dark-border: rgba(255, 255, 255, 0.09);
@@ -41,6 +42,9 @@
   --fe-radius-lg: 18px;
   --fe-shadow-sm: 0 6px 22px rgba(0, 0, 0, 0.08);
   --fe-shadow-md: 0 12px 34px rgba(0, 0, 0, 0.12);
+  --fe-shadow-dialog: 0 24px 80px rgba(0, 0, 0, 0.55);
+  --fe-shadow-menu: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --fe-overlay: rgba(8, 10, 15, 0.75);
   --fe-success: #34d399;
   --fe-warning: #f59e0b;
   --fe-danger: #f87171;
@@ -96,6 +100,7 @@
 }
 
 .light {
+  --fe-ink-rgb: 8, 10, 15;
   --fe-link: var(--fe-lime-text);
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
@@ -120,6 +125,9 @@
   --fe-input-placeholder: rgba(8, 10, 15, 0.4);
   --fe-shadow-sm: 0 6px 22px rgba(8, 10, 15, 0.05);
   --fe-shadow-md: 0 12px 34px rgba(8, 10, 15, 0.08);
+  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.18);
+  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.16);
+  --fe-overlay: rgba(8, 10, 15, 0.42);
   --fe-success: #047857;
   --fe-warning: #b45309;
   --fe-danger: #b91c1c;
