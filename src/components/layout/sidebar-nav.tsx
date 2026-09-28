@@ -58,9 +58,19 @@ const itemActive =
 
 const navGroupByLabel: Record<string, string> = {
   "Panel de Control": "Operación",
+  "Vehículos": "Operación",
+  "Clientes": "Operación",
+  "Socios": "Operación",
+  "Registro de Kilometraje": "Operación",
+  "Multas": "Operación",
+  "Seguimientos Fotográficos": "Operación",
   "Créditos": "Finanzas",
+  "Finanzas": "Finanzas",
   "Rentabilidad": "Análisis",
+  "Reportes": "Análisis",
+  "Alertas de Negocio": "Análisis",
   "Mensajería": "Comunicación",
+  "Notificaciones": "Comunicación",
   "Administración": "Administración",
 };
 
