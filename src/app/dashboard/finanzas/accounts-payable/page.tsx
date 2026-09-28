@@ -1,4 +1,5 @@
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { useEffect, useState } from "react";
 import NextLink from "next/link";
@@ -193,10 +194,10 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
   if (loading) {
     return (
       <div className="space-y-4 p-4 sm:p-6">
-        <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+        <Skeleton className="h-10 w-48 rounded-xl" />
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0e1117]" />
+            <Skeleton key={i} className="h-32 rounded-[14px]" />
           ))}
         </div>
         <div className="h-64 animate-pulse rounded-[20px] border border-white/[0.07] bg-[#0e1117]" />
