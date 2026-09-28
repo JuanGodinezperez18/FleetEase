@@ -67,7 +67,19 @@ function getSafeVehicleError(error: unknown): Error {
   return new Error('No fue posible guardar el vehículo. Revisa los datos e inténtalo nuevamente.');
 }
 
-function validateVehicleMutation(data: Partial<DomainVehicle>, existingCurrentMileage?: number): void {
+function validateVehicleMutation(data: Partial<DomainVehicle>, existingCurrentMileage?: number, requireInsurance = false): void {
+  if (requireInsurance) {
+    if (!String(data.insurancePolicyNumber ?? '').trim()) {
+      throw new Error('El número de póliza de seguro es requerido.');
+    }
+    if (!String(data.insuranceExpiryDate ?? '').trim()) {
+      throw new Error('La fecha de vencimiento de la póliza de seguro es requerida.');
+    }
+    if (!String(data.insurancePolicyDocumentUrl ?? '').trim()) {
+      throw new Error('El documento de la póliza de seguro es requerido.');
+    }
+  }
+
   if (data.color !== undefined && !String(data.color ?? '').trim()) {
     throw new Error('El color es requerido.');
   }
@@ -270,7 +282,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addVehicleMutation = useMutation({
     mutationFn: async (data: Partial<DomainVehicle>) => {
       try {
-        validateVehicleMutation(data);
+        validateVehicleMutation(data, undefined, true);
         const { data: result, error } = await supabase.from('vehicles').insert(toSbVehicle(data) as any).select().single();
         if (error) throw error;
         return toDomainVehicle(result);
@@ -284,12 +296,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateVehicleMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<DomainVehicle> & { id: string }) => {
       try {
-        validateVehicleMutation(data);
-        if (data.lastMaintenanceMileage !== undefined && data.currentMileage === undefined) {
-          const { data: existing, error: fetchError } = await supabase.from('vehicles').select('current_mileage').eq('id', id).single();
-          if (fetchError) throw fetchError;
-          validateVehicleMutation(data, Number(existing.current_mileage ?? 0));
-        }
+        const { data: existing, error: fetchError } = await supabase
+          .from('vehicles')
+          .select('current_mileage, insurance_policy_number, insurance_expiry_date, insurance_policy_document_url')
+          .eq('id', id)
+          .single();
+        if (fetchError) throw fetchError;
+
+        const mergedForValidation: Partial<DomainVehicle> = {
+          ...existing && {
+            currentMileage: Number(existing.current_mileage ?? 0),
+            insurancePolicyNumber: existing.insurance_policy_number,
+            insuranceExpiryDate: existing.insurance_expiry_date,
+            insurancePolicyDocumentUrl: existing.insurance_policy_document_url,
+          },
+          ...data,
+        };
+
+        validateVehicleMutation(mergedForValidation, Number(existing.current_mileage ?? 0), true);
         const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id);
         if (error) throw error;
       } catch (error) {
