@@ -40,9 +40,17 @@ export interface PartnerMetric {
  */
 export class ReportAnalyticsService {
   static calculateVehicleMetrics(vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): VehicleMetric[] {
+    const recordsByVehicle = new Map<string, FinancialRecord[]>();
+    financialRecords.forEach(record => {
+      if (record.isDeleted || (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))) return;
+      if (!record.vehicleId) return;
+      const records = recordsByVehicle.get(record.vehicleId);
+      if (records) records.push(record);
+      else recordsByVehicle.set(record.vehicleId, [record]);
+    });
+
     return vehicles.map(vehicle => {
-      let vehicleRecords = financialRecords.filter(r => r.vehicleId === vehicle.id && !r.isDeleted);
-      if (dateRange) vehicleRecords = vehicleRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
+      const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
       const rentalIncome = sumRentalIncome(vehicleRecords);
       const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
       const totalExpenses = sumExpense(expenseRecords);
@@ -54,9 +62,21 @@ export class ReportAnalyticsService {
   }
 
   static calculateClientMetrics(clients: Client[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): ClientMetric[] {
+    const recordsByClient = new Map<string, FinancialRecord[]>();
+    financialRecords.forEach(record => {
+      if (
+        record.isDeleted ||
+        record.category === SECURITY_DEPOSIT_CATEGORY ||
+        !record.clientId ||
+        (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))
+      ) return;
+      const records = recordsByClient.get(record.clientId);
+      if (records) records.push(record);
+      else recordsByClient.set(record.clientId, [record]);
+    });
+
     return clients.map(client => {
-      let clientRecords = financialRecords.filter(r => r.clientId === client.id && !r.isDeleted && r.category !== SECURITY_DEPOSIT_CATEGORY);
-      if (dateRange) clientRecords = clientRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
+      const clientRecords = recordsByClient.get(client.id) ?? [];
 
       const paymentRecords = clientRecords.filter(r => r.type === 'payment');
       const totalPayments = sumPayment(paymentRecords);
