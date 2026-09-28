@@ -253,13 +253,13 @@ export default function DashboardPage() {
 
   if (!currentUser) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center bg-[#080a0f] p-6 text-white">
-        <section className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 text-center shadow-2xl">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f]/10 text-2xl">
+      <main className="flex min-h-[70vh] items-center justify-center bg-[var(--fe-bg)] p-6 text-[var(--fe-text)]">
+        <section className="w-full max-w-md rounded-3xl border border-[color:var(--fe-border)] bg-[color:var(--fe-surface)] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--fe-lime)]/10 text-2xl">
             ⚠️
           </div>
           <h1 className="text-xl font-semibold">No pudimos cargar tu sesión</h1>
-          <p className="mt-2 text-sm leading-6 text-white/55">
+          <p className="mt-2 text-sm leading-6 text-[var(--fe-text-secondary)]">
             Tu sesión de acceso existe, pero no pudimos recuperar el perfil de FleetEase. Esto evita
             que el dashboard se quede cargando indefinidamente.
           </p>
@@ -267,13 +267,13 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="rounded-xl bg-[#d7ff3f] px-5 py-3 text-sm font-semibold text-[#080a0f] transition-opacity hover:opacity-90"
+              className="rounded-xl bg-[var(--fe-lime)] px-5 py-3 text-sm font-semibold text-[var(--fe-ink)] transition-opacity hover:opacity-90"
             >
               Reintentar
             </button>
             <a
               href="/login?callbackUrl=%2Fdashboard"
-              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:bg-white/5"
+              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-[var(--fe-text)] transition-colors hover:bg-[var(--fe-hover)]"
             >
               Volver a iniciar sesión
             </a>
@@ -291,7 +291,7 @@ export default function DashboardPage() {
     <>
       <a
         href="#main-content"
-        className="sr-only absolute left-4 top-4 z-50 rounded bg-[#d7ff3f] px-4 py-2 text-[#080a0f] focus:not-sr-only"
+        className="sr-only absolute left-4 top-4 z-50 rounded bg-[var(--fe-lime)] px-4 py-2 text-[var(--fe-ink)] focus:not-sr-only"
       >
         Ir al contenido principal
       </a>
@@ -300,10 +300,10 @@ export default function DashboardPage() {
 
       <div
         id="main-content"
-        className="relative min-h-full space-y-5 overflow-hidden rounded-[30px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7"
+        className="fe-page-shell space-y-5 sm:space-y-6"
       >
         <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
-        <div className="pointer-events-none absolute -right-48 top-[-220px] h-[520px] w-[520px] rounded-full bg-[#d7ff3f]/[0.055] blur-[120px]" />
+        <div className="pointer-events-none absolute -right-48 top-[-220px] h-[520px] w-[520px] rounded-full bg-[var(--fe-lime)]/[0.055] blur-[120px]" />
 
         <div className="relative z-10 space-y-5 sm:space-y-6">
           <DashboardHeader
@@ -318,14 +318,14 @@ export default function DashboardPage() {
           <section aria-label="Indicadores principales" className="space-y-3">
             <div className="flex items-end justify-between gap-4 px-1">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-text-faint)]">
                   Resumen
                 </p>
-                <h2 className="mt-1 text-sm font-semibold text-white/80">
+                <h2 className="mt-1 text-sm font-semibold text-[var(--fe-text)]">
                   Estado actual de la operación
                 </h2>
               </div>
-              <span className="hidden text-[10px] text-white/25 sm:inline">
+              <span className="hidden text-[10px] text-[var(--fe-text-faint)] sm:inline">
                 Arrastra para personalizar
               </span>
             </div>
@@ -344,14 +344,14 @@ export default function DashboardPage() {
 
           <section
             aria-label="Acciones rápidas"
-            className="border-t border-white/[0.06] pt-6 sm:pt-7"
+            className="border-t border-[color:var(--fe-border)] pt-6 sm:pt-7"
           >
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-text-faint)]">
                   Operación
                 </p>
-                <h2 className="mt-1 text-sm font-semibold text-white/80">Acciones rápidas</h2>
+                <h2 className="mt-1 text-sm font-semibold text-[var(--fe-text)]">Acciones rápidas</h2>
               </div>
             </div>
             <QuickActions

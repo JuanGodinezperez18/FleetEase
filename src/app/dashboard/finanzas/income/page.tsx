@@ -1,5 +1,6 @@
 
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useFinances } from '@/contexts/providers/finances-provider';
@@ -169,7 +170,7 @@ export default function IncomesPage() {
   if (loadingData) {
     return (
       <div className="space-y-4 p-4 sm:p-6">
-        <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+        <Skeleton className="h-10 w-48 rounded-xl" />
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map(i => (
             <div

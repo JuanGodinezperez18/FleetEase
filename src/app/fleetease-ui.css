@@ -2,6 +2,7 @@
 :root {
   --fe-lime: #d7ff3f;
   --fe-ink: #080a0f;
+  --fe-ink-rgb: 8, 10, 15;
   --fe-dark-surface: #0e1117;
   --fe-dark-main: #0a0c12;
   --fe-dark-border: rgba(255, 255, 255, 0.09);
@@ -14,6 +15,7 @@
   --fe-light-shell-glow: rgba(180, 209, 0, 0.1);
   --fe-light-surface-rgb: 255, 255, 255;
   --fe-lime-text: #5c6d08;
+  --fe-link: var(--fe-lime);
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
@@ -40,10 +42,21 @@
   --fe-radius-lg: 18px;
   --fe-shadow-sm: 0 6px 22px rgba(0, 0, 0, 0.08);
   --fe-shadow-md: 0 12px 34px rgba(0, 0, 0, 0.12);
+  --fe-shadow-dialog: 0 24px 80px rgba(0, 0, 0, 0.55);
+  --fe-shadow-menu: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --fe-overlay: rgba(8, 10, 15, 0.75);
   --fe-success: #34d399;
   --fe-warning: #f59e0b;
   --fe-danger: #f87171;
   --fe-info: #60a5fa;
+  /* Shared interaction/layout tokens: consume these before adding local values. */
+  --fe-control-height: 44px;
+  --fe-control-height-sm: 36px;
+  --fe-focus-ring: rgba(215, 255, 63, 0.3);
+  --fe-card-padding: 24px;
+  --fe-motion-fast: 160ms;
+  --fe-motion-base: 240ms;
+  --fe-motion-slow: 360ms;
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
@@ -87,6 +100,8 @@
 }
 
 .light {
+  --fe-ink-rgb: 8, 10, 15;
+  --fe-link: var(--fe-lime-text);
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
   --fe-border: var(--fe-light-border);
@@ -110,6 +125,9 @@
   --fe-input-placeholder: rgba(8, 10, 15, 0.4);
   --fe-shadow-sm: 0 6px 22px rgba(8, 10, 15, 0.05);
   --fe-shadow-md: 0 12px 34px rgba(8, 10, 15, 0.08);
+  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.18);
+  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.16);
+  --fe-overlay: rgba(8, 10, 15, 0.42);
   --fe-success: #047857;
   --fe-warning: #b45309;
   --fe-danger: #b91c1c;
@@ -227,6 +245,76 @@
 }
 
 /* ---- Module headers / filter surfaces ---- */
+
+/* ---- Canonical metric surface ---- */
+.fe-metric-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--fe-border);
+  border-radius: var(--fe-radius-lg);
+  background: var(--fe-surface);
+  color: var(--fe-text);
+  box-shadow: var(--fe-shadow-md);
+  padding: 1.25rem;
+  backdrop-filter: blur(16px);
+  transition:
+    transform var(--fe-motion-base) ease,
+    border-color var(--fe-motion-base) ease,
+    box-shadow var(--fe-motion-base) ease;
+}
+.fe-metric-card:hover {
+  border-color: var(--fe-hover-strong);
+  box-shadow: var(--fe-shadow-md);
+}
+.fe-metric-card[data-interactive="true"] {
+  cursor: pointer;
+}
+.fe-metric-card[data-interactive="true"]:hover {
+  transform: translateY(-2px);
+}
+.fe-metric-card[data-interactive="true"]:focus-visible {
+  outline: 2px solid var(--fe-focus-ring);
+  outline-offset: 2px;
+}
+.fe-metric-title {
+  color: var(--fe-text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.fe-metric-value {
+  color: var(--fe-text);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.fe-metric-description {
+  color: var(--fe-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.fe-metric-divider {
+  border-top: 1px solid var(--fe-border);
+}
+.fe-metric-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--fe-lime) 18%, var(--fe-border));
+  border-radius: var(--fe-radius-sm);
+  background: color-mix(in srgb, var(--fe-lime) 7%, transparent);
+  color: var(--fe-lime-text);
+}
+.dark .fe-metric-icon { color: var(--fe-lime); }
+
 .fe-module-header {
   display: flex;
   flex-direction: column;

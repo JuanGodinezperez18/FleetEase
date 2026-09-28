@@ -127,11 +127,11 @@ const NotificationBell = () => {
                   key={notif.id}
                   className={cn(
                     "block border-b fe-border-subtle px-4 py-3 transition-colors last:border-0 hover:bg-[var(--fe-hover)]",
-                    !notif.isRead && "bg-[#d7ff3f]/[0.04]"
+                    !notif.isRead && "bg-[color-mix(in_srgb,var(--fe-lime)_4%,transparent)]"
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    {!notif.isRead && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#d7ff3f]" />}
+                    {!notif.isRead && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--fe-lime)]" />}
                     <div className="min-w-0 flex-1">
                       <p
                         className={cn(
@@ -330,15 +330,15 @@ export function SidebarNav() {
               >
                 <div
                   className={cn(
-                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[#d7ff3f] transition-all duration-300",
-                    isSectionActive(item.basePath, item.subItems) && "h-7 shadow-[0_0_10px_#d7ff3f80]"
+                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                    isSectionActive(item.basePath, item.subItems) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
                   )}
                 />
                 <item.icon
                   className={cn(
                     "h-4 w-4 shrink-0 transition-colors",
                     isSectionActive(item.basePath, item.subItems)
-                      ? "text-[#d7ff3f]"
+                      ? "text-[var(--fe-lime)]"
                       : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
                   )}
                   strokeWidth={1.75}
@@ -382,7 +382,7 @@ export function SidebarNav() {
                         >
                           <div
                             className={cn(
-                              "absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-[#d7ff3f] transition-all duration-300",
+                              "absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
                               pathname === subItem.href && "h-4"
                             )}
                           />
@@ -390,7 +390,7 @@ export function SidebarNav() {
                             <subItem.icon
                               className={cn(
                                 "h-3.5 w-3.5 shrink-0",
-                                pathname === subItem.href ? "text-[#d7ff3f]" : "fe-text-faint"
+                                pathname === subItem.href ? "text-[var(--fe-lime)]" : "fe-text-faint"
                               )}
                               strokeWidth={1.75}
                             />
@@ -415,14 +415,14 @@ export function SidebarNav() {
                 >
                   <div
                     className={cn(
-                      "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[#d7ff3f] transition-all duration-300",
-                      isSectionActive(item.href) && "h-7 shadow-[0_0_10px_#d7ff3f80]"
+                      "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                      isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
                     )}
                   />
                   <item.icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      isSectionActive(item.href) ? "text-[#d7ff3f]" : "fe-text-faint"
+                      isSectionActive(item.href) ? "text-[var(--fe-lime)]" : "fe-text-faint"
                     )}
                     strokeWidth={1.75}
                   />
@@ -449,15 +449,15 @@ export function SidebarNav() {
               >
                 <div
                   className={cn(
-                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[#d7ff3f] transition-all duration-300",
-                    isSectionActive(item.href) && "h-7 shadow-[0_0_10px_#d7ff3f80]"
+                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                    isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
                   )}
                 />
                 <item.icon
                   className={cn(
                     "h-4 w-4 shrink-0 transition-colors",
                     isSectionActive(item.href)
-                      ? "text-[#d7ff3f]"
+                      ? "text-[var(--fe-lime)]"
                       : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
                   )}
                   strokeWidth={1.75}

@@ -1,5 +1,6 @@
 
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -148,13 +149,13 @@ export default function PartnersPage() {
     if (loadingData && !partners.length) {
         return (
           <div className="space-y-4 p-4 sm:p-6">
-            <div className="h-10 w-48 animate-pulse rounded-xl bg-white/[0.06]" />
+            <Skeleton className="h-10 w-48 rounded-xl" />
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0e1117]" />
+                <Skeleton key={i} className="h-32 rounded-[14px]" />
               ))}
             </div>
-            <div className="h-64 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0e1117]" />
+            <Skeleton className="h-64 rounded-[14px]" />
           </div>
         );
     }

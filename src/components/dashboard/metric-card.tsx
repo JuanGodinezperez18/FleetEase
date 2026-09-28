@@ -135,11 +135,7 @@ export function AnimatedMetricCard({
       transition={{ delay, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.99 }}
-      className={cn(
-        'group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5',
-        'shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-xl',
-        'transition-all duration-300 hover:border-white/[0.14] hover:shadow-[0_24px_65px_rgba(0,0,0,.34)]'
-      )}
+      className={cn('fe-metric-card group')}
     >
       <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[#d7ff3f]/[0.045] blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -147,7 +143,7 @@ export function AnimatedMetricCard({
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] opacity-70 shadow-[0_0_10px_#d7ff3f]" />
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            <p className="fe-metric-title truncate">
               {title}
             </p>
           </div>
@@ -187,7 +183,7 @@ export function AnimatedMetricCard({
 
           {subtitle && (
             <motion.p
-              className="mt-2 text-xs font-medium leading-relaxed text-white/40"
+              className="fe-metric-description mt-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: delay + 0.25 }}
@@ -198,7 +194,7 @@ export function AnimatedMetricCard({
 
           {sparklineData && sparklineData.length >= 2 && (
             <motion.div
-              className="mt-4 border-t border-white/[0.06] pt-3 opacity-80"
+              className="fe-metric-divider mt-4 border-t pt-3 opacity-80"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: delay + 0.35 }}
@@ -213,7 +209,7 @@ export function AnimatedMetricCard({
         </div>
 
         <motion.div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.07] text-[#d7ff3f]"
+          className="fe-metric-icon"
           whileHover={{ scale: 1.08, rotate: 6 }}
           transition={{ type: 'spring', stiffness: 420, damping: 16 }}
         >

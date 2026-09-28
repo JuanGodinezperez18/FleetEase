@@ -119,6 +119,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
 
   const cardContent = (
     <article
+      data-interactive={isInteractive ? 'true' : 'false'}
       tabIndex={isInteractive ? 0 : undefined}
       role={isInteractive ? 'button' : 'article'}
       onClick={onClick ? handleActivate : undefined}
@@ -126,11 +127,9 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
       onKeyDown={isInteractive ? handleKeyDown : undefined}
       aria-label={`${title}: ${value}`}
       className={cn(
-        'group relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] p-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.22)]',
-        'select-none backdrop-blur-xl transition-all duration-300',
+        'fe-metric-card select-none',
         'before:pointer-events-none before:absolute before:-right-12 before:-top-12 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.045] before:blur-3xl',
-        isInteractive &&
-          'cursor-pointer hover:-translate-y-1 hover:border-white/[0.14] hover:shadow-[0_24px_65px_rgba(0,0,0,.34)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40 active:translate-y-0',
+        isInteractive && 'active:translate-y-0',
         className
       )}
     >
@@ -159,7 +158,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] opacity-70 shadow-[0_0_10px_#d7ff3f]" />
-            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            <p className="fe-metric-title truncate">
               {title}
             </p>
           </div>
@@ -175,7 +174,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
               <div className="flex flex-wrap items-end gap-2">
                 <div
                   className={cn(
-                    'font-heading text-[32px] font-semibold leading-none tracking-[-0.04em] tabular-nums sm:text-[34px]',
+                    'fe-metric-value font-heading sm:text-[34px]',
                     VARIANT_CLASSES[variant],
                     valueClassName
                   )}
@@ -186,13 +185,13 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
               </div>
 
               {description && (
-                <p className="mt-2 max-w-[90%] text-xs font-medium leading-relaxed text-white/40">
+                <p className="fe-metric-description mt-2 max-w-[90%]">
                   {description}
                 </p>
               )}
 
               {sparklineData && sparklineData.length >= 2 && (
-                <div className="mt-4 border-t border-white/[0.06] pt-3 opacity-80 transition-opacity group-hover:opacity-100">
+                <div className="fe-metric-divider mt-4 border-t pt-3 opacity-80 transition-opacity group-hover:opacity-100">
                   <Sparkline
                     data={sparklineData}
                     height={32}
@@ -209,7 +208,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
         </div>
 
         {icon && (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.07] text-[#d7ff3f] transition-transform duration-300 group-hover:scale-105">
+          <div className="fe-metric-icon transition-transform duration-300 group-hover:scale-105">
             {icon}
           </div>
         )}

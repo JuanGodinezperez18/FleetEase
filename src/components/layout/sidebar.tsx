@@ -24,7 +24,7 @@ const SidebarHeaderContent = () => {
       )}
     >
       <div className="relative shrink-0">
-        <div className="absolute inset-0 rounded-full bg-[#d7ff3f]/15 blur-xl" />
+        <div className="absolute inset-0 rounded-full bg-[color-mix(in_srgb,var(--fe-lime)_15%,transparent)] blur-xl" />
         <FleetEaseLogo
           className={cn("relative transition-all duration-300", state === "collapsed" ? "h-10 w-10" : "h-8 w-8")}
         />
@@ -69,11 +69,11 @@ const UserProfileSection = () => {
     >
       <Avatar
         className={cn(
-          "shrink-0 ring-2 ring-[#d7ff3f]/20 transition-all duration-300",
+          "shrink-0 ring-2 ring-[color-mix(in_srgb,var(--fe-lime)_20%,transparent)] transition-all duration-300",
           state === "collapsed" ? "h-10 w-10" : "h-9 w-9"
         )}
       >
-        <AvatarFallback className="bg-[#d7ff3f]/[0.12] text-sm font-semibold text-[#d7ff3f]">
+        <AvatarFallback className="bg-[color-mix(in_srgb,var(--fe-lime)_12%,transparent)] text-sm font-semibold text-[var(--fe-lime)]">
           {initials}
         </AvatarFallback>
       </Avatar>
