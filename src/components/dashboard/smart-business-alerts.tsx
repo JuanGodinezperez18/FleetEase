@@ -128,11 +128,30 @@ export function SmartBusinessAlerts({
       }
     });
 
+    // Index recent financial records once so vehicle alerts and profitability
+    // do not repeatedly scan the full financialRecords array.
+    const recentRecordsByVehicle = new Map<string, FinancialRecord[]>();
+    const recentExpenseRecords: FinancialRecord[] = [];
+    let recentExpenseTotal = 0;
+
+    financialRecords.forEach(record => {
+      if (new Date(record.date) < cutoffDate) return;
+
+      if (record.vehicleId) {
+        const records = recentRecordsByVehicle.get(record.vehicleId);
+        if (records) records.push(record);
+        else recentRecordsByVehicle.set(record.vehicleId, [record]);
+      }
+
+      if (record.type === "expense") {
+        recentExpenseRecords.push(record);
+        recentExpenseTotal += record.amount || 0;
+      }
+    });
+
     const activeVehicles = vehicles.filter(v => v.status === "active" && !v.isDeleted);
     activeVehicles.forEach(vehicle => {
-      const vehicleRecords = financialRecords.filter(
-        r => r.vehicleId === vehicle.id && new Date(r.date) >= cutoffDate
-      );
+      const vehicleRecords = recentRecordsByVehicle.get(vehicle.id) ?? [];
       const vehicleIncomeRecords = vehicleRecords.filter(r => r.type === "income");
 
       if (vehicleIncomeRecords.length === 0) {
@@ -160,16 +179,13 @@ export function SmartBusinessAlerts({
       }
     });
 
-    const expenseRecords = financialRecords.filter(
-      r => r.type === "expense" && new Date(r.date) >= cutoffDate
-    );
-
-    expenseRecords.forEach(record => {
-      const otherExpenses = expenseRecords.filter(r => r.id !== record.id);
+    recentExpenseRecords.forEach(record => {
+      // Equivalent to averaging all other expenses, without rescanning the
+      // entire expense list for every record.
+      const otherExpenseCount = recentExpenseRecords.length - 1;
+      const otherExpenseTotal = recentExpenseTotal - (record.amount || 0);
       const avgOtherExpense =
-        otherExpenses.length > 0
-          ? otherExpenses.reduce((sum, r) => sum + (r.amount || 0), 0) / otherExpenses.length
-          : 0;
+        otherExpenseCount > 0 ? otherExpenseTotal / otherExpenseCount : 0;
       if (record.amount && avgOtherExpense > 0 && record.amount > avgOtherExpense * 2 && record.amount > 5000) {
         generatedAlerts.push({
           id: `expense-spike-${record.id}`,
@@ -187,9 +203,7 @@ export function SmartBusinessAlerts({
     vehicles
       .filter(v => !v.isDeleted && v.status !== "sold")
       .forEach(vehicle => {
-        const vehicleRecords = financialRecords.filter(
-          r => r.vehicleId === vehicle.id && new Date(r.date) >= cutoffDate
-        );
+        const vehicleRecords = recentRecordsByVehicle.get(vehicle.id) ?? [];
         const income = sumRentalIncome(vehicleRecords);
         const expenses = sumExpense(vehicleRecords);
         const netProfit = calculateNetProfit(vehicleRecords);
