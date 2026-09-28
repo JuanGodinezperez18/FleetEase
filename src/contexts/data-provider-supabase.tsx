@@ -349,31 +349,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = (result as any)?.id; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
   const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); if (!companyId && !currentUser.companyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: companyId || currentUser.companyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', p_reference: description || null, p_created_by: null }); if (error) throw error; await refreshData(); const result = (data || {}) as any; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: result.creditId ?? result.credit_id ?? creditId, paymentScheduleId: result.paymentScheduleId ?? result.payment_schedule_id ?? null, creditCompleted: result.creditCompleted ?? result.credit_completed ?? result.status === 'completed' ?? false, ...(result.error ? { error: result.error } : {}) }; } catch (error: any) { logger.error('Error processing credit payment:', error); return { success: false, error: error?.message || 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);
-  const cancelCreditWithAdjustment = useCallback(async (creditId: string, reason?: string) => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const { data: credit } = await supabase.from('credits').select('*').eq('id', creditId).single(); if (!credit) throw new Error('Crédito no encontrado'); if (credit.status !== 'active') throw new Error('El crédito no está activo'); const remainingBalance = credit.remaining_balance || 0; await supabase.from('credits').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', creditId); await supabase.from('clients').update({ has_active_credit: false, active_credit_id: null }).eq('id', credit.client_id); if (credit.vehicle_id) {
-        const now = new Date().toISOString();
-        const { data: openAssignments, error: assignmentLookupError } = await supabase
-          .from('vehicle_assignment_logs')
-          .select('id')
-          .eq('vehicle_id', credit.vehicle_id)
-          .is('unassigned_at', null);
-        if (assignmentLookupError) throw assignmentLookupError;
-        if (openAssignments?.length) {
-          const { error: assignmentCloseError } = await supabase
-            .from('vehicle_assignment_logs')
-            .update({
-              unassigned_at: now,
-              end_date: now,
-              reason: reason ? `Crédito cancelado: ${reason}` : 'Crédito cancelado',
-            })
-            .in('id', openAssignments.map(log => log.id));
-          if (assignmentCloseError) throw assignmentCloseError;
-        }
-        const { error: vehicleUnlockError } = await supabase
-          .from('vehicles')
-          .update({ ...toSbVehicle(buildVehicleCreditUnlockPayload()), client_id: null, updated_at: now } as any)
-          .eq('id', credit.vehicle_id);
-        if (vehicleUnlockError) throw vehicleUnlockError;
-      } await supabase.from('credit_payment_schedules').update({ status: 'cancelled' }).eq('credit_id', creditId).eq('status', 'pending'); if (remainingBalance > 0) { const categoryId = await resolveCategoryIdByAffects('credit_payment', 'Pago de Crédito'); await addFinancialRecordMutation.mutateAsync({ companyId: credit.company_id, clientId: credit.client_id, vehicleId: credit.vehicle_id, categoryId, category: 'Nota de Crédito', type: 'payment', amount: remainingBalance, description: `Nota de Crédito - Cancelación: ${reason || 'Sin motivo'}`, date: new Date().toISOString(), creditId, isDeleted: false, createdBy: currentUser.uid }); } await refreshData(); toast.success('Crédito cancelado exitosamente'); } catch (error: any) { toast.error('Error al cancelar crédito', { description: error.message }); throw error; } }, [currentUser, addFinancialRecordMutation, refreshData]);
+  const cancelCreditWithAdjustment = useCallback(async (creditId: string, reason?: string) => {
+    if (!currentUser?.uid) throw new Error('Usuario no autenticado');
+    try {
+      const companyId = currentUser.companyId;
+      if (!companyId) throw new Error('Empresa no disponible para cancelar el crédito');
+
+      const { data: result, error } = await supabase.rpc('cancel_credit_atomic', {
+        p_company_id: companyId,
+        p_credit_id: creditId,
+        p_reason: reason || null,
+      } as any);
+
+      if (error) throw error;
+      if (!result?.success) throw new Error('La base de datos no confirmó la cancelación del crédito');
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['credits'] }),
+        queryClient.invalidateQueries({ queryKey: ['financial_records'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['partners'] }),
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+        queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }),
+        queryClient.invalidateQueries({ queryKey: ['credit_payment_schedules'] }),
+      ]);
+      await refreshData();
+
+      const mode = result.mode === 'credit_note'
+        ? 'Se generó una nota de crédito por el saldo pendiente.'
+        : 'Se anuló el ingreso original porque no había pagos recibidos.';
+      toast.success('Crédito cancelado correctamente', { description: mode });
+    } catch (error: any) {
+      logger.error('Error al cancelar crédito:', error);
+      toast.error('Error al cancelar crédito', { description: error?.message || 'No fue posible cancelar el crédito.' });
+      throw error;
+    }
+  }, [currentUser, queryClient, refreshData]);
+
   const createVehicleAssignment = useCallback(async (input: NewAssignmentInput) => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const { data: vehicle, error: vehicleError } = await supabase.from('vehicles').select('*').eq('id', input.vehicleId).single(); if (vehicleError || !vehicle) throw new Error('Vehículo no encontrado'); const { data: openLogsRaw } = await supabase.from('vehicle_assignment_logs').select('*').eq('vehicle_id', input.vehicleId).is('unassigned_at', null); const openLogs = (openLogsRaw || []).map(toDomainVehicleAssignmentLog); const availability = checkVehicleAssignmentAvailability({ lockedByCredit: vehicle.locked_by_credit }, openLogs, input.clientId); if (!availability.available) throw new Error(availability.error); const now = new Date().toISOString(); for (const openLog of openLogs) await supabase.from('vehicle_assignment_logs').update({ unassigned_at: now }).eq('id', openLog.id); const payload = buildAssignmentLogPayload({ ...input, assignedBy: currentUser.uid }, now); const { error: insertError } = await supabase.from('vehicle_assignment_logs').insert(toSbVehicleAssignmentLog(payload) as any); if (insertError) throw insertError; await supabase.from('vehicles').update({ client_id: input.clientId, status: 'rented', updated_at: now }).eq('id', input.vehicleId); await Promise.all([queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }), queryClient.invalidateQueries({ queryKey: ['vehicles'] })]); toast.success('Asignación registrada exitosamente'); } catch (error: any) { toast.error('Error al registrar la asignación', { description: error.message }); throw error; } }, [currentUser, queryClient]);
   const endVehicleAssignment = useCallback(async (assignmentLogId: string, vehicleId: string) => { try { const now = new Date().toISOString(); const { error: updateLogError } = await supabase.from('vehicle_assignment_logs').update({ unassigned_at: now }).eq('id', assignmentLogId); if (updateLogError) throw updateLogError; const { data: vehicle } = await supabase.from('vehicles').select('locked_by_credit').eq('id', vehicleId).single(); if (!vehicle?.locked_by_credit) await supabase.from('vehicles').update({ client_id: null, status: 'active', updated_at: now }).eq('id', vehicleId); await Promise.all([queryClient.invalidateQueries({ queryKey: ['vehicle_assignment_logs'] }), queryClient.invalidateQueries({ queryKey: ['vehicles'] })]); toast.success('Asignación finalizada'); } catch (error: any) { toast.error('Error al finalizar la asignación', { description: error.message }); throw error; } }, [queryClient]);
   const deleteCreditWithCleanup = useCallback(async (creditId: string) => { await cancelCreditWithAdjustment(creditId, 'Cancelación de crédito solicitada (cleanup). Se conserva historial y registros financieros.'); }, [cancelCreditWithAdjustment]);
