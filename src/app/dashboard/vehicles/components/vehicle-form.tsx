@@ -52,15 +52,14 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
   lastMaintenanceMileage: z.coerce.number().min(0, "El kilometraje del último mantenimiento no puede ser negativo.").optional(),
   currentMileage: z.coerce.number().min(0, "El kilometraje no puede ser negativo."),
   acquisitionDate: z.string().min(1, "La fecha de adquisición es requerida."),
-  insurancePolicyNumber: z.string().optional().or(z.literal('')).refine(value => {
-    if (!value) return true;
+  insurancePolicyNumber: z.string().trim().min(1, "El número de póliza es requerido.").refine(value => {
     return !allVehicles.some(v => v.insurancePolicyNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de póliza ya está en uso." }),
-  insuranceExpiryDate: z.string().optional().or(z.literal('')),
+  insuranceExpiryDate: z.string().min(1, "La fecha de vencimiento de la póliza es requerida."),
   color: z.string().trim().min(1, "El color es requerido."),
   imageUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
   circulationCardUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
-  insurancePolicyDocumentUrl: z.array(z.union([z.string(), z.instanceof(File)])).optional(),
+  insurancePolicyDocumentUrl: z.array(z.union([z.string(), z.instanceof(File)])).min(1, "El documento de la póliza es requerido."),
   companyId: z.string().nullable(),
   gpsPhoneNumber: z.string().optional().or(z.literal('')).refine(value => {
     if (!value) return true;
@@ -254,8 +253,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
                 <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Protección</p><h3 className="text-base font-semibold text-white">Seguro</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => <FormItem><FormLabel>No. Póliza Seguro</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => <FormItem><FormLabel>Vencimiento Póliza</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => <FormItem><FormLabel>No. Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => <FormItem><FormLabel>Vencimiento Póliza <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
 
@@ -264,7 +263,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                   <FormField name="imageUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Imagen Vehículo</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*" multiple={false} folder="vehicle_images" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Póliza Seguro</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
             </div>
