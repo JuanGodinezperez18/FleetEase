@@ -4,7 +4,7 @@
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { generatePDFReport, downloadPDF, type KpiFormat } from '@/lib/reports/pdf-generator';
+import type { KpiFormat } from '@/lib/reports/pdf-generator';
 import { useDashboardPage } from './hooks/use-dashboard-page';
 import { DashboardHeader } from './components/dashboard-header';
 import { KpiGrid } from './components/kpi-grid';
@@ -149,6 +149,7 @@ export default function DashboardPage() {
 
     setIsExportingPdf(true);
     try {
+      const { generatePDFReport, downloadPDF } = await import('@/lib/reports/pdf-generator');
       const from = customDateRange?.from ?? startOfMonth(new Date());
       const to = customDateRange?.to ?? endOfMonth(new Date());
 
