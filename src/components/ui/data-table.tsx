@@ -159,40 +159,34 @@ export function DataTable<TData, TValue>({
   
   const handleExport = React.useCallback(async () => {
     const XLSX = await import('xlsx');
-  const handleExport = React.useCallback(() => {
     const tableData = table.getFilteredRowModel().rows.map(row => {
       const rowData: Record<string, any> = {};
       row.getVisibleCells().forEach(cell => {
         const column = cell.column;
         const columnDef = column.columnDef;
         if (column.id !== 'actions') {
-           const header = typeof column.columnDef.header === 'string' 
+           const header = typeof column.columnDef.header === 'string'
              ? column.columnDef.header
              : (column.columnDef.header as any)?.props?.title || column.id;
            let value = cell.getValue();
-           
            if (value instanceof Date) {
              value = formatDate(value);
            } else if (typeof value === 'number' && (header.toLowerCase().includes('monto') || header.toLowerCase().includes('costo') || header.toLowerCase().includes('saldo'))) {
              value = formatCurrency(value);
            }
-
            if (typeof columnDef.cell === 'function') {
                 const renderedValue = flexRender(columnDef.cell, cell.getContext());
-                
                 if (typeof renderedValue === 'string' || typeof renderedValue === 'number' || typeof renderedValue === 'boolean') {
                     value = renderedValue;
                 } else {
                     value = extractTextFromReactNode(renderedValue);
                 }
            }
-           
            rowData[header] = value;
         }
       });
       return rowData;
     });
-
     const worksheet = XLSX.utils.json_to_sheet(tableData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
