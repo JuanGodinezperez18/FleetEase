@@ -20,7 +20,7 @@ const ListItem = React.forwardRef<
   <li
     ref={ref}
     className={cn(
-      "p-4 rounded-lg border bg-card text-card-foreground transition-shadow hover:shadow-sm",
+      "p-4 rounded-[var(--fe-radius-md)] border border-[var(--fe-border)] bg-[var(--fe-surface)] text-[var(--fe-text)] transition-shadow hover:shadow-[var(--fe-shadow-sm)]",
       className
     )}
     {...props}
