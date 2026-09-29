@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { Credit, Client, Vehicle, FinancialRecord } from '@/types';
+import type { Credit, FinancialRecord } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { differenceInWeeks, addWeeks } from 'date-fns';
 
@@ -54,8 +54,6 @@ export type PortfolioAnalytics = {
 
 export const useCreditAnalytics = (
   credits: Credit[],
-  clients: Client[],
-  vehicles: Vehicle[],
   financialRecords: FinancialRecord[]
 ) => {
   const activeCredits = useMemo(() => credits.filter(c => c.status === 'active' && !c.isDeleted), [credits]);
