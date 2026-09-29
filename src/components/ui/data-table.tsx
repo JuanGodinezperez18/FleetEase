@@ -17,7 +17,7 @@ import type {
     VisibilityState,
     Table as TanStackTable,
 } from "@tanstack/react-table"
-import * as XLSX from 'xlsx';
+
 import {
   Table as ShadcnTable,
   TableBody,
@@ -157,6 +157,8 @@ export function DataTable<TData, TValue>({
   
   const loadingRows = React.useMemo(() => Array.from({ length: 10 }, (_, i) => i), []);
   
+  const handleExport = React.useCallback(async () => {
+    const XLSX = await import('xlsx');
   const handleExport = React.useCallback(() => {
     const tableData = table.getFilteredRowModel().rows.map(row => {
       const rowData: Record<string, any> = {};
