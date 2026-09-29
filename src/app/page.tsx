@@ -202,7 +202,7 @@ export default function LandingPage() {
           </section>
 
           {/* Trust strip */}
-          <section className="border-y border-white/[0.07] bg-white/[0.018]">
+          <section aria-label="Puntos clave de FleetEase" className="border-y border-white/[0.07] bg-white/[0.018]">
             <div className="mx-auto flex max-w-[1240px] flex-col items-center gap-4 px-5 py-6 text-center sm:flex-row sm:justify-between sm:text-left lg:px-8">
               <p className="text-[12px] font-medium text-white/45">
                 Hecho para operadores de renta en México · Datos en la nube · Sin instalar servidores
@@ -221,7 +221,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <section className="border-b border-white/[0.07]">
+          <section aria-label="Áreas principales de FleetEase" className="border-b border-white/[0.07]">
             <div className="mx-auto grid max-w-[1240px] grid-cols-2 divide-x divide-white/[0.07] px-5 sm:grid-cols-4 lg:px-8">
               {[
                 ["01", "Operación", "Todo conectado"],
@@ -241,13 +241,13 @@ export default function LandingPage() {
           <LandingSocialProof />
 
           {/* PRODUCTO */}
-          <section id="producto" className="mx-auto max-w-[1240px] px-5 py-16 lg:px-8 lg:py-24">
+          <section id="producto" aria-labelledby="producto-title" className="mx-auto max-w-[1240px] px-5 py-16 lg:px-8 lg:py-24">
             <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
               <div className="lg:sticky lg:top-28 lg:self-start">
                 <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d7ff3f]">
                   El sistema operativo de tu flotilla
                 </div>
-                <h2 className="max-w-xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                <h2 id="producto-title" className="max-w-xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
                   Menos hojas de cálculo.
                   <br />
                   <span className="text-white/50">Más control.</span>
