@@ -346,13 +346,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addExpense = useCallback(async (data: Partial<DomainFinancialRecord>) => {
     const recordData = { ...data, type: 'expense' as const, createdAt: new Date().toISOString() };
-    const result = await createExpenseAtomic(toSbFinancialRecord(recordData) as any);
-    const created = toDomainFinancialRecord(result as any);
+    await createExpenseAtomic(toSbFinancialRecord(recordData) as any);
     queryClient.invalidateQueries({ queryKey: ['financial_records'] });
     queryClient.invalidateQueries({ queryKey: ['mileage_logs'] });
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     toast.success('Registro agregado');
-    return created;
   }, [queryClient]);
   const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
