@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
-import { createFinancialRecord, updateFinancialRecordMetadata } from '@/lib/financial-rpc';
+import { createFinancialRecord, createExpenseAtomic, updateFinancialRecordMetadata } from '@/lib/financial-rpc';
 import { createCreditAtomic } from '@/lib/credit-rpc';
 import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, type NewAssignmentInput } from '@/lib/vehicle-assignment';
 import type { Client, Vehicle, Partner, Credit, FinancialRecord, MileageLog, Notification, VehicleAssignmentLog, Company, FinancialCategory, MessageTemplate, MessageLog, CreditPaymentSchedule, Multa } from '@/types/supabase';
@@ -344,7 +344,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateMessageTemplateMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainMessageTemplate> & { id: string }) => { const { error } = await supabase.from('message_templates').update({ ...toSbMessageTemplate(data), updated_at: new Date().toISOString() } as any).eq('id', id); if (error) throw error; }, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['message_templates'] }) });
   const deleteMessageTemplateMutation = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from('message_templates').delete().eq('id', id); if (error) throw error; }, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['message_templates'] }) });
 
-  const addExpense = useCallback(async (data: Partial<DomainFinancialRecord>) => { const category = allFinancialCategories.find(c => c.id === data.categoryId); const isMaintenance = category?.name === MAINTENANCE_CATEGORY; const recordData = { ...data, type: 'expense' as const, createdAt: new Date().toISOString() }; await addFinancialRecordMutation.mutateAsync(recordData); if (data.mileageAtExpense && data.vehicleId) { await addMileageLogMutation.mutateAsync({ vehicleId: data.vehicleId, mileage: data.mileageAtExpense, date: data.date, source: 'expense', kind: isMaintenance ? 'maintenance' : 'odometer', financialRecordId: data.id, notes: data.description, companyId: data.companyId, isDeleted: false }); const { error } = await supabase.from('vehicles').update({ current_mileage: data.mileageAtExpense, ...(isMaintenance && { last_maintenance_mileage: data.mileageAtExpense }) }).eq('id', data.vehicleId); if (error) throw error; } }, [allFinancialCategories, addFinancialRecordMutation, addMileageLogMutation]);
+  const addExpense = useCallback(async (data: Partial<DomainFinancialRecord>) => {
+    const recordData = { ...data, type: 'expense' as const, createdAt: new Date().toISOString() };
+    const result = await createExpenseAtomic(toSbFinancialRecord(recordData) as any);
+    const created = toDomainFinancialRecord(result as any);
+    queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+    queryClient.invalidateQueries({ queryKey: ['mileage_logs'] });
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    toast.success('Registro agregado');
+    return created;
+  }, [queryClient]);
   const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = (result as any)?.id; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
