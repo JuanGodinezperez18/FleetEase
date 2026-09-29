@@ -186,19 +186,19 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
           <div className="pr-1 sm:pr-3">
             <div className="space-y-5 p-1 sm:space-y-6">
               {!initialData && (
-                <div className="rounded-[14px] border border-[#d7ff3f]/10 bg-white/[0.025] p-5 shadow-[0_12px_35px_rgba(0,0,0,.14)]">
+                <div className="rounded-[14px] border border-[var(--fe-lime)]/15 bg-[var(--fe-hover)] p-5 shadow-[var(--fe-shadow-sm)]">
                   <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-white/90">¿Tienes la tarjeta de circulación?</h3>
-                      <p className="mt-1 text-xs text-white/50">Escanéala para llenar automáticamente los datos del vehículo</p>
+                      <h3 className="text-sm font-semibold fe-text">¿Tienes la tarjeta de circulación?</h3>
+                      <p className="mt-1 text-xs fe-text-muted">Escanéala para llenar automáticamente los datos del vehículo</p>
                     </div>
                     <CirculationCardScanner onDataExtracted={handleDataExtracted} disabled={isSubmitting} />
                   </div>
                 </div>
               )}
 
-              <section className="rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Identificación</p><h3 className="text-base font-semibold text-white">Datos del vehículo</h3></div></div>
+              <section className="rounded-[14px] border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-lime)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--fe-lime)]">Identificación</p><h3 className="text-base font-semibold fe-text">Datos del vehículo</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FormField name="alias" control={form.control} render={({field}) => <FormItem><FormLabel>Alias del vehículo</FormLabel><FormControl><Input {...field} placeholder="Ej. Versa Juan 01" disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="make" control={form.control} render={({field}) => <FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
@@ -211,55 +211,55 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Registro</p><h3 className="text-base font-semibold text-white">Fecha de creación</h3></div></div>
-                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={parseDateForInput(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-muted cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs text-muted-foreground">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Registro</p><h3 className="text-base font-semibold fe-text">Fecha de creación</h3></div></div>
+                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={parseDateForInput(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-[var(--fe-hover)] cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs fe-text-muted">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Conectividad</p><h3 className="text-base font-semibold text-white">GPS</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Conectividad</p><h3 className="text-base font-semibold fe-text">GPS</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField name="gpsPhoneNumber" control={form.control} render={({field}) => <FormItem><FormLabel>Teléfono GPS (Opcional)</FormLabel><FormControl><div className="relative"><Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="tel" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="gpsPhoneNumber" control={form.control} render={({field}) => <FormItem><FormLabel>Teléfono GPS (Opcional)</FormLabel><FormControl><div className="relative"><Phone className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="tel" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="gpsPhoneCompany" control={form.control} render={({field}) => <FormItem><FormLabel>Compañía GPS (Opcional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Operación</p><h3 className="text-base font-semibold text-white">Asignación</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-lime)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--fe-lime)]">Operación</p><h3 className="text-base font-semibold fe-text">Asignación</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField name="clientId" control={form.control} render={({field}) => <FormItem><FormLabel>Conductor Asignado</FormLabel><Select onValueChange={value => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || hasActiveCredit}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{assignableClients.map(c => <SelectItem key={c.id} value={c.id}>{`${c.firstname} ${c.lastname}`}</SelectItem>)}</SelectContent></Select>{hasActiveCredit && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Info className="h-3 w-3" />No se puede cambiar el conductor, vehículo ligado a un crédito activo.</p>}<FormMessage /></FormItem>} />
-                  <FormField name="partnerId" control={form.control} render={({field}) => <FormItem><FormLabel>Socio Propietario</FormLabel><Select onValueChange={value => { if (value === CREATE_NEW_PARTNER_VALUE) { onOpenPartnerModal(form.getValues('companyId') || ''); } else { field.onChange(value === NONE_SELECT_VALUE ? null : value); } }} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{activePartners.map(p => <SelectItem key={p.id} value={p.id}>{`${p.firstname} ${p.lastname}`}</SelectItem>)}<SelectItem value={CREATE_NEW_PARTNER_VALUE} className="text-primary focus:bg-primary/10 focus:text-primary"><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nuevo socio...</span></SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
+                  <FormField name="clientId" control={form.control} render={({field}) => <FormItem><FormLabel>Conductor Asignado</FormLabel><Select onValueChange={value => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || hasActiveCredit}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{assignableClients.map(c => <SelectItem key={c.id} value={c.id}>{`${c.firstname} ${c.lastname}`}</SelectItem>)}</SelectContent></Select>{hasActiveCredit && <p className="mt-1 flex items-center gap-1 text-xs fe-text-muted"><Info className="h-3 w-3" />No se puede cambiar el conductor, vehículo ligado a un crédito activo.</p>}<FormMessage /></FormItem>} />
+                  <FormField name="partnerId" control={form.control} render={({field}) => <FormItem><FormLabel>Socio Propietario</FormLabel><Select onValueChange={value => { if (value === CREATE_NEW_PARTNER_VALUE) { onOpenPartnerModal(form.getValues('companyId') || ''); } else { field.onChange(value === NONE_SELECT_VALUE ? null : value); } }} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{activePartners.map(p => <SelectItem key={p.id} value={p.id}>{`${p.firstname} ${p.lastname}`}</SelectItem>)}<SelectItem value={CREATE_NEW_PARTNER_VALUE} className="text-[var(--fe-lime)] focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)]"><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nuevo socio...</span></SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Finanzas</p><h3 className="text-base font-semibold text-white">Adquisición y renta</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Finanzas</p><h3 className="text-base font-semibold fe-text">Adquisición y renta</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-                  <FormField name="cost" control={form.control} render={({field}) => <FormItem><FormLabel>Costo Adquisición</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="weeklyRentalValue" control={form.control} render={({field}) => <FormItem><FormLabel>Renta por Semana</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="adminCommission" control={form.control} render={({field}) => <FormItem><FormLabel>Costo de Administración</FormLabel><FormControl><div className="relative"><span className="absolute left-2.5 top-2.5 text-sm text-muted-foreground">$</span><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-7 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="cost" control={form.control} render={({field}) => <FormItem><FormLabel>Costo Adquisición</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="weeklyRentalValue" control={form.control} render={({field}) => <FormItem><FormLabel>Renta por Semana</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="adminCommission" control={form.control} render={({field}) => <FormItem><FormLabel>Costo de Administración</FormLabel><FormControl><div className="relative"><span className="absolute left-2.5 top-2.5 text-sm fe-text-muted">$</span><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-7 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="acquisitionDate" control={form.control} render={({field}) => <FormItem><FormLabel>Fecha Adquisición</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[#d7ff3f]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#d7ff3f]/80">Mantenimiento</p><h3 className="text-base font-semibold text-white">Kilometraje</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-lime)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--fe-lime)]">Mantenimiento</p><h3 className="text-base font-semibold fe-text">Kilometraje</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField name="currentMileage" control={form.control} render={({field}) => <FormItem><FormLabel>Kilometraje Actual</FormLabel><FormControl><Input type="number" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="lastMaintenanceMileage" control={form.control} render={({field}) => <FormItem><FormLabel>Último Mtto. (km)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Protección</p><h3 className="text-base font-semibold text-white">Seguro</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Protección</p><h3 className="text-base font-semibold fe-text">Seguro</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => <FormItem><FormLabel>No. Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => <FormItem><FormLabel>Vencimiento Póliza <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/[0.07] bg-[#0e1117] p-4 sm:p-5 shadow-[0_14px_40px_rgba(0,0,0,.14)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">Archivos</p><h3 className="text-base font-semibold text-white">Documentos y fotografía</h3></div></div>
+              <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Archivos</p><h3 className="text-base font-semibold fe-text">Documentos y fotografía</h3></div></div>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                   <FormField name="imageUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Imagen Vehículo</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*" multiple={false} folder="vehicle_images" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
@@ -268,9 +268,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
             </div>
           </div>
-          <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-transparent pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white sm:h-10 sm:w-auto">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[#d7ff3f] text-black hover:bg-[#d7ff3f]/90 sm:h-10 sm:w-auto">
+          <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-transparent pt-4 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] fe-text/70 hover:bg-white/[0.06] hover:fe-text sm:h-10 sm:w-auto">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[var(--fe-lime)] text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90 sm:h-10 sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSubmitting ? 'Guardando...' : 'Guardar vehículo'}
             </Button>
