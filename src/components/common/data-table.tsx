@@ -18,7 +18,7 @@ import type {
     Table as TanStackTable,
     RowSelectionState,
 } from "@tanstack/react-table"
-import * as XLSX from 'xlsx';
+
 import {
   Table as ShadcnTable,
   TableBody,
@@ -213,7 +213,8 @@ export function DataTable<TData, TValue>({
     }
   }, [selectedRows, setRowSelection]);
 
-  const handleExport = React.useCallback(() => {
+  const handleExport = React.useCallback(async () => {
+    const XLSX = await import('xlsx');
     const tableData = table.getFilteredRowModel().rows.map(row => {
       const rowData: Record<string, any> = {};
       row.getVisibleCells().forEach(cell => {
