@@ -112,9 +112,9 @@ export const useVehicleAnalytics = (
           .map(row => [row.id, row.maintenance_interval as number])
       );
     },
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const intervalMap = useMemo(() => new Map(Object.entries(companyIntervals)), [companyIntervals]);
