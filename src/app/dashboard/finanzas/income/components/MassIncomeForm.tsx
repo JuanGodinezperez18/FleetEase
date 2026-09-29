@@ -26,7 +26,6 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import * as XLSX from 'xlsx';
 
 const formSchema = z.object({
   companyId: z.string().min(1, 'Selecciona una compañía'),
