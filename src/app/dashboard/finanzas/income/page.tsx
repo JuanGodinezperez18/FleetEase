@@ -122,7 +122,7 @@ export default function IncomesPage() {
     }
   };
 
-  const exportData = useCallback(() => {
+  const exportData = useCallback(async () => {
     const dataToExport = incomes.map(item => ({
       Fecha: formatDate(item.date),
       Descripción: item.description,
@@ -132,7 +132,7 @@ export default function IncomesPage() {
       Cliente: item.clientName,
       Vehículo: item.vehicleName,
     }));
-    const XLSX = await import('xlsx');
+        const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ingresos');
