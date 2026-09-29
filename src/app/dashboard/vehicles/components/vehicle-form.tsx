@@ -212,12 +212,12 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Registro</p><h3 className="text-base font-semibold fe-text">Fecha de creación</h3></div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Registro</p><h3 className="text-base font-semibold fe-text">Fecha de creación</h3></div></div>
                 <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={parseDateForInput(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-[var(--fe-hover)] cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs fe-text-muted">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Conectividad</p><h3 className="text-base font-semibold fe-text">GPS</h3></div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Conectividad</p><h3 className="text-base font-semibold fe-text">GPS</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField name="gpsPhoneNumber" control={form.control} render={({field}) => <FormItem><FormLabel>Teléfono GPS (Opcional)</FormLabel><FormControl><div className="relative"><Phone className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="tel" {...field} value={field.value ?? ''} className="pl-8" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="gpsPhoneCompany" control={form.control} render={({field}) => <FormItem><FormLabel>Compañía GPS (Opcional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
@@ -233,7 +233,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Finanzas</p><h3 className="text-base font-semibold fe-text">Adquisición y renta</h3></div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Finanzas</p><h3 className="text-base font-semibold fe-text">Adquisición y renta</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                   <FormField name="cost" control={form.control} render={({field}) => <FormItem><FormLabel>Costo Adquisición</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
                   <FormField name="weeklyRentalValue" control={form.control} render={({field}) => <FormItem><FormLabel>Renta por Semana</FormLabel><FormControl><div className="relative"><DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 fe-text-muted" /><Input type="number" step="0.01" min="0" inputMode="decimal" {...field} value={field.value ?? ''} className="pl-8 tabular-nums" placeholder="0.00" disabled={isSubmitting} /></div></FormControl><FormMessage /></FormItem>} />
@@ -251,7 +251,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Protección</p><h3 className="text-base font-semibold fe-text">Seguro</h3></div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Protección</p><h3 className="text-base font-semibold fe-text">Seguro</h3></div></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField name="insurancePolicyNumber" control={form.control} render={({field}) => <FormItem><FormLabel>No. Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="insuranceExpiryDate" control={form.control} render={({field}) => <FormItem><FormLabel>Vencimiento Póliza <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
@@ -259,7 +259,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
-                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-white/30" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Archivos</p><h3 className="text-base font-semibold fe-text">Documentos y fotografía</h3></div></div>
+                <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Archivos</p><h3 className="text-base font-semibold fe-text">Documentos y fotografía</h3></div></div>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                   <FormField name="imageUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Imagen Vehículo</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*" multiple={false} folder="vehicle_images" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
                   <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
@@ -269,7 +269,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
             </div>
           </div>
           <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-transparent pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-white/[0.09] bg-white/[0.025] fe-text/70 hover:bg-white/[0.06] hover:fe-text sm:h-10 sm:w-auto">Cancelar</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-[var(--fe-border)] bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)] sm:h-10 sm:w-auto">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[var(--fe-lime)] text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90 sm:h-10 sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSubmitting ? 'Guardando...' : 'Guardar vehículo'}
