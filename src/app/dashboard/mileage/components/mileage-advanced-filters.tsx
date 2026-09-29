@@ -74,13 +74,13 @@ export const MileageAdvancedFilters: React.FC<MileageAdvancedFiltersProps> = ({
             <Input
               placeholder="Buscar por marca, modelo, placa..."
               onChange={e => onSearch(e.target.value)}
-              className="border-white/10 bg-white/[0.03] pl-10 text-white"
+              className="pl-10"
               defaultValue={filters.query}
             />
           </div>
 
           <Select value={filters.maintenanceStatus} onValueChange={value => onFilterChange("maintenanceStatus", value)}>
-            <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+            <SelectTrigger className="">
               <div className="flex items-center gap-1">
                 <Wrench className="h-3.5 w-3.5 text-white/40" strokeWidth={1.75} />
                 <SelectValue />
@@ -122,7 +122,7 @@ export const MileageAdvancedFilters: React.FC<MileageAdvancedFiltersProps> = ({
                 Empresa
               </label>
               <Select value={filters.companyId} onValueChange={value => onFilterChange("companyId", value)}>
-                <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                <SelectTrigger className="">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

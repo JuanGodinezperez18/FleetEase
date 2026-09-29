@@ -82,11 +82,9 @@ const TYPE_LABEL: Record<string, string> = {
   expense: 'Gasto',
 };
 
-const inputClass =
-  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
-const labelClass = 'text-xs font-medium text-white/55';
-const selectTriggerClass =
-  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30';
+const inputClass = 'h-[var(--fe-control-height)]';
+const labelClass = 'text-xs font-medium text-[var(--fe-text-muted)]';
+const selectTriggerClass = 'h-[var(--fe-control-height)]';
 
 const CategoryForm = React.forwardRef<
   CategoryFormHandles,

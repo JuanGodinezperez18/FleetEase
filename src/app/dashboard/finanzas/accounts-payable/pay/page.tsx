@@ -124,28 +124,28 @@ export default function PayableSettlementPage() {
         <div className="max-w-2xl overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label className="text-white/50">Importe a aplicar</Label>
+              <Label className="text-[var(--fe-text-muted)]">Importe a aplicar</Label>
               <Input
                 inputMode="decimal"
                 value={amount}
                 onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder="0.00"
-                className="border-white/10 bg-white/[0.03] text-white"
+                className=""
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/50">Fecha</Label>
+              <Label className="text-[var(--fe-text-muted)]">Fecha</Label>
               <Input
                 type="date"
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="border-white/10 bg-white/[0.03] text-white"
+                className=""
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/50">Método de pago</Label>
+              <Label className="text-[var(--fe-text-muted)]">Método de pago</Label>
               <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                <SelectTrigger className="">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,12 +158,12 @@ export default function PayableSettlementPage() {
               </Select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label className="text-white/50">Referencia</Label>
+              <Label className="text-[var(--fe-text-muted)]">Referencia</Label>
               <Input
                 value={reference}
                 onChange={e => setReference(e.target.value)}
                 placeholder="Opcional"
-                className="border-white/10 bg-white/[0.03] text-white"
+                className=""
               />
             </div>
             <div className="md:col-span-2 flex justify-end pt-1">

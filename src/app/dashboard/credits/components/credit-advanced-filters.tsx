@@ -90,14 +90,14 @@ export const CreditAdvancedFilters: React.FC<CreditAdvancedFiltersProps> = ({
           <Input
             placeholder="Buscar por cliente, placa..."
             onChange={e => onSearch(e.target.value)}
-            className="border-white/10 bg-white/[0.03] pl-10 text-white"
+            className="pl-10"
             defaultValue={filters.query}
           />
         </div>
 
         <div className="fe-filter-grid">
           <Select value={filters.status} onValueChange={value => onFilterChange("status", value)}>
-            <SelectTrigger className="fe-filter-control border-white/10 bg-white/[0.03] text-white">
+            <SelectTrigger className="fe-filter-control">
               <div className="flex items-center gap-1">
                 <Activity className="h-3.5 w-3.5 text-white/40" strokeWidth={1.75} />
                 <SelectValue />

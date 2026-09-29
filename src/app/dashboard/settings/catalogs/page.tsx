@@ -95,11 +95,9 @@ const emptyItem = {
   notes: '',
 };
 
-const inputClass =
-  'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
-const textareaClass =
-  'min-h-[80px] rounded-xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/30 focus-visible:ring-[#d7ff3f]/30';
-const labelClass = 'text-xs font-medium text-white/55';
+const inputClass = 'h-[var(--fe-control-height)]';
+const textareaClass = 'min-h-[96px]';
+const labelClass = 'text-xs font-medium text-[var(--fe-text-muted)]';
 const selectTriggerClass =
   'h-11 rounded-xl border-white/10 bg-white/[0.03] text-white focus:ring-[#d7ff3f]/30';
 const sectionClass =
