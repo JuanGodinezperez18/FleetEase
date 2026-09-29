@@ -59,7 +59,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--fe-radius-md)] border border-[var(--fe-border)] bg-[var(--fe-surface)] text-[var(--fe-text)] shadow-[var(--fe-shadow-menu)]",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--fe-radius-md)] border border-[var(--fe-menu-border)] bg-[var(--fe-menu-bg)] text-[var(--fe-menu-text)] shadow-[var(--fe-shadow-menu)]",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         position === "popper" && "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
@@ -92,7 +92,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex min-h-10 w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm text-[var(--fe-text-secondary)] outline-none transition-colors focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+      "relative flex min-h-10 w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm text-[var(--fe-menu-text)] outline-none transition-colors focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
       className
     )}
     {...props}
@@ -109,7 +109,7 @@ const SelectSeparator = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-[var(--fe-border)]", className)} {...props} />
+  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-[var(--fe-menu-border)]", className)} {...props} />
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
