@@ -17,7 +17,6 @@ import { supabase } from '@/lib/supabase';
 import { getNotificationLink } from '@/lib/notification-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
@@ -313,6 +312,7 @@ export default function NotificationsPage() {
       Tipo: n.entityType,
       Estado: n.isRead ? 'Leída' : 'No leída',
     }));
+const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Notificaciones');
