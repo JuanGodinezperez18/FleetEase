@@ -504,7 +504,7 @@ export default function PaymentsPage() {
                   <div className="space-y-2">
                     <Label className="text-white/50">Método de pago</Label>
                     <Select value={method} onValueChange={setMethod}>
-                      <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                      <SelectTrigger aria-label="Método de pago" className="border-white/10 bg-white/[0.03] text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
