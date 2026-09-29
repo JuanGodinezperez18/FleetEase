@@ -135,7 +135,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isDashboardRoot = pathname === '/dashboard' || pathname === '/dashboard/';
   const needsMessageTemplates = pathname.startsWith('/dashboard/messages');
-  const needsCreditSchedules = isDashboardRoot || pathname.startsWith('/dashboard/credits') || pathname.startsWith('/dashboard/finanzas') || pathname.startsWith('/client/payments');
+  const needsCreditSchedules = pathname.startsWith('/dashboard/credits') || pathname.startsWith('/dashboard/finanzas') || pathname.startsWith('/client/payments');
   const needsMileageLogs = isDashboardRoot || pathname.includes('/mileage') || pathname.includes('/vehicles') || pathname.includes('/vehicle');
   const needsAssignmentLogs = isDashboardRoot || pathname.includes('/assignments') || pathname.includes('/vehicles/') || pathname.includes('/vehicle') || pathname.includes('/multas') || pathname.startsWith('/dashboard/finanzas/income');
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<string | null>(null);
