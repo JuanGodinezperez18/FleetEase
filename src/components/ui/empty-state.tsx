@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { LucideIcon, Plus, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -49,7 +50,7 @@ export function EmptyState({
         <Icon className="h-6 w-6" strokeWidth={1.6} />
       </motion.div>
 
-      <div className="space-y-1.5 max-w-sm">
+      <div className="max-w-sm space-y-1.5">
         <h3 className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-white/80">
           {title}
         </h3>
@@ -58,24 +59,28 @@ export function EmptyState({
         )}
       </div>
 
-      {(actionLabel && (actionHref || onAction)) && (
+      {actionLabel && (actionHref || onAction) && (
         actionHref ? (
-          <Link
-            href={actionHref}
-            className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#d7ff3f] px-4 py-2 text-xs font-bold text-[#080a0f] transition hover:bg-white"
+          <Button
+            asChild
+            size="sm"
+            className="mt-1 rounded-full px-4 font-bold"
           >
-            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-            {actionLabel}
-          </Link>
+            <Link href={actionHref}>
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+              {actionLabel}
+            </Link>
+          </Button>
         ) : (
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={onAction}
-            className="mt-1 inline-flex items-center gap-2 rounded-full bg-[#d7ff3f] px-4 py-2 text-xs font-bold text-[#080a0f] transition hover:bg-white"
+            className="mt-1 rounded-full px-4 font-bold"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
             {actionLabel}
-          </button>
+          </Button>
         )
       )}
     </motion.div>
