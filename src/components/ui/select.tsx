@@ -18,7 +18,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-[var(--fe-control-height)] w-full items-center justify-between rounded-[var(--fe-radius-sm)] border border-[var(--fe-border)] bg-[var(--fe-input-bg)] px-3 text-sm text-[var(--fe-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] outline-none transition-[border-color,background-color,box-shadow] duration-[var(--fe-motion-fast)] hover:border-[var(--fe-border-strong)] hover:bg-[var(--fe-hover)] focus:border-[var(--fe-lime)] focus:bg-[var(--fe-hover)] focus:ring-2 focus:ring-[var(--fe-focus-ring)] disabled:cursor-not-allowed disabled:opacity-45 [&>span]:line-clamp-1",
+      "flex h-[var(--fe-control-height)] w-full items-center justify-between rounded-[var(--fe-radius-sm)] border border-[var(--fe-border)] bg-[var(--fe-input-bg)] px-3 text-sm text-[var(--fe-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] outline-none transition-[border-color,background-color,box-shadow] duration-[var(--fe-motion-fast)] hover:border-[var(--fe-border-strong)] hover:bg-[var(--fe-hover)] focus:border-[var(--fe-lime)] focus:bg-[var(--fe-hover)] focus:ring-2 focus:ring-[var(--fe-focus-ring)] aria-[invalid=true]:border-[var(--fe-danger)] aria-[invalid=true]:focus:ring-[var(--fe-danger)]/10 disabled:cursor-not-allowed disabled:opacity-45 [&>span]:line-clamp-1",
       className
     )}
     {...props}

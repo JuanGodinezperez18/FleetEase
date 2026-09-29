@@ -201,7 +201,7 @@ export function MultipleFileInput({
     return (
       <div {...getRootProps()}
         className={cn(`relative flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer
-        ${isDragActive ? 'border-primary bg-primary/10' : 'border-border'}`, containerClass, className)}
+        ${isDragActive ? 'border-[var(--fe-lime)] bg-[var(--fe-nav-active)]' : 'border-[var(--fe-border)]'}`, containerClass, className)}
       >
         <input {...getInputProps()} />
         {isComponentUploading ? (
@@ -212,8 +212,8 @@ export function MultipleFileInput({
                 <Image src={preview} alt="Preview" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className={cn('object-cover', previewType === 'avatar' ? 'rounded-full' : 'rounded-md')} />
             ) : (
                 <div className="flex flex-col items-center justify-center h-full">
-                <FileIcon className="w-12 h-12 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground truncate max-w-xs">{currentFile instanceof File ? currentFile.name : 'Archivo'}</p>
+                <FileIcon className="w-12 h-12 text-[var(--fe-text-muted)]" />
+                <p className="text-sm text-[var(--fe-text-muted)] truncate max-w-xs">{currentFile instanceof File ? currentFile.name : 'Archivo'}</p>
                 </div>
             )}
             <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full z-10" onClick={handleSingleRemove}>
@@ -221,10 +221,10 @@ export function MultipleFileInput({
             </Button>
             </div>
         ) : (
-            <div className="space-y-1 text-center text-muted-foreground">
+            <div className="space-y-1 text-center text-[var(--fe-text-muted)]">
                 {previewType === 'avatar' ? <UserCircle className="mx-auto h-12 w-12" /> : <Camera className="mx-auto h-12 w-12" />}
                 <p className="text-sm">{isDragActive ? 'Suelta el archivo aquí...' : 'Arrastra o haz clic'}</p>
-                 {!entityId && <p className="text-xs font-semibold text-amber-600">Guarda primero para subir</p>}
+                 {!entityId && <p className="text-xs font-semibold text-[var(--fe-warning)]">Guarda primero para subir</p>}
             </div>
         )}
       </div>
@@ -245,7 +245,7 @@ export function MultipleFileInput({
       <div
         {...getRootProps()}
         className={cn(`flex flex-col justify-center items-center w-full p-6 border-2 border-dashed rounded-md transition-colors`,
-        isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground',
+        isDragActive ? 'border-[var(--fe-lime)] bg-[var(--fe-nav-active)]' : 'border-[var(--fe-border)] hover:border-[var(--fe-border-strong)]',
         (disabled || isComponentUploading) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')}
       >
         <input {...getInputProps()} />
@@ -253,12 +253,12 @@ export function MultipleFileInput({
             <Loader2 className="h-8 w-8 animate-spin" />
         ) : (
             <div className="text-center">
-                <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
+                <UploadCloud className="mx-auto h-12 w-12 text-[var(--fe-text-muted)]" />
+                <p className="mt-2 text-sm text-[var(--fe-text-muted)]">
                   {isDragActive ? 'Suelta los archivos aquí...' : 'Arrastra archivos o haz clic para seleccionar'}
                 </p>
-                <p className="text-xs text-muted-foreground/80">{accept}</p>
-                 {!entityId && <p className="text-xs font-semibold text-amber-600 mt-1">Guarda primero para poder subir archivos</p>}
+                <p className="text-xs text-[var(--fe-text-muted)]/80">{accept}</p>
+                 {!entityId && <p className="text-xs font-semibold text-[var(--fe-warning)] mt-1">Guarda primero para poder subir archivos</p>}
             </div>
         )}
       </div>
@@ -273,13 +273,13 @@ export function MultipleFileInput({
                     : file.type.startsWith('image/');
                 
                 return (
-                <div key={index} className="w-40 flex-shrink-0 border rounded-lg overflow-hidden bg-muted flex flex-col group">
-                    <div className="relative w-full h-24 bg-gray-100">
+                <div key={index} className="w-40 flex-shrink-0 border rounded-lg overflow-hidden bg-[var(--fe-surface)] flex flex-col group">
+                    <div className="relative w-full h-24 bg-[var(--fe-main)]">
                       {isImage ? (
                           <Image src={previewUrl} alt={`Preview ${index}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" onError={(e) => { e.currentTarget.src = '/placeholder-image.png'; }} />
                       ) : (
                           <div className="flex flex-col items-center justify-center h-full p-1">
-                              <FileIcon className="w-8 h-8 text-muted-foreground" />
+                              <FileIcon className="w-8 h-8 text-[var(--fe-text-muted)]" />
                           </div>
                       )}
                     </div>
