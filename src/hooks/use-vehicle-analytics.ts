@@ -48,7 +48,6 @@ function calculateVehicleMetrics(
   }, 0);
   const utilizationRate = totalDaysInFleet > 0 ? (daysAssigned / totalDaysInFleet) * 100 : 0;
 
-  // La configuración vigente de la empresa es la fuente de verdad.
   const maintenanceInterval = companyIntervals.get(vehicle.companyId || '')
     ?? vehicle.maintenanceInterval
     ?? DEFAULT_MAINTENANCE_INTERVAL_KM;
@@ -90,15 +89,17 @@ function calculateVehicleMetrics(
 export const useVehicleAnalytics = (
   vehicles: Vehicle[],
   financialRecords: FinancialRecord[],
-  assignmentLogs: VehicleAssignmentLog[]
+  assignmentLogs: VehicleAssignmentLog[],
+  companies: Company[] = []
 ) => {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => setHydrated(true), []);
 
-  // Consulta la configuración actual de cada empresa para que el cálculo no
-  // dependa de una copia antigua del intervalo guardada en el vehículo.
-  const { data: companyIntervals = {} } = useQuery<Record<string, number>>({
+  // DataProvider ya carga las compañías para construir el modelo de dominio.
+  // Reutilizamos esa misma fuente para evitar una segunda consulta a companies.
+  // El fallback de React Query se conserva para consumidores aislados del hook.
+  const { data: queriedCompanyIntervals = {} } = useQuery<Record<string, number>>({
     queryKey: ['vehicle-analytics-company-settings'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -112,12 +113,23 @@ export const useVehicleAnalytics = (
           .map(row => [row.id, row.maintenance_interval as number])
       );
     },
-    enabled: companies.length === 0,\n    staleTime: 10 * 60 * 1000,
+    enabled: companies.length === 0,
+    staleTime: 10 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
-  const intervalMap = useMemo(() => {\n    if (companies.length > 0) {\n      return new Map(\n        companies\n          .filter(company => company.id)\n          .map(company => [company.id, Number(company.maintenanceInterval)] as const)\n          .filter(([, interval]) => Number.isFinite(interval) && interval > 0)\n      );\n    }\n    return new Map(Object.entries(queriedCompanyIntervals));\n  }, [companies, queriedCompanyIntervals]);
+  const intervalMap = useMemo(() => {
+    if (companies.length > 0) {
+      return new Map(
+        companies
+          .filter(company => company.id)
+          .map(company => [company.id, Number(company.maintenanceInterval)] as const)
+          .filter(([, interval]) => Number.isFinite(interval) && interval > 0)
+      );
+    }
+    return new Map(Object.entries(queriedCompanyIntervals));
+  }, [companies, queriedCompanyIntervals]);
 
   const vehicleMetrics = useMemo(() => {
     if (!vehicles || !financialRecords || !assignmentLogs) return [];
