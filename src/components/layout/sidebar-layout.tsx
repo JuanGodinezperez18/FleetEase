@@ -9,6 +9,7 @@ import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { GlobalLoader } from "../common/GlobalLoader";
 import { ThemeToggle } from "./theme-toggle";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -68,6 +69,15 @@ function SidebarLayoutContent({ children }: SidebarLayoutProps) {
         <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] xl:block">
           <Sidebar />
         </div>
+
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+          <SheetContent
+            side="left"
+            className="w-[18rem] max-w-[85vw] border-r border-[var(--fe-border)] bg-[var(--fe-bg)] p-0 text-[var(--fe-text)] shadow-[var(--fe-shadow-dialog)] xl:hidden [&>button]:hidden"
+          >
+            <Sidebar collapsible="none" />
+          </SheetContent>
+        </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header
