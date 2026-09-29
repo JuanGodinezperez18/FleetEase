@@ -427,7 +427,7 @@ export default function PaymentsPage() {
                         }}
                         disabled={!entityId || targets.length === 0}
                       >
-                        <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                        <SelectTrigger aria-label={kind === "multa_payment" ? "Multa pendiente" : "Cargo pendiente"} className="border-white/10 bg-white/[0.03] text-white">
                           <SelectValue placeholder={kind === "multa_payment" ? (targets.length ? "Seleccionar multa pendiente..." : "Este cliente no tiene multas pendientes") : "Seleccionar cargo pendiente..."} />
                         </SelectTrigger>
                         <SelectContent>
