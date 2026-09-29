@@ -43,7 +43,7 @@ export function EmptyState({
       )}
     >
       <motion.div
-        className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-white/25"
+        className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-hover)] text-[var(--fe-text-muted)]"
         whileHover={{ scale: 1.05, borderColor: "rgba(215,255,63,0.25)" }}
         transition={{ type: "spring", stiffness: 400, damping: 18 }}
       >
@@ -51,11 +51,11 @@ export function EmptyState({
       </motion.div>
 
       <div className="max-w-sm space-y-1.5">
-        <h3 className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-white/80">
+        <h3 className="font-heading text-[15px] font-semibold tracking-[-0.02em] text-[var(--fe-text)]">
           {title}
         </h3>
         {description && (
-          <p className="text-xs leading-5 text-white/40">{description}</p>
+          <p className="text-xs leading-5 text-[var(--fe-text-muted)]">{description}</p>
         )}
       </div>
 

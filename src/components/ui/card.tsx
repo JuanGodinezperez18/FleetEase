@@ -14,9 +14,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <motion.div
       ref={ref}
       className={cn(
-        "rounded-[var(--fe-radius-md)] border border-[var(--fe-border)] text-card-foreground",
+        "rounded-[var(--fe-radius-md)] border border-[var(--fe-border)] text-[var(--fe-text)]",
         glass && "bg-[rgba(var(--fe-surface-rgb),0.86)] backdrop-blur-xl",
-        !glass && "bg-card shadow-[var(--fe-shadow-sm)]",
+        !glass && "bg-[var(--fe-surface)] shadow-[var(--fe-shadow-sm)]",
         hover && "hover-lift transition-all duration-300",
         glow && "hover:shadow-glow",
         className
@@ -47,7 +47,7 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-2xl font-semibold leading-none tracking-tight text-[var(--fe-text)]",
       className
     )}
     {...props}
@@ -61,7 +61,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-[var(--fe-text-muted)]", className)}
     {...props}
   />
 ))
