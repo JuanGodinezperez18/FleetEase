@@ -37,14 +37,14 @@ export function LandingHeader() {
             <Link
               key={label}
               href={href}
-              className="text-[13px] font-medium text-white/60 transition hover:text-white"
+              className="rounded-sm text-[13px] font-medium text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]"
             >
               {label}
             </Link>
           ))}
         </nav>
         <div className="hidden items-center gap-5 md:flex">
-          <Link href="/login" className="text-[13px] font-medium text-white/60 transition hover:text-white">
+          <Link href="/login" className="rounded-sm text-[13px] font-medium text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]">
             Iniciar sesión
           </Link>
           <Link
@@ -57,10 +57,11 @@ export function LandingHeader() {
         </div>
         <button
           type="button"
-          className="rounded-lg p-2 text-white/80 md:hidden"
+          className="rounded-lg p-2 text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuOpen}
+          aria-controls="landing-mobile-menu"
         >
           {menuOpen ? <X /> : <Menu />}
         </button>
@@ -68,6 +69,7 @@ export function LandingHeader() {
       <AnimatePresence>
         {menuOpen && (
           <motion.div
+            id="landing-mobile-menu"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -79,18 +81,18 @@ export function LandingHeader() {
                   key={label}
                   href={href}
                   onClick={() => setMenuOpen(false)}
-                  className="text-base text-white/70"
+                  className="rounded-sm text-base text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]"
                 >
                   {label}
                 </Link>
               ))}
-              <Link href="/login" onClick={() => setMenuOpen(false)} className="text-base text-white/70">
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-sm text-base text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]">
                 Iniciar sesión
               </Link>
               <Link
                 href="/registro"
                 onClick={() => setMenuOpen(false)}
-                className="rounded-xl bg-[#d7ff3f] px-5 py-3 text-center font-bold text-[#080a0f]"
+                className="rounded-xl bg-[#d7ff3f] px-5 py-3 text-center font-bold text-[#080a0f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f]"
               >
                 Empezar ahora
               </Link>
