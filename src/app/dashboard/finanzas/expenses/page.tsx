@@ -183,7 +183,6 @@ export default function ExpensesPage() {
           isDeleted: false,
           createdAt: new Date().toISOString(),
           category,
-          partnerId: null,
           notes: '',
         });
         toast.success('Gasto agregado', { id: toastId });
