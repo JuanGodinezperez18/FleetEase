@@ -175,20 +175,34 @@ export const healthLimiter = new RateLimiter({
  * if (rateLimitResponse) return rateLimitResponse;
  * ```
  */
-export async function checkRateLimit(
-  request: Request,
-  limiter: RateLimiter
-): Promise<Response | null> {
-  // Obtener identificador: IP o user ID si está autenticado
+async function getRateLimitIdentifier(request: Request): Promise<string> {
   const ip = request.headers.get('x-forwarded-for') ||
              request.headers.get('x-real-ip') ||
              'unknown';
 
   const authHeader = request.headers.get('authorization');
-  const identifier = authHeader?.startsWith('Bearer ')
-    ? `user:${authHeader.slice(7).substring(0, 20)}`
-    : `ip:${ip}`;
+  if (!authHeader?.startsWith('Bearer ')) return `ip:${ip}`;
 
+  // Never keep a raw access token (or a truncated token prefix) as the key.
+  // Hashing avoids collisions caused by the previous 20-character truncation
+  // while also avoiding retention of the credential itself in the in-memory store.
+  const token = authHeader.slice(7);
+  try {
+    const bytes = new TextEncoder().encode(token);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    return `user:${hash}`;
+  } catch {
+    // Fail closed on token-key generation without exposing the token.
+    return `ip:${ip}`;
+  }
+}
+
+export async function checkRateLimit(
+  request: Request,
+  limiter: RateLimiter
+): Promise<Response | null> {
+  const identifier = await getRateLimitIdentifier(request);
   const result = await limiter.check(identifier);
 
   if (result.limited) {
