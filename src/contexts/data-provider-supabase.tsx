@@ -184,7 +184,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       )
     );
   }, [allVehicles, allMileageLogs, allCompanies]);
-  const { vehicleMetrics } = useVehicleAnalytics(allVehicles, allFinancialRecords, allVehicleAssignmentLogs);
+  const { vehicleMetrics } = useVehicleAnalytics(allVehicles, allFinancialRecords, allVehicleAssignmentLogs, allCompanies);
   const { clientMetrics } = useClientAnalytics(allClients, allFinancialRecords, vehicles);
 
   // Indexamos los movimientos una sola vez. Las funciones financieras canónicas
