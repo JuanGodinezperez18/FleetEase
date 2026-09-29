@@ -57,8 +57,6 @@ export async function POST(request: NextRequest) {
       recipientType,
       selectedUsers,
       sendPush,
-      priority,
-      senderName,
       companyId,
     } = await request.json();
 
@@ -134,14 +132,11 @@ export async function POST(request: NextRequest) {
 
     const batchPromises = userIdChunks.map(async (chunk) => {
       const notifications = chunk.map(userId => ({
-        user_id: userId,
-        title,
-        message,
+        uid: userId,
         type: 'announcement',
-        priority: priority || 'normal',
+        message: title ? `${title}: ${message}` : message,
+        date: timestamp,
         is_read: false,
-        created_at: timestamp,
-        created_by: senderName,
         company_id: companyId,
       }));
 

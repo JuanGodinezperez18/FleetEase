@@ -23,7 +23,6 @@ interface NotificationRecord {
   date: string;
   is_read: boolean;
   company_id: string;
-  priority: 'normal' | 'high';
 }
 
 async function verifyAuth(request: NextRequest): Promise<boolean> {
@@ -127,8 +126,6 @@ export async function GET(request: NextRequest) {
         if (
           LICENSE_WARNING_DAYS.includes(daysUntilExpiry)
         ) {
-          const priority: 'normal' | 'high' =
-            daysUntilExpiry <= 7 ? 'high' : 'normal';
           const daysLabel =
             daysUntilExpiry === 30 ? '30 dias' : '7 dias';
 
@@ -140,7 +137,6 @@ export async function GET(request: NextRequest) {
             date: new Date().toISOString(),
             is_read: false,
             company_id: client.company_id,
-            priority,
           });
 
           // Notify admins in the same company
@@ -154,8 +150,7 @@ export async function GET(request: NextRequest) {
               date: new Date().toISOString(),
               is_read: false,
               company_id: client.company_id,
-              priority,
-            });
+              });
           }
         }
       } catch (clientError) {

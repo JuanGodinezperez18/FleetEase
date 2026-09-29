@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             .from('vehicles')
             .select('id, plate, company_id, partner_id, insurance_expiry_date')
             .eq('is_deleted', false)
-            .eq('sold', false)
+             .neq('status', 'sold')
             .not('insurance_expiry_date', 'is', null),
           supabase
             .from('users')

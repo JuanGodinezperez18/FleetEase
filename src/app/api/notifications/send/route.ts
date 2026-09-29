@@ -70,9 +70,6 @@ export async function POST(request: NextRequest) {
       title,
       body: messageBody,
       type,
-      priority,
-      url,
-      data,
       companyId,
     } = parsed.data;
 
@@ -82,15 +79,11 @@ export async function POST(request: NextRequest) {
     const { data: notification, error: notifError } = await supabaseAdmin
       .from('notifications')
       .insert({
-        user_id: userId,
-        title,
-        message: messageBody,
+        uid: userId,
         type: type || 'general',
-        priority: priority || 'normal',
-        url: url || null,
-        data: data || null,
+        message: title ? `${title}: ${messageBody}` : messageBody,
+        date: timestamp,
         is_read: false,
-        created_at: timestamp,
         company_id: companyId || null,
       })
       .select()
