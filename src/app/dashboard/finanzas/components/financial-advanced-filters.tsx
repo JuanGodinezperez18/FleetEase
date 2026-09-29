@@ -41,7 +41,7 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
 
       {currentUser?.role === "superAdmin" && (
         <Select onValueChange={onCompanyChange} defaultValue="all">
-          <SelectTrigger className="w-[220px]">
+          <SelectTrigger className="w-[220px]" label="Empresa">
             <Building className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
             <SelectValue placeholder="Todas las Empresas" />
           </SelectTrigger>
@@ -57,7 +57,7 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
       )}
 
       <Select onValueChange={onPartnerChange} defaultValue="all">
-        <SelectTrigger className="w-[220px]">
+        <SelectTrigger className="w-[220px]" label="Socio">
           <Briefcase className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
           <SelectValue placeholder="Todos los Socios" />
         </SelectTrigger>
