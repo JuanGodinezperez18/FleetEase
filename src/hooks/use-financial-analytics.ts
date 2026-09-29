@@ -77,7 +77,6 @@ export const useFinancialAnalytics = (
   financialRecords: FinancialRecord[],
   clients: Client[],
   vehicles: Vehicle[],
-  partners: Partner[],
   dateRange?: { from?: Date; to?: Date },
   financialCategories?: FinancialCategory[]
 ): FinancialAnalytics => {
@@ -264,7 +263,7 @@ export const useFinancialAnalytics = (
       netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth,
       cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis,
     };
-  }, [financialRecords, clients, vehicles, partners, dateRange, financialCategories]);
+  }, [financialRecords, clients, vehicles, dateRange, financialCategories]);
 
   return analytics;
 };
