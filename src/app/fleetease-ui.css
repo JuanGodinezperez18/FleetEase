@@ -26,8 +26,8 @@
   --fe-main: var(--fe-dark-main);
   --fe-text: #ffffff;
   --fe-text-secondary: rgba(255, 255, 255, 0.65);
-  --fe-text-muted: rgba(255, 255, 255, 0.45);
-  --fe-text-faint: rgba(255, 255, 255, 0.35);
+  --fe-text-muted: rgba(255, 255, 255, 0.60);
+  --fe-text-faint: rgba(255, 255, 255, 0.55);
   --fe-hover: rgba(255, 255, 255, 0.06);
   --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
@@ -115,8 +115,8 @@
   --fe-main: var(--fe-light-main);
   --fe-text: #0a0c12;
   --fe-text-secondary: rgba(8, 10, 15, 0.72);
-  --fe-text-muted: rgba(8, 10, 15, 0.52);
-  --fe-text-faint: rgba(8, 10, 15, 0.4);
+  --fe-text-muted: rgba(8, 10, 15, 0.68);
+  --fe-text-faint: rgba(8, 10, 15, 0.62);
   --fe-hover: rgba(8, 10, 15, 0.06);
   --fe-hover-strong: rgba(8, 10, 15, 0.1);
   --fe-panel: rgba(255, 255, 255, 0.98);
