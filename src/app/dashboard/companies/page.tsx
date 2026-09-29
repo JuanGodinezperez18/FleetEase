@@ -33,7 +33,6 @@ import {
 import { sanitizeAndFormatData } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
 import { useRouter } from 'next/navigation';
 
 interface CompanyWithMetrics extends Company {
@@ -398,6 +397,7 @@ export default function CompaniesPage() {
       'Tiene Contrato': c.contractTemplateUrl ? 'Sí' : 'No',
     }));
 
+const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     XLSX.utils.book_append_sheet(wb, ws, 'Empresas');
