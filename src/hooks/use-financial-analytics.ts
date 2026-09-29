@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import type { FinancialRecord, Client, Vehicle, Partner, FinancialCategory } from '@/types';
+import type { FinancialRecord, Client, Vehicle, FinancialCategory } from '@/types';
 import { subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
