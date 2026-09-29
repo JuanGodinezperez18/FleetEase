@@ -112,12 +112,12 @@ export const useVehicleAnalytics = (
           .map(row => [row.id, row.maintenance_interval as number])
       );
     },
-    staleTime: 10 * 60 * 1000,
+    enabled: companies.length === 0,\n    staleTime: 10 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
-  const intervalMap = useMemo(() => new Map(Object.entries(companyIntervals)), [companyIntervals]);
+  const intervalMap = useMemo(() => {\n    if (companies.length > 0) {\n      return new Map(\n        companies\n          .filter(company => company.id)\n          .map(company => [company.id, Number(company.maintenanceInterval)] as const)\n          .filter(([, interval]) => Number.isFinite(interval) && interval > 0)\n      );\n    }\n    return new Map(Object.entries(queriedCompanyIntervals));\n  }, [companies, queriedCompanyIntervals]);
 
   const vehicleMetrics = useMemo(() => {
     if (!vehicles || !financialRecords || !assignmentLogs) return [];
