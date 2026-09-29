@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * IMPORTANT: Replace PHONE_NUMBER with your real WhatsApp Business number
  * (country code + number, no + or spaces). Example for Mexico: 5215512345678
  */
-const PHONE_NUMBER = "5215512345678"; // TODO: reemplazar con tu número real
+const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") ?? "";
 const PREFILL_MESSAGE = encodeURIComponent(
   "Hola, me interesa conocer FleetEase para mi flotilla. ¿Pueden ayudarme?"
 );
@@ -16,9 +16,12 @@ export function WhatsAppWidget() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!PHONE_NUMBER) return;
     const timer = setTimeout(() => setVisible(true), 2800);
     return () => clearTimeout(timer);
   }, []);
+
+  if (!PHONE_NUMBER) return null;
 
   return (
     <a
