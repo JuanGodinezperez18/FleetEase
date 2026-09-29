@@ -9,6 +9,15 @@ export async function createFinancialRecord(record: Record<string, unknown>) {
   return data as Record<string, unknown>;
 }
 
+/** Atomic expense gateway: financial record + mileage log + vehicle mileage update. */
+export async function createExpenseAtomic(record: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc('create_expense_atomic', {
+    p_record: record,
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
+
 /** Updates metadata only. PostgreSQL rejects tenant/accounting fields. */
 export async function updateFinancialRecordMetadata(
   id: string,
