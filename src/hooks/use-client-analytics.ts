@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Client, FinancialRecord, Vehicle } from '@/types';
+import type { Client, FinancialRecord } from '@/types';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import { calculateClientBalance, DRIVER_PAYMENT_CATEGORY } from '@/lib/financial-metrics';
 import { differenceInDays } from 'date-fns';
@@ -27,8 +27,7 @@ export type ClientMetric = {
 
 export const useClientAnalytics = (
   clients: Client[],
-  financialRecords: FinancialRecord[],
-  vehicles: Vehicle[]
+  financialRecords: FinancialRecord[]
 ) => {
   const [hydrated, setHydrated] = useState(false);
 
@@ -37,7 +36,7 @@ export const useClientAnalytics = (
   }, []);
 
   const clientMetrics: ClientMetric[] = useMemo(() => {
-    if (!clients || !financialRecords || !vehicles) return [];
+    if (!clients || !financialRecords) return [];
 
     const recordsByClient = new Map<string, FinancialRecord[]>();
     financialRecords.forEach(r => {
@@ -159,7 +158,7 @@ export const useClientAnalytics = (
         recommendations,
       };
     });
-  }, [clients, financialRecords, vehicles, hydrated]);
+  }, [clients, financialRecords, hydrated]);
 
   return { clientMetrics };
 };
