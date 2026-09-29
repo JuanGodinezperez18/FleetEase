@@ -123,7 +123,7 @@ export function PwaInstallButton() {
   };
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-[#0e1117]/95 p-3 shadow-xl backdrop-blur-xl sm:bottom-4 supports-[backdrop-filter]:bg-[#0e1117]/85">
+    <aside aria-label="Instalación de FleetEase" className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-[#0e1117]/95 p-3 shadow-xl backdrop-blur-xl sm:bottom-auto sm:left-auto sm:right-4 sm:top-20 supports-[backdrop-filter]:bg-[#0e1117]/85">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/10 text-[#d7ff3f]">
         {ios ? <Smartphone className="h-5 w-5" /> : <Download className="h-5 w-5" />}
       </div>
