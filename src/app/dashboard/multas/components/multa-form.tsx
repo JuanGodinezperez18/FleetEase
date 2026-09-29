@@ -34,8 +34,8 @@ interface MultaFormData {
   notas?: string;
 }
 
-const inputClass = "border-white/10 bg-white/[0.03] text-white";
-const labelClass = "text-white/50";
+const inputClass = "h-[var(--fe-control-height)]";
+const labelClass = "text-xs font-medium text-[var(--fe-text-muted)]";
 
 export function MultaForm({ multa, onClose }: MultaFormProps) {
   const { vehicles, vehicleAssignmentLogs } = useVehicles();
@@ -262,7 +262,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             ))}
           </SelectContent>
         </Select>
-        {errors.vehicleId && <p className="text-sm text-rose-300">{errors.vehicleId.message}</p>}
+        {errors.vehicleId && <p className="text-xs text-[var(--fe-danger)]">{errors.vehicleId.message}</p>}
       </div>
 
       {selectedVehicleId && fechaInfraccion && (
@@ -314,7 +314,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             className={inputClass}
           />
           {errors.fechaInfraccion && (
-            <p className="text-sm text-rose-300">{errors.fechaInfraccion.message}</p>
+            <p className="text-xs text-[var(--fe-danger)]">{errors.fechaInfraccion.message}</p>
           )}
         </div>
       </div>
@@ -329,7 +329,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           placeholder="Calle, colonia, ciudad"
           className={inputClass}
         />
-        {errors.direccion && <p className="text-sm text-rose-300">{errors.direccion.message}</p>}
+        {errors.direccion && <p className="text-xs text-[var(--fe-danger)]">{errors.direccion.message}</p>}
       </div>
 
       <div className="space-y-2">
@@ -343,7 +343,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           rows={3}
           className={inputClass}
         />
-        {errors.descripcion && <p className="text-sm text-rose-300">{errors.descripcion.message}</p>}
+        {errors.descripcion && <p className="text-xs text-[var(--fe-danger)]">{errors.descripcion.message}</p>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -364,7 +364,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             })}
             className={inputClass}
           />
-          {errors.importe && <p className="text-sm text-rose-300">{errors.importe.message}</p>}
+          {errors.importe && <p className="text-xs text-[var(--fe-danger)]">{errors.importe.message}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="recargos" className={labelClass}>
@@ -387,14 +387,14 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             })}
             className={inputClass}
           />
-          {errors.recargos && <p className="text-sm text-rose-300">{errors.recargos.message}</p>}
+          {errors.recargos && <p className="text-xs text-[var(--fe-danger)]">{errors.recargos.message}</p>}
         </div>
         <div className="space-y-2">
           <Label className={labelClass}>Total</Label>
           <Input
             value={`$${total.toFixed(2)}`}
             disabled
-            className="border-white/10 bg-white/[0.05] font-semibold tabular-nums text-white"
+            className="font-semibold tabular-nums"
           />
         </div>
       </div>
@@ -416,7 +416,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             {multa?.status === "pagada" && <SelectItem value="pagada">Pagada</SelectItem>}
           </SelectContent>
         </Select>
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-[var(--fe-text-faint)]">
           {multa?.status === "pagada"
             ? "El pago ya fue registrado; este estado no se modifica aquí."
             : "Para marcar como pagada, usa la acción de pago en la lista."}
@@ -449,14 +449,14 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           variant="outline"
           onClick={onClose}
           disabled={loading}
-          className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+          className="text-[var(--fe-text-secondary)]"
         >
           Cancelar
         </Button>
         <Button
           type="submit"
           disabled={loading || !assignedClient}
-          className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-50"
+          className="font-semibold disabled:opacity-50"
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} />}
           {multa ? "Actualizar" : "Registrar"} multa
