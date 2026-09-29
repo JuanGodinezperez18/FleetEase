@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, Users, TrendingUp, Hash, Banknote } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { startOfDay, endOfDay, format } from 'date-fns';
-import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IncomeForm from './components/IncomeForm';
 import MassIncomeForm from './components/MassIncomeForm';
@@ -134,6 +133,7 @@ export default function IncomesPage() {
       Vehículo: item.vehicleName,
     }));
     const ws = XLSX.utils.json_to_sheet(dataToExport);
+const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ingresos');
     XLSX.writeFile(wb, `ingresos_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
