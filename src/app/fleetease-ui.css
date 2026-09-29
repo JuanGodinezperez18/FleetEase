@@ -76,8 +76,8 @@
   --fe-main: var(--fe-dark-main);
   --fe-text: #ffffff;
   --fe-text-secondary: rgba(255, 255, 255, 0.65);
-  --fe-text-muted: rgba(255, 255, 255, 0.45);
-  --fe-text-faint: rgba(255, 255, 255, 0.35);
+  --fe-text-muted: rgba(255, 255, 255, 0.60);
+  --fe-text-faint: rgba(255, 255, 255, 0.55);
   --fe-hover: rgba(255, 255, 255, 0.06);
   --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
