@@ -18,7 +18,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-[var(--fe-control-height)] w-full items-center justify-between rounded-[var(--fe-radius-sm)] border border-[var(--fe-border)] bg-[var(--fe-input-bg)] px-3 text-sm text-[var(--fe-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] outline-none transition-[border-color,background-color,box-shadow] duration-[var(--fe-motion-fast)] hover:border-[var(--fe-border-strong)] hover:bg-[var(--fe-hover)] focus:border-[var(--fe-lime)] focus:bg-[var(--fe-hover)] focus:ring-2 focus:ring-[var(--fe-focus-ring)] aria-[invalid=true]:border-[var(--fe-danger)] aria-[invalid=true]:focus:ring-[var(--fe-danger)]/10 disabled:cursor-not-allowed disabled:opacity-45 [&>span]:line-clamp-1",
+      "flex h-[var(--fe-control-height)] w-full items-center justify-between rounded-[var(--fe-radius-sm)] border border-[var(--fe-border)] bg-[var(--fe-input-bg)] px-3 text-sm text-[var(--fe-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] outline-none transition-[border-color,background-color,box-shadow] duration-[var(--fe-motion-fast)] hover:border-[var(--fe-border-strong)] hover:bg-[var(--fe-hover)] focus:border-[var(--fe-lime)] focus:bg-[var(--fe-hover)] focus:ring-2 focus:ring-[var(--fe-focus-ring)] disabled:cursor-not-allowed disabled:opacity-45 [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -59,7 +59,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--fe-radius-md)] border border-[var(--fe-border)] bg-[var(--fe-surface)] text-[var(--fe-text)] shadow-[var(--fe-shadow-menu)]",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[var(--fe-radius-md)] border border-[var(--fe-menu-border)] bg-[var(--fe-menu-bg)] text-[var(--fe-menu-text)] shadow-[var(--fe-shadow-menu)]",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         position === "popper" && "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
