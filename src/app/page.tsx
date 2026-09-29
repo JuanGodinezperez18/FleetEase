@@ -115,11 +115,13 @@ export default function LandingPage() {
                     <div className="h-7 w-7 rounded-lg bg-[#d7ff3f] p-1.5">
                       <Gauge className="h-full w-full text-[#080a0f]" />
                     </div>
-                    <span className="text-xs font-semibold">Resumen de flotilla</span>
+                    <div>
+                      <span className="text-xs font-semibold">Resumen de flotilla</span>
+                      <span className="mt-0.5 block text-[9px] text-white/35">Datos ilustrativos de la interfaz</span>
+                    </div>
                   </div>
-                  <span className="rounded-full bg-[#d7ff3f]/10 px-2.5 py-1 text-[10px] font-semibold text-[#d7ff3f]">
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#d7ff3f]" />
-                    EN VIVO
+                  <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold text-white/55">
+                    VISTA DE EJEMPLO
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
