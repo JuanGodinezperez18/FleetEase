@@ -344,7 +344,7 @@ export default function PaymentsPage() {
                         : "Proveedor"}
                     </Label>
                     <Select value={entityId} onValueChange={v => { setEntityId(v); setTargetId(""); }}>
-                      <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                      <SelectTrigger aria-label={kind === "client_payment" || kind === "security_deposit_refund" || kind === "multa_payment" ? "Cliente" : kind === "credit_payment" ? "Crédito / Cliente" : kind === "partner_payment" ? "Socio" : "Proveedor"} className="border-white/10 bg-white/[0.03] text-white">
                         <SelectValue placeholder="Seleccionar..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -363,7 +363,7 @@ export default function PaymentsPage() {
                     <div className="space-y-2 md:col-span-2">
                       <Label className="text-white/50">Compra / factura pendiente</Label>
                       <Select value={targetId} onValueChange={v => { setTargetId(v); const p = supplierPayables.find(row => row.id === v); setAmount(p ? p.outstanding.toFixed(2) : ""); }} disabled={!entityId || supplierPayables.length === 0}>
-                        <SelectTrigger className="border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={supplierPayables.length ? "Seleccionar compra pendiente..." : "No hay compras pendientes"} /></SelectTrigger>
+                        <SelectTrigger aria-label="Compra o factura pendiente" className="border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={supplierPayables.length ? "Seleccionar compra pendiente..." : "No hay compras pendientes"} /></SelectTrigger>
                         <SelectContent>{supplierPayables.map(row => <SelectItem key={row.id} value={row.id}>{(row.reference || "Compra sin referencia") + " · " + (row.purchaseDate ? new Date(row.purchaseDate).toLocaleDateString("es-MX") : "Sin fecha") + " · Pendiente " + formatCurrency(row.outstanding)}</SelectItem>)}</SelectContent>
                       </Select>
                       {selectedSupplierPayable && <p className="text-xs text-white/35">Total de compra: {formatCurrency(selectedSupplierPayable.total)}{selectedSupplierPayable.dueDate ? " · Vence " + new Date(selectedSupplierPayable.dueDate).toLocaleDateString("es-MX") : ""}</p>}
@@ -374,7 +374,7 @@ export default function PaymentsPage() {
                     <div className="space-y-2">
                       <Label className="text-white/50">Origen del pago</Label>
                       <Select value={paymentSource} onValueChange={v => setPaymentSource(v as PaymentSource)}>
-                        <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
+                        <SelectTrigger aria-label="Origen del pago" className="border-white/10 bg-white/[0.03] text-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
