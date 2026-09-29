@@ -52,7 +52,7 @@ export function LandingFaq() {
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-sm font-semibold leading-5 text-white/90 sm:py-5"
+                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <span>{q}</span>
@@ -62,6 +62,7 @@ export function LandingFaq() {
                 </button>
                 {/* Answer always in the HTML for crawlers; collapsed with CSS when closed */}
                 <div
+                  aria-hidden={!isOpen}
                   className={`overflow-hidden transition-all ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
                 >
                   <p className="pb-5 pr-7 text-sm leading-6 text-white/55 sm:pr-8">{a}</p>
