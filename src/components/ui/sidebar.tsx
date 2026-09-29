@@ -6,7 +6,6 @@ import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +25,7 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const SIDEBAR_MOBILE_BREAKPOINT = 1280
 
 type SidebarContext = {
   state: "expanded" | "collapsed"
@@ -67,7 +67,15 @@ const SidebarProvider = React.forwardRef<
   },
   ref
 ) {
-    const isMobileHook = useIsMobile();
+    const [isMobileHook, setIsMobileHook] = React.useState(false)
+
+    React.useEffect(() => {
+      const mediaQuery = window.matchMedia(`(max-width: ${SIDEBAR_MOBILE_BREAKPOINT - 1}px)`)
+      const handleChange = () => setIsMobileHook(mediaQuery.matches)
+      handleChange()
+      mediaQuery.addEventListener("change", handleChange)
+      return () => mediaQuery.removeEventListener("change", handleChange)
+    }, [])
     const [openMobile, setOpenMobile] = React.useState(false)
 
     const [_open, _setOpen] = React.useState(defaultOpen)
