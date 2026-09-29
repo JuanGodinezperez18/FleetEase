@@ -132,8 +132,8 @@ export default function IncomesPage() {
       Cliente: item.clientName,
       Vehículo: item.vehicleName,
     }));
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(dataToExport);
-const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ingresos');
     XLSX.writeFile(wb, `ingresos_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
