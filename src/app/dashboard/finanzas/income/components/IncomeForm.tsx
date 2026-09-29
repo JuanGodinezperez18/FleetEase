@@ -96,6 +96,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   useEffect(() => { form.reset(getInitialFormValues(initialData || null)); }, [initialData, form, getInitialFormValues]);
 
   const selectedClientId = form.watch("clientId");
+  const selectedDate = form.watch("date");
   const selectedPartnerId = form.watch("partnerId");
   const selectedCompanyId = form.watch("companyId");
   const amount = form.watch("amount");
@@ -130,10 +131,32 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const activeCredit = useMemo(() => credits.find(c => c.clientId === selectedClientId && c.status === 'active' && !c.isDeleted), [credits, selectedClientId]);
 
   const activeClients = useMemo(() => {
-    const base = clients.filter(c => c.status === 'active' && !c.isDeleted);
+    const base = clients.filter(c => {
+      if (c.status !== 'active' || c.isDeleted) return false;
+
+      // Un cliente solo puede recibir movimientos con una fecha igual o posterior
+      // a su fecha de alta. Esto evita seleccionar clientes que todavía no existían
+      // cuando se está capturando un ingreso histórico.
+      if (selectedDate) {
+        const clientCreatedDate = infallibleNormalizeDate(c.createdAt);
+        if (!clientCreatedDate) return false;
+        const clientCreatedDateKey = format(clientCreatedDate, 'yyyy-MM-dd');
+        if (clientCreatedDateKey > selectedDate) return false;
+      }
+
+      return true;
+    });
+
     const creditRelated = ['Pago de Crédito', 'Pago Enganche de Crédito', 'Depósito de Crédito'].some(name => selectableCategories.find(c => c.name === name)?.id === selectedCategoryId);
     return creditRelated ? base.filter(c => credits.some(cr => cr.clientId === c.id && cr.status === 'active' && !cr.isDeleted)) : base;
-  }, [clients, credits, selectedCategoryId, selectableCategories]);
+  }, [clients, credits, selectedDate, selectedCategoryId, selectableCategories]);
+
+  useEffect(() => {
+    if (selectedClientId && !activeClients.some(client => client.id === selectedClientId)) {
+      form.setValue('clientId', null, { shouldValidate: true });
+      form.setValue('vehicleId', null, { shouldValidate: true });
+    }
+  }, [activeClients, selectedClientId, form]);
 
   const activePartners = useMemo(() => isPartnerPayment ? partners.filter(p => !p.isDeleted) : [], [partners, isPartnerPayment]);
 
