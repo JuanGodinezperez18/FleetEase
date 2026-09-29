@@ -35,13 +35,13 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(100vw-1rem,56rem)] max-w-[calc(100vw-1rem)] flex-col gap-3 overflow-hidden rounded-[18px] border-white/10 bg-[#0b0f14] p-4 text-white sm:max-h-[92vh] sm:w-full sm:max-w-xl sm:rounded-[18px] sm:p-6 md:max-w-3xl lg:max-w-4xl">
+      <DialogContent className="flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(100vw-1rem,56rem)] max-w-[calc(100vw-1rem)] flex-col gap-3 overflow-hidden rounded-[18px] border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 fe-text shadow-[var(--fe-shadow-dialog)] sm:max-h-[92vh] sm:w-full sm:max-w-xl sm:rounded-[18px] sm:p-6 md:max-w-3xl lg:max-w-4xl">
         <DialogHeader className="shrink-0 space-y-1 pr-8">
-          <DialogTitle className="font-heading text-base font-semibold tracking-tight text-white sm:text-lg">
+          <DialogTitle className="font-heading text-base font-semibold tracking-tight fe-text sm:text-lg">
             {title}
           </DialogTitle>
           {description && (
-            <DialogDescription className="text-xs text-white/45 sm:text-sm">
+            <DialogDescription className="text-xs fe-text-muted sm:text-sm">
               {description}
             </DialogDescription>
           )}

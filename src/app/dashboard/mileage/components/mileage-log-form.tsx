@@ -76,8 +76,8 @@ interface MileageLogFormProps {
   onClose: () => void;
 }
 
-const inputClass = "border-white/10 bg-white/[0.03] text-white";
-const labelClass = "text-white/50";
+const inputClass = "border-[var(--fe-input-border)] bg-[var(--fe-input-bg)] text-[var(--fe-input-text)] placeholder:text-[var(--fe-text-faint)]";
+const labelClass = "fe-text-secondary";
 
 const MileageLogForm: React.FC<MileageLogFormProps> = ({
   onSubmit,
@@ -223,13 +223,13 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
   };
 
   if (loadingData && !clients.length && !vehicles.length) {
-    return <div className="p-8 text-center text-white/50">Cargando...</div>;
+    return <div className="p-8 text-center fe-text-muted">Cargando...</div>;
   }
 
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-5 text-white">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-5 fe-text">
           {currentUser?.role === "superAdmin" && companies?.length > 0 && (
             <FormField
               control={form.control}
@@ -326,7 +326,7 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-2 text-center text-sm text-white/40">Sin vehículos asignados</div>
+                      <div className="p-2 text-center text-sm fe-text-muted">Sin vehículos asignados</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -352,7 +352,7 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
                   />
                 </FormControl>
                 {selectedVehicle && (
-                  <FormDescription className="text-white/35">
+                  <FormDescription className="fe-text-faint">
                     Último registrado: {new Intl.NumberFormat().format(selectedVehicle.currentMileage || 0)} km
                   </FormDescription>
                 )}
@@ -366,18 +366,18 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
               className={cn(
                 "rounded-[16px] border p-4",
                 isUnusual
-                  ? "border-amber-400/25 bg-amber-400/[0.06]"
-                  : "border-white/[0.07] bg-white/[0.03]"
+                  ? "border-amber-500/25 bg-amber-500/[0.06]"
+                  : "border-[var(--fe-border)] bg-[var(--fe-hover)]"
               )}
             >
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white/60">
-                <Gauge className="h-3.5 w-3.5 text-[#d7ff3f]" strokeWidth={1.75} />
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold fe-text-secondary">
+                <Gauge className="h-3.5 w-3.5 text-[var(--fe-lime)]" strokeWidth={1.75} />
                 Análisis del incremento
               </div>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-white/40">Incremento</span>
-                  <span className="font-semibold tabular-nums text-white">+{increment.toLocaleString()} km</span>
+                  <span className="font-semibold tabular-nums fe-text">+{increment.toLocaleString()} km</span>
                 </div>
                 {daysSinceLastLog > 0 && (
                   <>
@@ -385,16 +385,16 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
                       <span className="text-white/40">Días</span>
                       <span className="font-semibold tabular-nums text-white">{daysSinceLastLog}</span>
                     </div>
-                    <div className="flex justify-between border-t border-white/[0.06] pt-1">
+                    <div className="flex justify-between border-t border-[var(--fe-border-subtle)] pt-1">
                       <span className="text-white/40">Promedio diario</span>
-                      <span className={cn("font-semibold tabular-nums", kmPerDay > 300 ? "text-amber-300" : "text-white")}>
+                      <span className={cn("font-semibold tabular-nums", kmPerDay > 300 ? "text-amber-700 dark:text-amber-300" : "text-white")}>
                         {kmPerDay.toFixed(0)} km/día
                       </span>
                     </div>
                   </>
                 )}
                 {isUnusual && (
-                  <p className="mt-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-center text-[10px] font-semibold text-amber-300">
+                  <p className="mt-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-center text-[10px] font-semibold text-amber-300">
                     Incremento mayor al usual
                   </p>
                 )}
@@ -408,14 +408,14 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="border-[var(--fe-border)] bg-transparent fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              className="h-10 rounded-xl bg-[var(--fe-lime)] px-4 text-xs font-semibold text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90"
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} />}
               {isSubmitting ? "Guardando..." : "Guardar"}
