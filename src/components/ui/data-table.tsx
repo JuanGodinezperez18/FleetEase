@@ -252,7 +252,7 @@ export function DataTable<TData, TValue>({
                 
                 return (
                   <div key={cell.id} className="flex justify-between items-start text-sm">
-                    <span className="font-semibold text-muted-foreground mr-2">
+                    <span className="font-semibold text-[var(--fe-text-muted)] mr-2">
                        {typeof headerDef === 'function' ? flexRender(headerDef, headerContext) : String(headerDef)}
                     </span>
                     <div className="text-right truncate">
@@ -270,7 +270,7 @@ export function DataTable<TData, TValue>({
             </div>
           ))
         ) : (
-          <div className="text-center py-12 text-muted-foreground">{noResultsText}</div>
+          <div className="text-center py-12 text-[var(--fe-text-muted)]">{noResultsText}</div>
         )}
       </div>
 
