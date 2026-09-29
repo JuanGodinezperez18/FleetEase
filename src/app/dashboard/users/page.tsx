@@ -132,7 +132,7 @@ function UserMobileCard({
 }
 
 export default function UsersPage() {
-  const { users, companies, partners, loadingData, financialRecords, clients, vehicles } = useData();
+  const { users, companies, partners, loadingData, financialRecords } = useData();
   const { currentUser: authCurrentUser } = useAuth();
   const { toast } = useToast();
 
@@ -142,7 +142,7 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { userMetrics } = useUserAnalytics(users, financialRecords, clients, vehicles);
+  const { userMetrics } = useUserAnalytics(users, financialRecords);
 
   const usersWithMetrics: UserWithMetrics[] = useMemo(() => {
     const metricsMap = new Map(userMetrics.map(m => [m.userId, m]));
