@@ -38,7 +38,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
   
   const { vehicleMetrics: mileageMetrics = [] } = useMileageAnalytics(vehicles, mileageLogs, financialRecords, companies) || {};
   const { partnerMetrics = [] } = usePartnerAnalytics(partners, vehicles, financialRecords) || {};
-  const { creditMetrics = [], portfolioAnalytics = { totalPortfolioValue: 0, totalRemaining: 0 } } = useCreditAnalytics(credits, clients, vehicles, financialRecords) || {};
+  const { creditMetrics = [], portfolioAnalytics = { totalPortfolioValue: 0, totalRemaining: 0 } } = useCreditAnalytics(credits, financialRecords) || {};
   const multasAnalytics = useMultasAnalytics(multas, vehicles, clients);
 
   return useMemo(() => {
