@@ -36,7 +36,6 @@ import {
   Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
 
 export type UserWithMetrics = UserProfile & Partial<UserMetric>;
 
@@ -416,6 +415,7 @@ export default function UsersPage() {
       'Fecha de Creación': u.createdAt ? format(new Date(u.createdAt), 'dd/MM/yyyy') : 'N/A',
     }));
 
+const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     XLSX.utils.book_append_sheet(wb, ws, 'Usuarios');
