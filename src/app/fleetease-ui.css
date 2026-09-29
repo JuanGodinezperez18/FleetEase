@@ -389,6 +389,27 @@
   border-color: var(--fe-input-border) !important;
   color-scheme: light;
 }
+
+/* Native select menus: keep the browser popup readable in light mode. */
+.light select option,
+.light select optgroup {
+  color: var(--fe-input-text) !important;
+  background-color: var(--fe-input-bg) !important;
+}
+
+/* Radix selects render in a portal; bind the menu to explicit theme tokens. */
+.light [data-radix-select-content] {
+  color: var(--fe-menu-text) !important;
+  background-color: var(--fe-menu-bg) !important;
+  border-color: var(--fe-menu-border) !important;
+  color-scheme: light;
+}
+.dark [data-radix-select-content] {
+  color: var(--fe-menu-text) !important;
+  background-color: var(--fe-menu-bg) !important;
+  border-color: var(--fe-menu-border) !important;
+  color-scheme: dark;
+}
 .light input::placeholder,
 .light textarea::placeholder {
   color: var(--fe-input-placeholder) !important;
