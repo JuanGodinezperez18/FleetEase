@@ -34,7 +34,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     vehicleMetrics = []
   } = dataContext || {};
 
-  const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, partners, dateRange, financialCategories);
+  const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, dateRange, financialCategories);
   
   const { vehicleMetrics: mileageMetrics = [] } = useMileageAnalytics(vehicles, mileageLogs, financialRecords, companies) || {};
   const { partnerMetrics = [] } = usePartnerAnalytics(partners, vehicles, financialRecords) || {};
