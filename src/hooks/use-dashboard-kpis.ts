@@ -2,7 +2,6 @@
 import { useMemo } from 'react';
 import type { MetricKPIData } from '@/types/dashboard';
 import { useFinancialAnalytics } from './use-financial-analytics';
-import { useNotificationsAnalytics } from './use-notifications-analytics';
 import { useData } from './use-data';
 import { useMileageAnalytics } from './use-mileage-analytics';
 import { usePartnerAnalytics } from './use-partner-analytics';
@@ -39,15 +38,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
 
   const financialAnalytics = useFinancialAnalytics(financialRecords, clients, vehicles, partners, dateRange, financialCategories);
   
-  const { analyzedNotifications = [] } = useNotificationsAnalytics(
-    notifications,
-    clients,
-    vehicles,
-    partners,
-    financialRecords,
-    []
-  ) || {};
-
   const { vehicleMetrics: mileageMetrics = [] } = useMileageAnalytics(vehicles, mileageLogs, financialRecords, companies) || {};
   const { partnerMetrics = [] } = usePartnerAnalytics(partners, vehicles, financialRecords) || {};
   const { creditMetrics = [], portfolioAnalytics = { totalPortfolioValue: 0, totalRemaining: 0 } } = useCreditAnalytics(credits, clients, vehicles, financialRecords) || {};
@@ -364,7 +354,6 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     dateRange,
     clientMetrics,
     vehicleMetrics,
-    analyzedNotifications,
     mileageMetrics,
     partnerMetrics,
     creditMetrics,
