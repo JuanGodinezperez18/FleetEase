@@ -312,7 +312,7 @@ export default function NotificationsPage() {
       Tipo: n.entityType,
       Estado: n.isRead ? 'Leída' : 'No leída',
     }));
-const XLSX = await import('xlsx');
+        const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, 'Notificaciones');
