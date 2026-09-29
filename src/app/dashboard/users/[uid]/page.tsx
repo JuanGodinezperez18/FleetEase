@@ -33,8 +33,8 @@ export default function UserProfilePage() {
   const params = useParams();
   const userId = params.uid as string;
   
-  const { users, financialRecords, clients, vehicles } = useData();
-  const { userMetrics } = useUserAnalytics(users, financialRecords, clients, vehicles);
+  const { users, financialRecords } = useData();
+  const { userMetrics } = useUserAnalytics(users, financialRecords);
 
   const user = useMemo(() => users.find(u => u.uid === userId), [users, userId]);
   const metrics = useMemo(() => userMetrics.find(m => m.userId === userId), [userMetrics, userId]);
