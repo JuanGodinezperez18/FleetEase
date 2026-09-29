@@ -403,7 +403,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleExportUsers = () => {
+  const handleExportUsers = async () => {
     const dataToExport = filteredUsers.map(u => ({
       Nombre: u.name,
       Email: u.email,
@@ -415,7 +415,7 @@ export default function UsersPage() {
       'Fecha de Creación': u.createdAt ? format(new Date(u.createdAt), 'dd/MM/yyyy') : 'N/A',
     }));
 
-const XLSX = await import('xlsx');
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     XLSX.utils.book_append_sheet(wb, ws, 'Usuarios');
