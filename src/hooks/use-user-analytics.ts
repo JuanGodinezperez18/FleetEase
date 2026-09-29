@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useRef } from 'react';
-import type { UserProfile, FinancialRecord, Client, Vehicle } from '@/types';
+import type { UserProfile, FinancialRecord } from '@/types';
 
 type PermissionLevel = 'Acceso Total' | 'Acceso de Edición' | 'Acceso Limitado';
 
@@ -40,8 +40,6 @@ const useMemoDeep = <T,>(factory: () => T, deps: any[]): T => {
 export const useUserAnalytics = (
   users: UserProfile[],
   financialRecords: FinancialRecord[],
-  clients: Client[],
-  vehicles: Vehicle[]
 ) => {
 
   const userMetrics: UserMetric[] = useMemoDeep(() => {
