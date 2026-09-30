@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { getStripePriceId } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
+import { checkRateLimit, registrationLimiter } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -20,15 +21,47 @@ interface RegisterRequest {
   plan: string;
 }
 
+async function verifyRegistrationCaptcha(token: unknown): Promise<boolean> {
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secret || typeof token !== 'string' || token.length > 4096) return false;
+
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret, response: token }),
+      signal: AbortSignal.timeout(5000),
+      cache: 'no-store',
+    });
+    if (!response.ok) return false;
+    const result = await response.json() as { success?: boolean };
+    return result.success === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body: RegisterRequest = await request.json();
-    const { email, password, name, phone, companyName, plan } = body;
+    const rateLimitResponse = await checkRateLimit(request, registrationLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const body: RegisterRequest & { captchaToken?: string } = await request.json();
+    const { email, password, name, phone, companyName, plan, captchaToken } = body;
     const selectedPlan = plan as PlanType;
     const selectedPlanConfig = plans[selectedPlan];
 
     if (!email || !password || !name || !companyName) {
       return NextResponse.json({ success: false, message: 'Faltan campos requeridos' }, { status: 400 });
+    }
+    if (typeof email !== 'string' || email.length > 254 || typeof name !== 'string' || name.trim().length > 120 || typeof companyName !== 'string' || companyName.trim().length > 120 || (phone != null && (typeof phone !== 'string' || phone.length > 40))) {
+      return NextResponse.json({ success: false, message: 'Los datos del registro no son válidos' }, { status: 400 });
+    }
+    if (typeof password !== 'string' || password.length < 8 || password.length > 128 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      return NextResponse.json({ success: false, message: 'La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula, número y símbolo' }, { status: 400 });
+    }
+    if (!(await verifyRegistrationCaptcha(captchaToken))) {
+      return NextResponse.json({ success: false, message: 'No se pudo verificar el captcha. Intenta de nuevo.' }, { status: 400 });
     }
     if (!selectedPlanConfig) {
       return NextResponse.json({ success: false, message: 'Plan de suscripción no válido' }, { status: 400 });
@@ -44,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       email_confirm: true,
       user_metadata: { name, phone },
