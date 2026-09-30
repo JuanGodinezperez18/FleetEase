@@ -204,7 +204,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     const vehicle = vehicles.find(v => v.id === form.getValues('vehicleId'));
     if (vehicle) {
       const weeklyRentalValue = Number(vehicle.weeklyRentalValue);
-      form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : undefined, {
+      form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : 0, {
         shouldValidate: true,
         shouldDirty: true,
       });
