@@ -34,13 +34,12 @@ Cambios preparados en la rama `security/performance-hardening`; aún requieren r
 - Se añadieron límites para registro (5/hora por IP), uploads (10/minuto), checkout (10/minuto) y las rutas que usan `requireAdmin` (30/minuto).
 - `rate-limit.ts` puede usar Upstash Redis con un contador Lua atómico. Si no se configuran ambas variables de Upstash, conserva el fallback en memoria; por tanto, la protección distribuida requiere configurar `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` en Vercel.
 - La CSP restringe `img-src` a los orígenes de Supabase, Firebase y los hosts usados por mapas y avatares; también permite los orígenes de reCAPTCHA.
-- La ruta de Enterprise interno lee su ID, nombre y confirmación de variables de entorno, y responde 503 si faltan.
+- Se eliminó el endpoint y el botón de mantenimiento que asignaban Enterprise interno a «Mi Empresa»; era una operación puntual.
 - jsPDF, jspdf-autotable y xlsx se cargan solo cuando se genera un reporte.
 
 ### Configuración pendiente para desplegar estos cambios
 - Añadir `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET_KEY`.
 - Añadir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` para que el rate limiting sea compartido entre instancias.
-- Añadir `INTERNAL_COMPANY_ID`, `INTERNAL_COMPANY_NAME` e `INTERNAL_ENTERPRISE_CONFIRMATION` para conservar habilitada la operación interna.
 
 ### Pendiente de remediación
 - **S3:** generar y commitear `package-lock.json` desde un entorno con npm para fijar las resoluciones completas.
@@ -100,10 +99,10 @@ No se ejecutaron manualmente build ni pruebas automatizadas durante esta edició
 - **Riesgo:** exfiltración vía `<img>` a host del atacante si hay XSS (limitado por `script-src` estricto); CSS injection de baja criticidad.
 - **Recomendación:** restringir `img-src` a los buckets de Supabase/Firebase + `self`; mantener `unsafe-inline` en estilos es aceptable con nonce en scripts.
 
-#### S6 — IDs y confirmación hardcodeados en `grant-internal-enterprise` (BAJO)
-- **Dónde:** `src/app/api/admin/grant-internal-enterprise/route.ts` — `INTERNAL_COMPANY_ID` y `CONFIRMATION` literales en el código.
-- **Nota:** la ruta NO usa `requireAdmin`, pero implementa sus propios checks equivalentes (super_admin + company_id + confirmación), así que **no es una vulnerabilidad abierta**; solo algo de "seguridad por oscuridad" y divergencia del patrón.
-- **Recomendación:** mover el ID/confirmación a variables de entorno y reutilizar `requireAdmin` con `targetCompanyId` para consistencia.
+#### S6 — IDs y confirmación hardcodeados en `grant-internal-enterprise` (BAJO; RESUELTO)
+- **Hallazgo original:** `src/app/api/admin/grant-internal-enterprise/route.ts) tenía una operación puntual que cambiaba «Mi Empresa» a Enterprise.
+- **Estado:** se eliminó el endpoint y el botón de mantenimiento que lo ejecutaba. No se necesitan variables de entorno para esta utilidad.
+- **Nota:** se conserva por separado la protección de checkout que evita iniciar pagos recurrentes para la empresa interna.
 
 ### ✅ Verificaciones adicionales realizadas
 - `.env.local` / secretos reales en git: **no encontrados** (solo template).
