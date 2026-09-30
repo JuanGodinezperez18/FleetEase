@@ -39,7 +39,7 @@ export default function RegisterPage() {
     if (step === 1 && data.name && data.email && data.companyName) setStep(2);
     else if (step === 2 && data.phone && data.password && data.confirmPassword) {
       if (data.password !== data.confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
-      if (data.password.length < 8 || !/[a-z]/.test(data.password) || !/[A-Z]/.test(data.password) || !/\\d/.test(data.password) || !/[^A-Za-z0-9]/.test(data.password)) { toast.error('Usa al menos 8 caracteres, con mayúscula, minúscula, número y símbolo'); return; }
+      if (data.password.length < 8 || !/[a-z]/.test(data.password) || !/[A-Z]/.test(data.password) || !/\d/.test(data.password) || !/[^A-Za-z0-9]/.test(data.password)) { toast.error('Usa al menos 8 caracteres, con mayúscula, minúscula, número y símbolo'); return; }
       setStep(3);
     }
   };
