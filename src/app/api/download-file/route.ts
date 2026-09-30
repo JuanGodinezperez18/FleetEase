@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { getSafeStoragePath } from '@/lib/security/safe-storage-path';
+import { checkRateLimit, apiLimiter } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,6 +17,8 @@ const DownloadFileSchema = z.object({
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
   try {
+    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const { data: profile, error } = await supabaseAdmin
       .from('users')
       .select('company_id, role')
