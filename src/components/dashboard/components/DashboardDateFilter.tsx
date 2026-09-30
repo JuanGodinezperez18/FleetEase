@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, getISOWeek, getYear, format, parseISO } from 'date-fns';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import type { DateRange } from 'react-day-picker';
 import { useDashboardDate, type DateFilterPreset } from '@/contexts/dashboard-date-context';
@@ -73,27 +72,31 @@ export function DashboardDateFilter({ onDateChange }: DashboardDateFilterProps) 
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] fe-text-faint">Periodo</span>
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => {
-          const preset = value as DateFilterPreset;
-          setActiveTab(preset);
-          applyRange(preset);
-        }}
-        className="w-full sm:w-auto"
+      <div
+        role="group"
+        aria-label="Periodo"
+        className="grid h-9 w-full grid-cols-3 gap-0.5 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-0.5 sm:w-[210px]"
       >
-        <TabsList className="grid h-9 w-full grid-cols-3 gap-0.5 rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-0.5 sm:w-[210px]">
-          <TabsTrigger value="week" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
-            Semana
-          </TabsTrigger>
-          <TabsTrigger value="month" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
-            Mes
-          </TabsTrigger>
-          <TabsTrigger value="year" className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all data-[state=active]:bg-[var(--fe-hover-strong)] data-[state=active]:text-[#d7ff3f] data-[state=active]:shadow-none">
-            Año
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+        {([
+          ['week', 'Semana'],
+          ['month', 'Mes'],
+          ['year', 'Año'],
+        ] as const).map(([preset, label]) => (
+          <button
+            key={preset}
+            type="button"
+            aria-pressed={activeTab === preset}
+            onClick={() => {
+              setActiveTab(preset);
+              applyRange(preset);
+            }}
+            className="rounded-lg px-3 text-[11px] font-semibold fe-text-faint transition-all hover:bg-[var(--fe-hover-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-focus-ring)] data-[active=true]:bg-[var(--fe-hover-strong)] data-[active=true]:text-[#d7ff3f]"
+            data-active={activeTab === preset}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="min-w-0 flex-1 sm:max-w-[190px]">
         {activeTab === 'week' && (
