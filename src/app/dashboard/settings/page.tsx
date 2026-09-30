@@ -83,7 +83,6 @@ const sectionClass = 'rounded-[var(--fe-radius-md)] border border-[var(--fe-bord
 
 const SystemMaintenanceCard = () => {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isGrantingEnterprise, setIsGrantingEnterprise] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -121,46 +120,6 @@ const SystemMaintenanceCard = () => {
     }
   };
 
-  const handleGrantInternalEnterprise = async () => {
-    const confirmed = window.confirm(
-      '¿Configurar Mi Empresa como Enterprise interno sin pagos recurrentes?\\n\\nSe eliminará cualquier vínculo de suscripción de Stripe de esta empresa y quedará registrado en auditoría.'
-    );
-    if (!confirmed) return;
-
-    setIsGrantingEnterprise(true);
-    const toastId = sonnerToast.loading('Configurando Enterprise interno...');
-    try {
-      const token = await getSessionToken();
-      if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
-
-      const response = await fetch('/api/admin/grant-internal-enterprise', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ confirmation: 'MI_EMPRESA_ENTERPRISE_NO_BILLING' }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'No se pudo configurar Enterprise interno.');
-
-      sonnerToast.success('Enterprise interno configurado', {
-        id: toastId,
-        description: 'Mi Empresa ya no tiene suscripción recurrente de Stripe y quedó registrada en auditoría.',
-      });
-    } catch (error) {
-      console.error('Error granting internal enterprise:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido.';
-      sonnerToast.error('No se pudo configurar Enterprise', {
-        id: toastId,
-        description: errorMessage,
-      });
-    } finally {
-      setIsGrantingEnterprise(false);
-    }
-  };
-
   return (
     <section className={sectionClass}>
       <div className="mb-4 flex items-start gap-3">
@@ -178,7 +137,7 @@ const SystemMaintenanceCard = () => {
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           onClick={handleSync}
-          disabled={isSyncing || isGrantingEnterprise}
+          disabled={isSyncing}
           className="h-11 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
         >
           {isSyncing ? (
@@ -189,20 +148,6 @@ const SystemMaintenanceCard = () => {
           {isSyncing ? 'Sincronizando...' : 'Sincronizar permisos'}
         </Button>
 
-        <Button
-          type="button"
-          onClick={handleGrantInternalEnterprise}
-          disabled={isSyncing || isGrantingEnterprise}
-          variant="outline"
-          className="h-11 rounded-xl border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.04] text-xs font-semibold text-[#d7ff3f] hover:bg-[#d7ff3f]/[0.09]"
-        >
-          {isGrantingEnterprise ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" strokeWidth={1.75} />
-          ) : (
-            <Settings2 className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
-          )}
-          {isGrantingEnterprise ? 'Configurando...' : 'Enterprise interno · Mi Empresa'}
-        </Button>
       </div>
     </section>
   );
