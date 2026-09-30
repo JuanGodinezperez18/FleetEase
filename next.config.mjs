@@ -3,19 +3,9 @@
 // Content-Security-Policy is generated exclusively in proxy.ts with a fresh
 // nonce per request. Keeping a second static CSP here would create multiple
 // policies that are enforced cumulatively and would break nonce-based scripts.
-//
-// typescript.ignoreBuildErrors: TEMPORAL. El proyecto tiene errores de
-// TypeScript preexistentes; esto permite desplegar mientras se corrigen
-// por separado. `npx tsc --noEmit` sigue mostrando los errores reales.
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-
-  typescript: {
-    // TODO: quitar esto una vez corregidos los errores de tipos preexistentes.
-    ignoreBuildErrors: true,
-  },
 
   async headers() {
     return [
