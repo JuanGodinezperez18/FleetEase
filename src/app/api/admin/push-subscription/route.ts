@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import type { Json } from '@/lib/supabase';
 
 interface PushSubscriptionRequest {
   userId: string;
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (action === 'subscribe') {
       const { error } = await supabaseAdmin
         .from('users')
-        .update({ push_subscriptions: [subscription] })
+        .update({ push_subscriptions: [subscription as unknown as Json] })
         .eq('id', userId);
 
       if (error) throw error;
@@ -50,10 +51,12 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) throw fetchError;
 
-    const currentSubs = user?.push_subscriptions || [];
-    const updatedSubs = currentSubs.filter(
-      (s: { endpoint?: string }) => s.endpoint !== subscription.endpoint,
-    );
+    const currentSubs = Array.isArray(user?.push_subscriptions) ? user.push_subscriptions : [];
+    const updatedSubs = currentSubs.filter((s): boolean => {
+      if (!s || typeof s !== 'object' || Array.isArray(s)) return true;
+      const endpoint = s.endpoint;
+      return typeof endpoint !== 'string' || endpoint !== subscription.endpoint;
+    });
 
     const { error } = await supabaseAdmin
       .from('users')
