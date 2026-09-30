@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import type { Database } from '@/lib/supabase';
 
 interface UpdateClaimsRequest {
   userId: string;
@@ -8,7 +9,9 @@ interface UpdateClaimsRequest {
   partnerAccess?: string[];
 }
 
-const ALLOWED_ROLES = new Set(['super_admin', 'admin', 'user', 'editor', 'viewer']);
+type UserRole = Database['public']['Enums']['user_role'];
+
+const ALLOWED_ROLES = new Set<UserRole>(['super_admin', 'admin', 'editor', 'viewer']);
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,17 +25,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const roleMap: Record<string, string> = {
+    const roleMap: Record<string, UserRole> = {
       superAdmin: 'super_admin',
       super_admin: 'super_admin',
       admin: 'admin',
       editor: 'editor',
       viewer: 'viewer',
-      user: 'user',
       partner: 'partner',
       client: 'client',
     };
-    const normalizedRole = roleMap[role] ?? role;
+    const normalizedRole = roleMap[role];
 
     if (!ALLOWED_ROLES.has(normalizedRole)) {
       return NextResponse.json(
