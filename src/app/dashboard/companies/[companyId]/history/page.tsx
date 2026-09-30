@@ -34,7 +34,18 @@ export default function CompanyHistoryPage() {
         .limit(50);
 
       if (error) throw error;
-      return (data || []) as CompanyChangeLog[];
+      return (data || []).map(row => ({
+        id: row.id,
+        companyId: row.company_id,
+        changeType: row.change_type,
+        changedBy: row.changed_by,
+        changedByName: row.changed_by_name,
+        changedAt: row.changed_at,
+        description: row.description,
+        fieldChanged: row.field_changed,
+        previousValue: row.previous_value,
+        newValue: row.new_value,
+      })) as CompanyChangeLog[];
     },
     enabled: !!companyId,
     staleTime: 2 * 60 * 1000, // ✅ CACHÉ: 2 minutos
@@ -88,16 +99,16 @@ export default function CompanyHistoryPage() {
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Badge className={getChangeTypeColor(change.change_type)}>
-                      {change.change_type.replace(/_/g, ' ')}
+                    <Badge className={getChangeTypeColor(change.changeType)}>
+                      {change.changeType.replace(/_/g, ' ')}
                     </Badge>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      {change.changed_by_name}
+                      {change.changedByName}
                     </span>
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {format(new Date(change.changed_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                      {format(new Date(change.changedAt), "dd MMM yyyy, HH:mm", { locale: es })}
                     </span>
                   </div>
                   <p className="text-sm font-medium">{change.description}</p>
