@@ -230,6 +230,10 @@ export interface Database {
           credit_payment_schedule_id?: string | null;
           mileage_at_expense?: number | null;
           notes?: string | null;
+          record_origin?: 'vehicle_expense' | 'supplier_purchase' | 'partner_paid_expense' | null;
+          reference?: string | null;
+          supplier_id?: string | null;
+          payment_kind?: 'client_payment' | 'partner_payment' | 'supplier_payment' | 'credit_payment' | null;
         };
         Insert: Omit<Database['public']['Tables']['financial_records']['Row'], 'id' | 'created_at'> & { id?: string };
         Update: Partial<Omit<Database['public']['Tables']['financial_records']['Row'], 'id' | 'created_at'>>;
@@ -422,6 +426,48 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['multas']['Row'], 'id' | 'created_at'> & { id?: string };
         Update: Partial<Omit<Database['public']['Tables']['multas']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      suppliers: {
+        Row: { id: string; company_id: string; name: string; phone?: string | null; email?: string | null; is_deleted: boolean; created_at: string; updated_at?: string | null; };
+        Insert: Omit<Database['public']['Tables']['suppliers']['Row'], 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['suppliers']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      catalog_items: {
+        Row: { id: string; company_id: string; name: string; part_number?: string | null; brand?: string | null; unit: string; default_cost?: number | null; warranty_days?: number | null; compatibility?: string | null; is_deleted?: boolean | null; created_at: string; updated_at?: string | null; };
+        Insert: Omit<Database['public']['Tables']['catalog_items']['Row'], 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['catalog_items']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      supplier_purchases: {
+        Row: { id: string; company_id: string; supplier_id: string; financial_record_id?: string | null; purchase_date: string; reference?: string | null; payment_method: 'cash' | 'credit'; status: 'paid' | 'pending' | 'partially_paid' | 'cancelled'; due_date?: string | null; total: number; notes?: string | null; evidence_urls?: string[] | null; created_by?: string | null; created_at: string; updated_at: string; is_deleted: boolean; };
+        Insert: Omit<Database['public']['Tables']['supplier_purchases']['Row'], 'id' | 'created_at' | 'updated_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['supplier_purchases']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      supplier_purchase_items: {
+        Row: { id: string; purchase_id: string; catalog_item_id?: string | null; description: string; quantity: number; unit_price: number; total: number; created_at: string; };
+        Insert: Omit<Database['public']['Tables']['supplier_purchase_items']['Row'], 'id' | 'created_at' | 'total'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['supplier_purchase_items']['Row'], 'id' | 'created_at' | 'total'>>;
+        Relationships: never[];
+      };
+      supplier_purchase_allocations: {
+        Row: { id: string; company_id: string; purchase_id: string; financial_record_id: string; amount: number; notes?: string | null; created_by?: string | null; created_at: string; };
+        Insert: Omit<Database['public']['Tables']['supplier_purchase_allocations']['Row'], 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['supplier_purchase_allocations']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      accounts_payable: {
+        Row: { id: string; company_id: string; party_type: 'supplier' | 'partner'; party_id: string; source_financial_record_id?: string | null; supplier_purchase_id?: string | null; original_amount: number; due_date?: string | null; status: 'pending' | 'partially_paid' | 'paid' | 'cancelled'; notes?: string | null; created_by?: string | null; created_at: string; updated_at: string; is_deleted: boolean; };
+        Insert: Omit<Database['public']['Tables']['accounts_payable']['Row'], 'id' | 'created_at' | 'updated_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['accounts_payable']['Row'], 'id' | 'created_at'>>;
+        Relationships: never[];
+      };
+      financial_record_links: {
+        Row: { id: string; company_id: string; source_financial_record_id: string; target_financial_record_id: string; relationship_type: string; amount_applied: number; created_by?: string | null; created_at: string; };
+        Insert: Omit<Database['public']['Tables']['financial_record_links']['Row'], 'id' | 'created_at'> & { id?: string };
+        Update: Partial<Omit<Database['public']['Tables']['financial_record_links']['Row'], 'id' | 'created_at'>>;
         Relationships: never[];
       };
       fcm_tokens: {
@@ -624,7 +670,10 @@ plan_limit_logs: {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      create_financial_payment: {
+        Args: { p_company_id: string; p_payment_kind: 'client_payment' | 'partner_payment' | 'supplier_payment' | 'credit_payment'; p_amount: number; p_payment_date: string; p_payment_method?: string | null; p_reference?: string | null; p_client_id?: string | null; p_partner_id?: string | null; p_supplier_id?: string | null; p_target_financial_record_id?: string | null; p_credit_id?: string | null; p_credit_payment_schedule_id?: string | null; p_created_by?: string | null; };
+        Returns: Database['public']['Tables']['financial_records']['Row'];
+      };
     };
     Enums: {
       [_ in never]: never;
