@@ -327,7 +327,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
                       fill: '#e8ff6b',
                       stroke: '#d7ff3f',
                       strokeWidth: 1,
-                      radius: [0, 8, 8, 0],
+                      radius: 8,
                     }}
                   />
                 </BarChart>
