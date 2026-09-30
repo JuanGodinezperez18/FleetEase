@@ -129,12 +129,12 @@ const CategoryForm = React.forwardRef<
     });
   }, [currentUser?.role, financialCategories, initialData]);
 
-  const form = useForm<CategoryFormValues, any, CategoryFormValues>({
+  const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: initialData?.name || '',
       type: initialData?.type || 'expense',
-      affects: initialData?.affects || 'none',
+      affects: initialData?.affects === 'client_balance' || initialData?.affects === 'partner_balance' || initialData?.affects === 'none' ? initialData.affects : 'none',
       description: initialData?.description || '',
       companyId: initialData?.companyId || currentUser?.companyId || null,
     },
