@@ -92,7 +92,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
           const amount = Number(line.amount || 0);
           return { id, concept: String(line.concept || line.description || "Concepto"), amount, catalogItemId: line.catalog_item_id || line.catalogItemId || line.article_id || null, allocated: allocatedByLine.get(`${row.id}:${id}`) || 0 };
         }).filter((line: { amount: number }) => line.amount > 0),
-      })).filter(expense => expense.lines.some(line => line.amount - line.allocated > 0.009)));
+      })).filter((expense: { lines: Array<{ amount: number; allocated: number }> }) => expense.lines.some((line) => line.amount - line.allocated > 0.009)));
     });
     return () => { cancelled = true; };
   }, [companyId]);
