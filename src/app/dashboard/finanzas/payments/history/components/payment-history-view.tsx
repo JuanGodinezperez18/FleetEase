@@ -217,7 +217,7 @@ export function PaymentHistoryView() {
   const startEdit = (record: any) => {
     setEditing(record);
     setEditAmount(String(Number(record.amount || 0)));
-    setEditDate(record.date);
+    setEditDate(record.date || "");
     setEditMethod(record.paymentMethod || "Transferencia");
     setEditReference(record.referenceCode || "");
     setEditTarget(record.targetId || "");
@@ -346,7 +346,7 @@ export function PaymentHistoryView() {
             <p className="mt-0.5 text-xs text-white/40">{paymentRecords.length} registros</p>
           </div>
           <div className="p-4 sm:p-5">
-            {loading ? (
+            {loadingData ? (
               <div className="py-10 text-center text-sm text-white/35">Cargando...</div>
             ) : paymentRecords.length === 0 ? (
               <div className="py-10 text-center text-sm text-white/35">Sin resultados para los filtros.</div>
