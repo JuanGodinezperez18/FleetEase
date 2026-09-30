@@ -133,6 +133,13 @@ export const authLimiter = new RateLimiter({
   prefix: 'auth',
 });
 
+/** Rate limiting de registro: hasta 5 intentos por IP cada hora. */
+export const registrationLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  prefix: 'registration',
+});
+
 /** Rate limiting para uploads (moderado) */
 export const uploadLimiter = new RateLimiter({
   windowMs: 60 * 1000, // 1 minuto
@@ -176,9 +183,13 @@ export const healthLimiter = new RateLimiter({
  * ```
  */
 async function getRateLimitIdentifier(request: Request): Promise<string> {
-  const ip = request.headers.get('x-forwarded-for') ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
+  const forwardedFor = request.headers.get('x-forwarded-for')
+    ?.split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+  const ip = request.headers.get('x-real-ip')?.trim() ||
+    forwardedFor?.[forwardedFor.length - 1] ||
+    'unknown';
 
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return `ip:${ip}`;
