@@ -166,3 +166,7 @@ Vercel procesó el preview con `ignoreBuildErrors` retirado y terminó en `ERROR
 ---
 
 *Metodología: revisión estática de código (grep/análisis de rutas API, middleware, migraciones SQL, config de Next.js), verificación de git history para secretos, e intento de `npm audit`. No se ejecutó la aplicación ni pruebas de penetración dinámicas.*
+
+
+## Estado de correcciones TypeScript
+- Strict TypeScript build en proceso de saneamiento; se corrigen errores expuestos por `ignoreBuildErrors` eliminado sin modificar la lógica financiera.
