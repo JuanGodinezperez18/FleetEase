@@ -8,12 +8,16 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const INTERNAL_COMPANY_ID = 'cca57015-9633-42a2-870e-72e713d8e17b';
-const INTERNAL_COMPANY_NAME = 'Mi Empresa';
-const CONFIRMATION = 'MI_EMPRESA_ENTERPRISE_NO_BILLING';
+const INTERNAL_COMPANY_ID = process.env.INTERNAL_COMPANY_ID;
+const INTERNAL_COMPANY_NAME = process.env.INTERNAL_COMPANY_NAME;
+const CONFIRMATION = process.env.INTERNAL_ENTERPRISE_CONFIRMATION;
 
 export async function POST(request: NextRequest) {
   try {
+    if (!INTERNAL_COMPANY_ID || !INTERNAL_COMPANY_NAME || !CONFIRMATION) {
+      return NextResponse.json({ error: 'La operación interna no está configurada.' }, { status: 503 });
+    }
+
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
