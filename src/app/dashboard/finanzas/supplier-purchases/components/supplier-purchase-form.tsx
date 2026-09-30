@@ -86,6 +86,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
         date: row.date,
         vehicleName: row.vehicles ? `${row.vehicles.make} ${row.vehicles.model} (${row.vehicles.plate})` : "Vehículo",
         categoryId: row.category_id || null,
+        categoryName: row.financial_categories?.name || null,
         lines: (Array.isArray(row.items) ? row.items : []).map((line: any, index: number) => {
           const id = String(line.id || `legacy-${row.id}-${index}`);
           const amount = Number(line.amount || 0);
