@@ -121,11 +121,11 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
     <article
       data-interactive={isInteractive ? 'true' : 'false'}
       tabIndex={isInteractive ? 0 : undefined}
-      role={isInteractive ? 'button' : 'article'}
+      role="group"
       onClick={onClick ? handleActivate : undefined}
       onDoubleClick={onDoubleClick}
       onKeyDown={isInteractive ? handleKeyDown : undefined}
-      aria-label={`${title}: ${value}`}
+      aria-label={isInteractive ? `${title}: ${value}` : undefined}
       className={cn(
         'fe-metric-card select-none',
         'before:pointer-events-none before:absolute before:-right-12 before:-top-12 before:h-32 before:w-32 before:rounded-full before:bg-[#d7ff3f]/[0.045] before:blur-3xl',
