@@ -23,11 +23,9 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
   let cleanedCount = 0;
   
   try {
-    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
-    if (rateLimitResponse) return rateLimitResponse;
     const { data: vehicles, error: vehiclesError } = await supabaseAdmin
       .from('vehicles')
-      .select('id')
+      .select('id,image_url,circulation_card_url,insurance_policy_document_url')
       .or(`image_url.eq.${fileUrl},circulation_card_url.eq.${fileUrl},insurance_policy_document_url.eq.${fileUrl}`)
       .eq('company_id', (await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()).data?.company_id || '');
     
@@ -46,7 +44,7 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
 
     const { data: clients, error: clientsError } = await supabaseAdmin
       .from('clients')
-      .select('id')
+      .select('id,photo_url,ine_url,license_image_url')
       .or(`photo_url.eq.${fileUrl},ine_url.eq.${fileUrl},license_image_url.eq.${fileUrl}`)
       .eq('company_id', (await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()).data?.company_id || '');
     
@@ -104,6 +102,8 @@ export async function POST(request: NextRequest) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
     }
+    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const token = authHeader.substring(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
