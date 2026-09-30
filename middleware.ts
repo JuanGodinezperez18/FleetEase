@@ -29,7 +29,7 @@ function buildCsp(request: NextRequest) {
     style-src 'self' 'unsafe-inline';
     style-src-attr 'unsafe-inline';
     style-src-elem 'self' 'unsafe-inline';
-    img-src 'self' data: blob: https://*.supabase.co https://firebasestorage.googleapis.com https://storage.googleapis.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
+    img-src 'self' data: blob: https://*.supabase.co https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.googleapis.com https://*.gstatic.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
     media-src 'self' blob:;
     manifest-src 'self';
     font-src 'self' data:;
