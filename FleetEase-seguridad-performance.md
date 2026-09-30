@@ -17,10 +17,10 @@ La base de seguridad es **sólida para un proyecto de esta etapa**: CSP con nonc
 | Autorización en APIs | ✅ Consistente (Bearer + rol + tenant isolation) |
 | RLS en base de datos | ✅ Habilitado + migraciones de hardening |
 | Stripe / webhooks | ✅ Firma verificada con `constructEvent` |
-| Rate limiting / anti-abuso | 🔴 Débil (3 de 26 endpoints, en memoria) |
-| Cadena de suministro (deps) | 🔴 Sin `package-lock.json` |
-| Calidad de build | 🟡 `ignoreBuildErrors: true` |
-| Escalabilidad de datos | 🟡 Tablas completas al cliente con `limit(2000–5000)` |
+| Rate limiting / anti-abuso | 🟡 Cobertura ampliada; Upstash opcional hasta configurar variables |
+| Cadena de suministro (deps) | 🟡 Lockfile pendiente de generación por npm en GitHub Actions |
+| Calidad de build | 🟡 `ignoreBuildErrors` retirado; build/type-check en validación |
+| Escalabilidad de datos | 🟡 Consultas principales paginadas en páginas de 500 + columnas explícitas |
 | Bundle | 🟡 Bien lazy-load en general; huecos puntuales |
 
 ---
@@ -42,14 +42,14 @@ Cambios preparados en la rama `security/performance-hardening`; aún requieren r
 - Añadir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` para que el rate limiting sea compartido entre instancias.
 
 ### Pendiente de remediación
-- **S3:** generar y commitear `package-lock.json` desde un entorno con npm para fijar las resoluciones completas.
-- **S4:** resolver errores existentes de TypeScript antes de retirar `ignoreBuildErrors` y activar el chequeo en CI.
-- **P1:** diseñar y migrar paginación/selección de columnas en el proveedor de datos sin cambiar la semántica multiempresa.
-- **P3:** revisar la fuente CDN de SheetJS y fijar su integridad o migrar a un paquete mantenido.
-- **P4:** localizar tablas grandes y añadir debounce/virtualización donde corresponda.
-- Ampliar la cobertura de rate limiting a las rutas restantes.
+- **S3:** se añadió workflow `generate-lockfile.yml` para generarlo con npm en GitHub Actions; el archivo todavía no aparece en la rama y por tanto este punto no se considera cerrado.
+- **S4:** `ignoreBuildErrors` ya fue retirado y se añadió `quality-gate.yml` con `npm ci`, `npm run type-check` y `npm run build`; falta confirmar el primer resultado limpio.
+- **P1:** implementado en `data-provider-supabase.tsx`: consultas principales paginadas en bloques de 500 y `select()` explícito; se conserva el filtro `company_id` y la misma API de datos para la UI.
+- **P3:** actualizado SheetJS a `0.20.3`, versión actual documentada por SheetJS, usando su tarball oficial; el lockfile npm será el que fije el `integrity` del tarball.
+- **P4:** añadido debounce de 300 ms al buscador global de las dos tablas compartidas (`ui/data-table` y `common/data-table`).
+- **Rate limiting:** añadida cobertura a uploads de inspección/asignación/seguimiento, descarga/eliminación de archivos y portal de Stripe; admin ya queda cubierto mediante `requireAdmin`.
 
-No se ejecutaron manualmente build ni pruebas automatizadas durante esta edición remota. El preview automático de Vercel completó la compilación correctamente; las pruebas automatizadas no se ejecutaron.
+Vercel está procesando los previews de los commits de esta fase. El build con `ignoreBuildErrors` retirado aún estaba en estado `BUILDING` al actualizar este reporte. El lockfile aún no está presente en la rama; por ello el reporte no se declara cerrado hasta confirmar `package-lock.json` + type-check + build limpio.
 
 ---
 
