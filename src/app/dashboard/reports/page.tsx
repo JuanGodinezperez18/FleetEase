@@ -77,7 +77,6 @@ export default function ReportsPageImproved() {
     financialRecords,
     clients,
     vehicles,
-    partners,
     dateRange,
     financialCategories
   );
