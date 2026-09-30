@@ -25,6 +25,35 @@ La base de seguridad es **sólida para un proyecto de esta etapa**: CSP con nonc
 
 ---
 
+## Seguimiento de remediación
+
+Cambios preparados en la rama `security/performance-hardening`; aún requieren revisión e integración en `master`.
+
+### Implementado en la rama
+- El registro muestra reCAPTCHA v2 y verifica el token en el servidor. Se valida una contraseña de al menos 8 caracteres con mayúscula, minúscula, número y símbolo.
+- Se añadieron límites para registro (5/hora por IP), uploads (10/minuto), checkout (10/minuto) y las rutas que usan `requireAdmin` (30/minuto).
+- `rate-limit.ts` puede usar Upstash Redis con un contador Lua atómico. Si no se configuran ambas variables de Upstash, conserva el fallback en memoria; por tanto, la protección distribuida requiere configurar `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` en Vercel.
+- La CSP restringe `img-src` a los orígenes de Supabase, Firebase y los hosts usados por mapas y avatares; también permite los orígenes de reCAPTCHA.
+- La ruta de Enterprise interno lee su ID, nombre y confirmación de variables de entorno, y responde 503 si faltan.
+- jsPDF, jspdf-autotable y xlsx se cargan solo cuando se genera un reporte.
+
+### Configuración pendiente para desplegar estos cambios
+- Añadir `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET_KEY`.
+- Añadir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` para que el rate limiting sea compartido entre instancias.
+- Añadir `INTERNAL_COMPANY_ID`, `INTERNAL_COMPANY_NAME` e `INTERNAL_ENTERPRISE_CONFIRMATION` para conservar habilitada la operación interna.
+
+### Pendiente de remediación
+- **S3:** generar y commitear `package-lock.json` desde un entorno con npm para fijar las resoluciones completas.
+- **S4:** resolver errores existentes de TypeScript antes de retirar `ignoreBuildErrors` y activar el chequeo en CI.
+- **P1:** diseñar y migrar paginación/selección de columnas en el proveedor de datos sin cambiar la semántica multiempresa.
+- **P3:** revisar la fuente CDN de SheetJS y fijar su integridad o migrar a un paquete mantenido.
+- **P4:** localizar tablas grandes y añadir debounce/virtualización donde corresponda.
+- Ampliar la cobertura de rate limiting a las rutas restantes.
+
+No se ejecutó build ni pruebas automatizadas durante esta edición remota.
+
+---
+
 ## 1. SEGURIDAD
 
 ### ✅ Lo que está bien hecho
