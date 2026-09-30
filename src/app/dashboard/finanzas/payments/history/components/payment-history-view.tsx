@@ -37,7 +37,7 @@ function errorMessage(error: unknown) {
 }
 
 export function PaymentHistoryView() {
-  const { financialRecords, clients, partners, credits, loading, selectedCompanyId, refreshData } = useData();
+  const { financialRecords, clients, partners, credits, loadingData, selectedCompanyId, refreshData } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentFilter>("all");
   const [search, setSearch] = useState("");
