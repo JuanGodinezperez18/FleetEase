@@ -64,7 +64,7 @@ interface CategoryFormHandles {
   submit: () => void;
 }
 
-const affectsOptions: { value: FinancialCategory['affects']; label: string }[] = [
+const affectsOptions: { value: CategoryFormValues['affects']; label: string }[] = [
   { value: 'client_balance', label: 'Balance de cliente' },
   { value: 'partner_balance', label: 'Balance de socio' },
   { value: 'none', label: 'Ninguno / contabilidad interna' },
@@ -129,7 +129,7 @@ const CategoryForm = React.forwardRef<
     });
   }, [currentUser?.role, financialCategories, initialData]);
 
-  const form = useForm<CategoryFormValues>({
+  const form = useForm<CategoryFormValues, any, CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: initialData?.name || '',
