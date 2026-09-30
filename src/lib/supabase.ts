@@ -2769,14 +2769,14 @@ export type Database = {
       process_multa_payment_atomic: {
         Args: {
           p_amount: number
-          p_client_id: string
+          p_client_id: string | null
           p_company_id: string
           p_created_by: string
           p_date: string
-          p_description: string
+          p_description: string | null
           p_multa_id: string
-          p_payment_method: string
-          p_vehicle_id: string
+          p_payment_method: string | null
+          p_vehicle_id: string | null
         }
         Returns: Json
       }
@@ -3234,5 +3234,3 @@ export type Plan = Database['public']['Tables']['plans']['Row'];
 export type UserInvitation = Database['public']['Tables']['user_invitations']['Row'];
 export type PlanLimitLog = Database['public']['Tables']['plan_limit_logs']['Row'];
 export type VehicleInspection = Database['public']['Tables']['vehicle_inspections']['Row'];
-export type GeneratedReport = Database['public']['Tables']['generated_reports']['Row'];
-export type UserDashboard = Database['public']['Tables']['user_dashboards']['Row'];

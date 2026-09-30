@@ -56,12 +56,13 @@ export default function SeguimientosPage() {
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
+    const companyId = currentUser.companyId;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('seguimientos')
         .select('*')
-        .eq('company_id', currentUser.companyId)
+        .eq('company_id', companyId)
         .order('timestamp', { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -93,7 +94,7 @@ export default function SeguimientosPage() {
           longitude: row.longitude,
           timestamp: row.timestamp,
           created_by: row.created_by,
-          company_id: row.company_id || currentUser.companyId,
+          company_id: row.company_id || companyId,
         };
       });
       setSeguimientos(mapped);
@@ -457,7 +458,7 @@ export default function SeguimientosPage() {
                   onClick={() =>
                     downloadImage(
                       selectedImage.photo_url,
-                      `seguimiento_${selectedImage.vehicleAlias}_${format(
+                      `seguimiento_${selectedImage.vehicle_alias}_${format(
                         new Date(selectedImage.timestamp),
                         'yyyyMMdd'
                       )}.jpg`

@@ -116,9 +116,11 @@ export const getClientColumns = (
             header: ({ column }) => <DataTableColumnHeader column={column} title="Riesgo" />,
             cell: ({ row }) => {
                 const { paymentBehavior, alerts } = row.original;
+                const knownPaymentBehaviors = ['Excelente', 'Bueno', 'Regular', 'Malo', 'Crítico'] as const;
+                const riskLevel = knownPaymentBehaviors.find(level => level === paymentBehavior);
                 return (
                   <div className="flex items-center gap-2">
-                    <PaymentRiskBadge level={paymentBehavior} />
+                    <PaymentRiskBadge level={riskLevel} />
                     {(alerts?.length || 0) > 0 && (
                       <Badge variant="destructive" className="flex h-5 w-5 items-center justify-center p-0 text-xs">
                         {alerts?.length}

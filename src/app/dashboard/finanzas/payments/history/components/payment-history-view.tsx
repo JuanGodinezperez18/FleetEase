@@ -109,7 +109,7 @@ export function PaymentHistoryView() {
         return;
       }
 
-      const supplierIds = [...new Set((payables || []).map((p: any) => p.party_id).filter(Boolean))];
+      const supplierIds = [...new Set((payables || []).map((p: any) => p.party_id).filter((id): id is string => Boolean(id)))];
       const { data: suppliers, error: supplierError } = supplierIds.length
         ? await supabase.from("suppliers").select("id,name").in("id", supplierIds)
         : { data: [], error: null };
@@ -124,6 +124,7 @@ export function PaymentHistoryView() {
       );
       const byTarget = new Map<string, string>();
       for (const payable of payables || []) {
+        if (!payable.party_id || !payable.source_financial_record_id) continue;
         const name = names.get(payable.party_id);
         if (name) byTarget.set(payable.source_financial_record_id, name);
       }

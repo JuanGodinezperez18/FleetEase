@@ -332,7 +332,7 @@ export class ExcelReportGenerator {
     data.partnerMetrics.forEach(metric => {
       partnerData.push([
         `${metric.partner.firstname} ${metric.partner.lastname}`,
-        metric.partner.phone,
+        metric.partner.phone ?? '',
         metric.partner.email || 'N/A',
         metric.activeVehicles,
         metric.totalIncome,

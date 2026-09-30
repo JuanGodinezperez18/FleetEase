@@ -1,4 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
+import { isWithinInterval } from 'date-fns';
 import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';

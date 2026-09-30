@@ -75,7 +75,7 @@ function SidebarLayoutContent({ children }: SidebarLayoutProps) {
             side="left"
             className="w-[18rem] max-w-[85vw] border-r border-[var(--fe-border)] bg-[var(--fe-bg)] p-0 text-[var(--fe-text)] shadow-[var(--fe-shadow-dialog)] xl:hidden [&>button]:hidden"
           >
-            <Sidebar collapsible="none" />
+            <Sidebar />
           </SheetContent>
         </Sheet>
 

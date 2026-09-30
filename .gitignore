@@ -154,3 +154,4 @@ temp/
 # Archivos sensibles / temporales
 temp-bootstrap-admin.json
 *bootstrap-admin*.json
+.env*

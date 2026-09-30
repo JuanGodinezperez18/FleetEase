@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 
 const metricStore: Array<{ name: string; value: number; timestamp: number }> = [];
 
-function logMetric(name: string, metric: { value?: number }) {
-  const value = Number(metric.value ?? 0);
+function logMetric(name: string, metric: { value?: number } | number) {
+  const value = Number(typeof metric === 'number' ? metric : metric.value ?? 0);
   metricStore.push({ name, value, timestamp: Date.now() });
   if (metricStore.length > 100) metricStore.shift();
   if (process.env.NODE_ENV !== 'production') {

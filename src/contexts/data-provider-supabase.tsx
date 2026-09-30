@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
 import { createFinancialRecord, createExpenseAtomic, updateFinancialRecordMetadata } from '@/lib/financial-rpc';
 import { createCreditAtomic } from '@/lib/credit-rpc';
+import { isJsonObject } from '@/lib/json-guards';
 import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, type NewAssignmentInput } from '@/lib/vehicle-assignment';
 import type { Client, Vehicle, Partner, Credit, FinancialRecord, MileageLog, Notification, VehicleAssignmentLog, Company, FinancialCategory, MessageTemplate, MessageLog, CreditPaymentSchedule, Multa } from '@/types/supabase';
 import { toDomainClient, toDomainVehicle, toDomainPartner, toDomainCredit, toDomainFinancialRecord, toDomainMileageLog, toDomainNotification, toDomainVehicleAssignmentLog, toDomainCompany, toDomainFinancialCategory, toDomainMessageTemplate, toDomainMessageLog, toDomainCreditPaymentSchedule, toDomainMulta, toSbClient, toSbVehicle, toSbPartner, toSbCredit, toSbFinancialRecord, toSbMileageLog, toSbNotification, toSbVehicleAssignmentLog, toSbCompany, toSbFinancialCategory, toSbMessageTemplate, toSbMessageLog, toSbCreditPaymentSchedule, toSbMulta } from '@/lib/domain-mappers';
@@ -191,7 +192,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       calculateVehicleMileageInfo(
         vehicle,
         allMileageLogs,
-        companyIntervals.get(vehicle.companyId)
+        vehicle.companyId ? companyIntervals.get(vehicle.companyId) : undefined
       )
     );
   }, [allVehicles, allMileageLogs, allCompanies]);
@@ -313,9 +314,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const mergedForValidation: Partial<DomainVehicle> = {
           currentMileage: Number(existing.current_mileage ?? 0),
-          insurancePolicyNumber: existing.insurance_policy_number,
-          insuranceExpiryDate: existing.insurance_expiry_date,
-          insurancePolicyDocumentUrl: existing.insurance_policy_document_url,
+          insurancePolicyNumber: existing.insurance_policy_number ?? undefined,
+          insuranceExpiryDate: existing.insurance_expiry_date ?? undefined,
+          insurancePolicyDocumentUrl: existing.insurance_policy_document_url ?? undefined,
           ...data,
         };
 
@@ -365,8 +366,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
   const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
-  const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = (result as any)?.id; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
-  const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); if (!companyId && !currentUser.companyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: companyId || currentUser.companyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', p_reference: description || null, p_created_by: null }); if (error) throw error; await refreshData(); const result = (data || {}) as any; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: result.creditId ?? result.credit_id ?? creditId, paymentScheduleId: result.paymentScheduleId ?? result.payment_schedule_id ?? null, creditCompleted: result.creditCompleted ?? result.credit_completed ?? result.status === 'completed', ...(result.error ? { error: result.error } : {}) }; } catch (error: any) { logger.error('Error processing credit payment:', error); return { success: false, error: error?.message || 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);
+  const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = typeof result.id === 'string' ? result.id : null; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
+  const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); const paymentCompanyId = companyId || currentUser.companyId; if (!paymentCompanyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: paymentCompanyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', ...(description ? { p_reference: description } : {}) }); if (error) throw error; await refreshData(); const result = isJsonObject(data) ? data : {}; const responseCreditId = [result.creditId, result.credit_id].find((value): value is string => typeof value === 'string') ?? creditId; const scheduleId = [result.paymentScheduleId, result.payment_schedule_id].find((value): value is string => typeof value === 'string') ?? null; const completed = result.creditCompleted ?? result.credit_completed; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: responseCreditId, paymentScheduleId: scheduleId, creditCompleted: typeof completed === 'boolean' ? completed : result.status === 'completed', ...(typeof result.error === 'string' ? { error: result.error } : {}) }; } catch (error: unknown) { logger.error('Error processing credit payment:', error); return { success: false, error: error instanceof Error ? error.message : 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);
   const cancelCreditWithAdjustment = useCallback(async (creditId: string, reason?: string) => {
     if (!currentUser?.uid) throw new Error('Usuario no autenticado');
     try {
@@ -380,7 +381,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } as any);
 
       if (error) throw error;
-      if (!result?.success) throw new Error('La base de datos no confirmó la cancelación del crédito');
+      if (!isJsonObject(result) || result.success !== true) throw new Error('La base de datos no confirmó la cancelación del crédito');
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['credits'] }),
@@ -415,7 +416,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       p_record: toSbMulta({ ...data, companyId, createdBy: data.createdBy || currentUser.uid }) as any,
     });
     if (error) throw error;
-    if (!result?.multa_id) throw new Error('La base de datos no devolvió la multa creada');
+    if (!isJsonObject(result) || typeof result.multa_id !== 'string') throw new Error('La base de datos no devolvió la multa creada');
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['multas'] }),
       queryClient.invalidateQueries({ queryKey: ['financial_records'] }),
@@ -431,14 +432,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const companyId = paymentData.companyId || currentUser.companyId;
     if (!companyId) throw new Error('Empresa no disponible para procesar el pago');
     if (!paymentData.date) throw new Error('Fecha de pago requerida');
-    if (!Number.isFinite(paymentData.amount) || Number(paymentData.amount) <= 0) throw new Error('Importe de pago inválido');
+    const amount = paymentData.amount;
+    if (amount === undefined || !Number.isFinite(amount) || amount <= 0) throw new Error('Importe de pago inválido');
 
     const { data, error } = await supabase.rpc('process_multa_payment_atomic', {
       p_multa_id: multaId,
       p_client_id: paymentData.clientId || null,
       p_vehicle_id: paymentData.vehicleId || null,
       p_company_id: companyId,
-      p_amount: paymentData.amount,
+      p_amount: amount,
       p_date: paymentData.date,
       p_payment_method: paymentData.paymentMethod || null,
       p_description: paymentData.description || null,

@@ -20,5 +20,4 @@ export {
   type VehicleMetric,
   type ClientMetric,
   type PartnerMetric,
-  type FinancialSummary,
 } from './analytics-service';

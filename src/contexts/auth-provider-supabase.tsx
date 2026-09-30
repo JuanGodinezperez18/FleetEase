@@ -5,11 +5,25 @@ import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { MfaChallenge } from '@/components/auth/mfa-challenge';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseProfile } from '@/types/supabase';
+import type { Json } from '@/lib/supabase-browser';
+import { isJsonObject } from '@/lib/json-guards';
 import type { UserProfile } from '@/types';
 import { signIn, signOut, resetPassword, formatAuthError, setAuthPersistence, restoreSessionOnly, enforceSessionOnlyPersistence, clearAuthPersistence } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 const PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
+
+function adaptNotificationSettings(value: Json | null | undefined): UserProfile['notificationSettings'] {
+  if (!isJsonObject(value)) return undefined;
+  return {
+    maintenance: typeof value.maintenance === 'boolean' ? value.maintenance : undefined,
+    maintenanceThreshold: typeof value.maintenanceThreshold === 'number' ? value.maintenanceThreshold : undefined,
+    insurance: typeof value.insurance === 'boolean' ? value.insurance : undefined,
+    insuranceThreshold: typeof value.insuranceThreshold === 'number' ? value.insuranceThreshold : undefined,
+    license: typeof value.license === 'boolean' ? value.license : undefined,
+    licenseThreshold: typeof value.licenseThreshold === 'number' ? value.licenseThreshold : undefined,
+  };
+}
 
 function adaptUserToProfile(user: SupabaseProfile): UserProfile {
   return {
@@ -25,7 +39,7 @@ function adaptUserToProfile(user: SupabaseProfile): UserProfile {
     role: user.role === 'super_admin' ? 'superAdmin' : user.role,
     companyId: user.company_id ?? undefined,
     partnerAccess: user.partner_access ?? undefined,
-    notificationSettings: user.notification_settings ?? undefined,
+    notificationSettings: adaptNotificationSettings(user.notification_settings),
     isDeleted: user.is_deleted,
     createdAt: user.created_at,
     updatedAt: user.updated_at ?? undefined,
@@ -234,7 +248,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         role: (data.role === 'superAdmin' ? 'super_admin' : data.role) as SupabaseProfile['role'],
         company_id: data.companyId ?? null,
         partner_access: data.partnerAccess ?? null,
-        notification_settings: data.notificationSettings ?? null,
+        notification_settings: data.notificationSettings ? { ...data.notificationSettings } : null,
         push_subscriptions: data.pushSubscriptions ?? null,
       })
       .eq('id', currentUser.uid)

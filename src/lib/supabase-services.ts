@@ -1,18 +1,18 @@
 /**
  * @fileoverview Servicios de datos para Supabase
- * 
+ *
  * Reemplaza a firestore-services.ts proporcionando una API similar
  * pero usando PostgreSQL en lugar de Firestore
  */
 
 import { supabase, type Database } from '@/lib/supabase';
-import type { 
-  Client, Vehicle, MileageLog, FinancialRecord, Partner, 
-  User as UserProfile, Credit, Notification, VehicleAssignmentLog, 
-  Company, FinancialCategory, ClientChangeLog, CompanyChangeLog, 
+import type {
+  Client, Vehicle, MileageLog, FinancialRecord, Partner,
+  User as UserProfile, Credit, Notification, VehicleAssignmentLog,
+  Company, FinancialCategory, ClientChangeLog, CompanyChangeLog,
   MessageTemplate, MessageLog, CreditPaymentSchedule, Multa,
   FcmToken, AuditLog, Document as DocumentRow, GpsConfig, Seguimiento,
-  Insert, Update, QueryOptions 
+  Insert, Update, QueryOptions
 } from '@/types/supabase';
 import { logAudit } from '@/lib/audit';
 
@@ -40,7 +40,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
       .single();
 
     if (error) {
-      console.error(`[Supabase] Error creating ${this.tableName}:`, error);
+      console.error(`[Supabase] Error creating ${String(this.tableName)}:`, error);
       throw error;
     }
 
@@ -57,7 +57,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
       .select();
 
     if (error) {
-      console.error(`[Supabase] Error creating multiple ${this.tableName}:`, error);
+      console.error(`[Supabase] Error creating multiple ${String(this.tableName)}:`, error);
       throw error;
     }
 
@@ -74,7 +74,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
       .eq('id', id);
 
     if (error) {
-      console.error(`[Supabase] Error updating ${this.tableName}:`, error);
+      console.error(`[Supabase] Error updating ${String(this.tableName)}:`, error);
       throw error;
     }
   }
@@ -109,8 +109,8 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
     }
 
     if (options?.orderBy) {
-      query = query.order(options.orderBy as string, { 
-        ascending: options.order !== 'desc' 
+      query = query.order(String(options.orderBy), {
+        ascending: options.order !== 'desc'
       });
     }
 
@@ -125,7 +125,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
     const { data, error } = await query;
 
     if (error) {
-      console.error(`[Supabase] Error getting all ${this.tableName}:`, error);
+      console.error(`[Supabase] Error getting all ${String(this.tableName)}:`, error);
       throw error;
     }
 
@@ -149,7 +149,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
     const { data, error } = await query;
 
     if (error) {
-      console.error(`[Supabase] Error finding ${this.tableName}:`, error);
+      console.error(`[Supabase] Error finding ${String(this.tableName)}:`, error);
       throw error;
     }
 
@@ -173,7 +173,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
       .eq('id', id);
 
     if (error) {
-      console.error(`[Supabase] Error deleting ${this.tableName}:`, error);
+      console.error(`[Supabase] Error deleting ${String(this.tableName)}:`, error);
       throw error;
     }
   }
@@ -193,7 +193,7 @@ class SupabaseService<T extends { id: string; created_at?: string }, Name extend
     const { count, error } = await query;
 
     if (error) {
-      console.error(`[Supabase] Error counting ${this.tableName}:`, error);
+      console.error(`[Supabase] Error counting ${String(this.tableName)}:`, error);
       throw error;
     }
 
@@ -235,7 +235,7 @@ class CompanyService extends SupabaseService<Company, 'companies'> {
   async update(id: string, data: Partial<Company>): Promise<void> {
     // Obtener documento actual para auditoría
     const currentDoc = await this.get(id);
-    
+
     await super.update(id, data);
 
     // Log de auditoría
@@ -248,7 +248,7 @@ class CompanyService extends SupabaseService<Company, 'companies'> {
 
   async softDelete(id: string): Promise<void> {
     const currentDoc = await this.get(id);
-    
+
     await super.softDelete(id);
 
     // Log de auditoría
@@ -301,8 +301,8 @@ class ClientService extends SupabaseService<Client, 'clients'> {
       .eq('is_deleted', false);
 
     if (options?.orderBy) {
-      query = query.order(options.orderBy as string, { 
-        ascending: options.order !== 'desc' 
+      query = query.order(String(options.orderBy), {
+        ascending: options.order !== 'desc'
       });
     }
 
@@ -334,8 +334,8 @@ class VehicleService extends SupabaseService<Vehicle, 'vehicles'> {
       .eq('is_deleted', false);
 
     if (options?.orderBy) {
-      query = query.order(options.orderBy as string, { 
-        ascending: options.order !== 'desc' 
+      query = query.order(String(options.orderBy), {
+        ascending: options.order !== 'desc'
       });
     }
 
@@ -513,18 +513,18 @@ class NotificationService extends SupabaseService<Notification, 'notifications'>
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    await this.update(notificationId, { 
-      is_read: true, 
-      read_at: new Date().toISOString() 
+    await this.update(notificationId, {
+      is_read: true,
+      read_at: new Date().toISOString()
     });
   }
 
   async markAllAsRead(userId: string): Promise<void> {
     const { error } = await supabase
       .from(this.tableName)
-      .update({ 
-        is_read: true, 
-        read_at: new Date().toISOString() 
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
       })
       .eq('uid', userId)
       .eq('is_read', false);
@@ -640,4 +640,3 @@ export const seguimientoService = new SupabaseService<Seguimiento, 'seguimientos
 
 // Exportar supabase para consultas personalizadas
 export { supabase };
-
