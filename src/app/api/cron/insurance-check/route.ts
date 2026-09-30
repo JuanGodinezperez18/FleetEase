@@ -129,6 +129,7 @@ export async function GET(request: NextRequest) {
         const vehicles = vehiclesResult.data;
         const adminIdsByCompany = new Map<string, string[]>();
         for (const admin of adminsResult.data ?? []) {
+          if (!admin.company_id) continue;
           const ids = adminIdsByCompany.get(admin.company_id) ?? [];
           ids.push(admin.id);
           adminIdsByCompany.set(admin.company_id, ids);
