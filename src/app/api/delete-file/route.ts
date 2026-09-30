@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { getSafeStoragePath } from '@/lib/security/safe-storage-path';
+import { checkRateLimit, apiLimiter } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -22,6 +23,8 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
   let cleanedCount = 0;
   
   try {
+    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const { data: vehicles, error: vehiclesError } = await supabaseAdmin
       .from('vehicles')
       .select('id')
