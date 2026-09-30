@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase';
 
-type SupabaseAdminClient = ReturnType<typeof createClient>;
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 let supabaseClient: SupabaseAdminClient | null = null;
 
 function getSupabase(): SupabaseAdminClient {
@@ -14,7 +15,7 @@ function getSupabase(): SupabaseAdminClient {
     throw new Error('Supabase admin configuration is missing.');
   }
 
-  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
