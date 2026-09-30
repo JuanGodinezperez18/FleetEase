@@ -48,9 +48,7 @@ import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
 import { generateExcelReport, downloadExcel } from '@/lib/reports/excel-generator';
 import type { ReportData } from '@/lib/reports/pdf-generator';
 import { useAuth } from '@/contexts/auth-provider';
-import { supabase } from '@/lib/supabase';
 import { MetricCard } from '@/components/dashboard/components/MetricCard';
-import Link from 'next/link';
 
 type ReportType = 'financial' | 'vehicle' | 'client' | 'partner';
 
@@ -229,29 +227,6 @@ export default function ReportsPageImproved() {
     }
   };
 
-  const saveReportToSupabase = async (type: 'pdf' | 'excel', filename: string) => {
-    if (!selectedCompanyId || !currentUser) return;
-    try {
-      await supabase.from('generated_reports').insert({
-        company_id: selectedCompanyId,
-        type: reportType,
-        format: type,
-        filename,
-        date_range: dateRange
-          ? {
-              from: dateRange.from?.toISOString(),
-              to: dateRange.to?.toISOString(),
-            }
-          : null,
-        created_by: currentUser.uid,
-        created_by_name: currentUser.name,
-        created_at: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Error saving report to Supabase:', error);
-    }
-  };
-
   const handleExportPDF = async () => {
     const reportData = prepareReportData();
     if (!reportData) {
@@ -263,7 +238,6 @@ export default function ReportsPageImproved() {
       const pdfBlob = await generatePDFReport(reportData);
       const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`;
       downloadPDF(pdfBlob, filename);
-      await saveReportToSupabase('pdf', filename);
       toast.success('Reporte PDF generado');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -284,7 +258,6 @@ export default function ReportsPageImproved() {
       const excelBlob = await generateExcelReport(reportData);
       const filename = `${reportType}_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
       downloadExcel(excelBlob, filename);
-      await saveReportToSupabase('excel', filename);
       toast.success('Reporte Excel generado');
     } catch (error) {
       console.error('Error generating Excel:', error);
@@ -375,13 +348,6 @@ export default function ReportsPageImproved() {
                 <FileSpreadsheet className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
               )}
               Excel
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
-            >
-              <Link href="/dashboard/reports/history">Historial</Link>
             </Button>
           </div>
         </header>
