@@ -24,7 +24,7 @@ jobs:
       - name: Ensure lockfile exists
         run: |
           if [ ! -f package-lock.json ]; then
-            npm install --package-lock-only --ignore-scripts
+            npm install --package-lock-only --ignore-scripts --legacy-peer-deps
           fi
       - name: Commit generated lockfile
         if: hashFiles('package-lock.json') != ''
