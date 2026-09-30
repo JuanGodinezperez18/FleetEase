@@ -39,11 +39,7 @@ export type QuickActionModal =
   | null;
 
 export function useDashboardPage() {
-  const { mountTime, renderCount } = usePerformanceMonitor({
-    componentName: 'useDashboardPage',
-    logOnUnmount: true,
-    warnThreshold: 2000,
-  });
+  const { mountTime, renderCount } = usePerformanceMonitor();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
   const data = useDashboardData();
