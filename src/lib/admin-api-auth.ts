@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { adminLimiter, checkRateLimit } from '@/lib/rate-limit';
 
-let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+type SupabaseAdminClient = ReturnType<typeof createClient>;
+let supabaseAdminClient: SupabaseAdminClient | null = null;
 
-function getSupabaseAdmin() {
-  if (supabaseAdmin) return supabaseAdmin;
+function getSupabaseAdmin(): SupabaseAdminClient {
+  if (supabaseAdminClient) return supabaseAdminClient;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -14,12 +15,20 @@ function getSupabaseAdmin() {
     throw new Error('Supabase admin configuration is missing.');
   }
 
-  supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  return supabaseAdmin;
+  return supabaseAdminClient;
 }
+
+// Backward-compatible lazy proxy: existing API routes can keep using
+// supabaseAdmin without initializing Supabase during Next.js build.
+export const supabaseAdmin = new Proxy({} as SupabaseAdminClient, {
+  get(_target, property, receiver) {
+    return Reflect.get(getSupabaseAdmin(), property, receiver);
+  },
+});
 
 export type AdminProfile = {
   id: string;
