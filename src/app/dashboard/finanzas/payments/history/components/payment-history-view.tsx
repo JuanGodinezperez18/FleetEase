@@ -120,7 +120,7 @@ export function PaymentHistoryView() {
       }
 
       const names = new Map<string, string>(
-        (suppliers || []).map((s: any) => [s.id, s.name])
+        (suppliers || []).map((s: any) => [s.id, s.name || ""])
       );
       const byTarget = new Map<string, string>();
       for (const payable of payables || []) {
