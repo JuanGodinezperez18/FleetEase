@@ -43,13 +43,13 @@ Cambios preparados en la rama `security/performance-hardening`; aún requieren r
 
 ### Pendiente de remediación
 - **S3:** se añadió workflow `generate-lockfile.yml` para generarlo con npm en GitHub Actions; el archivo todavía no aparece en la rama y por tanto este punto no se considera cerrado.
-- **S4:** `ignoreBuildErrors` ya fue retirado y se añadió `quality-gate.yml` con `npm ci`, `npm run type-check` y `npm run build`; falta confirmar el primer resultado limpio.
+- **S4:** `ignoreBuildErrors` ya fue retirado y se añadió `quality-gate.yml` con `npm ci`, `npm run type-check` y `npm run build`; el primer build estricto terminó con `lint_or_type_error` (`npm run build` exit 1); falta recuperar/corregir los errores de TypeScript y repetir el build limpio.
 - **P1:** implementado en `data-provider-supabase.tsx`: consultas principales paginadas en bloques de 500 y `select()` explícito; se conserva el filtro `company_id` y la misma API de datos para la UI.
 - **P3:** actualizado SheetJS a `0.20.3`, versión actual documentada por SheetJS, usando su tarball oficial; el lockfile npm será el que fije el `integrity` del tarball.
 - **P4:** añadido debounce de 300 ms al buscador global de las dos tablas compartidas (`ui/data-table` y `common/data-table`).
 - **Rate limiting:** añadida cobertura a uploads de inspección/asignación/seguimiento, descarga/eliminación de archivos y portal de Stripe; admin ya queda cubierto mediante `requireAdmin`.
 
-Vercel está procesando los previews de los commits de esta fase. El build con `ignoreBuildErrors` retirado aún estaba en estado `BUILDING` al actualizar este reporte. El lockfile aún no está presente en la rama; por ello el reporte no se declara cerrado hasta confirmar `package-lock.json` + type-check + build limpio.
+Vercel procesó el preview con `ignoreBuildErrors` retirado y terminó en `ERROR` durante `npm run build`, con `errorCode: lint_or_type_error`; el detalle de líneas no está expuesto por la herramienta conectada. El lockfile aún no está presente en la rama; por ello el reporte no se declara cerrado hasta confirmar `package-lock.json` + type-check + build limpio.
 
 ---
 
