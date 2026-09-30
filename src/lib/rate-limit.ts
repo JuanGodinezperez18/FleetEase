@@ -177,8 +177,22 @@ export const registrationLimiter = new RateLimiter({
 /** Rate limiting para uploads (moderado) */
 export const uploadLimiter = new RateLimiter({
   windowMs: 60 * 1000, // 1 minuto
-  max: 20,              // 20 uploads por minuto
+  max: 10,              // 10 uploads por minuto
   prefix: 'upload',
+});
+
+/** Rate limiting para operaciones administrativas autenticadas. */
+export const adminLimiter = new RateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  prefix: 'admin',
+});
+
+/** Rate limiting para iniciar sesiones de pago. */
+export const billingLimiter = new RateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  prefix: 'billing',
 });
 
 /** Rate limiting para notificaciones (estricto para evitar spam) */
