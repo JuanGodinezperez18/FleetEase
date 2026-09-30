@@ -8,7 +8,6 @@
 .pnp.js
 /.yarn
 /yarn.lock
-/package-lock.json
 
 # ======================
 # TESTING
