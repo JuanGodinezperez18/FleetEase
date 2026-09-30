@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { adminLimiter, checkRateLimit } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -21,8 +22,10 @@ export type AdminProfile = {
 export async function requireAdmin(
   request: NextRequest,
   options?: { allowedRoles?: string[]; targetCompanyId?: string | null },
-): Promise<{ profile: AdminProfile } | { error: NextResponse }> {
+): Promise<{ profile: AdminProfile } | { error: Response }> {
   const allowedRoles = options?.allowedRoles ?? ['admin', 'super_admin'];
+  const rateLimitResponse = await checkRateLimit(request, adminLimiter);
+  if (rateLimitResponse) return { error: rateLimitResponse };
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
