@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       admin: 'admin',
       editor: 'editor',
       viewer: 'viewer',
-      user: 'user',
       partner: 'partner',
       client: 'client',
     };
@@ -119,7 +118,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         phone,
-        role,
+        role: normalizedRole,
         company_id: normalizedRole === 'super_admin' ? null : companyId,
         partner_access: normalizedRole === 'viewer' ? (partnerAccess || []) : [],
         is_deleted: false,
