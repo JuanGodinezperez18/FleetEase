@@ -103,7 +103,7 @@ export default function SeguimientosPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.companyId]);
+  }, [currentUser?.companyId, vehicles, clients]);
 
   useEffect(() => {
     if (currentUser?.companyId) loadSeguimientos();
