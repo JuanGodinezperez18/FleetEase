@@ -50,7 +50,7 @@ Cambios preparados en la rama `security/performance-hardening`; aún requieren r
 - **P4:** localizar tablas grandes y añadir debounce/virtualización donde corresponda.
 - Ampliar la cobertura de rate limiting a las rutas restantes.
 
-No se ejecutó build ni pruebas automatizadas durante esta edición remota.
+No se ejecutaron manualmente build ni pruebas automatizadas durante esta edición remota. El preview automático de Vercel completó la compilación correctamente; las pruebas automatizadas no se ejecutaron.
 
 ---
 
