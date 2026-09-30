@@ -287,7 +287,9 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredMultas.map(multa => (
+              filteredMultas.map(multa => {
+                const daysOverdue = multa.daysOverdue ?? 0;
+                return (
                 <TableRow key={multa.id} className="border-white/[0.04] hover:bg-white/[0.02]">
                   <TableCell className="font-medium text-white/80">{multa.folio || "—"}</TableCell>
                   <TableCell>
