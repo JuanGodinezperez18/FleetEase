@@ -83,7 +83,7 @@ class RateLimiter {
 
       const redisKey = `fleetease:rate-limit:${key}`;
       const script = "local count = redis.call('INCR', KEYS[1]); if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return { count, redis.call('PTTL', KEYS[1]) }";
-      const response = await fetch(redisUrl.replace(/\\/+$/, ''), {
+      const response = await fetch(redisUrl.replace(/\/+$/, ''), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${redisToken}`,
