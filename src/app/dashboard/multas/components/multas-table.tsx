@@ -352,7 +352,8 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
