@@ -65,7 +65,38 @@ export default function SeguimientosPage() {
         .order('timestamp', { ascending: false })
         .limit(100);
       if (error) throw error;
-      setSeguimientos((data || []) as Seguimiento[]);
+      const rows = (data || []) as Array<{
+        id: string;
+        vehicle_id: string;
+        client_id: string | null;
+        company_id: string | null;
+        created_by: string;
+        notes: string | null;
+        photo_url: string | null;
+        latitude: number | null;
+        longitude: number | null;
+        timestamp: string;
+      }>;
+      const mapped = rows.map((row) => {
+        const vehicle = vehicles?.find(v => v.id === row.vehicle_id);
+        const client = clients?.find(c => c.id === row.client_id);
+        return {
+          id: row.id,
+          vehicle_id: row.vehicle_id,
+          client_id: row.client_id,
+          user_id: row.created_by,
+          client_name: client ? `${client.firstname} ${client.lastname}`.trim() : 'Desconocido',
+          vehicle_alias: vehicle?.alias || vehicle?.plate || 'Desconocido',
+          photo_url: row.photo_url || '',
+          description: row.notes,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timestamp: row.timestamp,
+          created_by: row.created_by,
+          company_id: row.company_id || currentUser.companyId,
+        };
+      });
+      setSeguimientos(mapped);
     } catch (error) {
       console.error('Error cargando seguimientos:', error);
       toast.error('Error al cargar seguimientos');
