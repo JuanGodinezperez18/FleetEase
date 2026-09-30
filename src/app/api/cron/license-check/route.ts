@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+type SupabaseAdminClient = ReturnType<typeof createClient>;
+let supabaseClient: SupabaseAdminClient | null = null;
+
+function getSupabase(): SupabaseAdminClient {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return supabaseClient;
+}
 
 const BATCH_SIZE = 100;
 const LICENSE_WARNING_DAYS = [30, 7];
@@ -31,8 +46,8 @@ async function verifyAuth(request: NextRequest): Promise<boolean> {
   return authHeader === expected;
 }
 
-
 async function insertNotificationsBatched(
+  supabase: SupabaseAdminClient,
   notifications: NotificationRecord[],
 ): Promise<number> {
   let sent = 0;
@@ -78,41 +93,43 @@ export async function GET(request: NextRequest) {
   let notificationsSent = 0;
 
   try {
+    const supabase = getSupabase();
     const [clientsResult, adminsResult] = await Promise.all([
-          supabase
-            .from('clients')
-            .select('id, user_id, company_id, license_expiry')
-            .eq('is_deleted', false)
-            .not('license_expiry', 'is', null),
-          supabase
-            .from('users')
-            .select('id, company_id')
-            .in('role', ['admin', 'editor']),
-        ]);
-    
-        if (clientsResult.error) {
-          console.error('Error fetching clients:', clientsResult.error);
-          return NextResponse.json(
-            { error: 'Failed to fetch clients', details: clientsResult.error.message },
-            { status: 500 },
-          );
-        }
-    
-        if (adminsResult.error) {
-          console.error('Error fetching admin users:', adminsResult.error);
-          return NextResponse.json(
-            { error: 'Failed to fetch admin users', details: adminsResult.error.message },
-            { status: 500 },
-          );
-        }
-    
-        const clients = clientsResult.data;
-        const adminIdsByCompany = new Map<string, string[]>();
-        for (const admin of adminsResult.data ?? []) {
-          const ids = adminIdsByCompany.get(admin.company_id) ?? [];
-          ids.push(admin.id);
-          adminIdsByCompany.set(admin.company_id, ids);
-        }
+      supabase
+        .from('clients')
+        .select('id, user_id, company_id, license_expiry')
+        .eq('is_deleted', false)
+        .not('license_expiry', 'is', null),
+      supabase
+        .from('users')
+        .select('id, company_id')
+        .in('role', ['admin', 'editor']),
+    ]);
+
+    if (clientsResult.error) {
+      console.error('Error fetching clients:', clientsResult.error);
+      return NextResponse.json(
+        { error: 'Failed to fetch clients', details: clientsResult.error.message },
+        { status: 500 },
+      );
+    }
+
+    if (adminsResult.error) {
+      console.error('Error fetching admin users:', adminsResult.error);
+      return NextResponse.json(
+        { error: 'Failed to fetch admin users', details: adminsResult.error.message },
+        { status: 500 },
+      );
+    }
+
+    const clients = clientsResult.data;
+    const adminIdsByCompany = new Map<string, string[]>();
+    for (const admin of adminsResult.data ?? []) {
+      if (!admin.company_id) continue;
+      const ids = adminIdsByCompany.get(admin.company_id) ?? [];
+      ids.push(admin.id);
+      adminIdsByCompany.set(admin.company_id, ids);
+    }
 
     clientsChecked = clients?.length ?? 0;
     const allNotifications: NotificationRecord[] = [];
@@ -123,13 +140,10 @@ export async function GET(request: NextRequest) {
       try {
         const daysUntilExpiry = daysUntilLicenseExpiry(client.license_expiry);
 
-        if (
-          LICENSE_WARNING_DAYS.includes(daysUntilExpiry)
-        ) {
+        if (LICENSE_WARNING_DAYS.includes(daysUntilExpiry)) {
           const daysLabel =
             daysUntilExpiry === 30 ? '30 dias' : '7 dias';
 
-          // Notify the client themselves
           allNotifications.push({
             uid: client.user_id,
             type: 'license_expiry_warning',
@@ -139,7 +153,6 @@ export async function GET(request: NextRequest) {
             company_id: client.company_id,
           });
 
-          // Notify admins in the same company
           const adminIds = adminIdsByCompany.get(client.company_id) ?? [];
 
           for (const adminId of adminIds) {
@@ -150,7 +163,7 @@ export async function GET(request: NextRequest) {
               date: new Date().toISOString(),
               is_read: false,
               company_id: client.company_id,
-              });
+            });
           }
         }
       } catch (clientError) {
@@ -162,7 +175,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (allNotifications.length > 0) {
-      notificationsSent = await insertNotificationsBatched(allNotifications);
+      notificationsSent = await insertNotificationsBatched(
+        supabase,
+        allNotifications,
+      );
     }
 
     return NextResponse.json({
