@@ -318,7 +318,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
                     dataKey="count"
                     name="Empresas"
                     fill="#d7ff3f"
-                    radius={[0, 6, 6, 0]}
+                    radius={6}
                     maxBarSize={22}
                     isAnimationActive
                     animationDuration={850}
