@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { Loader2, ArrowLeft, ArrowRight, Mail, Lock, User, Phone, Building, CheckCircle, Zap, TrendingUp, Building2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { type PlanType, plans } from '@/config/plans';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 interface RegisterData {
   name: string;
@@ -26,6 +27,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   const [data, setData] = useState<RegisterData>({
     name: '', email: '', phone: '', password: '', confirmPassword: '', companyName: '', selectedPlan: 'free',
   });
@@ -36,7 +39,7 @@ export default function RegisterPage() {
     if (step === 1 && data.name && data.email && data.companyName) setStep(2);
     else if (step === 2 && data.phone && data.password && data.confirmPassword) {
       if (data.password !== data.confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
-      if (data.password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
+      if (data.password.length < 8 || !/[a-z]/.test(data.password) || !/[A-Z]/.test(data.password) || !/\\d/.test(data.password) || !/[^A-Za-z0-9]/.test(data.password)) { toast.error('Usa al menos 8 caracteres, con mayúscula, minúscula, número y símbolo'); return; }
       setStep(3);
     }
   };
@@ -48,7 +51,7 @@ export default function RegisterPage() {
     try {
       const response = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password, name: data.name, phone: data.phone, companyName: data.companyName, plan: data.selectedPlan }),
+        body: JSON.stringify({ email: data.email, password: data.password, name: data.name, phone: data.phone, companyName: data.companyName, plan: data.selectedPlan, captchaToken }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Error al crear la cuenta');
@@ -71,7 +74,7 @@ export default function RegisterPage() {
       console.error('Error en registro:', error);
       let errorMessage = 'Error al crear la cuenta. Intenta de nuevo.';
       if (error.message?.includes('already registered') || error.message?.includes('User already registered')) errorMessage = 'Este correo ya está registrado. Inicia sesión o usa otro correo.';
-      else if (error.message?.includes('weak password') || error.message?.includes('Weak password')) errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      else if (error.message?.includes('contraseña')) errorMessage = error.message;
       else if (error.message?.includes('invalid email') || error.message?.includes('Invalid email')) errorMessage = 'El correo electrónico no es válido.';
       else if (error.message) errorMessage = error.message;
       toast.error(errorMessage);
@@ -169,7 +172,19 @@ export default function RegisterPage() {
                     <div className="grid gap-4 sm:grid-cols-2">{[[Building, 'Empresa', data.companyName], [User, 'Tu nombre', data.name], [Mail, 'Correo', data.email], [Phone, 'Teléfono', data.phone]].map(([Icon, label, value]: any) => <div key={label} className="flex items-start gap-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#d7ff3f]" /><div className="min-w-0"><p className="text-xs font-medium text-white/55">{label}</p><p className="truncate text-sm text-white">{value}</p></div></div>)}</div>
                   </div>
                   <div className="rounded-2xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.055] p-4 sm:p-5"><div className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#d7ff3f]" /><div><p className="text-sm font-semibold text-white">Plan {plans[data.selectedPlan].name}</p><p className="mt-1 text-sm leading-6 text-white/55">{plans[data.selectedPlan].trialDays ? `${plans[data.selectedPlan].trialDays} días gratis` : ''}{plans[data.selectedPlan].trialDays ? ' • ' : ''}{plans[data.selectedPlan].maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plans[data.selectedPlan].maxVehicles} vehículos`} • {plans[data.selectedPlan].maxUsers === -1 ? 'Usuarios ilimitados' : `${plans[data.selectedPlan].maxUsers} usuario${plans[data.selectedPlan].maxUsers > 1 ? 's' : ''}`} • {plans[data.selectedPlan].price === 0 ? 'Sin tarjeta' : `$${plans[data.selectedPlan].price}/${plans[data.selectedPlan].period}`}</p></div></div></div>
-                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={isSubmitting}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Activar prueba gratis' : 'Crear cuenta'}</Button></div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    {captchaSiteKey ? (
+                      <ReCAPTCHA
+                        sitekey={captchaSiteKey}
+                        onChange={token => setCaptchaToken(token)}
+                        onExpired={() => setCaptchaToken(null)}
+                        onErrored={() => setCaptchaToken(null)}
+                      />
+                    ) : (
+                      <p className="text-sm text-amber-200">El registro requiere configurar reCAPTCHA en el entorno de la aplicación.</p>
+                    )}
+                  </div>
+                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={isSubmitting || !captchaToken}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Activar prueba gratis' : 'Crear cuenta'}</Button></div>
                 </div>}
               </motion.div>
             </div>
