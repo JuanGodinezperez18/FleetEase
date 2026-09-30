@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (typeof email !== 'string' || email.length > 254 || typeof name !== 'string' || name.trim().length > 120 || typeof companyName !== 'string' || companyName.trim().length > 120 || (phone != null && (typeof phone !== 'string' || phone.length > 40))) {
       return NextResponse.json({ success: false, message: 'Los datos del registro no son válidos' }, { status: 400 });
     }
-    if (typeof password !== 'string' || password.length < 8 || password.length > 128 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    if (typeof password !== 'string' || password.length < 8 || password.length > 128 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
       return NextResponse.json({ success: false, message: 'La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula, número y símbolo' }, { status: 400 });
     }
     if (!(await verifyRegistrationCaptcha(captchaToken))) {
