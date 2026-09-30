@@ -10,7 +10,7 @@ on:
       - master
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -21,6 +21,23 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - name: Ensure lockfile exists
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts
+          fi
+      - name: Commit generated lockfile
+        if: hashFiles('package-lock.json') != ''
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json already tracked or unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore(deps): generate package-lock.json"
+            git push
+          fi
       - run: npm ci
       - run: npm run type-check
       - run: npm run build
