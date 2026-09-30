@@ -17,8 +17,6 @@ const DownloadFileSchema = z.object({
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
   try {
-    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
-    if (rateLimitResponse) return rateLimitResponse;
     const { data: profile, error } = await supabaseAdmin
       .from('users')
       .select('company_id, role')
@@ -50,6 +48,8 @@ export async function POST(request: NextRequest) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
     }
+    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const token = authHeader.substring(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
