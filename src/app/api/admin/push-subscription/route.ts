@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import type { Json } from '@/lib/supabase';
+import type { Json } from '@/lib/supabase';
 
 interface PushSubscriptionRequest {
   userId: string;
