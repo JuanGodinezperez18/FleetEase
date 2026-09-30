@@ -209,7 +209,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
         shouldDirty: true,
       });
     } else if (!initialData) {
-      form.setValue('amount', undefined, { shouldValidate: true });
+      form.setValue('amount', 0, { shouldValidate: true });
     }
   }, [isWeeklyRent, selectedCategoryId, vehicles, form, initialData]);
 
