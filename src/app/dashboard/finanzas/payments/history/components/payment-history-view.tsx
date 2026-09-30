@@ -217,7 +217,7 @@ export function PaymentHistoryView() {
   const startEdit = (record: any) => {
     setEditing(record);
     setEditAmount(String(Number(record.amount || 0)));
-    setEditDate(record.date || "");
+    setEditDate(record.date ?? "");
     setEditMethod(record.paymentMethod || "Transferencia");
     setEditReference(record.referenceCode || "");
     setEditTarget(record.targetId || "");
