@@ -130,7 +130,7 @@ const CategoryForm = React.forwardRef<
   }, [currentUser?.role, financialCategories, initialData]);
 
   const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(baseCategorySchema),
     defaultValues: {
       name: initialData?.name || '',
       type: initialData?.type || 'expense',
