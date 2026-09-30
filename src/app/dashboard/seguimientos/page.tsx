@@ -302,7 +302,7 @@ export default function SeguimientosPage() {
                     <button
                       type="button"
                       className="relative block h-44 w-full overflow-hidden bg-white/[0.03]"
-                      onClick={() => setSelectedImage({ ...seg, vehicleAlias, clientName })}
+                      onClick={() => setSelectedImage({ ...seg, vehicle_alias: vehicleAlias, client_name: clientName })}
                     >
                       <Image
                         src={seg.photo_url}
@@ -405,13 +405,13 @@ export default function SeguimientosPage() {
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Vehículo</p>
                   <p className="mt-0.5 font-heading text-base font-semibold text-white">
-                    {selectedImage.vehicleAlias}
+                    {selectedImage.vehicle_alias}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Cliente</p>
                   <p className="mt-0.5 font-heading text-base font-semibold text-white">
-                    {selectedImage.clientName}
+                    {selectedImage.client_name}
                   </p>
                 </div>
                 <div>
