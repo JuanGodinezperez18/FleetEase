@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { Resolver } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -130,7 +131,7 @@ const CategoryForm = React.forwardRef<
   }, [currentUser?.role, financialCategories, initialData]);
 
   const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(baseCategorySchema),
+    resolver: zodResolver(categorySchema) as Resolver<CategoryFormValues>,
     defaultValues: {
       name: initialData?.name || '',
       type: initialData?.type || 'expense',
