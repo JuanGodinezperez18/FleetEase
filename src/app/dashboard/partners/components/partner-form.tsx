@@ -51,7 +51,7 @@ const createPartnerSchema = (partners: Partner[], editingPartnerId?: string) => 
       partner.id !== editingPartnerId &&
       !partner.isDeleted &&
       partner.companyId === companyId &&
-      normalizeEmail(partner.email || '') === normalizeEmail(data.email)
+      normalizeEmail(partner.email || '') === normalizeEmail(data.email || '')
     );
     if (duplicateEmail) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['email'], message: "Este correo electrónico ya está registrado para otro socio de esta empresa." });
@@ -63,7 +63,7 @@ const createPartnerSchema = (partners: Partner[], editingPartnerId?: string) => 
       partner.id !== editingPartnerId &&
       !partner.isDeleted &&
       partner.companyId === companyId &&
-      normalizePhone(partner.phone || '') === normalizePhone(data.phone)
+      normalizePhone(partner.phone || '') === normalizePhone(data.phone || '')
     );
     if (duplicatePhone) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['phone'], message: "Este número de teléfono ya está registrado para otro socio de esta empresa." });
