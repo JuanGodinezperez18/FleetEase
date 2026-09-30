@@ -76,6 +76,40 @@ class RateLimiter {
     const key = prefix ? `${prefix}:${identifier}` : identifier;
     const now = Date.now();
 
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (redisUrl || redisToken) {
+      if (!redisUrl || !redisToken) throw new Error('Configura UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN juntos.');
+
+      const redisKey = `fleetease:rate-limit:${key}`;
+      const script = "local count = redis.call('INCR', KEYS[1]); if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return { count, redis.call('PTTL', KEYS[1]) }";
+      const response = await fetch(redisUrl.replace(/\\/+$/, ''), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['EVAL', script, '1', redisKey, String(windowMs)]),
+        signal: AbortSignal.timeout(3000),
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`Upstash rate limiter failed with status ${response.status}.`);
+      const payload = await response.json() as { result?: [number, number]; error?: string };
+      if (payload.error || !Array.isArray(payload.result) || payload.result.length !== 2) {
+        throw new Error('Upstash returned an invalid rate-limit response.');
+      }
+      const [count, ttl] = payload.result;
+      const resetAt = now + Math.max(0, ttl);
+      const limited = count > max;
+      return {
+        success: true,
+        limited,
+        remaining: Math.max(0, max - count),
+        total: max,
+        resetAt,
+      };
+    }
+
     const entry = store.get(key);
 
     // Si no existe o expiró, crear nueva entrada
@@ -190,9 +224,11 @@ async function getRateLimitIdentifier(request: Request): Promise<string> {
   const ip = request.headers.get('x-real-ip')?.trim() ||
     forwardedFor?.[forwardedFor.length - 1] ||
     'unknown';
+  const ipDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
+  const ipHash = Array.from(new Uint8Array(ipDigest), byte => byte.toString(16).padStart(2, '0')).join('');
 
   const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return `ip:${ip}`;
+  if (!authHeader?.startsWith('Bearer ')) return `ip:${ipHash}`;
 
   // Never keep a raw access token (or a truncated token prefix) as the key.
   // Hashing avoids collisions caused by the previous 20-character truncation
@@ -205,7 +241,7 @@ async function getRateLimitIdentifier(request: Request): Promise<string> {
     return `user:${hash}`;
   } catch {
     // Fail closed on token-key generation without exposing the token.
-    return `ip:${ip}`;
+    return `ip:${ipHash}`;
   }
 }
 
