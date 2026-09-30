@@ -126,10 +126,10 @@ export default function PartnerDetailsPage() {
 
         <MetricCard
           title="SALDO A PAGAR AL SOCIO"
-          value={formatCurrency(metrics.partnerBalance)}
+          value={formatCurrency(partnerBalance)}
           description="Después de pagos realizados"
           icon={<DollarSign className="w-5 h-5" />}
-          variant={metrics.partnerBalance >= 0 ? "success" : "danger"}
+          variant={partnerBalance >= 0 ? "success" : "danger"}
         />
       </div>
       
