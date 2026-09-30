@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSafeStorageSegment } from '@/lib/security/safe-storage-path';
+import { checkRateLimit, uploadLimiter } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -28,6 +29,8 @@ async function ensureBucket(): Promise<void> {
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
   try {
+    const rateLimitResponse = await checkRateLimit(request, uploadLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
     const token = authHeader.substring(7);
