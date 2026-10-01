@@ -187,9 +187,8 @@ export default function PaymentsPage() {
   const depositAvailable = kind === "client_payment" ? (depositAvailableByClient.get(entityId) || 0) : 0;
   const partnerBalance = useMemo(() => {
     if (!selectedPartner) return 0;
-    const partnerVehicles = vehicles.filter(v => v.partnerId === selectedPartner.id && !v.isDeleted);
-    return calculatePartnerBalance(selectedPartner, partnerVehicles, financialRecords);
-  }, [selectedPartner, vehicles, financialRecords]);
+    return partnerBalances.find(p => p.id === selectedPartner.id)?.balance ?? 0;
+  }, [selectedPartner, partnerBalances]);
   const targetOutstanding = selectedTarget?.outstanding || selectedSupplierPayable?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
   const maxAmount = kind === "partner_payment" ? Math.max(0, partnerBalance)
     : kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0
