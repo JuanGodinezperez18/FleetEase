@@ -7,6 +7,7 @@ import { getStripe } from '@/lib/stripe';
 type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 
 let supabaseClient: SupabaseAdminClient | null = null;
+let reminderSupabaseClient: ReturnType<typeof createClient> | null = null;
 
 function getSupabase(): SupabaseAdminClient {
   if (supabaseClient) return supabaseClient;
@@ -23,6 +24,23 @@ function getSupabase(): SupabaseAdminClient {
   });
 
   return supabaseClient;
+}
+
+function getReminderSupabase() {
+  if (reminderSupabaseClient) return reminderSupabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  reminderSupabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return reminderSupabaseClient;
 }
 
 const REMINDER_DAYS = [7, 3, 1, 0];
@@ -68,6 +86,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = getSupabase();
+    const reminderSupabase = getReminderSupabase();
     const { data: subscriptions, error } = await supabase
       .from('companies')
       .select('id, name, plan, stripe_subscription_id')
@@ -114,7 +133,7 @@ export async function GET(request: NextRequest) {
 
         // Claim this reminder only after all data needed to send it has been validated.
         // The unique constraint on (company_id, reminder_key, period_end) prevents duplicates.
-        const { data: reservation, error: reservationError } = await supabase
+        const { data: reservation, error: reservationError } = await reminderSupabase
           .from('subscription_email_reminders')
           .insert({ company_id: subscription.id, reminder_key: key, period_end: periodEnd.toISOString() })
           .select('id')
@@ -146,7 +165,7 @@ export async function GET(request: NextRequest) {
           remindersSent++;
         } catch (sendError) {
           // Release the claim when delivery fails so the next cron execution can retry.
-          await supabase
+          await reminderSupabase
             .from('subscription_email_reminders')
             .delete()
             .eq('id', reservation.id);
