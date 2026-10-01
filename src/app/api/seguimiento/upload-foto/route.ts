@@ -20,6 +20,7 @@ const BUCKET_NAME = 'seguimientos';
 
 /** Crea el bucket si no existe (público: la app usa getPublicUrl). */
 async function ensureBucket(): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: buckets } = await supabaseAdmin.storage.listBuckets();
   if (buckets?.some(b => b.name === BUCKET_NAME)) return;
 
