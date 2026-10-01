@@ -28,6 +28,11 @@ jobs:
       
       - name: Build application
         run: npm run build
+        env:
+          # CI-only placeholders: production Supabase credentials are supplied by Vercel.
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
       
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@72f881228236981b625ed765b928efb1786a1f55 # v11
@@ -70,6 +75,11 @@ jobs:
         run: |
           npm run build
           npm run analyze:bundle || true
+        env:
+          # CI-only placeholders: production Supabase credentials are supplied by Vercel.
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
       
       - name: Upload bundle analysis
         uses: actions/upload-artifact@v4
