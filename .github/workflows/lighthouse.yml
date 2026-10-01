@@ -13,43 +13,52 @@ on:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build application
         run: npm run build
         env:
-          # CI-only placeholders: production Supabase credentials are supplied by Vercel.
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
-      
+
+      - name: Start application
+        run: |
+          npm run start > /tmp/fleetease-next.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3000 >/dev/null; then
+              echo "FleetEase is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/fleetease-next.log
+          exit 1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@72f881228236981b625ed765b928efb1786a1f55 # v11
         with:
           uploadArtifacts: true
           temporaryPublicStorage: true
           configPath: ./.lighthouserc.json
-          serverCommand: npm run start
-          serverTimeout: 60000
-          urls: |
-            http://localhost:3000
-            http://localhost:3000/dashboard
-            http://localhost:3000/dashboard/clients
-            http://localhost:3000/dashboard/vehicles
-            http://localhost:3000/dashboard/finanzas
-      
+
       - name: Upload Lighthouse reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-reports
@@ -58,30 +67,30 @@ jobs:
 
   performance-budget:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build and analyze bundle
         run: |
           npm run build
           npm run analyze:bundle || true
         env:
-          # CI-only placeholders: production Supabase credentials are supplied by Vercel.
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
-      
+
       - name: Upload bundle analysis
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bundle-analysis
