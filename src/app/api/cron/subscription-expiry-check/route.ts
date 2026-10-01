@@ -7,7 +7,24 @@ import { getStripe } from '@/lib/stripe';
 type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 
 let supabaseClient: SupabaseAdminClient | null = null;
-let reminderSupabaseClient: ReturnType<typeof createClient> | null = null;
+type ReminderDatabase = {
+  public: {
+    Tables: {
+      subscription_email_reminders: {
+        Row: { id: string; company_id: string; reminder_key: string; period_end: string };
+        Insert: { id?: string; company_id: string; reminder_key: string; period_end: string };
+        Update: { id?: string; company_id?: string; reminder_key?: string; period_end?: string };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+
+let reminderSupabaseClient: ReturnType<typeof createClient<ReminderDatabase>> | null = null;
 
 function getSupabase(): SupabaseAdminClient {
   if (supabaseClient) return supabaseClient;
