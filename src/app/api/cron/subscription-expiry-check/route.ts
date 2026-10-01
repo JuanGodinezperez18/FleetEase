@@ -1,13 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/resend';
+import type { Database } from '@/lib/supabase';
 import { getStripe } from '@/lib/stripe';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
+
+let supabaseClient: SupabaseAdminClient | null = null;
+
+function getSupabase(): SupabaseAdminClient {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return supabaseClient;
+}
 
 const REMINDER_DAYS = [7, 3, 1, 0];
 const DAY_MS = 86400000;
@@ -51,6 +67,7 @@ export async function GET(request: NextRequest) {
   const errors: string[] = [];
 
   try {
+    const supabase = getSupabase();
     const { data: subscriptions, error } = await supabase
       .from('companies')
       .select('id, name, plan, stripe_subscription_id')
