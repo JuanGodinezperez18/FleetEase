@@ -98,6 +98,7 @@ export interface NewAssignmentInput {
   conditionNotes?: string | null;
   photos?: Record<string, string> | null;
   reason?: string | null;
+  assignedAt?: string;
 }
 
 export interface AssignmentLogInsertPayload {
@@ -124,7 +125,7 @@ export function buildAssignmentLogPayload(
     clientId: input.clientId,
     companyId: input.companyId,
     assignedBy: input.assignedBy,
-    assignedAt: timestamp || new Date().toISOString(),
+    assignedAt: input.assignedAt || timestamp || new Date().toISOString(),
     unassignedAt: null,
     odometerReading: input.odometerReading ?? null,
     fuelLevel: input.fuelLevel ?? null,
