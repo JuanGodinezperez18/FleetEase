@@ -178,9 +178,9 @@ export function useDashboardPage() {
         openVehicleListModal('vehicles-available', 'Vehículos Disponibles'),
       'insurance-expiring': () =>
         openInsuranceExpiringModal('insurance-expiring', 'Seguros por Vencer'),
-      'income-month': () => openIncomeListModal('income-month', 'Ingresos del Mes'),
+      'income-month': () => openIncomeListModal('income-month', 'Ingresos'),
       'income-today': () => openIncomeListModal('income-today', 'Ingresos de Hoy'),
-      'expenses-month': () => openExpenseListModal('expenses-month', 'Gastos del Mes'),
+      'expenses-month': () => openExpenseListModal('expenses-month', 'Gastos'),
       'expenses-today': () => openExpenseListModal('expenses-today', 'Gastos de Hoy'),
       'top-expense-category': () =>
         openExpenseListModal('top-expense-category', 'Top Categoría de Gastos'),
