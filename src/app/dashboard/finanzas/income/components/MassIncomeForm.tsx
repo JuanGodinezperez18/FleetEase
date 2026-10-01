@@ -26,6 +26,7 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
 
 const formSchema = z.object({
   companyId: z.string().min(1, 'Selecciona una compañía'),
@@ -57,7 +58,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
   const { vehicles: allVehicles } = useVehicles();
   const { clients: allClients, credits } = useClients();
   const { financialCategories, addIncome } = useFinances();
-  const { companies } = useData();
+  const { companies, vehicleAssignmentLogs } = useData();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,44 +93,51 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
   
   useEffect(() => {
     if (isVehicleRentCategory && selectedCompanyId && allVehicles && allClients) {
-      
       const selectedDateKey = selectedDate;
+      const todayKey = format(new Date(), 'yyyy-MM-dd');
       const companyVehicles = allVehicles.filter(v =>
         v.companyId === selectedCompanyId &&
-        !v.isDeleted &&
-        v.clientId
+        !v.isDeleted
       );
 
       const rentData: VehicleRentData[] = companyVehicles.flatMap(vehicle => {
-        const client = allClients.find(c => c.id === vehicle.clientId);
+        const assignment = findAssignmentAtDate(
+          vehicleAssignmentLogs || [],
+          vehicle.id!,
+          selectedDateKey,
+        );
+
+        // Legacy fallback for today's capture: vehicles created before the
+        // assignment log history existed may still have clientId populated.
+        const historicalClientId = assignment?.clientId
+          || (selectedDateKey === todayKey ? vehicle.clientId : null);
+
+        if (!historicalClientId) return [];
+
+        const client = allClients.find(c => c.id === historicalClientId);
         if (!client || client.isDeleted || client.status !== 'active') return [];
 
-        // A historical income can only be created for a client that already
-        // existed on the selected date. If an assignment date is available,
-        // it must also have started on or before that date.
         const clientCreatedDateKey = client.createdAt?.slice(0, 10);
-        const assignmentDateKey = client.vehicleAssignedAt?.slice(0, 10);
         if (clientCreatedDateKey && clientCreatedDateKey > selectedDateKey) return [];
-        if (assignmentDateKey && assignmentDateKey > selectedDateKey) return [];
 
-        // Mass ordinary-rent income must not include clients currently carrying
-        // an active credit; credit collections are handled separately.
-        if (clientsWithActiveCredit.has(vehicle.clientId!)) return [];
+        // Mass ordinary-rent income is only for clients assigned to the
+        // vehicle on the selected date and without an active credit.
+        if (clientsWithActiveCredit.has(historicalClientId)) return [];
 
         return [{
           vehicleId: vehicle.id!,
           vehicleName: `${vehicle.make} ${vehicle.model} - ${vehicle.plate}`,
           clientName: `${client.firstname} ${client.lastname}`,
-          clientId: vehicle.clientId!,
+          clientId: historicalClientId,
           weeklyRent: vehicle.weeklyRentalValue || 0,
         }];
       });
-  
+
       setVehicleRentData(rentData);
     } else {
       setVehicleRentData([]);
     }
-  }, [isVehicleRentCategory, selectedCompanyId, selectedDate, allVehicles, allClients, clientsWithActiveCredit]);
+  }, [isVehicleRentCategory, selectedCompanyId, selectedDate, allVehicles, allClients, vehicleAssignmentLogs, clientsWithActiveCredit]);
 
 
   const handleRentChange = (index: number, value: string) => {
