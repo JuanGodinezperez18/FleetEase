@@ -8,9 +8,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 const PAID_PLANS: PlanType[] = ['starter', 'pro', 'enterprise'];
 
@@ -75,6 +81,7 @@ async function findCompanyId(subscriptionId: string | null, customerId: string |
 }
 
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
   const stripe = getStripe();
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
