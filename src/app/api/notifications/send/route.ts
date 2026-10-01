@@ -6,9 +6,15 @@ import { z } from 'zod';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 const SendNotificationSchema = z.object({
   userId: z.string().min(1, 'userId es requerido'),
@@ -22,6 +28,7 @@ const SendNotificationSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
   // Rate limiting para envío de notificaciones
   const rateLimitResponse = await checkRateLimit(request, notificationLimiter);
   if (rateLimitResponse) return rateLimitResponse;
