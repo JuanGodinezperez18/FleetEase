@@ -22,11 +22,11 @@ export function LandingStickyCta() {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
-          className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#080a0f]/92 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:hidden"
+          className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[var(--fe-ink)]/92 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:hidden"
         >
           <Link
             href="/registro"
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#d7ff3f] py-3 text-sm font-bold text-[#080a0f]"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--fe-lime)] py-3 text-sm font-bold text-[var(--fe-ink)]"
           >
             Comenzar gratis <ArrowRight className="h-4 w-4" />
           </Link>
