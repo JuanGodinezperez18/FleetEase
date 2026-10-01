@@ -44,6 +44,7 @@ async function applyCompanyPlan(
   stripeCustomerId?: string | null,
 ) {
   const config = plans[plan];
+  const supabaseAdmin = getSupabaseAdmin();
   await supabaseAdmin
     .from('companies')
     .update({
@@ -59,6 +60,7 @@ async function applyCompanyPlan(
 }
 
 async function findCompanyId(subscriptionId: string | null, customerId: string | null): Promise<string | null> {
+  const supabaseAdmin = getSupabaseAdmin();
   if (subscriptionId) {
     const { data } = await supabaseAdmin
       .from('companies')
