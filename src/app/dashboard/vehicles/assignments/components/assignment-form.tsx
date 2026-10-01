@@ -33,6 +33,7 @@ const assignmentSchema = z.object({
   odometerReading: z.string().optional(),
   fuelLevel: z.string().optional(),
   conditionNotes: z.string().optional(),
+  assignedAt: z.string().min(1, 'Fecha de asignación requerida'),
 });
 
 type AssignmentFormValues = z.infer<typeof assignmentSchema>;
@@ -60,6 +61,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       odometerReading: '',
       fuelLevel: '',
       conditionNotes: '',
+      assignedAt: new Date().toISOString().slice(0, 10),
     },
   });
 
@@ -210,6 +212,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
         fuelLevel: data.fuelLevel || null,
         conditionNotes: data.conditionNotes || null,
         photos: Object.keys(uploadedPhotos).length > 0 ? uploadedPhotos : null,
+        assignedAt: new Date(`${data.assignedAt}T12:00:00`).toISOString(),
       });
       onSuccess();
     } catch (error) {
@@ -244,6 +247,15 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
             </Select>
             <FormMessage />
             {availableVehicles.length === 0 && !selectedClientVehicle && <p className="text-xs text-muted-foreground">No hay vehículos disponibles para asignar.</p>}
+          </FormItem>
+        )} />
+
+        <FormField control={form.control} name="assignedAt" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Fecha de asignación</FormLabel>
+            <FormControl><Input type="date" max={new Date().toISOString().slice(0, 10)} {...field} /></FormControl>
+            <p className="text-xs text-muted-foreground">Permite registrar asignaciones históricas con la fecha real de entrega.</p>
+            <FormMessage />
           </FormItem>
         )} />
 
