@@ -76,6 +76,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
   
   const selectedCompanyId = form.watch('companyId');
   const selectedCategoryId = form.watch('categoryId');
+  const selectedDate = form.watch('date');
 
   const isVehicleRentCategory = useMemo(() => {
     if (!selectedCategoryId || !financialCategories) return false;
@@ -92,44 +93,43 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
   useEffect(() => {
     if (isVehicleRentCategory && selectedCompanyId && allVehicles && allClients) {
       
+      const selectedDateKey = selectedDate;
       const companyVehicles = allVehicles.filter(v =>
         v.companyId === selectedCompanyId &&
         !v.isDeleted &&
-        v.clientId 
+        v.clientId
       );
-  
-      const rentData: VehicleRentData[] = companyVehicles.map(vehicle => {
+
+      const rentData: VehicleRentData[] = companyVehicles.flatMap(vehicle => {
         const client = allClients.find(c => c.id === vehicle.clientId);
-        const hasActiveCredit = clientsWithActiveCredit.has(vehicle.clientId!);
-        const isClientActive = client ? client.status === 'active' && !client.isDeleted : false;
-  
-        let disabled = false;
-        let disabledReason = '';
-        
-        if (!isClientActive) {
-            disabled = true;
-            disabledReason = 'Cliente inactivo';
-        } else if (hasActiveCredit) {
-            disabled = true;
-            disabledReason = 'Cliente con crédito activo';
-        }
-  
-        return {
+        if (!client || client.isDeleted || client.status !== 'active') return [];
+
+        // A historical income can only be created for a client that already
+        // existed on the selected date. If an assignment date is available,
+        // it must also have started on or before that date.
+        const clientCreatedDateKey = client.createdAt?.slice(0, 10);
+        const assignmentDateKey = client.vehicleAssignedAt?.slice(0, 10);
+        if (clientCreatedDateKey && clientCreatedDateKey > selectedDateKey) return [];
+        if (assignmentDateKey && assignmentDateKey > selectedDateKey) return [];
+
+        // Mass ordinary-rent income must not include clients currently carrying
+        // an active credit; credit collections are handled separately.
+        if (clientsWithActiveCredit.has(vehicle.clientId!)) return [];
+
+        return [{
           vehicleId: vehicle.id!,
           vehicleName: `${vehicle.make} ${vehicle.model} - ${vehicle.plate}`,
-          clientName: client ? `${client.firstname} ${client.lastname}` : 'Cliente no encontrado',
+          clientName: `${client.firstname} ${client.lastname}`,
           clientId: vehicle.clientId!,
           weeklyRent: vehicle.weeklyRentalValue || 0,
-          disabled,
-          disabledReason,
-        };
+        }];
       });
   
       setVehicleRentData(rentData);
     } else {
       setVehicleRentData([]);
     }
-  }, [isVehicleRentCategory, selectedCompanyId, allVehicles, allClients, clientsWithActiveCredit]);
+  }, [isVehicleRentCategory, selectedCompanyId, selectedDate, allVehicles, allClients, clientsWithActiveCredit]);
 
 
   const handleRentChange = (index: number, value: string) => {
@@ -366,7 +366,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Se registrará un ingreso para cada uno de los <strong>{vehicleRentData.filter(v => !v.disabled).length} vehículos</strong> habilitados. Los vehículos con clientes inactivos o con créditos activos están deshabilitados.
+                Se registrará un ingreso para cada uno de los <strong>{vehicleRentData.length} vehículos</strong> de clientes activos de renta ordinaria. Los clientes con crédito activo o registrados después de la fecha seleccionada no se muestran.
               </AlertDescription>
             </Alert>
 
