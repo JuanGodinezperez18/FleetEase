@@ -33,15 +33,25 @@ export function findAssignmentAtDate(
   vehicleId: string,
   date: string
 ): AssignmentLogLike | null {
-  const targetTime = new Date(date).getTime();
+  // Treat the selected value as a calendar day, not as midnight.
+  // This matters because assignment records are stored with a time
+  // component (historical captures are normalized to noon local time).
+  const dayStart = new Date(`${date}T00:00:00`).getTime();
+  const nextDayStart = dayStart + 24 * 60 * 60 * 1000;
 
   const covering = logs.filter(log => {
     if (log.vehicleId !== vehicleId) return false;
+
     const assignedTime = new Date(log.assignedAt).getTime();
-    if (assignedTime > targetTime) return false;
+    if (Number.isNaN(assignedTime) || assignedTime >= nextDayStart) return false;
+
     if (!log.unassignedAt) return true;
+
     const unassignedTime = new Date(log.unassignedAt).getTime();
-    return unassignedTime > targetTime;
+    if (Number.isNaN(unassignedTime)) return false;
+
+    // The assignment must overlap the selected calendar day.
+    return unassignedTime > dayStart;
   });
 
   if (covering.length === 0) return null;
