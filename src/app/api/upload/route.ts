@@ -53,6 +53,7 @@ function isSuperAdmin(role: string | null | undefined): boolean {
  * Si el bucket ya existe (aunque sea privado), no se modifica.
  */
 async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<void> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: buckets } = await supabaseAdmin.storage.listBuckets();
   if (buckets?.some(b => b.name === bucketName)) return;
 
