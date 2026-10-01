@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency, cn } from "@/lib/utils";
 import { DialogFooter } from "@/components/ui/dialog";
+import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
 
 const newCategoryValue = "createNewCategory";
 
@@ -130,13 +131,31 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
 
   const activeCredit = useMemo(() => credits.find(c => c.clientId === selectedClientId && c.status === 'active' && !c.isDeleted), [credits, selectedClientId]);
 
+  const historicalAssignedClientIds = useMemo(() => {
+    if (!isWeeklyRent || !selectedDate) return new Set<string>();
+
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const companyId = selectedCompanyId || currentUser?.companyId;
+    const assignedIds = new Set<string>();
+
+    vehicles.forEach(vehicle => {
+      if (vehicle.isDeleted || (companyId && vehicle.companyId !== companyId)) return;
+
+      const assignment = findAssignmentAtDate(vehicleAssignmentLogs || [], vehicle.id!, selectedDate);
+      const clientId = assignment?.clientId
+        || (selectedDate === todayKey ? vehicle.clientId : null);
+
+      if (clientId) assignedIds.add(clientId);
+    });
+
+    return assignedIds;
+  }, [isWeeklyRent, selectedDate, selectedCompanyId, currentUser?.companyId, vehicles, vehicleAssignmentLogs]);
+
   const activeClients = useMemo(() => {
     const base = clients.filter(c => {
       if (c.status !== 'active' || c.isDeleted) return false;
 
-      // Un cliente solo puede recibir movimientos con una fecha igual o posterior
-      // a su fecha de alta. Esto evita seleccionar clientes que todavía no existían
-      // cuando se está capturando un ingreso histórico.
+      // El cliente debe existir en la fecha seleccionada.
       if (selectedDate) {
         const clientCreatedDate = infallibleNormalizeDate(c.createdAt);
         if (!clientCreatedDate) return false;
@@ -144,12 +163,26 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
         if (clientCreatedDateKey > selectedDate) return false;
       }
 
+      // Renta semanal solo permite clientes que tenían una asignación vigente
+      // en la fecha seleccionada y que no tienen crédito activo.
+      if (isWeeklyRent) {
+        if (!historicalAssignedClientIds.has(c.id)) return false;
+        if (credits.some(cr => cr.clientId === c.id && cr.status === 'active' && !cr.isDeleted)) return false;
+      }
+
       return true;
     });
 
-    const creditRelated = ['Pago de Crédito', 'Pago Enganche de Crédito', 'Depósito de Crédito'].some(name => selectableCategories.find(c => c.name === name)?.id === selectedCategoryId);
-    return creditRelated ? base.filter(c => credits.some(cr => cr.clientId === c.id && cr.status === 'active' && !cr.isDeleted)) : base;
-  }, [clients, credits, selectedDate, selectedCategoryId, selectableCategories]);
+    const creditRelated = ['Pago de Crédito', 'Pago Enganche de Crédito', 'Depósito de Crédito']
+      .some(name => selectableCategories.find(c => c.name === name)?.id === selectedCategoryId);
+
+    return creditRelated
+      ? base.filter(c => credits.some(cr => cr.clientId === c.id && cr.status === 'active' && !cr.isDeleted))
+      : base;
+  }, [
+    clients, credits, selectedDate, selectedCategoryId, selectableCategories,
+    isWeeklyRent, historicalAssignedClientIds
+  ]);
 
   useEffect(() => {
     if (selectedClientId && !activeClients.some(client => client.id === selectedClientId)) {
@@ -163,11 +196,42 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const assignedVehicle = useMemo(() => {
     if (!selectedClientId) return null;
     const companyId = selectedCompanyId || currentUser?.companyId;
-    const assignment = (vehicleAssignmentLogs || [])
-      .filter(log => log.clientId === selectedClientId && !log.unassignedAt && (!companyId || log.companyId === companyId))
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+
+    if (isWeeklyRent && selectedDate) {
+      const assignment = (vehicleAssignmentLogs || [])
+        .filter(log =>
+          log.clientId === selectedClientId &&
+          (!companyId || log.companyId === companyId)
+        )
+        .map(log => findAssignmentAtDate([log], log.vehicleId, selectedDate))
+        .filter((log): log is NonNullable<typeof log> => !!log)
+        .sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime())[0];
+
+      if (assignment) {
+        return vehicles.find(v => v.id === assignment.vehicleId) || null;
+      }
+
+      if (selectedDate !== todayKey) return null;
+    }
+
+    const currentAssignment = (vehicleAssignmentLogs || [])
+      .filter(log =>
+        log.clientId === selectedClientId &&
+        !log.unassignedAt &&
+        (!companyId || log.companyId === companyId)
+      )
       .sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime())[0];
-    return assignment ? vehicles.find(v => v.id === assignment.vehicleId) || null : null;
-  }, [selectedClientId, selectedCompanyId, currentUser?.companyId, vehicleAssignmentLogs, vehicles]);
+
+    if (currentAssignment) return vehicles.find(v => v.id === currentAssignment.vehicleId) || null;
+
+    return isWeeklyRent
+      ? vehicles.find(v =>
+          v.id && v.clientId === selectedClientId && !v.isDeleted &&
+          (!companyId || v.companyId === companyId)
+        ) || null
+      : null;
+  }, [selectedClientId, selectedCompanyId, currentUser?.companyId, selectedDate, isWeeklyRent, vehicleAssignmentLogs, vehicles]);
 
   const filteredVehicles = useMemo(() => {
     const assigned = assignedVehicle ? [assignedVehicle] : [];
