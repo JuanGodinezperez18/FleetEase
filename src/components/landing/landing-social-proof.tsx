@@ -31,7 +31,7 @@ export function LandingSocialProof() {
   return (
     <section
       aria-label="Beneficios clave de FleetEase"
-      className="border-y border-white/[0.07] bg-[#0c0f14]"
+      className="border-y border-white/[0.07] bg-[var(--fe-main)]"
     >
       <div className="mx-auto max-w-[1240px] px-5 py-12 lg:px-8 lg:py-16">
         <p className="mb-8 text-center text-[12px] font-medium uppercase tracking-[0.14em] text-white/40">
@@ -44,7 +44,7 @@ export function LandingSocialProof() {
               className="rounded-2xl border border-white/[0.08] bg-white/[0.025] px-4 py-5 text-center"
             >
               <div className="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
-                <Icon className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} />
+                <Icon className="h-4 w-4 text-[var(--fe-lime)]" strokeWidth={1.75} />
               </div>
               <div className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
                 {value}

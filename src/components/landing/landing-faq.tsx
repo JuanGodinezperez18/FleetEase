@@ -37,7 +37,7 @@ export function LandingFaq() {
     <section id="faq" className="border-t border-white/[0.07] bg-white/[0.018]">
       <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:gap-10 sm:py-16 lg:grid-cols-[.65fr_1.35fr] lg:gap-14 lg:px-8 lg:py-24">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d7ff3f]">FAQ</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-lime)]">FAQ</div>
           <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:mt-4 sm:text-4xl">
             Lo esencial,
             <br />
@@ -52,7 +52,7 @@ export function LandingFaq() {
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] sm:py-5"
+                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <span>{q}</span>
