@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useData, calculatePartnerBalance } from "@/contexts/data-provider";
+import { useData } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ function getSupabaseErrorMessage(error: unknown): string {
 }
 
 export default function PaymentsPage() {
-  const { financialRecords, financialCategories, clients, partners, vehicles, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
+  const { financialRecords, financialCategories, clients, partners, credits, creditPaymentSchedules, partnerBalances, refreshData, selectedCompanyId } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<OperationKind>("client_payment");
   const [entityId, setEntityId] = useState("");
@@ -187,9 +187,8 @@ export default function PaymentsPage() {
   const depositAvailable = kind === "client_payment" ? (depositAvailableByClient.get(entityId) || 0) : 0;
   const partnerBalance = useMemo(() => {
     if (!selectedPartner) return 0;
-    const partnerVehicles = vehicles.filter(v => v.partnerId === selectedPartner.id && !v.isDeleted);
-    return calculatePartnerBalance(selectedPartner, partnerVehicles, financialRecords);
-  }, [selectedPartner, vehicles, financialRecords]);
+    return partnerBalances.find(p => p.id === selectedPartner.id)?.balance ?? 0;
+  }, [selectedPartner, partnerBalances]);
   const targetOutstanding = selectedTarget?.outstanding || selectedSupplierPayable?.outstanding || (kind === "credit_payment" ? Number(selectedCredit?.remainingBalance || 0) : 0);
   const maxAmount = kind === "partner_payment" ? Math.max(0, partnerBalance)
     : kind === "security_deposit_refund" ? depositAvailableByClient.get(entityId) || 0
