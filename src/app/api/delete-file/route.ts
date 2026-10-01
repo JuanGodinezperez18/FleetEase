@@ -4,12 +4,18 @@ import { z } from 'zod';
 import { getSafeStoragePath } from '@/lib/security/safe-storage-path';
 import { checkRateLimit, apiLimiter } from '@/lib/rate-limit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 interface DeleteSuccessResponse {
   success: true;
@@ -20,15 +26,15 @@ interface DeleteSuccessResponse {
 }
 
 async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise<number> {
+  const supabaseAdmin = getSupabaseAdmin();
   let cleanedCount = 0;
-  
   try {
     const { data: vehicles, error: vehiclesError } = await supabaseAdmin
       .from('vehicles')
       .select('id,image_url,circulation_card_url,insurance_policy_document_url')
       .or(`image_url.eq.${fileUrl},circulation_card_url.eq.${fileUrl},insurance_policy_document_url.eq.${fileUrl}`)
       .eq('company_id', (await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()).data?.company_id || '');
-    
+
     if (!vehiclesError && vehicles) {
       for (const vehicle of vehicles) {
         const updateData: Record<string, null> = {};
@@ -47,7 +53,7 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
       .select('id,photo_url,ine_url,license_image_url')
       .or(`photo_url.eq.${fileUrl},ine_url.eq.${fileUrl},license_image_url.eq.${fileUrl}`)
       .eq('company_id', (await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()).data?.company_id || '');
-    
+
     if (!clientsError && clients) {
       for (const client of clients) {
         const updateData: Record<string, null> = {};
@@ -65,11 +71,11 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
   } catch (error) {
     console.error('[API Delete] Error limpiando referencias:', error);
   }
-  
   return cleanedCount;
 }
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
   try {
     const { data: profile, error } = await supabaseAdmin
       .from('users')
@@ -81,9 +87,7 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
     if (profile.role === 'super_admin') return true;
 
     const segments = filePath.split('/');
-    return segments.includes(userId) || Boolean(
-      profile.company_id && segments.includes(profile.company_id)
-    );
+    return segments.includes(userId) || Boolean(profile.company_id && segments.includes(profile.company_id));
   } catch (error) {
     console.error('[API Delete] Error verificando propiedad:', error);
     return false;
@@ -96,8 +100,8 @@ const DeleteFileSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
-
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
@@ -106,7 +110,7 @@ export async function POST(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse;
     const token = authHeader.substring(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'No autenticado. Token invalido.' }, { status: 401 });
     }
@@ -121,13 +125,9 @@ export async function POST(request: NextRequest) {
 
     const fileUrl = parsed.data.fileUrl;
     const parsedUrl = new URL(fileUrl);
-    const configuredSupabaseHost = new URL(supabaseUrl).hostname;
+    const configuredSupabaseHost = new URL(supabaseUrl!).hostname;
 
-    if (
-      parsedUrl.protocol !== 'https:' ||
-      parsedUrl.hostname !== configuredSupabaseHost ||
-      !parsedUrl.pathname.includes('/storage/v1/object/public/')
-    ) {
+    if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== configuredSupabaseHost || !parsedUrl.pathname.includes('/storage/v1/object/public/')) {
       return NextResponse.json({ success: true, deleted: false, message: 'URL ignorada, no es de Supabase Storage.' });
     }
 
@@ -139,15 +139,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ruta de archivo no valida.' }, { status: 400 });
     }
 
-    const isOwner = await verifyFileOwnership(filePath, user.id);
-    if (!isOwner) {
+    if (!(await verifyFileOwnership(filePath, user.id))) {
       return NextResponse.json({ error: 'No tienes permisos para eliminar este archivo' }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabaseAdmin.storage
-      .from('documents')
-      .remove([filePath]);
-    
+    const { error: deleteError } = await supabaseAdmin.storage.from('documents').remove([filePath]);
+
     if (deleteError) {
       console.error('[API Delete] Error eliminando de Storage:', deleteError);
       if (deleteError.message.includes('not found')) {
@@ -155,11 +152,10 @@ export async function POST(request: NextRequest) {
       }
       throw deleteError;
     }
-    
+
     const cleanedRefs = await cleanSupabaseReferences(fileUrl, user.id);
     const response: DeleteSuccessResponse = { success: true, deleted: true, path: filePath };
     if (cleanedRefs > 0) response.cleanedReferences = cleanedRefs;
-    
     return NextResponse.json(response);
   } catch (error: unknown) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) {
