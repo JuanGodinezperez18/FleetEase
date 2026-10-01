@@ -94,9 +94,9 @@ export default function LoginPage() {
 
   if (loading || currentUser) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#080a0f] text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" />
-        <p className="mt-4 text-sm text-white/50">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--fe-ink)] text-[var(--fe-text)]">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--fe-lime)]" />
+        <p className="mt-4 text-sm text-[var(--fe-text-muted)]">
           {currentUser ? "Entrando a tu dashboard…" : "Cargando…"}
         </p>
       </div>
@@ -104,10 +104,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--fe-ink)] p-4 text-[var(--fe-text)]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[#d7ff3f]/[0.04] blur-[100px]" />
-        <div className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full bg-[#d7ff3f]/[0.03] blur-[80px]" />
+        <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[var(--fe-lime)]/[0.04] blur-[100px]" />
+        <div className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full bg-[var(--fe-lime)]/[0.03] blur-[80px]" />
       </div>
 
       <motion.div
@@ -117,28 +117,28 @@ export default function LoginPage() {
         className="relative z-10 w-full max-w-[400px]"
       >
         <div className="mb-8 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fe-text-faint)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
             Fleet OS
           </div>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white">
-            FleetEase <span className="text-[#d7ff3f]">Manager</span>
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--fe-text)]">
+            FleetEase <span className="text-[var(--fe-lime)]">Manager</span>
           </h1>
-          <p className="mt-2 text-sm text-white/45">Gestión inteligente de flotillas</p>
+          <p className="mt-2 text-sm text-[var(--fe-text-muted)]">Gestión inteligente de flotillas</p>
         </div>
 
         <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
           <div className="mb-6 text-center">
-            <h2 className="text-lg font-semibold text-white">Iniciar sesión</h2>
-            <p className="mt-1 text-sm text-white/40">
+            <h2 className="text-lg font-semibold text-[var(--fe-text)]">Iniciar sesión</h2>
+            <p className="mt-1 text-sm text-[var(--fe-text-muted)]">
               {step === 1 ? "Ingresa tu correo para continuar" : "Ingresa tu contraseña"}
             </p>
             <div className="mt-4 flex justify-center gap-1.5">
               <div
-                className={`h-1 rounded-full transition-all ${step === 1 ? "w-8 bg-[#d7ff3f]" : "w-1.5 bg-white/15"}`}
+                className={`h-1 rounded-full transition-all ${step === 1 ? "w-8 bg-[var(--fe-lime)]" : "w-1.5 bg-white/15"}`}
               />
               <div
-                className={`h-1 rounded-full transition-all ${step === 2 ? "w-8 bg-[#d7ff3f]" : "w-1.5 bg-white/15"}`}
+                className={`h-1 rounded-full transition-all ${step === 2 ? "w-8 bg-[var(--fe-lime)]" : "w-1.5 bg-white/15"}`}
               />
             </div>
           </div>
@@ -155,11 +155,11 @@ export default function LoginPage() {
                 className="space-y-5"
               >
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-medium text-white/55">
+                  <Label htmlFor="email" className="text-xs font-medium text-[var(--fe-text-muted)]">
                     Correo electrónico
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                    <Mail className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--fe-text-faint)]" />
                     <Input
                       id="email"
                       type="email"
@@ -169,7 +169,7 @@ export default function LoginPage() {
                       required
                       autoFocus
                       autoComplete="email"
-                      className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15"
+                      className="h-11 rounded-xl border-[var(--fe-input-border)] bg-[var(--fe-input-bg)] pl-10 text-[var(--fe-input-text)] placeholder:text-[var(--fe-input-placeholder)] focus-visible:border-[var(--fe-lime)] focus-visible:ring-[var(--fe-focus-ring)]"
                     />
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={!email}
-                  className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c] disabled:opacity-40"
+                  className="h-11 w-full rounded-xl bg-[var(--fe-lime)] font-semibold text-[var(--fe-ink)] hover:bg-white disabled:opacity-40"
                 >
                   Continuar
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -202,18 +202,18 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleBackStep}
-                  className="mb-1 flex items-center gap-2 text-sm text-white/45 transition hover:text-white"
+                  className="mb-1 flex items-center gap-2 text-sm text-[var(--fe-text-muted)] transition hover:text-[var(--fe-text)]"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {email}
                 </button>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs font-medium text-white/55">
+                  <Label htmlFor="password" className="text-xs font-medium text-[var(--fe-text-muted)]">
                     Contraseña
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                    <Lock className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--fe-text-faint)]" />
                     <Input
                       id="password"
                       type="password"
@@ -223,7 +223,7 @@ export default function LoginPage() {
                       required
                       autoFocus
                       autoComplete="current-password"
-                      className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15"
+                      className="h-11 rounded-xl border-[var(--fe-input-border)] bg-[var(--fe-input-bg)] pl-10 text-[var(--fe-input-text)] placeholder:text-[var(--fe-input-placeholder)] focus-visible:border-[var(--fe-lime)] focus-visible:ring-[var(--fe-focus-ring)]"
                     />
                   </div>
                 </div>
@@ -240,15 +240,15 @@ export default function LoginPage() {
                       id="remember"
                       checked={rememberMe}
                       onCheckedChange={(c) => setRememberMe(c as boolean)}
-                      className="border-white/20 data-[state=checked]:border-[#d7ff3f] data-[state=checked]:bg-[#d7ff3f] data-[state=checked]:text-[#080a0f]"
+                      className="border-white/20 data-[state=checked]:border-[var(--fe-lime)] data-[state=checked]:bg-[var(--fe-lime)] data-[state=checked]:text-[var(--fe-ink)]"
                     />
-                    <Label htmlFor="remember" className="cursor-pointer text-sm text-white/50">
+                    <Label htmlFor="remember" className="cursor-pointer text-sm text-[var(--fe-text-muted)]">
                       Recordarme
                     </Label>
                   </div>
                   <Link
                     href="/forgot-password"
-                    className="text-sm font-medium text-[#d7ff3f] hover:underline"
+                    className="text-sm font-medium text-[var(--fe-lime)] hover:underline"
                   >
                     ¿Olvidaste tu contraseña?
                   </Link>
@@ -257,7 +257,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting || !password}
-                  className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c] disabled:opacity-40"
+                  className="h-11 w-full rounded-xl bg-[var(--fe-lime)] font-semibold text-[var(--fe-ink)] hover:bg-white disabled:opacity-40"
                 >
                   {isSubmitting ? (
                     <>
@@ -273,7 +273,7 @@ export default function LoginPage() {
           </AnimatePresence>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-white/30">
+        <p className="mt-6 text-center text-[11px] text-[var(--fe-text-faint)]">
           © {new Date().getFullYear()} FleetEase Manager
         </p>
       </motion.div>

@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   const canResend = () => !lastSentTime || Date.now() - lastSentTime >= 60000;
-  const getResendCooldown = () =>
+  const getResendCountdown = () =>
     !lastSentTime ? 0 : Math.max(0, Math.ceil((60000 - (Date.now() - lastSentTime)) / 1000));
 
   const getErrorMessage = (err: unknown) => {
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
     if (!validateEmail(normalizedEmail))
       return setError("Por favor ingresa un correo electrónico válido");
     if (!canResend())
-      return setError(`Por favor espera ${getResendCooldown()} segundos antes de reenviar`);
+      return setError(`Por favor espera ${getResendCountdown()} segundos antes de reenviar`);
 
     setIsSubmitting(true);
     setCurrentStep("sending");
@@ -73,9 +73,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--fe-ink)] p-4 text-[var(--fe-text)]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[#d7ff3f]/[0.04] blur-[100px]" />
+        <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[var(--fe-lime)]/[0.04] blur-[100px]" />
       </div>
 
       <motion.div
@@ -84,14 +84,14 @@ export default function ForgotPasswordPage() {
         className="relative z-10 w-full max-w-[400px]"
       >
         <div className="mb-6 text-center sm:mb-8">
-          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
+          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fe-text-faint)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
             Fleet OS
           </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
-            Recuperar <span className="text-[#d7ff3f]">acceso</span>
+          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--fe-text)] sm:text-3xl">
+            Recuperar <span className="text-[var(--fe-lime)]">acceso</span>
           </h1>
-          <p className="mt-2 text-sm text-white/45">Te enviaremos un enlace a tu correo</p>
+          <p className="mt-2 text-sm text-[var(--fe-text-muted)]">Te enviaremos un enlace a tu correo</p>
         </div>
 
         <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 shadow-2xl backdrop-blur-xl sm:p-7">
@@ -103,20 +103,20 @@ export default function ForgotPasswordPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center"
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f]/10">
-                  <CheckCircle2 className="h-7 w-7 text-[#d7ff3f]" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--fe-lime)]/10">
+                  <CheckCircle2 className="h-7 w-7 text-[var(--fe-lime)]" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Revisa tu correo</h2>
-                <p className="mt-2 text-sm text-white/45">
+                <h2 className="text-lg font-semibold text-[var(--fe-text)]">Revisa tu correo</h2>
+                <p className="mt-2 text-sm text-[var(--fe-text-muted)]">
                   Enviamos un enlace para restablecer la contraseña a
                 </p>
-                <p className="mt-1 font-medium text-[#d7ff3f]">{email}</p>
+                <p className="mt-1 font-medium text-[var(--fe-lime)]">{email}</p>
 
                 <Button
                   onClick={() => handleSubmit({ preventDefault: () => {} } as FormEvent)}
                   disabled={loading || isSubmitting || !canResend()}
                   variant="outline"
-                  className="mt-6 h-11 w-full rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5"
+                  className="mt-6 h-11 w-full rounded-xl border-white/10 bg-transparent text-[var(--fe-text)] hover:bg-white/5"
                 >
                   {loading || isSubmitting ? (
                     <>
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
                       Reenviando…
                     </>
                   ) : !canResend() ? (
-                    `Espera ${getResendCooldown()}s`
+                    `Espera ${getResendCountdown()}s`
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
@@ -132,7 +132,7 @@ export default function ForgotPasswordPage() {
                     </>
                   )}
                 </Button>
-                <p className="mt-4 text-xs text-white/30">
+                <p className="mt-4 text-xs text-[var(--fe-text-faint)]">
                   ¿No llegó? Revisa spam o correo no deseado.
                 </p>
               </motion.div>
@@ -145,11 +145,11 @@ export default function ForgotPasswordPage() {
                 className="space-y-5"
               >
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-medium text-white/55">
+                  <Label htmlFor="email" className="text-xs font-medium text-[var(--fe-text-muted)]">
                     Correo electrónico
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                    <Mail className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--fe-text-faint)]" />
                     <Input
                       id="email"
                       type="email"
@@ -163,7 +163,7 @@ export default function ForgotPasswordPage() {
                       autoFocus
                       autoComplete="email"
                       disabled={loading || isSubmitting}
-                      className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15"
+                      className="h-11 rounded-xl border-[var(--fe-input-border)] bg-[var(--fe-input-bg)] pl-10 text-[var(--fe-input-text)] placeholder:text-[var(--fe-input-placeholder)] focus-visible:border-[var(--fe-lime)] focus-visible:ring-[var(--fe-focus-ring)]"
                     />
                   </div>
                   {error && (
@@ -176,7 +176,7 @@ export default function ForgotPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading || isSubmitting || !email}
-                  className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c] disabled:opacity-40"
+                  className="h-11 w-full rounded-xl bg-[var(--fe-lime)] font-semibold text-[var(--fe-ink)] hover:bg-white disabled:opacity-40"
                 >
                   {loading || isSubmitting ? (
                     <>
@@ -197,7 +197,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-6 text-center">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 text-sm font-medium text-white/45 transition hover:text-[#d7ff3f]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--fe-text-muted)] transition hover:text-[var(--fe-lime)]"
             >
               <ArrowLeft className="h-4 w-4" />
               Volver a iniciar sesión
@@ -205,7 +205,7 @@ export default function ForgotPasswordPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-white/30">
+        <p className="mt-6 text-center text-[11px] text-[var(--fe-text-faint)]">
           © {new Date().getFullYear()} FleetEase Manager
         </p>
       </motion.div>
