@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { Resolver } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -64,7 +65,7 @@ interface CategoryFormHandles {
   submit: () => void;
 }
 
-const affectsOptions: { value: FinancialCategory['affects']; label: string }[] = [
+const affectsOptions: { value: CategoryFormValues['affects']; label: string }[] = [
   { value: 'client_balance', label: 'Balance de cliente' },
   { value: 'partner_balance', label: 'Balance de socio' },
   { value: 'none', label: 'Ninguno / contabilidad interna' },
@@ -130,11 +131,11 @@ const CategoryForm = React.forwardRef<
   }, [currentUser?.role, financialCategories, initialData]);
 
   const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(categorySchema) as Resolver<CategoryFormValues>,
     defaultValues: {
       name: initialData?.name || '',
       type: initialData?.type || 'expense',
-      affects: initialData?.affects || 'none',
+      affects: initialData?.affects === 'client_balance' || initialData?.affects === 'partner_balance' || initialData?.affects === 'none' ? initialData.affects : 'none',
       description: initialData?.description || '',
       companyId: initialData?.companyId || currentUser?.companyId || null,
     },

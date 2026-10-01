@@ -133,12 +133,7 @@ export default function DashboardPage() {
         };
       })
       .filter(
-        (kpi): kpi is {
-          label: string;
-          value: string | number;
-          subtitle?: string;
-          format: KpiFormat;
-        } => Boolean(kpi)
+        (kpi): kpi is NonNullable<typeof kpi> => Boolean(kpi)
       );
 
     if (selectedKpis.length === 0) {

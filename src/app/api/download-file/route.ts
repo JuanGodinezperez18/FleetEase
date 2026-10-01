@@ -2,19 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { getSafeStoragePath } from '@/lib/security/safe-storage-path';
+import { checkRateLimit, apiLimiter } from '@/lib/rate-limit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 const DownloadFileSchema = z.object({
   fileUrl: z.string().url('URL de archivo inválida'),
 });
 
 async function verifyFileOwnership(filePath: string, userId: string): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
   try {
     const { data: profile, error } = await supabaseAdmin
       .from('users')
@@ -28,11 +36,7 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
     const segments = filePath.split('/');
     if (segments.includes(userId)) return true;
 
-    return Boolean(
-      profile.company_id &&
-      segments[0] === 'companies' &&
-      segments[1] === profile.company_id
-    );
+    return Boolean(profile.company_id && segments[0] === 'companies' && segments[1] === profile.company_id);
   } catch (error) {
     console.error('⚠️ [API Download] Error verificando propiedad:', error);
     return false;
@@ -41,19 +45,22 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
 
 export async function POST(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autenticado. Token faltante.' }, { status: 401 });
     }
+    const rateLimitResponse = await checkRateLimit(request, apiLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
     const token = authHeader.substring(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
     }
-    
+
     const parsed = DownloadFileSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
@@ -64,12 +71,9 @@ export async function POST(request: NextRequest) {
 
     const fileUrl = parsed.data.fileUrl;
     const parsedUrl = new URL(fileUrl);
-    const configuredSupabaseHost = new URL(supabaseUrl).hostname;
+    const configuredSupabaseHost = new URL(supabaseUrl!).hostname;
 
-    if (
-      parsedUrl.protocol !== 'https:' ||
-      parsedUrl.hostname !== configuredSupabaseHost
-    ) {
+    if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== configuredSupabaseHost) {
       return NextResponse.json({ error: 'URL de Supabase Storage no válida o no reconocida.' }, { status: 400 });
     }
 
@@ -82,16 +86,13 @@ export async function POST(request: NextRequest) {
     if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no válida.' }, { status: 400 });
     }
-    
-    const isOwner = await verifyFileOwnership(filePath, user.id);
-    if (!isOwner) {
+
+    if (!(await verifyFileOwnership(filePath, user.id))) {
       return NextResponse.json({ error: 'No tienes permisos para acceder a este archivo.' }, { status: 403 });
     }
 
-    const { data, error } = await supabaseAdmin.storage
-      .from('documents')
-      .createSignedUrl(filePath, 15 * 60);
-    
+    const { data, error } = await supabaseAdmin.storage.from('documents').createSignedUrl(filePath, 15 * 60);
+
     if (error) {
       console.error('❌ [API Download] Error generando URL firmada:', error);
       throw error;
@@ -102,13 +103,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) {
       return NextResponse.json({ error: 'No autenticado. Token inválido o faltante.' }, { status: 401 });
     }
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('❌ [API Download] Error:', error);
-    
+
     if (errorMessage.includes('No tienes permisos')) return NextResponse.json({ error: errorMessage }, { status: 403 });
     if (errorMessage.includes('URL de Supabase Storage no válida')) return NextResponse.json({ error: errorMessage }, { status: 400 });
-    
+
     return NextResponse.json({ error: 'Error al procesar la solicitud.', details: isDev ? errorMessage : undefined }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 const SECURITY_HEADERS = [
   ['Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload'],
@@ -23,18 +23,18 @@ function buildCsp(request: NextRequest) {
 
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
     script-src-attr 'none';
-    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://js.stripe.com;
+    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com;
     style-src 'self' 'unsafe-inline';
     style-src-attr 'unsafe-inline';
     style-src-elem 'self' 'unsafe-inline';
-    img-src 'self' data: https: blob: https://firebasestorage.googleapis.com https://storage.googleapis.com;
+    img-src 'self' data: blob: https://*.supabase.co https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.googleapis.com https://*.gstatic.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
     media-src 'self' blob:;
     manifest-src 'self';
     font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://api.stripe.com https://*.stripe.com;
-    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com;
+    frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com;
     child-src 'self';
     worker-src 'self' blob:;
     object-src 'none';
@@ -96,7 +96,7 @@ export async function middleware(req: NextRequest) {
         getAll() {
           return req.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = createResponse();
           cookiesToSet.forEach(({ name, value, options }) => {

@@ -1,8 +1,8 @@
 /**
  * @fileoverview Servicio de autenticación con Supabase Auth
  */
-import { supabase, type User } from '@/lib/supabase';
-import type { UserRole } from '@/types/supabase';
+import { supabase } from '@/lib/supabase';
+import type { User, UserRole } from '@/types/supabase';
 import { userService } from '@/lib/supabase-services';
 
 export interface SignUpParams { email:string; password:string; name:string; phone?:string; role?:UserRole; company_id?:string; }

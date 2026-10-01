@@ -318,7 +318,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
                     dataKey="count"
                     name="Empresas"
                     fill="#d7ff3f"
-                    radius={[0, 6, 6, 0]}
+                    radius={6}
                     maxBarSize={22}
                     isAnimationActive
                     animationDuration={850}
@@ -327,7 +327,7 @@ export const CompanyStats: React.FC<CompanyStatsProps> = ({
                       fill: '#e8ff6b',
                       stroke: '#d7ff3f',
                       strokeWidth: 1,
-                      radius: [0, 8, 8, 0],
+                      radius: 8,
                     }}
                   />
                 </BarChart>

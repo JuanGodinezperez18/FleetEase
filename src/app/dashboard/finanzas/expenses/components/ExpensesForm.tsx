@@ -44,7 +44,12 @@ const expenseSchema = z.object({
     value => value === NONE_SELECT_VALUE ? null : value,
     z.string().uuid().nullable().optional(),
   ),
-  // Un gasto general de empresa no requiere vehículo ni cliente.\n  // Si existe vehículo, el gasto queda asociado a esa unidad.\n  vehicleId: z.preprocess(\n    value => value === NONE_SELECT_VALUE || value === "" ? null : value,\n    z.string().uuid().nullable().optional(),\n  ),
+  // Un gasto general de empresa no requiere vehículo ni cliente.
+  // Si existe vehículo, el gasto queda asociado a esa unidad.
+  vehicleId: z.preprocess(
+    value => value === NONE_SELECT_VALUE || value === "" ? null : value,
+    z.string().uuid().nullable().optional(),
+  ),
   items: z.array(lineSchema).min(1, "Agrega al menos un concepto de gasto."),
   description: z.string().optional(),
   categoryId: z.string().min(1, "La categoría es obligatoria."),
@@ -365,7 +370,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
             <div className="flex justify-end border-t border-white/[0.06] pt-3"><div className="text-right"><div className="text-sm text-white/40">Total del gasto</div><div className="font-heading text-2xl font-semibold tabular-nums text-white">${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</div></div></div>
           </div>
 
-          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Adjuntar archivos (facturas, tickets, etc.)</FormLabel><FormControl><MultipleFileInput initialValue={field.value as (string | File)[]} onFilesSelected={files => field.onChange(files)} disabled={isSubmitting} folder="financial_receipts" entityId={initialData?.id || form.getValues("vehicleId")} /></FormControl></FormItem>} />
+          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Adjuntar archivos (facturas, tickets, etc.)</FormLabel><FormControl><MultipleFileInput initialValue={field.value as (string | File)[]} onFilesSelected={files => field.onChange(files)} disabled={isSubmitting} folder="financial_receipts" entityId={initialData?.id || form.getValues("vehicleId") || undefined} /></FormControl></FormItem>} />
 
           <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || !isDirty || total <= 0}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isSubmitting ? "Guardando..." : "Guardar gasto"}</Button></div>
         </form>

@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import type * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { ReportData, ReportKpi, KpiFormat } from './pdf-generator';
 
@@ -36,13 +36,12 @@ function formatKpiDisplay(kpi: ReportKpi): string {
  * Genera un reporte Excel profesional con múltiples hojas
  */
 export class ExcelReportGenerator {
-  private workbook: XLSX.WorkBook;
+  private xlsx!: typeof import('xlsx');
+  private workbook!: XLSX.WorkBook;
 
-  constructor() {
-    this.workbook = XLSX.utils.book_new();
-  }
-
-  generate(data: ReportData): Blob {
+  async generate(data: ReportData): Promise<Blob> {
+    this.xlsx = await import('xlsx');
+    this.workbook = this.xlsx.utils.book_new();
     this.addSummarySheet(data);
 
     if (data.kpis && data.kpis.length > 0) {
@@ -64,7 +63,7 @@ export class ExcelReportGenerator {
         break;
     }
 
-    const excelBuffer = XLSX.write(this.workbook, {
+    const excelBuffer = this.xlsx.write(this.workbook, {
       bookType: 'xlsx',
       type: 'array',
     });
@@ -119,9 +118,9 @@ export class ExcelReportGenerator {
       });
     }
 
-    const worksheet = XLSX.utils.aoa_to_sheet(summaryData);
+    const worksheet = this.xlsx.utils.aoa_to_sheet(summaryData);
     worksheet['!cols'] = [{ wch: 32 }, { wch: 28 }];
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Resumen');
+    this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Resumen');
   }
 
   private addKpisSheet(kpis: ReportKpi[]) {
@@ -141,9 +140,9 @@ export class ExcelReportGenerator {
       ]);
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const worksheet = this.xlsx.utils.aoa_to_sheet(rows);
     worksheet['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 12 }, { wch: 40 }];
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'KPIs');
+    this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'KPIs');
   }
 
   private addFinancialSheets(data: ReportData) {
@@ -167,9 +166,9 @@ export class ExcelReportGenerator {
       expensesData.push(['']);
       expensesData.push(['Total', data.expenses || 0, 100]);
 
-      const worksheet = XLSX.utils.aoa_to_sheet(expensesData);
+      const worksheet = this.xlsx.utils.aoa_to_sheet(expensesData);
       worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }];
-      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Gastos por Categoria');
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Gastos por Categoria');
     }
 
     if (data.incomeByCategory && Object.keys(data.incomeByCategory).length > 0) {
@@ -192,9 +191,9 @@ export class ExcelReportGenerator {
       incomeData.push(['']);
       incomeData.push(['Total', data.income || 0, 100]);
 
-      const worksheet = XLSX.utils.aoa_to_sheet(incomeData);
+      const worksheet = this.xlsx.utils.aoa_to_sheet(incomeData);
       worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 12 }];
-      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Ingresos por Categoria');
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Ingresos por Categoria');
     }
 
     if (data.records && data.records.length > 0) {
@@ -215,7 +214,7 @@ export class ExcelReportGenerator {
         ]);
       });
 
-      const worksheet = XLSX.utils.aoa_to_sheet(recordsData);
+      const worksheet = this.xlsx.utils.aoa_to_sheet(recordsData);
       worksheet['!cols'] = [
         { wch: 12 },
         { wch: 10 },
@@ -224,7 +223,7 @@ export class ExcelReportGenerator {
         { wch: 15 },
         { wch: 15 },
       ];
-      XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Transacciones');
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Transacciones');
     }
   }
 
@@ -263,7 +262,7 @@ export class ExcelReportGenerator {
       ]);
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(vehicleData);
+    const worksheet = this.xlsx.utils.aoa_to_sheet(vehicleData);
     worksheet['!cols'] = [
       { wch: 25 },
       { wch: 12 },
@@ -276,7 +275,7 @@ export class ExcelReportGenerator {
       { wch: 14 },
       { wch: 16 },
     ];
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehiculos');
+    this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehiculos');
   }
 
   private addClientSheets(data: ReportData) {
@@ -308,7 +307,7 @@ export class ExcelReportGenerator {
       ]);
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(clientData);
+    const worksheet = this.xlsx.utils.aoa_to_sheet(clientData);
     worksheet['!cols'] = [
       { wch: 30 },
       { wch: 15 },
@@ -318,7 +317,7 @@ export class ExcelReportGenerator {
       { wch: 16 },
       { wch: 20 },
     ];
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Clientes');
+    this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Clientes');
   }
 
   private addPartnerSheets(data: ReportData) {
@@ -333,7 +332,7 @@ export class ExcelReportGenerator {
     data.partnerMetrics.forEach(metric => {
       partnerData.push([
         `${metric.partner.firstname} ${metric.partner.lastname}`,
-        metric.partner.phone,
+        metric.partner.phone ?? '',
         metric.partner.email || 'N/A',
         metric.activeVehicles,
         metric.totalIncome,
@@ -342,7 +341,7 @@ export class ExcelReportGenerator {
       ]);
     });
 
-    const worksheet = XLSX.utils.aoa_to_sheet(partnerData);
+    const worksheet = this.xlsx.utils.aoa_to_sheet(partnerData);
     worksheet['!cols'] = [
       { wch: 30 },
       { wch: 15 },
@@ -352,7 +351,7 @@ export class ExcelReportGenerator {
       { wch: 15 },
       { wch: 15 },
     ];
-    XLSX.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Socios');
+    this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Socios');
   }
 }
 

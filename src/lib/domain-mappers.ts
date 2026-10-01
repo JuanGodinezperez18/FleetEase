@@ -5,22 +5,8 @@
  * La UI consume tipos de @/types (dominio) y estos helpers concentran esa conversión.
  */
 
-import type {
-  Client as SbClient,
-  Vehicle as SbVehicle,
-  Partner as SbPartner,
-  Credit as SbCredit,
-  FinancialRecord as SbFinancialRecord,
-  MileageLog as SbMileageLog,
-  Notification as SbNotification,
-  VehicleAssignmentLog as SbVehicleAssignmentLog,
-  Company as SbCompany,
-  FinancialCategory as SbFinancialCategory,
-  MessageTemplate as SbMessageTemplate,
-  MessageLog as SbMessageLog,
-  CreditPaymentSchedule as SbCreditPaymentSchedule,
-  Multa as SbMulta,
-} from '@/types/supabase';
+import type { Database } from '@/lib/supabase-browser';
+import type { Json } from '@/lib/supabase-browser';
 import type {
   Client,
   Vehicle,
@@ -37,6 +23,23 @@ import type {
   CreditPaymentSchedule,
   Multa,
 } from '@/types';
+
+type TableRow<Name extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][Name]['Row'];
+type SbClient = TableRow<'clients'>;
+type SbVehicle = TableRow<'vehicles'>;
+type SbPartner = TableRow<'partners'>;
+type SbCredit = TableRow<'credits'>;
+type SbFinancialRecord = TableRow<'financial_records'>;
+type SbMileageLog = TableRow<'mileage_logs'>;
+type SbNotification = TableRow<'notifications'>;
+type SbVehicleAssignmentLog = TableRow<'vehicle_assignment_logs'>;
+type SbCompany = TableRow<'companies'>;
+type SbFinancialCategory = TableRow<'financial_categories'>;
+type SbMessageTemplate = TableRow<'message_templates'>;
+type SbMessageLog = TableRow<'message_logs'>;
+type SbCreditPaymentSchedule = TableRow<'credit_payment_schedules'>;
+type SbMulta = TableRow<'multas'>;
 
 function snakeToCamelKey(key: string): string {
   return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -66,7 +69,16 @@ export const toDomainCredit = (row: SbCredit): Credit => mapKeys<Credit>(row as 
 export const toDomainFinancialRecord = (row: SbFinancialRecord): FinancialRecord => mapKeys<FinancialRecord>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainMileageLog = (row: SbMileageLog): MileageLog => mapKeys<MileageLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainNotification = (row: SbNotification): Notification => mapKeys<Notification>(row as unknown as Record<string, unknown>, snakeToCamelKey);
-export const toDomainVehicleAssignmentLog = (row: SbVehicleAssignmentLog): VehicleAssignmentLog => mapKeys<VehicleAssignmentLog>(row as unknown as Record<string, unknown>, snakeToCamelKey);
+function photoUrls(value: Json): Record<string, string> | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entries = Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+  return Object.fromEntries(entries);
+}
+
+export const toDomainVehicleAssignmentLog = (row: SbVehicleAssignmentLog): VehicleAssignmentLog => ({
+  ...mapKeys<VehicleAssignmentLog>(row as unknown as Record<string, unknown>, snakeToCamelKey),
+  photos: row.photos === null ? null : photoUrls(row.photos),
+});
 export const toDomainCompany = (row: SbCompany): Company => mapKeys<Company>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainFinancialCategory = (row: SbFinancialCategory): FinancialCategory => mapKeys<FinancialCategory>(row as unknown as Record<string, unknown>, snakeToCamelKey);
 export const toDomainMessageTemplate = (row: SbMessageTemplate): MessageTemplate => mapKeys<MessageTemplate>(row as unknown as Record<string, unknown>, snakeToCamelKey);
@@ -88,7 +100,7 @@ export const toSbVehicle = (data: Partial<Vehicle>): Record<string, unknown> => 
  * incluya explícitamente.
  */
 export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => {
-  const mapped = mapKeys<Partner>(data as unknown as Record<string, unknown>, camelToSnakeKey) as Record<string, unknown>;
+  const mapped = mapKeys<Record<string, unknown>>(data as unknown as Record<string, unknown>, camelToSnakeKey);
   const firstName = typeof mapped.firstname === 'string' ? mapped.firstname.trim() : '';
   const lastName = typeof mapped.lastname === 'string' ? mapped.lastname.trim() : '';
   const suppliedName = typeof mapped.name === 'string' ? mapped.name.trim() : '';

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { ClientOffboardingResult } from "@/components/dashboard/client-offboarding-dialog";
+import { isJsonObject } from "@/lib/json-guards";
 
 export async function offboardClientWithWriteOff(
   clientId: string,
@@ -16,15 +17,21 @@ export async function offboardClientWithWriteOff(
   });
 
   if (error) throw error;
-  if (!data) throw new Error("La baja del cliente no devolvió información de trazabilidad.");
+  if (!isJsonObject(data)) throw new Error("La baja del cliente no devolvió información de trazabilidad.");
+
+  const status = data.status;
+  const returnedClientId = data.client_id;
+  if (typeof status !== "string" || typeof returnedClientId !== "string") {
+    throw new Error("La baja del cliente devolvió información de trazabilidad inválida.");
+  }
 
   return {
-    status: data.status,
-    clientId: data.client_id,
-    clientReferenceCode: data.client_reference_code ?? null,
-    writeOffId: data.write_off_id ?? null,
-    financialRecordId: data.financial_record_id ?? null,
-    financialReferenceCode: data.financial_reference_code ?? null,
+    status,
+    clientId: returnedClientId,
+    clientReferenceCode: typeof data.client_reference_code === "string" ? data.client_reference_code : null,
+    writeOffId: typeof data.write_off_id === "string" ? data.write_off_id : null,
+    financialRecordId: typeof data.financial_record_id === "string" ? data.financial_record_id : null,
+    financialReferenceCode: typeof data.financial_reference_code === "string" ? data.financial_reference_code : null,
     amountWrittenOff: Number(data.amount_written_off ?? 0),
   };
 }

@@ -180,7 +180,6 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
                       fill: '#e8ff6b',
                       stroke: '#d7ff3f',
                       strokeWidth: 1,
-                      radius: [0, 8, 8, 0],
                     }}
                   />
                 </RechartsBarChart>
@@ -226,7 +225,6 @@ export const UserAdminDashboard: React.FC<UserAdminDashboardProps> = ({ users, u
                       fill: '#e8ff6b',
                       stroke: '#d7ff3f',
                       strokeWidth: 1,
-                      radius: [8, 8, 0, 0],
                     }}
                   />
                 </RechartsBarChart>

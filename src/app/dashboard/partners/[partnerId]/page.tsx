@@ -33,7 +33,7 @@ export default function PartnerDetailsPage() {
   }, [vehicles, partnerId]);
 
   const metrics = useMemo(() => {
-    if (!partner) return { totalIncome: 0, totalExpenses: 0, netProfit: 0, profitMargin: 0, vehicleCount: 0 };
+    if (!partner) return { totalIncome: 0, totalExpenses: 0, netProfit: 0, partnerBalance: 0, profitMargin: 0, vehicleCount: 0 };
     
     const partnerRecords = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
     const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecords);
@@ -126,10 +126,10 @@ export default function PartnerDetailsPage() {
 
         <MetricCard
           title="SALDO A PAGAR AL SOCIO"
-          value={formatCurrency(metrics.partnerBalance)}
+          value={formatCurrency(metrics.partnerBalance ?? 0)}
           description="Después de pagos realizados"
           icon={<DollarSign className="w-5 h-5" />}
-          variant={metrics.partnerBalance >= 0 ? "success" : "danger"}
+          variant={(metrics.partnerBalance ?? 0) >= 0 ? "success" : "danger"}
         />
       </div>
       

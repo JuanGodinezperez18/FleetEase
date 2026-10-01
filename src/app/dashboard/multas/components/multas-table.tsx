@@ -287,7 +287,9 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredMultas.map(multa => (
+              filteredMultas.map(multa => {
+                const daysOverdue = multa.daysOverdue ?? 0;
+                return (
                 <TableRow key={multa.id} className="border-white/[0.04] hover:bg-white/[0.02]">
                   <TableCell className="font-medium text-white/80">{multa.folio || "—"}</TableCell>
                   <TableCell>
@@ -295,7 +297,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                       <span className="text-white/80">
                         {format(new Date(multa.fechaInfraccion), "dd/MM/yyyy", { locale: es })}
                       </span>
-                      <span className="text-[11px] text-white/35">{multa.daysOverdue > 0 ? `Hace ${multa.daysOverdue} días` : multa.daysOverdue < 0 ? `En ${Math.abs(multa.daysOverdue)} días` : "Hoy"}</span>
+                      <span className="text-[11px] text-white/35">{daysOverdue > 0 ? `Hace ${daysOverdue} días` : daysOverdue < 0 ? `En ${Math.abs(daysOverdue)} días` : "Hoy"}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -350,7 +352,8 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

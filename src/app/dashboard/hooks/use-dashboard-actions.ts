@@ -83,9 +83,9 @@ export function useDashboardActions({
       });
       if (normalizedItems.length === 0) throw new Error('Agrega al menos un concepto de gasto.');
       const sanitizedData = sanitizeExpenseFormData({ ...data, items: normalizedItems });
-      const totalAmount = sanitizedData.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const totalAmount = sanitizedData.items.reduce((sum: number, item: { amount?: number }) => sum + (Number(item.amount) || 0), 0);
       if (!(totalAmount > 0)) throw new Error('El total del gasto debe ser mayor que cero.');
-      const description = sanitizedData.description || sanitizedData.items.map(item => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
+      const description = sanitizedData.description || sanitizedData.items.map((item: { concept: string; amount: number }) => `${item.concept}: ${formatCurrency(item.amount)}`).join(' | ');
       await addExpense({ ...sanitizedData, amount: totalAmount, description, type: 'expense', isDeleted: false, createdAt: new Date().toISOString() });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['financialRecords'] }),

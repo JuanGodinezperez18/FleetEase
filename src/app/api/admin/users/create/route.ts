@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import type { Database } from '@/lib/supabase';
 
 interface CreateUserRequest {
   email: string;
@@ -29,17 +30,20 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin(request, { targetCompanyId: companyId ?? null });
     if ('error' in auth) return auth.error;
 
-    const roleMap: Record<string, string> = {
+    const roleMap: Record<string, Database['public']['Enums']['user_role']> = {
       superAdmin: 'super_admin',
       super_admin: 'super_admin',
       admin: 'admin',
       editor: 'editor',
       viewer: 'viewer',
-      user: 'user',
       partner: 'partner',
       client: 'client',
     };
-    const normalizedRole = roleMap[role] ?? role;
+    const normalizedRole = roleMap[role];
+
+    if (!normalizedRole) {
+      return NextResponse.json({ success: false, message: 'Rol no permitido.' }, { status: 400 });
+    }
 
     if (auth.profile.role !== 'super_admin') {
       if (normalizedRole === 'super_admin') {
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         phone,
-        role,
+        role: normalizedRole,
         company_id: normalizedRole === 'super_admin' ? null : companyId,
         partner_access: normalizedRole === 'viewer' ? (partnerAccess || []) : [],
         is_deleted: false,

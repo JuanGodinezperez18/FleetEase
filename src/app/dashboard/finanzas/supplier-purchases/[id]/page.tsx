@@ -73,8 +73,8 @@ export default function SupplierPurchaseAllocationPage() {
           const id = String(item.id || `legacy-${r.id}-${index}`);
           const amount = Number(item.amount || 0);
           return { id, concept: String(item.concept || item.description || "Concepto de gasto"), amount, allocated: allocationByLine.get(`${r.id}:${id}`) || 0 };
-        }).filter(line => line.amount > 0);
-        const allocated = lines.reduce((sum, line) => sum + line.allocated, 0);
+        }).filter((line: { amount: number }) => line.amount > 0);
+        const allocated = lines.reduce((sum: number, line: { allocated: number }) => sum + line.allocated, 0);
         return { id: r.id, vehicleName: r.vehicles ? `${r.vehicles.make} ${r.vehicles.model} (${r.vehicles.plate})` : "Vehículo", description: r.description || "Gasto", amount: Number(r.amount || 0), date: r.date, lines, allocated };
       }).filter(expense => expense.lines.length > 0);
       setPurchase({ id: p.id, supplierName: p.suppliers?.name || "Proveedor", total: Number(p.total), purchase_date: p.purchase_date, reference: p.reference, payment_method: p.payment_method, status: p.status });

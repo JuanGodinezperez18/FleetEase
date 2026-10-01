@@ -133,7 +133,7 @@ export default function CreditsPage() {
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [creditToAction, setCreditToAction] = useState<Credit | null>(null);
 
-  const { creditMetrics, portfolioAnalytics } = useCreditAnalytics(credits, clients, vehicles, financialRecords);
+  const { creditMetrics, portfolioAnalytics } = useCreditAnalytics(credits, financialRecords);
 
   const clientNames: Record<string, string> = useMemo(
     () => Object.fromEntries(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`])),

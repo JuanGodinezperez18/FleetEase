@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
+let supabaseClient: SupabaseAdminClient | null = null;
+
+function getSupabase(): SupabaseAdminClient {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return supabaseClient;
+}
 
 const BATCH_SIZE = 100;
 const INSURANCE_WARNING_DAYS = 7;
@@ -34,6 +50,7 @@ async function verifyAuth(request: NextRequest): Promise<boolean> {
 
 
 async function insertNotificationsBatched(
+  supabase: SupabaseAdminClient,
   notifications: NotificationRecord[],
 ): Promise<number> {
   let sent = 0;
@@ -79,6 +96,7 @@ export async function GET(request: NextRequest) {
   let notificationsSent = 0;
 
   try {
+    const supabase = getSupabase();
     const [vehiclesResult, adminsResult] = await Promise.all([
           supabase
             .from('vehicles')
@@ -111,6 +129,7 @@ export async function GET(request: NextRequest) {
         const vehicles = vehiclesResult.data;
         const adminIdsByCompany = new Map<string, string[]>();
         for (const admin of adminsResult.data ?? []) {
+          if (!admin.company_id) continue;
           const ids = adminIdsByCompany.get(admin.company_id) ?? [];
           ids.push(admin.id);
           adminIdsByCompany.set(admin.company_id, ids);
@@ -161,7 +180,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (allNotifications.length > 0) {
-      notificationsSent = await insertNotificationsBatched(allNotifications);
+      notificationsSent = await insertNotificationsBatched(supabase, allNotifications);
     }
 
     return NextResponse.json({

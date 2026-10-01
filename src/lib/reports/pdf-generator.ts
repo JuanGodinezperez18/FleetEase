@@ -1,5 +1,4 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 
@@ -175,21 +174,25 @@ async function loadImageAsDataUrl(src: string, maxPx = 512): Promise<string | nu
 }
 
 export class PDFReportGenerator {
-  private doc: jsPDF;
-  private pageWidth: number;
-  private pageHeight: number;
+  private doc!: jsPDF;
+  private autoTable!: (typeof import('jspdf-autotable'))['default'];
+  private pageWidth!: number;
+  private pageHeight!: number;
   private margin = 16;
   private currentY = 16;
   private fleetLogoDataUrl: string | null = null;
   private companyLogoDataUrl: string | null = null;
 
-  constructor() {
-    this.doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  async generate(data: ReportData): Promise<Blob> {
+    const [{ default: JsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
+    this.doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    this.autoTable = autoTable;
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
-  }
 
-  async generate(data: ReportData): Promise<Blob> {
     await this.loadLogos(data);
     this.paintPageBackground();
     this.addHeader(data);
@@ -357,7 +360,7 @@ export class PDFReportGenerator {
     if (a.licenses && a.licenses.length > 0) {
       this.ensureSpace(40);
       this.addSectionTitle(`Licencias por vencer (${a.licenses.length})`);
-      autoTable(this.doc, {
+      this.autoTable(this.doc, {
         startY: this.currentY,
         head: [['Cliente', 'Licencia', 'Vence', 'Estado']],
         body: a.licenses.map(r => [r.name, r.detail || '-', r.expiry || '-', r.status || '-']),
@@ -368,7 +371,7 @@ export class PDFReportGenerator {
     if (a.insurance && a.insurance.length > 0) {
       this.ensureSpace(40);
       this.addSectionTitle(`Seguros por vencer (${a.insurance.length})`);
-      autoTable(this.doc, {
+      this.autoTable(this.doc, {
         startY: this.currentY,
         head: [['Vehiculo', 'Placa', 'Aseguradora', 'Poliza', 'Vence']],
         body: a.insurance.map(r => [r.name, r.plate || '-', r.company || '-', r.policy || '-', r.expiry || '-']),
@@ -379,7 +382,7 @@ export class PDFReportGenerator {
     if (a.maintenance && a.maintenance.length > 0) {
       this.ensureSpace(40);
       this.addSectionTitle(`Mantenimientos (${a.maintenance.length})`);
-      autoTable(this.doc, {
+      this.autoTable(this.doc, {
         startY: this.currentY,
         head: [['Vehiculo', 'Placa', 'KM actual', 'KM a servicio', 'Estado']],
         body: a.maintenance.map(r => [
@@ -610,7 +613,7 @@ export class PDFReportGenerator {
     if (data.records && data.records.length > 0) {
       this.ensureSpace(40);
       this.addSectionTitle('Movimientos recientes');
-      autoTable(this.doc, {
+      this.autoTable(this.doc, {
         startY: this.currentY,
         head: [['Fecha', 'Tipo', 'Descripcion', 'Monto']],
         body: data.records.slice(0, 25).map(r => [
@@ -635,7 +638,7 @@ export class PDFReportGenerator {
     if (!data.vehicleMetrics?.length) return;
     this.ensureSpace(40);
     this.addSectionTitle('Analisis de vehiculos');
-    autoTable(this.doc, {
+    this.autoTable(this.doc, {
       startY: this.currentY,
       head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Utilizacion']],
       body: data.vehicleMetrics.map(m => [
@@ -654,7 +657,7 @@ export class PDFReportGenerator {
     if (!data.clientMetrics?.length) return;
     this.ensureSpace(40);
     this.addSectionTitle('Analisis de clientes');
-    autoTable(this.doc, {
+    this.autoTable(this.doc, {
       startY: this.currentY,
       head: [['Cliente', 'Pagos', 'Saldo', 'Ult. pago', 'Comportamiento']],
       body: data.clientMetrics.map(m => [
@@ -673,7 +676,7 @@ export class PDFReportGenerator {
     if (!data.partnerMetrics?.length) return;
     this.ensureSpace(40);
     this.addSectionTitle('Analisis de socios');
-    autoTable(this.doc, {
+    this.autoTable(this.doc, {
       startY: this.currentY,
       head: [['Socio', 'Unidades', 'Ingresos', 'Gastos', 'Balance']],
       body: data.partnerMetrics.map(m => [

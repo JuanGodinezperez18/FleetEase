@@ -1,3 +1,5 @@
+import type { Json } from '@/lib/supabase-browser';
+
 /**
  * @fileoverview Tipos compartidos para Supabase
  * 
@@ -112,11 +114,11 @@ export interface User {
   role: UserRole;
   company_id?: string | null;
   partner_access?: string[] | null;
-  notification_settings?: Record<string, any> | null;
+  notification_settings?: Json | null;
   is_deleted: boolean;
   created_at: string;
   updated_at?: string | null;
-  push_subscriptions?: Record<string, any> | null;
+  push_subscriptions?: Json | null;
 }
 
 export interface Client {
@@ -143,7 +145,7 @@ export interface Client {
   balance: number;
   security_deposit: number;
   assigned_vehicle_id?: string | null;
-  payment_behavior?: 'Excelente' | 'Bueno' | 'Regular' | 'Malo' | 'Crítico' | null;
+  payment_behavior?: string | null;
   photo_url?: string | null;
   ine_url?: string | null;
   license_image_url?: string | null;
@@ -335,7 +337,7 @@ export interface VehicleAssignmentLog {
   /** Notas de condición general del vehículo al entregarlo (rayones, golpes, etc.). */
   condition_notes?: string | null;
   /** Fotos de entrega, mismo patrón que vehicle_inspections.photos: { vista: url }. */
-  photos?: Record<string, string> | null;
+  photos?: Json | null;
 }
 
 export interface CompanyChangeLog {
@@ -601,4 +603,3 @@ export interface PlanLimitCheck {
   max_allowed: number;
   message: string;
 }
-

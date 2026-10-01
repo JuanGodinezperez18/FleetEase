@@ -1,13 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/resend';
+import type { Database } from '@/lib/supabase';
 import { getStripe } from '@/lib/stripe';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
+
+let supabaseClient: SupabaseAdminClient | null = null;
+type ReminderDatabase = {
+  public: {
+    Tables: {
+      subscription_email_reminders: {
+        Row: { id: string; company_id: string; reminder_key: string; period_end: string };
+        Insert: { id?: string; company_id: string; reminder_key: string; period_end: string };
+        Update: { id?: string; company_id?: string; reminder_key?: string; period_end?: string };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+
+let reminderSupabaseClient: ReturnType<typeof createClient<ReminderDatabase>> | null = null;
+
+function getSupabase(): SupabaseAdminClient {
+  if (supabaseClient) return supabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return supabaseClient;
+}
+
+function getReminderSupabase() {
+  if (reminderSupabaseClient) return reminderSupabaseClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  reminderSupabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return reminderSupabaseClient;
+}
 
 const REMINDER_DAYS = [7, 3, 1, 0];
 const DAY_MS = 86400000;
@@ -51,6 +102,8 @@ export async function GET(request: NextRequest) {
   const errors: string[] = [];
 
   try {
+    const supabase = getSupabase();
+    const reminderSupabase = getReminderSupabase();
     const { data: subscriptions, error } = await supabase
       .from('companies')
       .select('id, name, plan, stripe_subscription_id')
@@ -97,7 +150,7 @@ export async function GET(request: NextRequest) {
 
         // Claim this reminder only after all data needed to send it has been validated.
         // The unique constraint on (company_id, reminder_key, period_end) prevents duplicates.
-        const { data: reservation, error: reservationError } = await supabase
+        const { data: reservation, error: reservationError } = await reminderSupabase
           .from('subscription_email_reminders')
           .insert({ company_id: subscription.id, reminder_key: key, period_end: periodEnd.toISOString() })
           .select('id')
@@ -129,7 +182,7 @@ export async function GET(request: NextRequest) {
           remindersSent++;
         } catch (sendError) {
           // Release the claim when delivery fails so the next cron execution can retry.
-          await supabase
+          await reminderSupabase
             .from('subscription_email_reminders')
             .delete()
             .eq('id', reservation.id);

@@ -59,7 +59,7 @@ interface FinancesContextValue {
   addMulta: (data: Omit<Multa, 'id'>) => Promise<Multa>;
   updateMulta: (id: string, data: Partial<Multa>) => Promise<void>;
   deleteMulta: (id: string) => Promise<void>;
-  processMultaPayment: (multaId: string, paymentData: Omit<FinancialRecord, 'id' | 'uid' | 'type' | 'category'>) => Promise<void>;
+  processMultaPayment: (multaId: string, paymentData: Partial<FinancialRecord>) => Promise<void>;
 }
 
 const FinancesContext = createContext<FinancesContextValue | undefined>(undefined);

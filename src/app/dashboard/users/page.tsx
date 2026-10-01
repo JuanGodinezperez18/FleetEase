@@ -250,7 +250,7 @@ export default function UsersPage() {
           },
           body: JSON.stringify({
             email: data.email,
-            password: data.password,
+            password: 'password' in data && typeof data.password === 'string' ? data.password : undefined,
             name: data.name,
             phone: data.phone,
             role: data.role,

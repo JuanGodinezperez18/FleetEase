@@ -419,7 +419,7 @@ const IncomeCategoriesBarChart = ({ analytics }: { analytics: FinancialAnalytics
               <Bar
                 dataKey="value"
                 fill={CHART_COLORS.income}
-                radius={[0, 6, 6, 0]}
+                radius={6}
                 maxBarSize={28}
                 isAnimationActive
                 animationDuration={850}
@@ -428,7 +428,7 @@ const IncomeCategoriesBarChart = ({ analytics }: { analytics: FinancialAnalytics
                   fill: "#6ee7b7",
                   stroke: "#34d399",
                   strokeWidth: 1,
-                  radius: [0, 8, 8, 0],
+                  radius: 8,
                 }}
               />
             </BarChart>

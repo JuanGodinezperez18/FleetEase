@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase-browser';
+import { isJsonObject, toJsonObject } from '@/lib/json-guards';
 
 /**
  * create_credit_atomic recibe un objeto JSON con claves del dominio (camelCase),
@@ -57,7 +58,7 @@ function normalizeRpcError(error: unknown): Error {
 
 export async function createCreditAtomic(credit: Record<string, unknown>) {
   const { data, error } = await supabase.rpc('create_credit_atomic', {
-    p_credit: normalizeCreditRpcPayload(credit),
+    p_credit: toJsonObject(normalizeCreditRpcPayload(credit)),
   });
 
   if (error) {
@@ -71,7 +72,8 @@ export async function createCreditAtomic(credit: Record<string, unknown>) {
     throw normalizedError;
   }
 
-  return data as Record<string, unknown>;
+  if (!isJsonObject(data)) throw new Error('La creación del crédito devolvió una respuesta inválida.');
+  return data;
 }
 
 export async function processCreditPaymentAtomic(params: {
@@ -89,9 +91,8 @@ export async function processCreditPaymentAtomic(params: {
     p_client_id: params.clientId,
     p_amount: params.amount,
     p_payment_date: params.paymentDate ?? new Date().toISOString().slice(0, 10),
-    p_payment_method: params.paymentMethod ?? null,
-    p_reference: params.reference ?? null,
-    p_created_by: null,
+    ...(params.paymentMethod !== undefined ? { p_payment_method: params.paymentMethod } : {}),
+    ...(params.reference !== undefined ? { p_reference: params.reference } : {}),
   });
   if (error) throw normalizeRpcError(error);
   return data;

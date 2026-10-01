@@ -53,7 +53,7 @@ export const ExpensesForm = ({ onSubmit, ...props }: ExpensesFormProps) => {
             amount,
           };
         }) as ExpensesFormValues["items"]
-      : [{ concept: data.description || "Gasto", amount: Number(data.amount) || 0 }];
+      : [{ concept: data.description || "Gasto", amount: 0, quantity: 1 }];
 
     onSubmit({ ...data, items });
   };

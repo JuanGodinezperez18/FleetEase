@@ -18,6 +18,23 @@ interface DashboardConfiguratorProps {
   onSave: (widgets: DashboardWidget[]) => void;
 }
 
+type AvailableWidget = {
+  id: string;
+  type: 'metric';
+  category: string;
+  label: string;
+  icon?: string;
+  dataKey?: string;
+  size?: DashboardWidget['size'];
+} | {
+  id: string;
+  type: 'chart';
+  category: string;
+  title: string;
+  dataKey: string;
+  size?: DashboardWidget['size'];
+};
+
 export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave }: DashboardConfiguratorProps) {
   const { currentUser } = useAuth();
   const [widgets, setWidgets] = useState<DashboardWidget[]>(currentWidgets);
@@ -34,8 +51,13 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     CREDITOS: 'Créditos', SOCIOS: 'Socios', KILOMETRAJE: 'Kilometraje', MULTAS: 'Multas',
   };
 
-  const availableKPIs = Object.entries(AVAILABLE_KPIS).flatMap(([category, kpis]) => kpis.map(kpi => ({ ...kpi, category })));
-  const availableWidgets = [...availableKPIs.map(kpi => ({ ...kpi, type: 'metric' as const })), ...CHART_WIDGETS];
+  const availableKPIs: AvailableWidget[] = Object.entries(AVAILABLE_KPIS).flatMap(([category, kpis]) =>
+    kpis.map(kpi => ({ ...kpi, category, type: 'metric' as const }))
+  );
+  const availableWidgets: AvailableWidget[] = [
+    ...availableKPIs,
+    ...CHART_WIDGETS.map(widget => ({ ...widget, type: 'chart' as const })),
+  ];
   const filteredWidgets = selectedCategory === 'all' ? availableWidgets : availableWidgets.filter(widget => widget.category === selectedCategory);
 
   const handleToggleWidget = (widgetId: string) => {
@@ -49,7 +71,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
       setWidgets([...widgets, {
         id: item.id,
         type: item.type,
-        title: item.label ?? item.title,
+        title: item.type === 'metric' ? item.label : item.title,
         category: item.category as DashboardWidget['category'],
         dataKey: item.dataKey ?? item.id,
         enabled: true,
@@ -186,7 +208,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                       <button type="button" onClick={() => handleToggleWidget(item.id)} className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#d7ff3f]/30">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <span className="block truncate text-xs font-semibold text-white/80">{item.label ?? item.title}</span>
+                            <span className="block truncate text-xs font-semibold text-white/80">{item.type === 'metric' ? item.label : item.title}</span>
                             <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-white/30">
                               {isChart && <AreaChart className="h-3 w-3" />}
                               {isChart ? 'Gráfico interactivo' : categoryTranslations[item.category]}

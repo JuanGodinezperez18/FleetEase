@@ -17,11 +17,39 @@ La base de seguridad es **sólida para un proyecto de esta etapa**: CSP con nonc
 | Autorización en APIs | ✅ Consistente (Bearer + rol + tenant isolation) |
 | RLS en base de datos | ✅ Habilitado + migraciones de hardening |
 | Stripe / webhooks | ✅ Firma verificada con `constructEvent` |
-| Rate limiting / anti-abuso | 🔴 Débil (3 de 26 endpoints, en memoria) |
-| Cadena de suministro (deps) | 🔴 Sin `package-lock.json` |
-| Calidad de build | 🟡 `ignoreBuildErrors: true` |
-| Escalabilidad de datos | 🟡 Tablas completas al cliente con `limit(2000–5000)` |
+| Rate limiting / anti-abuso | 🟡 Cobertura ampliada; Upstash opcional hasta configurar variables |
+| Cadena de suministro (deps) | 🟡 Lockfile pendiente de generación por npm en GitHub Actions |
+| Calidad de build | 🟡 `ignoreBuildErrors` retirado; build/type-check en validación |
+| Escalabilidad de datos | 🟡 Consultas principales paginadas en páginas de 500 + columnas explícitas |
 | Bundle | 🟡 Bien lazy-load en general; huecos puntuales |
+
+---
+
+## Seguimiento de remediación
+
+Cambios preparados en la rama `security/performance-hardening`; aún requieren revisión e integración en `master`.
+
+### Implementado en la rama
+- El registro muestra reCAPTCHA v2 y verifica el token en el servidor. Se valida una contraseña de al menos 8 caracteres con mayúscula, minúscula, número y símbolo.
+- Se añadieron límites para registro (5/hora por IP), uploads (10/minuto), checkout (10/minuto) y las rutas que usan `requireAdmin` (30/minuto).
+- `rate-limit.ts` puede usar Upstash Redis con un contador Lua atómico. Si no se configuran ambas variables de Upstash, conserva el fallback en memoria; por tanto, la protección distribuida requiere configurar `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` en Vercel.
+- La CSP restringe `img-src` a los orígenes de Supabase, Firebase y los hosts usados por mapas y avatares; también permite los orígenes de reCAPTCHA.
+- Se eliminó el endpoint y el botón de mantenimiento que asignaban Enterprise interno a «Mi Empresa»; era una operación puntual.
+- jsPDF, jspdf-autotable y xlsx se cargan solo cuando se genera un reporte.
+
+### Configuración pendiente para desplegar estos cambios
+- Añadir `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET_KEY`.
+- Añadir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` para que el rate limiting sea compartido entre instancias.
+
+### Pendiente de remediación
+- **S3:** se añadió workflow `generate-lockfile.yml` para generarlo con npm en GitHub Actions; el archivo todavía no aparece en la rama y por tanto este punto no se considera cerrado.
+- **S4:** `ignoreBuildErrors` ya fue retirado y se añadió `quality-gate.yml` con `npm ci`, `npm run type-check` y `npm run build`; el primer build estricto terminó con `lint_or_type_error` (`npm run build` exit 1); falta recuperar/corregir los errores de TypeScript y repetir el build limpio.
+- **P1:** implementado en `data-provider-supabase.tsx`: consultas principales paginadas en bloques de 500 y `select()` explícito; se conserva el filtro `company_id` y la misma API de datos para la UI.
+- **P3:** actualizado SheetJS a `0.20.3`, versión actual documentada por SheetJS, usando su tarball oficial; el lockfile npm será el que fije el `integrity` del tarball.
+- **P4:** añadido debounce de 300 ms al buscador global de las dos tablas compartidas (`ui/data-table` y `common/data-table`).
+- **Rate limiting:** añadida cobertura a uploads de inspección/asignación/seguimiento, descarga/eliminación de archivos y portal de Stripe; admin ya queda cubierto mediante `requireAdmin`.
+
+Vercel procesó el preview con `ignoreBuildErrors` retirado y terminó en `ERROR` durante `npm run build`, con `errorCode: lint_or_type_error`; el detalle de líneas no está expuesto por la herramienta conectada. El lockfile aún no está presente en la rama; por ello el reporte no se declara cerrado hasta confirmar `package-lock.json` + type-check + build limpio.
 
 ---
 
@@ -71,10 +99,10 @@ La base de seguridad es **sólida para un proyecto de esta etapa**: CSP con nonc
 - **Riesgo:** exfiltración vía `<img>` a host del atacante si hay XSS (limitado por `script-src` estricto); CSS injection de baja criticidad.
 - **Recomendación:** restringir `img-src` a los buckets de Supabase/Firebase + `self`; mantener `unsafe-inline` en estilos es aceptable con nonce en scripts.
 
-#### S6 — IDs y confirmación hardcodeados en `grant-internal-enterprise` (BAJO)
-- **Dónde:** `src/app/api/admin/grant-internal-enterprise/route.ts` — `INTERNAL_COMPANY_ID` y `CONFIRMATION` literales en el código.
-- **Nota:** la ruta NO usa `requireAdmin`, pero implementa sus propios checks equivalentes (super_admin + company_id + confirmación), así que **no es una vulnerabilidad abierta**; solo algo de "seguridad por oscuridad" y divergencia del patrón.
-- **Recomendación:** mover el ID/confirmación a variables de entorno y reutilizar `requireAdmin` con `targetCompanyId` para consistencia.
+#### S6 — IDs y confirmación hardcodeados en `grant-internal-enterprise` (BAJO; RESUELTO)
+- **Hallazgo original:** `src/app/api/admin/grant-internal-enterprise/route.ts) tenía una operación puntual que cambiaba «Mi Empresa» a Enterprise.
+- **Estado:** se eliminó el endpoint y el botón de mantenimiento que lo ejecutaba. No se necesitan variables de entorno para esta utilidad.
+- **Nota:** se conserva por separado la protección de checkout que evita iniciar pagos recurrentes para la empresa interna.
 
 ### ✅ Verificaciones adicionales realizadas
 - `.env.local` / secretos reales en git: **no encontrados** (solo template).
@@ -138,3 +166,7 @@ La base de seguridad es **sólida para un proyecto de esta etapa**: CSP con nonc
 ---
 
 *Metodología: revisión estática de código (grep/análisis de rutas API, middleware, migraciones SQL, config de Next.js), verificación de git history para secretos, e intento de `npm audit`. No se ejecutó la aplicación ni pruebas de penetración dinámicas.*
+
+
+## Estado de correcciones TypeScript
+- Strict TypeScript build en proceso de saneamiento; se corrigen errores expuestos por `ignoreBuildErrors` eliminado sin modificar la lógica financiera.

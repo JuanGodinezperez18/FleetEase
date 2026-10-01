@@ -56,23 +56,55 @@ export default function SeguimientosPage() {
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
+    const companyId = currentUser.companyId;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('seguimientos')
         .select('*')
-        .eq('company_id', currentUser.companyId)
+        .eq('company_id', companyId)
         .order('timestamp', { ascending: false })
         .limit(100);
       if (error) throw error;
-      setSeguimientos((data || []) as Seguimiento[]);
+      const rows = (data || []) as Array<{
+        id: string;
+        vehicle_id: string;
+        client_id: string | null;
+        company_id: string | null;
+        created_by: string;
+        notes: string | null;
+        photo_url: string | null;
+        latitude: number | null;
+        longitude: number | null;
+        timestamp: string;
+      }>;
+      const mapped = rows.map((row) => {
+        const vehicle = vehicles?.find(v => v.id === row.vehicle_id);
+        const client = clients?.find(c => c.id === row.client_id);
+        return {
+          id: row.id,
+          vehicle_id: row.vehicle_id,
+          client_id: row.client_id,
+          user_id: row.created_by,
+          client_name: client ? `${client.firstname} ${client.lastname}`.trim() : 'Desconocido',
+          vehicle_alias: vehicle?.alias || vehicle?.plate || 'Desconocido',
+          photo_url: row.photo_url || '',
+          description: row.notes,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          timestamp: row.timestamp,
+          created_by: row.created_by,
+          company_id: row.company_id || companyId,
+        };
+      });
+      setSeguimientos(mapped);
     } catch (error) {
       console.error('Error cargando seguimientos:', error);
       toast.error('Error al cargar seguimientos');
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.companyId]);
+  }, [currentUser?.companyId, vehicles, clients]);
 
   useEffect(() => {
     if (currentUser?.companyId) loadSeguimientos();
@@ -271,7 +303,7 @@ export default function SeguimientosPage() {
                     <button
                       type="button"
                       className="relative block h-44 w-full overflow-hidden bg-white/[0.03]"
-                      onClick={() => setSelectedImage({ ...seg, vehicleAlias, clientName })}
+                      onClick={() => setSelectedImage({ ...seg, vehicle_alias: vehicleAlias, client_name: clientName })}
                     >
                       <Image
                         src={seg.photo_url}
@@ -374,13 +406,13 @@ export default function SeguimientosPage() {
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Vehículo</p>
                   <p className="mt-0.5 font-heading text-base font-semibold text-white">
-                    {selectedImage.vehicleAlias}
+                    {selectedImage.vehicle_alias}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Cliente</p>
                   <p className="mt-0.5 font-heading text-base font-semibold text-white">
-                    {selectedImage.clientName}
+                    {selectedImage.client_name}
                   </p>
                 </div>
                 <div>
@@ -426,7 +458,7 @@ export default function SeguimientosPage() {
                   onClick={() =>
                     downloadImage(
                       selectedImage.photo_url,
-                      `seguimiento_${selectedImage.vehicleAlias}_${format(
+                      `seguimiento_${selectedImage.vehicle_alias}_${format(
                         new Date(selectedImage.timestamp),
                         'yyyyMMdd'
                       )}.jpg`

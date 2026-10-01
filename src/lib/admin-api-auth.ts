@@ -1,11 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase';
+import { adminLimiter, checkRateLimit } from '@/lib/rate-limit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
+let supabaseAdminClient: SupabaseAdminClient | null = null;
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
+function getSupabaseAdmin(): SupabaseAdminClient {
+  if (supabaseAdminClient) return supabaseAdminClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  supabaseAdminClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return supabaseAdminClient;
+}
+
+// Backward-compatible lazy proxy: existing API routes can keep using
+// supabaseAdmin without initializing Supabase during Next.js build.
+export const supabaseAdmin = new Proxy({} as SupabaseAdminClient, {
+  get(_target, property, receiver) {
+    return Reflect.get(getSupabaseAdmin(), property, receiver);
+  },
 });
 
 export type AdminProfile = {
@@ -21,8 +44,10 @@ export type AdminProfile = {
 export async function requireAdmin(
   request: NextRequest,
   options?: { allowedRoles?: string[]; targetCompanyId?: string | null },
-): Promise<{ profile: AdminProfile } | { error: NextResponse }> {
+): Promise<{ profile: AdminProfile } | { error: Response }> {
   const allowedRoles = options?.allowedRoles ?? ['admin', 'super_admin'];
+  const rateLimitResponse = await checkRateLimit(request, adminLimiter);
+  if (rateLimitResponse) return { error: rateLimitResponse };
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -35,10 +60,11 @@ export async function requireAdmin(
   }
 
   const token = authHeader.substring(7);
+  const client = getSupabaseAdmin();
   const {
     data: { user },
     error: authError,
-  } = await supabaseAdmin.auth.getUser(token);
+  } = await client.auth.getUser(token);
 
   if (authError || !user) {
     return {
@@ -49,7 +75,7 @@ export async function requireAdmin(
     };
   }
 
-  const { data: profile, error: profileError } = await supabaseAdmin
+  const { data: profile, error: profileError } = await client
     .from('users')
     .select('id, role, company_id')
     .eq('id', user.id)

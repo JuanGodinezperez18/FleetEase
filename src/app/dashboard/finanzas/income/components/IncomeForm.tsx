@@ -164,7 +164,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     if (!selectedClientId) return null;
     const companyId = selectedCompanyId || currentUser?.companyId;
     const assignment = (vehicleAssignmentLogs || [])
-      .filter(log => log.clientId === selectedClientId && !log.unassignedAt && !log.isDeleted && (!companyId || log.companyId === companyId))
+      .filter(log => log.clientId === selectedClientId && !log.unassignedAt && (!companyId || log.companyId === companyId))
       .sort((a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime())[0];
     return assignment ? vehicles.find(v => v.id === assignment.vehicleId) || null : null;
   }, [selectedClientId, selectedCompanyId, currentUser?.companyId, vehicleAssignmentLogs, vehicles]);
@@ -204,12 +204,12 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     const vehicle = vehicles.find(v => v.id === form.getValues('vehicleId'));
     if (vehicle) {
       const weeklyRentalValue = Number(vehicle.weeklyRentalValue);
-      form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : undefined, {
+      form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : 0, {
         shouldValidate: true,
         shouldDirty: true,
       });
     } else if (!initialData) {
-      form.setValue('amount', undefined, { shouldValidate: true });
+      form.setValue('amount', 0, { shouldValidate: true });
     }
   }, [isWeeklyRent, selectedCategoryId, vehicles, form, initialData]);
 

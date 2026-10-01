@@ -275,8 +275,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   boxShadow: '0 12px 30px rgba(0,0,0,.12)',
                   color: 'var(--fe-text, #0a0c12)',
                 }}
-                formatter={(value: number | undefined) => [
-                  isMoney ? moneyText(value ?? 0) : (value ?? 0),
+                formatter={value => [
+                  isMoney ? moneyText(Number(value ?? 0)) : Number(value ?? 0),
                   isMoney ? 'Monto' : 'Cantidad',
                 ]}
                 labelStyle={{ color: 'inherit' }}
@@ -294,7 +294,6 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   fill: '#c4eb2a',
                   stroke: '#a8c91f',
                   strokeWidth: 1.5,
-                  radius: [8, 8, 2, 2],
                 }}
               />
             </BarChart>
@@ -348,8 +347,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                     boxShadow: '0 12px 30px rgba(0,0,0,.12)',
                     color: 'var(--fe-text, #0a0c12)',
                   }}
-                  formatter={(value: number | undefined) => [
-                    isMoney ? `$${money.format(value ?? 0)}` : (value ?? 0),
+                  formatter={value => [
+                    isMoney ? `$${money.format(Number(value ?? 0))}` : Number(value ?? 0),
                     isMoney ? 'Monto' : 'Cantidad',
                   ]}
                 />

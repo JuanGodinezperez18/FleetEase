@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
 import { createFinancialRecord, createExpenseAtomic, updateFinancialRecordMetadata } from '@/lib/financial-rpc';
 import { createCreditAtomic } from '@/lib/credit-rpc';
+import { isJsonObject } from '@/lib/json-guards';
 import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, type NewAssignmentInput } from '@/lib/vehicle-assignment';
 import type { Client, Vehicle, Partner, Credit, FinancialRecord, MileageLog, Notification, VehicleAssignmentLog, Company, FinancialCategory, MessageTemplate, MessageLog, CreditPaymentSchedule, Multa } from '@/types/supabase';
 import { toDomainClient, toDomainVehicle, toDomainPartner, toDomainCredit, toDomainFinancialRecord, toDomainMileageLog, toDomainNotification, toDomainVehicleAssignmentLog, toDomainCompany, toDomainFinancialCategory, toDomainMessageTemplate, toDomainMessageLog, toDomainCreditPaymentSchedule, toDomainMulta, toSbClient, toSbVehicle, toSbPartner, toSbCredit, toSbFinancialRecord, toSbMileageLog, toSbNotification, toSbVehicleAssignmentLog, toSbCompany, toSbFinancialCategory, toSbMessageTemplate, toSbMessageLog, toSbCreditPaymentSchedule, toSbMulta } from '@/lib/domain-mappers';
@@ -128,6 +129,17 @@ function calculateVehicleMileageInfo(vehicle: DomainVehicle, logs: DomainMileage
   return { ...vehicle, displayCurrentMileage: currentMileage.toLocaleString(), displayLastMaintMileage: lastMaintenanceMileage.toLocaleString(), displayNextMaintDueAt: (currentMileage + kmToNextMaintenance).toLocaleString(), displayKmToNextMaintenance: kmToNextMaintenance.toLocaleString(), kmToNextMaintenance, dailyAveragekm };
 }
 
+async function fetchAllPages<T>(buildQuery: () => any, pageSize = 500): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const page = (data || []) as T[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -144,12 +156,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (!authLoading && currentUser) { if (isSuperAdmin) { const savedCompanyId = localStorage.getItem('selectedCompanyId'); if (savedCompanyId === 'all') setSelectedCompanyIdState(null); else if (savedCompanyId) setSelectedCompanyIdState(savedCompanyId); else if (currentUser.companyId) setSelectedCompanyIdState(currentUser.companyId); else setSelectedCompanyIdState(null); } else setSelectedCompanyIdState(currentUser.companyId || null); } }, [currentUser, authLoading, isSuperAdmin]);
   const companyIdForFiltering = useMemo(() => { if (!currentUser) return undefined; if (isSuperAdmin) return selectedCompanyId || currentUser.companyId || null; return currentUser.companyId; }, [currentUser, isSuperAdmin, selectedCompanyId]);
 
-  const { data: allClients = [], isLoading: loadingClients } = useQuery<DomainClient[]>({ queryKey: ['clients', companyIdForFiltering], queryFn: async () => { let query = supabase.from('clients').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(2000); if (error) throw error; return (data || []).map(toDomainClient); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
-  const { data: allVehicles = [], isLoading: loadingVehicles } = useQuery<DomainVehicle[]>({ queryKey: ['vehicles', companyIdForFiltering], queryFn: async () => { let query = supabase.from('vehicles').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(2000); if (error) throw error; return (data || []).map(toDomainVehicle); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
-  const { data: allPartners = [], isLoading: loadingPartners } = useQuery<DomainPartner[]>({ queryKey: ['partners', companyIdForFiltering], queryFn: async () => { let query = supabase.from('partners').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(1000); if (error) throw error; return (data || []).map(toDomainPartner); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 10 * 60 * 1000 });
-  const { data: allCredits = [], isLoading: loadingCredits } = useQuery<DomainCredit[]>({ queryKey: ['credits', companyIdForFiltering], queryFn: async () => { let query = supabase.from('credits').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(1500); if (error) throw error; return (data || []).map(toDomainCredit); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 10 * 60 * 1000 });
-  const { data: allFinancialRecords = [], isLoading: loadingFinancialRecords } = useQuery<DomainFinancialRecord[]>({ queryKey: ['financial_records', companyIdForFiltering], queryFn: async () => { let query = supabase.from('financial_records').select('*').eq('is_deleted', false).order('date', { ascending: false }); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(5000); if (error) throw error; return (data || []).map(toDomainFinancialRecord); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
-  const { data: allMileageLogs = [], isLoading: loadingMileageLogs } = useQuery<DomainMileageLog[]>({ queryKey: ['mileage_logs', companyIdForFiltering], queryFn: async () => { let query = supabase.from('mileage_logs').select('*').eq('is_deleted', false).order('date', { ascending: false }); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(5000); if (error) throw error; return (data || []).map(toDomainMileageLog); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsMileageLogs, staleTime: 15 * 60 * 1000 });
+  const { data: allClients = [] = [], isLoading: loadingClients } = useQuery<DomainClient[]>({ queryKey: ['clients', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('clients').select('id,user_id,firstname,lastname,email,phone,street,city,state,zip_code,country,status,is_deleted,created_at,updated_at,vehicle_assigned_at,license_number,license_expiry,license_status,initial_balance,balance,security_deposit,assigned_vehicle_id,payment_behavior,photo_url,ine_url,license_image_url,company_id,has_active_credit,active_credit_id').eq('is_deleted', false);  if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainClient); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
+  const { data: allVehicles = [] = [], isLoading: loadingVehicles } = useQuery<DomainVehicle[]>({ queryKey: ['vehicles', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('vehicles').select('id,alias,make,model,year,plate,serial_number,color,status,client_id,partner_id,cost,weekly_rental_value,acquisition_date,maintenance_interval,last_maintenance_mileage,current_mileage,insurance_company,insurance_policy_number,insurance_expiry_date,admin_commission,is_deleted,created_at,updated_at,company_id,image_url,circulation_card_url,insurance_policy_document_url,gps_phone_number,gps_phone_company,locked_by_credit,associated_credit_id').eq('is_deleted', false);  if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainVehicle); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
+  const { data: allPartners = [] = [], isLoading: loadingPartners } = useQuery<DomainPartner[]>({ queryKey: ['partners', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('partners').select('id,user_id,firstname,lastname,name,email,phone,street,city,state,zip_code,country,initial_balance,balance,is_deleted,created_at,updated_at,company_id,vehicle_limit').eq('is_deleted', false);  if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainPartner); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 10 * 60 * 1000 });
+  const { data: allCredits = [] = [], isLoading: loadingCredits } = useQuery<DomainCredit[]>({ queryKey: ['credits', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('credits').select('id,uid,client_id,vehicle_id,total_amount,paid_amount,remaining_balance,weekly_payment,number_of_payments,payments_made,start_date,status,is_deleted,created_at,updated_at,company_id,last_payment_date,last_payment_amount,last_payment_status').eq('is_deleted', false);  if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainCredit); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 10 * 60 * 1000 });
+  const { data: allFinancialRecords = [] = [], isLoading: loadingFinancialRecords } = useQuery<DomainFinancialRecord[]>({ queryKey: ['financial_records', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('financial_records').select('id,company_id,client_id,vehicle_id,partner_id,category_id,category,type,amount,payment_method,description,date,credit_id,credit_payment,credit_granted,credit_payment_number,is_pending,is_deleted,created_by,created_at,updated_at,evidence_urls,credit_payment_schedule_id,mileage_at_expense,notes').eq('is_deleted', false); query = query.order('date', { ascending: false }); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainFinancialRecord); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering), staleTime: 2 * 60 * 1000 });
+  const { data: allMileageLogs = [] = [], isLoading: loadingMileageLogs } = useQuery<DomainMileageLog[]>({ queryKey: ['mileage_logs', companyIdForFiltering], queryFn: async () => { const data = await fetchAllPages<any>(() => { let query = supabase.from('mileage_logs').select('id,uid,vehicle_id,mileage,date,notes,source,financial_record_id,kind,created_at,updated_at,company_id,is_deleted,created_by').eq('is_deleted', false); query = query.order('date', { ascending: false }); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); return query; }); return data.map(toDomainMileageLog); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsMileageLogs, staleTime: 15 * 60 * 1000 });
   const { data: allCompanies = [], isLoading: loadingCompanies } = useQuery<DomainCompany[]>({
     queryKey: ['companies', isSuperAdmin ? 'all' : currentUser?.companyId],
     queryFn: async () => {
@@ -180,7 +192,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       calculateVehicleMileageInfo(
         vehicle,
         allMileageLogs,
-        companyIntervals.get(vehicle.companyId)
+        vehicle.companyId ? companyIntervals.get(vehicle.companyId) : undefined
       )
     );
   }, [allVehicles, allMileageLogs, allCompanies]);
@@ -302,9 +314,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const mergedForValidation: Partial<DomainVehicle> = {
           currentMileage: Number(existing.current_mileage ?? 0),
-          insurancePolicyNumber: existing.insurance_policy_number,
-          insuranceExpiryDate: existing.insurance_expiry_date,
-          insurancePolicyDocumentUrl: existing.insurance_policy_document_url,
+          insurancePolicyNumber: existing.insurance_policy_number ?? undefined,
+          insuranceExpiryDate: existing.insurance_expiry_date ?? undefined,
+          insurancePolicyDocumentUrl: existing.insurance_policy_document_url ?? undefined,
           ...data,
         };
 
@@ -354,8 +366,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
   const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
-  const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = (result as any)?.id; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
-  const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); if (!companyId && !currentUser.companyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: companyId || currentUser.companyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', p_reference: description || null, p_created_by: null }); if (error) throw error; await refreshData(); const result = (data || {}) as any; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: result.creditId ?? result.credit_id ?? creditId, paymentScheduleId: result.paymentScheduleId ?? result.payment_schedule_id ?? null, creditCompleted: result.creditCompleted ?? result.credit_completed ?? result.status === 'completed' ?? false, ...(result.error ? { error: result.error } : {}) }; } catch (error: any) { logger.error('Error processing credit payment:', error); return { success: false, error: error?.message || 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);
+  const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = typeof result.id === 'string' ? result.id : null; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
+  const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); const paymentCompanyId = companyId || currentUser.companyId; if (!paymentCompanyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: paymentCompanyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', ...(description ? { p_reference: description } : {}) }); if (error) throw error; await refreshData(); const result = isJsonObject(data) ? data : {}; const responseCreditId = [result.creditId, result.credit_id].find((value): value is string => typeof value === 'string') ?? creditId; const scheduleId = [result.paymentScheduleId, result.payment_schedule_id].find((value): value is string => typeof value === 'string') ?? null; const completed = result.creditCompleted ?? result.credit_completed; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: responseCreditId, paymentScheduleId: scheduleId, creditCompleted: typeof completed === 'boolean' ? completed : result.status === 'completed', ...(typeof result.error === 'string' ? { error: result.error } : {}) }; } catch (error: unknown) { logger.error('Error processing credit payment:', error); return { success: false, error: error instanceof Error ? error.message : 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);
   const cancelCreditWithAdjustment = useCallback(async (creditId: string, reason?: string) => {
     if (!currentUser?.uid) throw new Error('Usuario no autenticado');
     try {
@@ -369,7 +381,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } as any);
 
       if (error) throw error;
-      if (!result?.success) throw new Error('La base de datos no confirmó la cancelación del crédito');
+      if (!isJsonObject(result) || result.success !== true) throw new Error('La base de datos no confirmó la cancelación del crédito');
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['credits'] }),
@@ -404,7 +416,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       p_record: toSbMulta({ ...data, companyId, createdBy: data.createdBy || currentUser.uid }) as any,
     });
     if (error) throw error;
-    if (!result?.multa_id) throw new Error('La base de datos no devolvió la multa creada');
+    if (!isJsonObject(result) || typeof result.multa_id !== 'string') throw new Error('La base de datos no devolvió la multa creada');
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['multas'] }),
       queryClient.invalidateQueries({ queryKey: ['financial_records'] }),
@@ -420,14 +432,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const companyId = paymentData.companyId || currentUser.companyId;
     if (!companyId) throw new Error('Empresa no disponible para procesar el pago');
     if (!paymentData.date) throw new Error('Fecha de pago requerida');
-    if (!Number.isFinite(paymentData.amount) || Number(paymentData.amount) <= 0) throw new Error('Importe de pago inválido');
+    const amount = paymentData.amount;
+    if (amount === undefined || !Number.isFinite(amount) || amount <= 0) throw new Error('Importe de pago inválido');
 
     const { data, error } = await supabase.rpc('process_multa_payment_atomic', {
       p_multa_id: multaId,
       p_client_id: paymentData.clientId || null,
       p_vehicle_id: paymentData.vehicleId || null,
       p_company_id: companyId,
-      p_amount: paymentData.amount,
+      p_amount: amount,
       p_date: paymentData.date,
       p_payment_method: paymentData.paymentMethod || null,
       p_description: paymentData.description || null,

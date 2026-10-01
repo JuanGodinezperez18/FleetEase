@@ -47,7 +47,6 @@ export default function FinancialAnalysisPage() {
     filteredRecords,
     clients,
     vehicles,
-    partners,
     dateRange,
     financialCategories
   );

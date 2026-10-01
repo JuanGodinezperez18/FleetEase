@@ -37,7 +37,7 @@ function errorMessage(error: unknown) {
 }
 
 export function PaymentHistoryView() {
-  const { financialRecords, clients, partners, credits, loading, selectedCompanyId, refreshData } = useData();
+  const { financialRecords, clients, partners, credits, loadingData, selectedCompanyId, refreshData } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentFilter>("all");
   const [search, setSearch] = useState("");
@@ -109,7 +109,7 @@ export function PaymentHistoryView() {
         return;
       }
 
-      const supplierIds = [...new Set((payables || []).map((p: any) => p.party_id).filter(Boolean))];
+      const supplierIds = [...new Set((payables || []).map((p: any) => p.party_id).filter((id): id is string => Boolean(id)))];
       const { data: suppliers, error: supplierError } = supplierIds.length
         ? await supabase.from("suppliers").select("id,name").in("id", supplierIds)
         : { data: [], error: null };
@@ -120,10 +120,11 @@ export function PaymentHistoryView() {
       }
 
       const names = new Map<string, string>(
-        (suppliers || []).map((s: any) => [s.id, s.name])
+        (suppliers || []).map((s: any) => [s.id, s.name || ""])
       );
       const byTarget = new Map<string, string>();
       for (const payable of payables || []) {
+        if (!payable.party_id || !payable.source_financial_record_id) continue;
         const name = names.get(payable.party_id);
         if (name) byTarget.set(payable.source_financial_record_id, name);
       }
@@ -217,7 +218,7 @@ export function PaymentHistoryView() {
   const startEdit = (record: any) => {
     setEditing(record);
     setEditAmount(String(Number(record.amount || 0)));
-    setEditDate(record.date);
+    setEditDate(record.date ?? "");
     setEditMethod(record.paymentMethod || "Transferencia");
     setEditReference(record.referenceCode || "");
     setEditTarget(record.targetId || "");
@@ -346,7 +347,7 @@ export function PaymentHistoryView() {
             <p className="mt-0.5 text-xs text-white/40">{paymentRecords.length} registros</p>
           </div>
           <div className="p-4 sm:p-5">
-            {loading ? (
+            {loadingData ? (
               <div className="py-10 text-center text-sm text-white/35">Cargando...</div>
             ) : paymentRecords.length === 0 ? (
               <div className="py-10 text-center text-sm text-white/35">Sin resultados para los filtros.</div>

@@ -14,6 +14,9 @@ import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './supabase';
 
+export type { Database } from './supabase';
+export type { Json } from './supabase';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -23,7 +26,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase: SupabaseClient<Database> = createBrowserClient<Database>(
+const browserClient = createBrowserClient<Database>(
   supabaseUrl!,
   supabaseAnonKey!,
   {
@@ -38,3 +41,9 @@ export const supabase: SupabaseClient<Database> = createBrowserClient<Database>(
     },
   }
 );
+
+// @supabase/ssr currently returns SupabaseClient<Database, 'public', Schema>,
+// while supabase-js expects SchemaName as its third generic parameter. The
+// runtime client still uses the generated public Database schema configured
+// above, so normalize that declaration mismatch at this single boundary.
+export const supabase = browserClient as unknown as SupabaseClient<Database>;

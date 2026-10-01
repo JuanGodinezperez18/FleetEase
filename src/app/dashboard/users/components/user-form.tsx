@@ -58,7 +58,7 @@ const commonEmailDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.co
 
 export const UserForm: React.FC<UserFormProps> = ({ onSubmit, initialData, currentUserRole, isSubmitting, onClose }) => {
     
-    const { currentUser: authCurrentUser } = useAuth();
+    const { currentUser } = useAuth();
     const { companies, partners } = useData();
     const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
 
@@ -248,7 +248,7 @@ export const UserForm: React.FC<UserFormProps> = ({ onSubmit, initialData, curre
             render={({ field }) => (
                 <FormItem>
                     <Label>Rol</Label>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={initialData?.uid === (authCurrentUser?.uid || '')}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={initialData?.uid === (currentUser?.uid || '')}>
                         <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Seleccionar rol..." />

@@ -130,6 +130,8 @@ export function DataTable<TData, TValue>({
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [globalFilter, setGlobalFilter] = React.useState('')
+    const [searchInput, setSearchInput] = React.useState('')
+    React.useEffect(() => { const timer = window.setTimeout(() => setGlobalFilter(searchInput), 300); return () => window.clearTimeout(timer); }, [searchInput])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
 
@@ -198,8 +200,8 @@ export function DataTable<TData, TValue>({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-4">
             <GooeyInput
               placeholder={searchPlaceholder}
-              value={globalFilter ?? ""}
-              onValueChange={setGlobalFilter}
+              value={searchInput}
+              onValueChange={setSearchInput}
               collapsedWidth={140}
               expandedWidth={280}
               expandedOffset={44}
