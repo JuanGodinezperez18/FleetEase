@@ -6,7 +6,15 @@ import { checkRateLimit, uploadLimiter } from '@/lib/rate-limit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+function getSupabaseAdmin() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase admin configuration is missing.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 type AllowedFolder = 'vehicle_images' | 'driver_documents' | 'financial_receipts' | 'general_documents' | 'contract_templates' | 'company_logos';
 const ALLOWED_FOLDERS: readonly AllowedFolder[] = ['vehicle_images', 'driver_documents', 'financial_receipts', 'general_documents', 'contract_templates', 'company_logos'] as const;
@@ -62,6 +70,7 @@ async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<
 }
 
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
   const isDev = process.env.NODE_ENV === 'development';
   try {
     const rateLimitResponse = await checkRateLimit(request, uploadLimiter);
