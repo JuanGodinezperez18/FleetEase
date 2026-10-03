@@ -5,6 +5,7 @@ import "./globals.css";
 import "./fleetease-ui.css";
 import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
+import { CookieBanner } from "@/components/cookie-consent/cookie-banner";
 import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
@@ -145,6 +146,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
             <PwaInstallButton />
             <Toaster />
+            <CookieBanner />
           </Providers>
         </GlobalErrorBoundary>
       </body>
