@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,11 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('[Resend Welcome API] Error:', error);
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 500 },
-      );
+      return internalError('Resend Welcome API', error);
     }
 
     return NextResponse.json({
