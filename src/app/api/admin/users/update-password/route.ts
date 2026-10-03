@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { authErrorMessage, internalError } from '@/lib/security/api-error';
+import { idSchema, parseJsonBody, passwordSchema } from '@/lib/security/validation';
 
-interface UpdatePasswordRequest {
-  userId: string;
-  newPassword: string;
-}
+const updatePasswordSchema = z.object({
+  userId: idSchema,
+  newPassword: passwordSchema,
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: UpdatePasswordRequest = await request.json();
-    const { userId, newPassword } = body;
-
-    if (!userId || !newPassword) {
-      return NextResponse.json(
-        { success: false, message: 'userId y newPassword son obligatorios.' },
-        { status: 400 },
-      );
-    }
-
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { success: false, message: 'La contraseña debe tener al menos 6 caracteres.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, updatePasswordSchema);
+    if (!parsed.ok) return parsed.response;
+    const { userId, newPassword } = parsed.data;
 
     // Authenticated user may change only their own password, unless admin/super_admin.
     const auth = await requireAdmin(request, {
