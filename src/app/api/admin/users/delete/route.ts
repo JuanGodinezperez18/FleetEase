@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
 
 interface DeleteUserRequest {
   uid: string;
@@ -56,11 +57,8 @@ export async function POST(request: NextRequest) {
       .eq('id', uid);
 
     if (profileError) {
-      console.error('[Delete User API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: profileError.message },
-        { status: 500 },
-      );
+      // No exponer el mensaje interno de Postgres/Supabase al cliente.
+      return internalError('Delete User API', profileError, { uid });
     }
 
     await supabaseAdmin.auth.admin.updateUserById(uid, {
