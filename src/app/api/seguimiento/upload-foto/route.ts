@@ -92,9 +92,11 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    const companyId = vehicle.company_id as string;
     const fileExtension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
     const uniqueFileName = `${user.id}-${Date.now()}.${fileExtension}`;
-    const fullPath = `vehicles/${vehicleId}/${uniqueFileName}`;
+    // Tenant path aligned with storage RLS: companies/{companyId}/vehicles/{vehicleId}/seguimientos/...
+    const fullPath = `companies/${companyId}/vehicles/${vehicleId}/seguimientos/${uniqueFileName}`;
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
