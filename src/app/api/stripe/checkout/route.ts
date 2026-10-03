@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { getStripe } from '@/lib/stripe';
 import { getStripePriceId, type BillingCycle } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
 import { billingLimiter, checkRateLimit } from '@/lib/rate-limit';
+import { parseJsonBody } from '@/lib/security/validation';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -17,6 +19,11 @@ function getSupabaseAdmin() {
   });
 }
 const PAID_PLANS: PlanType[] = ['starter', 'pro', 'enterprise'];
+
+const checkoutSchema = z.object({
+  planId: z.enum(['starter', 'pro', 'enterprise']),
+  billingCycle: z.enum(['monthly', 'yearly']).default('monthly'),
+});
 
 export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin();
@@ -34,17 +41,19 @@ export async function POST(request: NextRequest) {
     const { data: userProfile, error: profileError } = await supabaseAdmin.from('users').select('role, company_id').eq('id', user.id).single();
     if (profileError || !userProfile || !['admin', 'super_admin'].includes(userProfile.role)) return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
 
-    const body = await request.json();
-    const { planId, billingCycle = 'monthly' } = body as { planId: string; billingCycle?: BillingCycle };
-    if (!PAID_PLANS.includes(planId as PlanType) || !(planId in plans)) {
+    const parsed = await parseJsonBody(request, checkoutSchema);
+    if (!parsed.ok) return parsed.response;
+    const { planId, billingCycle } = parsed.data;
+
+    if (!(planId in plans)) {
       return NextResponse.json({ error: 'El plan seleccionado no admite checkout. Free se gestiona sin pago.' }, { status: 400 });
     }
 
     let priceId: string;
     try {
-      priceId = getStripePriceId(planId, billingCycle);
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Plan inválido' }, { status: 400 });
+      priceId = getStripePriceId(planId, billingCycle as BillingCycle);
+    } catch {
+      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
     }
 
     const { data: company, error: companyError } = await supabaseAdmin.from('companies').select('id, name, email, stripe_customer_id').eq('id', userProfile.company_id).single();
