@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { internalError } from '@/lib/security/api-error';
+import { emailSchema, parseJsonBody } from '@/lib/security/validation';
 
-interface SendPasswordResetRequest {
-  email: string;
-}
+const sendPasswordResetSchema = z.object({
+  email: emailSchema,
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: SendPasswordResetRequest = await request.json();
-    const { email } = body;
-
-    if (!email) {
-      return NextResponse.json(
-        { success: false, message: 'email es obligatorio.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, sendPasswordResetSchema);
+    if (!parsed.ok) return parsed.response;
+    const { email } = parsed.data;
 
     const { data: target } = await supabaseAdmin
       .from('users')
