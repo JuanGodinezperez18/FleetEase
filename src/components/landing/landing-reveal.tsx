@@ -8,27 +8,34 @@
  * sin animación de ningún tipo.
  */
 
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
-type RevealSectionProps = ComponentPropsWithoutRef<'section'> & {
+type RevealSectionProps = {
   children: ReactNode;
   /** Retardo en segundos, opcional. */
   delay?: number;
+  className?: string;
+  id?: string;
 };
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-export function RevealSection({ children, delay = 0, ...sectionProps }: RevealSectionProps) {
+export function RevealSection({ children, delay = 0, className, id }: RevealSectionProps) {
   const reducedMotion = useReducedMotion();
 
   if (reducedMotion) {
-    return <section {...sectionProps}>{children}</section>;
+    return (
+      <section className={className} id={id}>
+        {children}
+      </section>
+    );
   }
 
   return (
     <motion.section
-      {...sectionProps}
+      className={className}
+      id={id}
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px 0px' }}
