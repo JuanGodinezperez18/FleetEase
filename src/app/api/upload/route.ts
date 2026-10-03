@@ -188,15 +188,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (uploadError) {
-      if (isDev) console.error('[API Upload] storage error:', uploadError);
-      return NextResponse.json({ error: `Error al subir al storage: ${uploadError.message}` }, { status: 500 });
+      console.error('[API Upload] storage error:', uploadError);
+      return NextResponse.json({ error: 'Error al subir al storage' }, { status: 500 });
     }
     const { data: { publicUrl } } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fullPath);
     return NextResponse.json({ success: true, downloadUrl: publicUrl, fullPath });
   } catch (error: unknown) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) return NextResponse.json({ error: 'No autenticado. Token inválido o faltante.' }, { status: 401 });
     if (isDev) console.error('❌ [API Upload] Error CRÍTICO en la ruta:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el servidor.';
-    return NextResponse.json({ error: 'Error al procesar la subida', details: isDev ? errorMessage : undefined }, { status: 500 });
+    return NextResponse.json({ error: 'Error al procesar la subida' }, { status: 500 });
   }
 }
