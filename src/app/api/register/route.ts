@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { z } from 'zod';
 import { getStripePriceId } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
 import { checkRateLimit, registrationLimiter } from '@/lib/rate-limit';
 import { authErrorMessage } from '@/lib/security/api-error';
+import {
+  emailSchema,
+  nameSchema,
+  parseJsonBody,
+  passwordSchema,
+} from '@/lib/security/validation';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -19,14 +26,18 @@ function getSupabaseAdmin() {
   });
 }
 
-interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  phone: string;
-  companyName: string;
-  plan: string;
-}
+const registerSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema.refine(
+    (p) => /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p) && /[^A-Za-z0-9]/.test(p),
+    'La contraseña debe incluir mayúscula, minúscula, número y símbolo',
+  ),
+  name: nameSchema,
+  phone: z.string().trim().max(40).optional().or(z.literal('')),
+  companyName: nameSchema,
+  plan: z.string().trim().min(1).max(32),
+  captchaToken: z.string().max(4096).optional(),
+});
 
 async function verifyRegistrationCaptcha(token: unknown): Promise<boolean> {
   const secret = process.env.RECAPTCHA_SECRET_KEY;
@@ -54,20 +65,12 @@ export async function POST(request: NextRequest) {
     const rateLimitResponse = await checkRateLimit(request, registrationLimiter);
     if (rateLimitResponse) return rateLimitResponse;
 
-    const body: RegisterRequest & { captchaToken?: string } = await request.json();
-    const { email, password, name, phone, companyName, plan, captchaToken } = body;
+    const parsed = await parseJsonBody(request, registerSchema);
+    if (!parsed.ok) return parsed.response;
+    const { email, password, name, phone, companyName, plan, captchaToken } = parsed.data;
     const selectedPlan = plan as PlanType;
     const selectedPlanConfig = plans[selectedPlan];
 
-    if (!email || !password || !name || !companyName) {
-      return NextResponse.json({ success: false, message: 'Faltan campos requeridos' }, { status: 400 });
-    }
-    if (typeof email !== 'string' || email.length > 254 || typeof name !== 'string' || name.trim().length > 120 || typeof companyName !== 'string' || companyName.trim().length > 120 || (phone != null && (typeof phone !== 'string' || phone.length > 40))) {
-      return NextResponse.json({ success: false, message: 'Los datos del registro no son válidos' }, { status: 400 });
-    }
-    if (typeof password !== 'string' || password.length < 8 || password.length > 128 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      return NextResponse.json({ success: false, message: 'La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula, número y símbolo' }, { status: 400 });
-    }
     if (!(await verifyRegistrationCaptcha(captchaToken))) {
       return NextResponse.json({ success: false, message: 'No se pudo verificar el captcha. Intenta de nuevo.' }, { status: 400 });
     }
@@ -131,7 +134,7 @@ export async function POST(request: NextRequest) {
       .update({
         email,
         name,
-        phone,
+        phone: phone || null,
         role: 'admin',
         company_id: company.id,
         is_deleted: false,
