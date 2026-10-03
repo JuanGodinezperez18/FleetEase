@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { authErrorMessage, internalError } from '@/lib/security/api-error';
 import type { Database } from '@/lib/supabase';
 
 interface CreateUserRequest {
@@ -104,7 +105,13 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('[Create User API] Auth error:', authError);
-      return NextResponse.json({ success: false, message: authError.message }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: authErrorMessage(authError, 'No se pudo crear el usuario.'),
+        },
+        { status: 400 },
+      );
     }
 
     if (!authData.user) {
