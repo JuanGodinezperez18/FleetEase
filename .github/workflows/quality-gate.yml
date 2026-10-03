@@ -39,6 +39,11 @@ jobs:
             git push
           fi
       - run: npm ci
+      - name: Auditoría de dependencias (npm audit)
+        # Informativo hasta limpiar el backlog de advisories; falla visiblemente
+        # en el log del workflow sin bloquear el resto del quality gate.
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run type-check
       - name: Build
         run: npm run build
