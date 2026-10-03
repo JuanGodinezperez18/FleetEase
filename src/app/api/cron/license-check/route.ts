@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     if (clientsResult.error) {
       console.error('Error fetching clients:', clientsResult.error);
       return NextResponse.json(
-        { error: 'Failed to fetch clients', details: clientsResult.error.message },
+        { error: 'Failed to fetch clients' },
         { status: 500 },
       );
     }
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     if (adminsResult.error) {
       console.error('Error fetching admin users:', adminsResult.error);
       return NextResponse.json(
-        { error: 'Failed to fetch admin users', details: adminsResult.error.message },
+        { error: 'Failed to fetch admin users' },
         { status: 500 },
       );
     }
