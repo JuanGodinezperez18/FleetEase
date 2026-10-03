@@ -62,8 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, url: publicUrl, fullPath });
   } catch (error: unknown) {
     if (error instanceof Error && (error.message.includes('token') || error.message.includes('expired'))) return NextResponse.json({ error: 'No autenticado. Token inválido o faltante.' }, { status: 401 });
-    if (isDev) console.error('Error CRÍTICO en la ruta:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido en el servidor.';
-    return NextResponse.json({ error: 'Error al procesar la subida', details: isDev ? errorMessage : undefined }, { status: 500 });
+    if (isDev) console.error('[upload-inspection] Error:', error);
+    return NextResponse.json({ error: 'Error al procesar la subida' }, { status: 500 });
   }
 }
