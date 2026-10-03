@@ -1,67 +1,49 @@
 /**
- * Endurecimiento de opciones de cookies para FleetEase.
+ * Endurecimiento de cookies de sesión para FleetEase.
  *
- * - Secure: siempre en producción (HTTPS).
- * - SameSite: lax (equilibrio entre CSRF y flujos OAuth/redirect).
- * - path: /
+ * Contexto arquitectónico importante: la app usa `createBrowserClient` de
+ * `@supabase/ssr` (src/lib/supabase-browser.ts), que lee/escribe las cookies
+ * de sesión desde JavaScript en el navegador. Por eso las cookies de auth
+ * NO pueden ser `httpOnly` (rompería la sesión del cliente y el refresh token).
  *
- * Nota importante sobre httpOnly:
- * Las cookies de sesión de Supabase Auth usadas por `createBrowserClient`
- * (@supabase/ssr) deben ser legibles desde JavaScript del navegador.
- * Por eso `httpOnly` se deja en `false` para las cookies de auth.
- * Las cookies de servidor (consentimiento, preferencias, etc.) sí pueden
- * (y deben) ser httpOnly cuando no necesitan ser leídas por el cliente.
+ * Lo que sí se fuerza siempre, sin excepción:
+ *  - `secure` en producción (nunca viajan por HTTP plano)
+ *  - `sameSite: 'lax'` explícito (mitiga CSRF en envíos cross-site)
+ *  - `path: '/'` explícito
+ *
+ * Para cookies propias que el navegador NO necesita leer, usar
+ * `hardenServerCookieOptions` (httpOnly: true).
  */
 
-export type CookieOptions = {
-  path?: string;
-  domain?: string;
-  maxAge?: number;
-  expires?: Date;
-  httpOnly?: boolean;
-  secure?: boolean;
-  sameSite?: 'strict' | 'lax' | 'none';
-};
+import type { CookieOptions } from '@supabase/ssr';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
-/**
- * Opciones para cookies de autenticación (Supabase SSR / browser client).
- * httpOnly = false (requerido por createBrowserClient).
- */
+/** Cookies de sesión Supabase: endurecidas pero legibles por el cliente SSR. */
 export function hardenAuthCookieOptions(
-  opts: CookieOptions = {},
-): CookieOptions {
+  options?: CookieOptions,
+): Required<Pick<CookieOptions, 'path' | 'sameSite' | 'secure' | 'httpOnly'>> &
+  CookieOptions {
   return {
-    path: '/',
+    ...options,
+    path: options?.path ?? '/',
     sameSite: 'lax',
-    secure: isProd,
-    httpOnly: false,
-    ...opts,
-    // Forzar de nuevo por si opts sobrescribe de forma insegura
-    path: opts.path ?? '/',
-    sameSite: opts.sameSite ?? 'lax',
-    secure: opts.secure ?? isProd,
+    secure: isProduction,
+    // Requerido por createBrowserClient (@supabase/ssr): ver docstring.
     httpOnly: false,
   };
 }
 
-/**
- * Opciones para cookies de servidor (consentimiento, flags, etc.).
- * httpOnly = true por defecto.
- */
+/** Cookies propias de solo servidor: httpOnly real. */
 export function hardenServerCookieOptions(
-  opts: CookieOptions = {},
-): CookieOptions {
+  options?: CookieOptions,
+): Required<Pick<CookieOptions, 'path' | 'sameSite' | 'secure' | 'httpOnly'>> &
+  CookieOptions {
   return {
-    path: '/',
+    ...options,
+    path: options?.path ?? '/',
     sameSite: 'lax',
-    secure: isProd,
+    secure: isProduction,
     httpOnly: true,
-    ...opts,
-    path: opts.path ?? '/',
-    sameSite: opts.sameSite ?? 'lax',
-    secure: opts.secure ?? isProd,
-    httpOnly: opts.httpOnly ?? true,
   };
 }
