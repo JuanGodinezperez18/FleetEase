@@ -50,10 +50,12 @@ export async function POST(request: NextRequest) {
     if (vehicleError || !vehicle) return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 });
     if (vehicle.company_id !== userProfile.company_id && userProfile.role !== 'super_admin') return NextResponse.json({ error: 'No tienes permisos para este vehículo' }, { status: 403 });
 
+    const companyId = vehicle.company_id as string;
     const fileExtension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
     const uniqueFileName = `${user.id}-${view}-${Date.now()}.${fileExtension}`;
     const bucketName = 'inspection-images';
-    const fullPath = `${vehicleId}/${uniqueFileName}`;
+    // Tenant path aligned with storage RLS: companies/{companyId}/vehicles/{vehicleId}/inspections/...
+    const fullPath = `companies/${companyId}/vehicles/${vehicleId}/inspections/${uniqueFileName}`;
     if (fullPath.includes('../') || fullPath.includes('..\\')) return NextResponse.json({ error: 'Ruta de almacenamiento no válida.' }, { status: 400 });
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const { error: uploadError } = await supabaseAdmin.storage.from(bucketName).upload(fullPath, fileBuffer, { contentType: file.type, upsert: false });
