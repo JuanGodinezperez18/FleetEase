@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
 import type { Database } from '@/lib/supabase';
 
 interface UpdateClaimsRequest {
@@ -110,11 +111,7 @@ export async function POST(request: NextRequest) {
       .eq('id', userId);
 
     if (profileError) {
-      console.error('[Update Claims API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: profileError.message },
-        { status: 500 },
-      );
+      return internalError('Update Claims API', profileError, { userId });
     }
 
     return NextResponse.json({
