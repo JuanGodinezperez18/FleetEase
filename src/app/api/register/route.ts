@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { getStripePriceId } from '@/config/stripe';
 import { plans, type PlanType } from '@/config/plans';
 import { checkRateLimit, registrationLimiter } from '@/lib/rate-limit';
+import { authErrorMessage } from '@/lib/security/api-error';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -92,7 +93,10 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('[Register API] Auth error:', authError);
-      return NextResponse.json({ success: false, message: authError.message }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: authErrorMessage(authError, 'No se pudo crear la cuenta.') },
+        { status: 400 },
+      );
     }
     if (!authData.user) {
       return NextResponse.json({ success: false, message: 'No se pudo crear el usuario' }, { status: 500 });
