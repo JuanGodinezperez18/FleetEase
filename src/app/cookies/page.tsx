@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ManageCookiesButton } from "@/components/cookie-consent/manage-cookies-button";
 
 export const metadata: Metadata = {
   title: "Política de Cookies | FleetEase",
@@ -64,6 +65,9 @@ export default function CookiesPage() {
               Edge, etc.). Tenga en cuenta que desactivar cookies esenciales puede afectar el funcionamiento del
               sitio.
             </p>
+            <div className="mt-5">
+              <ManageCookiesButton />
+            </div>
           </section>
 
           <section className="border-t border-white/10 pt-6 text-sm text-white/45">
