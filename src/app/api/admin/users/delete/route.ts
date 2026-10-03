@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { internalError } from '@/lib/security/api-error';
+import { idSchema, parseJsonBody } from '@/lib/security/validation';
 
-interface DeleteUserRequest {
-  uid: string;
-}
+const deleteUserSchema = z.object({
+  uid: idSchema,
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: DeleteUserRequest = await request.json();
-    const { uid } = body;
-
-    if (!uid) {
-      return NextResponse.json(
-        { success: false, message: 'uid es obligatorio.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, deleteUserSchema);
+    if (!parsed.ok) return parsed.response;
+    const { uid } = parsed.data;
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
