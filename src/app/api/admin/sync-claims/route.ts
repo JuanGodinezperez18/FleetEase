@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
 
+/** Sin body JSON: solo autenticación super_admin + listado de usuarios. */
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin(request, {
@@ -13,7 +15,9 @@ export async function POST(request: NextRequest) {
       .select('id, email, role, company_id, is_deleted')
       .eq('is_deleted', false);
 
-    if (error) throw error;
+    if (error) {
+      return internalError('Sync Claims API', error);
+    }
 
     return NextResponse.json({
       success: true,
@@ -27,10 +31,6 @@ export async function POST(request: NextRequest) {
         })) || [],
     });
   } catch (error) {
-    console.error('[Sync Claims API] Unexpected error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Error interno del servidor' },
-      { status: 500 },
-    );
+    return internalError('Sync Claims API', error);
   }
 }
