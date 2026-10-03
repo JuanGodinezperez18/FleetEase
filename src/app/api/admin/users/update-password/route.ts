@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { authErrorMessage, internalError } from '@/lib/security/api-error';
 
 interface UpdatePasswordRequest {
   userId: string;
@@ -69,11 +70,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('[Update Password API] Error:', error);
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 400 },
-      );
+      // Solo se traducen códigos conocidos; nada de error.message crudo.
+      const known = authErrorMessage(error, '');
+      if (known) {
+        return NextResponse.json({ success: false, message: known }, { status: 400 });
+      }
+      return internalError('Update Password API', error, { userId });
     }
 
     return NextResponse.json({
