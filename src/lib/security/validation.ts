@@ -56,6 +56,25 @@ export function parseValue<T extends ZodTypeAny>(
   return { ok: true, data: result.data as z.infer<T> };
 }
 
+/**
+ * Extrae campos string de FormData y los valida con un esquema Zod.
+ * Los campos ausentes quedan como `undefined` (usar `.optional()` en el schema).
+ */
+export function parseFormFields<T extends ZodTypeAny>(
+  formData: FormData,
+  schema: T,
+  keys: string[],
+): ParseResult<z.infer<T>> {
+  const raw: Record<string, unknown> = {};
+  for (const key of keys) {
+    const value = formData.get(key);
+    if (value === null) continue;
+    // Solo strings de formulario; File se valida aparte.
+    if (typeof value === 'string') raw[key] = value;
+  }
+  return parseValue(raw, schema);
+}
+
 // ---------------------------------------------------------------------------
 // Esquemas reutilizables
 // ---------------------------------------------------------------------------
@@ -92,3 +111,77 @@ export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
+
+/** Campos comunes de uploads de imagen por vehículo. */
+export const vehicleUploadFieldsSchema = z.object({
+  vehicleId: idSchema,
+  view: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Vista inválida.'),
+});
+
+export const uploadFolderSchema = z.enum([
+  'vehicle_images',
+  'driver_documents',
+  'financial_receipts',
+  'general_documents',
+  'contract_templates',
+  'company_logos',
+]);
+
+export const generalUploadFieldsSchema = z.object({
+  folder: uploadFolderSchema,
+  entityId: z
+    .string()
+    .trim()
+    .max(64)
+    .optional()
+    .transform((v) => (v && v !== 'unassigned' ? v : undefined)),
+  originalName: z.string().trim().max(255).optional(),
+});
+
+export const IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/jpg',
+] as const;
+
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/** Valida File de FormData (tipo + tamaño). */
+export function validateUploadFile(
+  file: FormDataEntryValue | null,
+  allowedMimes: readonly string[] = IMAGE_MIME_TYPES,
+  maxBytes: number = MAX_UPLOAD_BYTES,
+): ParseResult<File> {
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, response: validationError('No se encontró archivo en la solicitud.') };
+  }
+  if (file.size > maxBytes) {
+    return { ok: false, response: validationError('Archivo demasiado grande. Límite: 10MB') };
+  }
+  const type = file.type || guessMimeFromName(file.name);
+  if (!allowedMimes.includes(type) && !allowedMimes.includes(file.type)) {
+    return {
+      ok: false,
+      response: validationError(
+        `Tipo de archivo no permitido. Permitidos: ${allowedMimes.join(', ')}`,
+      ),
+    };
+  }
+  return { ok: true, data: file };
+}
+
+function guessMimeFromName(name: string): string {
+  if (/\.jpe?g$/i.test(name)) return 'image/jpeg';
+  if (/\.png$/i.test(name)) return 'image/png';
+  if (/\.webp$/i.test(name)) return 'image/webp';
+  if (/\.heic$/i.test(name)) return 'image/heic';
+  if (/\.pdf$/i.test(name)) return 'application/pdf';
+  return '';
+}
