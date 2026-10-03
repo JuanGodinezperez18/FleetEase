@@ -113,8 +113,9 @@ NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 
-# Dev bypass
-NEXT_PUBLIC_BYPASS_SESSION_COOKIE=true
+# ⚠️ Solo desarrollo local. Nunca definir en producción:
+# desactiva la protección de sesión en middleware.
+# NEXT_PUBLIC_BYPASS_SESSION_COOKIE=true
 ```
 
 ## File Structure Highlights
