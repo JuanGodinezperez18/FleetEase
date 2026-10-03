@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
 
 interface SendPasswordResetRequest {
   email: string;
@@ -37,11 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('[Send Password Reset API] Error:', error);
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 500 },
-      );
+      return internalError('Send Password Reset API', error);
     }
 
     return NextResponse.json({
