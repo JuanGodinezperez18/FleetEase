@@ -402,7 +402,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
 
           <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Método de pago / Quién asume</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa paga por socio</SelectItem><SelectItem value="partner_pays">Socio paga</SelectItem><SelectItem value="company_absorbs">Empresa absorbe</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
 
-          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (fotos / PDFs)</FormLabel><FormControl><MultipleFileInput value={field.value || []} onChange={field.onChange} disabled={isSubmitting} accept="image/*,application/pdf" /></FormControl><FormMessage /></FormItem>} />
+          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (fotos / PDFs)</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value || []} disabled={isSubmitting} accept="image/*,application/pdf" folder="financial_receipts" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
