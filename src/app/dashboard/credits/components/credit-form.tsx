@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/auth-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isClientCreatedOnOrBefore } from "@/lib/filter-clients-by-date";
 
 export const creditSchema = z.object({
   startDate: z.string().min(1, "La fecha es obligatoria."),
@@ -78,6 +79,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
   const { control, watch, setValue, handleSubmit, reset } = form;
   const selectedClientId = watch("clientId");
   const selectedVehicleId = watch("vehicleId");
+  const selectedStartDate = watch("startDate");
   const [showNoVehicleMessage, setShowNoVehicleMessage] = useState(false);
 
   useEffect(() => {
@@ -99,9 +101,12 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
     const clientsWithActiveCredit = new Set(
       credits.filter(c => c.status === "active" && !c.isDeleted).map(c => c.clientId)
     );
-    const filteredClients = clients.filter(
-      c => c.status === "active" && !c.isDeleted && !clientsWithActiveCredit.has(c.id)
-    );
+    const filteredClients = clients.filter(c => {
+      if (c.status !== "active" || c.isDeleted) return false;
+      if (clientsWithActiveCredit.has(c.id)) return false;
+      if (!isClientCreatedOnOrBefore(c.createdAt, selectedStartDate)) return false;
+      return true;
+    });
     if (currentUser?.role === "superAdmin" && globalCompanyId) {
       return filteredClients.filter(c => c.companyId === globalCompanyId);
     }
@@ -109,7 +114,14 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
       return filteredClients.filter(c => c.companyId === currentUser.companyId);
     }
     return filteredClients;
-  }, [clients, credits, currentUser, globalCompanyId]);
+  }, [clients, credits, currentUser, globalCompanyId, selectedStartDate]);
+
+  useEffect(() => {
+    if (selectedClientId && !activeClients.some(c => c.id === selectedClientId)) {
+      setValue("clientId", "", { shouldValidate: true });
+      setValue("vehicleId", "", { shouldValidate: true });
+    }
+  }, [activeClients, selectedClientId, setValue]);
 
   const clientVehicle = useMemo(() => {
     if (!selectedClientId) return null;
