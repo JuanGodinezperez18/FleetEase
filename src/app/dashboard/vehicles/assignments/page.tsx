@@ -33,6 +33,16 @@ import { formatDate } from '@/lib/date-utils';
 import { AssignmentForm } from './components/assignment-form';
 import { toast } from 'sonner';
 import type { Vehicle, Client, VehicleAssignmentLog } from '@/types';
+import { Search as SearchBar } from '@/components/ui/search';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type StatusFilter = 'all' | 'active' | 'finished';
 
 export default function VehicleAssignmentsPage() {
   const router = useRouter();
@@ -48,6 +58,8 @@ export default function VehicleAssignmentsPage() {
   } = useData();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [endingLogId, setEndingLogId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const vehicleById = useMemo(
     () => new Map(rawVehicles.map((v: Vehicle) => [v.id, v])),
@@ -69,6 +81,36 @@ export default function VehicleAssignmentsPage() {
       (a, b) => new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
     );
   }, [vehicleAssignmentLogs, preselectedVehicleId]);
+
+  const filteredLogs = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return sortedLogs.filter(log => {
+      const isActive = !log.unassignedAt;
+      if (statusFilter === 'active' && !isActive) return false;
+      if (statusFilter === 'finished' && isActive) return false;
+
+      if (!q) return true;
+
+      const vehicle = vehicleById.get(log.vehicleId);
+      const client = log.clientId ? clientById.get(log.clientId) : null;
+      const plate = vehicle?.plate?.toLowerCase() ?? '';
+      const make = vehicle?.make?.toLowerCase() ?? '';
+      const model = vehicle?.model?.toLowerCase() ?? '';
+      const alias = vehicle?.alias?.toLowerCase() ?? '';
+      const clientName = client
+        ? `${client.firstname} ${client.lastname}`.toLowerCase()
+        : '';
+
+      return (
+        plate.includes(q) ||
+        make.includes(q) ||
+        model.includes(q) ||
+        alias.includes(q) ||
+        clientName.includes(q) ||
+        `${make} ${model}`.includes(q)
+      );
+    });
+  }, [sortedLogs, searchTerm, statusFilter, vehicleById, clientById]);
 
   const activeAssignments = useMemo(
     () => sortedLogs.filter(log => !log.unassignedAt),
@@ -197,26 +239,55 @@ export default function VehicleAssignmentsPage() {
         </div>
 
         <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-          <div className="flex flex-col gap-2 border-b border-white/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div>
-              <h2 className="font-heading text-lg font-semibold text-white">
-                {preselectedVehicleId
-                  ? `Historial · ${preselectedPlate || 'Vehículo'}`
-                  : 'Historial de asignaciones'}
-              </h2>
-              <p className="mt-0.5 text-sm text-white/40">
-                Quién tuvo cada unidad y cuándo terminó la asignación
-              </p>
+          <div className="flex flex-col gap-3 border-b border-white/[0.06] px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="font-heading text-lg font-semibold text-white">
+                  {preselectedVehicleId
+                    ? `Historial · ${preselectedPlate || 'Vehículo'}`
+                    : 'Historial de asignaciones'}
+                </h2>
+                <p className="mt-0.5 text-sm text-white/40">
+                  Quién tuvo cada unidad y cuándo terminó la asignación
+                  {filteredLogs.length !== sortedLogs.length && (
+                    <span className="ml-1 text-white/55">
+                      · {filteredLogs.length} de {sortedLogs.length}
+                    </span>
+                  )}
+                </p>
+              </div>
+              {preselectedVehicleId && (
+                <Button
+                  variant="ghost"
+                  className="h-11 w-fit rounded-xl px-3 text-xs text-white/50 hover:bg-white/[0.06] hover:text-white"
+                  onClick={() => router.push('/dashboard/vehicles/assignments')}
+                >
+                  Ver todas
+                </Button>
+              )}
             </div>
-            {preselectedVehicleId && (
-              <Button
-                variant="ghost"
-                className="h-11 w-fit rounded-xl px-3 text-xs text-white/50 hover:bg-white/[0.06] hover:text-white"
-                onClick={() => router.push('/dashboard/vehicles/assignments')}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchBar
+                placeholder="Buscar por placa, marca, modelo o cliente..."
+                value={searchTerm}
+                onValueChange={setSearchTerm}
+                width={280}
+              />
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
               >
-                Ver todas
-              </Button>
-            )}
+                <SelectTrigger className="w-full border-white/10 bg-white/[0.03] text-white sm:w-[180px]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="finished">Finalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {loadingData ? (
@@ -224,16 +295,20 @@ export default function VehicleAssignmentsPage() {
               <Loader2 className="h-5 w-5 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
               <span className="text-sm">Cargando asignaciones…</span>
             </div>
-          ) : sortedLogs.length === 0 ? (
+          ) : filteredLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
                 <Clock3 className="h-6 w-6" strokeWidth={1.75} />
               </div>
               <p className="font-heading text-base font-semibold text-white">
-                No hay asignaciones registradas
+                {sortedLogs.length === 0
+                  ? 'No hay asignaciones registradas'
+                  : 'Sin resultados con estos filtros'}
               </p>
               <p className="mt-1 max-w-sm text-sm text-white/40">
-                Cuando entregues una unidad, su historial aparecerá aquí.
+                {sortedLogs.length === 0
+                  ? 'Cuando entregues una unidad, su historial aparecerá aquí.'
+                  : 'Prueba con otro término de búsqueda o cambia el filtro de estado.'}
               </p>
             </div>
           ) : (
@@ -255,7 +330,7 @@ export default function VehicleAssignmentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedLogs.map(log => {
+                    {filteredLogs.map(log => {
                       const vehicle = vehicleById.get(log.vehicleId);
                       const client = log.clientId ? clientById.get(log.clientId) : null;
                       const isActive = !log.unassignedAt;
@@ -345,7 +420,7 @@ export default function VehicleAssignmentsPage() {
 
               {/* Mobile cards */}
               <div className="space-y-3 p-4 md:hidden">
-                {sortedLogs.map(log => {
+                {filteredLogs.map(log => {
                   const vehicle = vehicleById.get(log.vehicleId);
                   const client = log.clientId ? clientById.get(log.clientId) : null;
                   const isActive = !log.unassignedAt;
