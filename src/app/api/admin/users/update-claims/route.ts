@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
+import { idSchema, parseJsonBody } from '@/lib/security/validation';
 import type { Database } from '@/lib/supabase';
 
-interface UpdateClaimsRequest {
-  userId: string;
-  role: string;
-  companyId?: string;
-  partnerAccess?: string[];
-}
+const updateClaimsSchema = z.object({
+  userId: idSchema,
+  role: z.string().trim().min(1).max(32),
+  companyId: idSchema.optional(),
+  partnerAccess: z.array(z.string().max(120)).max(100).optional(),
+});
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -15,15 +18,9 @@ const ALLOWED_ROLES = new Set<UserRole>(['super_admin', 'admin', 'editor', 'view
 
 export async function POST(request: NextRequest) {
   try {
-    const body: UpdateClaimsRequest = await request.json();
-    const { userId, role, companyId, partnerAccess } = body;
-
-    if (!userId || !role) {
-      return NextResponse.json(
-        { success: false, message: 'userId y role son obligatorios.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, updateClaimsSchema);
+    if (!parsed.ok) return parsed.response;
+    const { userId, role, companyId, partnerAccess } = parsed.data;
 
     const roleMap: Record<string, UserRole> = {
       superAdmin: 'super_admin',
@@ -36,7 +33,7 @@ export async function POST(request: NextRequest) {
     };
     const normalizedRole = roleMap[role];
 
-    if (!ALLOWED_ROLES.has(normalizedRole)) {
+    if (!normalizedRole || !ALLOWED_ROLES.has(normalizedRole)) {
       return NextResponse.json(
         { success: false, message: 'Rol no permitido.' },
         { status: 400 },
@@ -110,11 +107,7 @@ export async function POST(request: NextRequest) {
       .eq('id', userId);
 
     if (profileError) {
-      console.error('[Update Claims API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: profileError.message },
-        { status: 500 },
-      );
+      return internalError('Update Claims API', profileError, { userId });
     }
 
     return NextResponse.json({

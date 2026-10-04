@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
         if (vehiclesResult.error) {
           console.error('Error fetching vehicles:', vehiclesResult.error);
           return NextResponse.json(
-            { error: 'Failed to fetch vehicles', details: vehiclesResult.error.message },
+            { error: 'Failed to fetch vehicles' },
             { status: 500 },
           );
         }
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
         if (adminsResult.error) {
           console.error('Error fetching admin users:', adminsResult.error);
           return NextResponse.json(
-            { error: 'Failed to fetch admin users', details: adminsResult.error.message },
+            { error: 'Failed to fetch admin users' },
             { status: 500 },
           );
         }

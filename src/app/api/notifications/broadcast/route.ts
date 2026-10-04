@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { checkRateLimit, notificationLimiter } from '@/lib/rate-limit';
+import { idSchema, parseJsonBody, shortTextSchema } from '@/lib/security/validation';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -23,6 +25,15 @@ function chunkArray<T>(array: T[], size: number): T[][] {
   return chunks;
 }
 
+const broadcastSchema = z.object({
+  title: shortTextSchema.optional(),
+  message: z.string().trim().min(1, 'Mensaje requerido.').max(2000),
+  recipientType: z.enum(['all', 'admins', 'editors', 'partners', 'clients', 'specific']),
+  selectedUsers: z.array(idSchema).max(500).optional(),
+  sendPush: z.boolean().optional().default(false),
+  companyId: idSchema,
+});
+
 export async function POST(request: NextRequest) {
   const rateLimitResponse = await checkRateLimit(request, notificationLimiter);
   if (rateLimitResponse) return rateLimitResponse;
@@ -42,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('role, company_id')
       .eq('id', user.id)
       .single();
 
@@ -54,7 +65,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Permisos insuficientes - Solo administradores pueden enviar broadcasts' }, { status: 403 });
     }
 
-    const { title, message, recipientType, selectedUsers, sendPush, companyId } = await request.json();
+    const parsed = await parseJsonBody(request, broadcastSchema);
+    if (!parsed.ok) return parsed.response;
+    const { title, message, recipientType, selectedUsers, sendPush, companyId } = parsed.data;
+
+    // Non-super_admin may only broadcast to their own company.
+    if (userProfile.role !== 'super_admin' && companyId !== userProfile.company_id) {
+      return NextResponse.json({ error: 'No puedes enviar broadcasts a otra empresa.' }, { status: 403 });
+    }
 
     let recipientUserIds: string[] = [];
 

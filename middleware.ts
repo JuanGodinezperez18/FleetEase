@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { hardenAuthCookieOptions } from '@/lib/security/cookies';
 
 const SECURITY_HEADERS = [
   ['Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload'],
@@ -44,7 +45,7 @@ function buildCsp(request: NextRequest) {
     upgrade-insecure-requests;
   `;
 
-  const contentSecurityPolicy = cspHeader.replace(/\\s{2,}/g, ' ').trim();
+  const contentSecurityPolicy = cspHeader.replace(/\s{2,}/g, ' ').trim();
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
@@ -54,6 +55,12 @@ function buildCsp(request: NextRequest) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Ocultar APKs / instaladores: nunca servir binarios de app por la web.
+  if (/\.(apk|xapk|aab|ipa)$/i.test(pathname)) {
+    return new Response('Not found', { status: 404 });
+  }
+
   const { requestHeaders, contentSecurityPolicy } = buildCsp(req);
 
   const createResponse = () =>
@@ -100,7 +107,7 @@ export async function middleware(req: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = createResponse();
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            response.cookies.set(name, value, hardenAuthCookieOptions(options));
           });
         },
       },

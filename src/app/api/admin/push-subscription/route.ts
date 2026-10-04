@@ -1,24 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import type { Json } from '@/lib/supabase';
+import { idSchema, parseJsonBody } from '@/lib/security/validation';
 
-interface PushSubscriptionRequest {
-  userId: string;
-  subscription: PushSubscriptionJSON;
-  action: 'subscribe' | 'unsubscribe';
-}
+const pushSubscriptionSchema = z.object({
+  userId: idSchema,
+  action: z.enum(['subscribe', 'unsubscribe']),
+  subscription: z
+    .object({
+      endpoint: z.string().url().max(2048),
+      expirationTime: z.number().nullable().optional(),
+      keys: z
+        .object({
+          p256dh: z.string().max(512),
+          auth: z.string().max(512),
+        })
+        .optional(),
+    })
+    .passthrough()
+    .optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: PushSubscriptionRequest = await request.json();
-    const { userId, subscription, action } = body;
-
-    if (!userId || !action) {
-      return NextResponse.json(
-        { success: false, message: 'userId y action son obligatorios.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, pushSubscriptionSchema);
+    if (!parsed.ok) return parsed.response;
+    const { userId, subscription, action } = parsed.data;
 
     // Any authenticated user may manage only their own push subscription.
     const auth = await requireAdmin(request, {
@@ -34,6 +42,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'subscribe') {
+      if (!subscription?.endpoint) {
+        return NextResponse.json(
+          { success: false, message: 'subscription es obligatoria para suscribirse.' },
+          { status: 400 },
+        );
+      }
       const { error } = await supabaseAdmin
         .from('users')
         .update({ push_subscriptions: [subscription as unknown as Json] })
@@ -52,10 +66,11 @@ export async function POST(request: NextRequest) {
     if (fetchError) throw fetchError;
 
     const currentSubs = Array.isArray(user?.push_subscriptions) ? user.push_subscriptions : [];
+    const endpoint = subscription?.endpoint;
     const updatedSubs = currentSubs.filter((s): boolean => {
       if (!s || typeof s !== 'object' || Array.isArray(s)) return true;
-      const endpoint = s.endpoint;
-      return typeof endpoint !== 'string' || endpoint !== subscription.endpoint;
+      const ep = s.endpoint;
+      return typeof ep !== 'string' || !endpoint || ep !== endpoint;
     });
 
     const { error } = await supabaseAdmin

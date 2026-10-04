@@ -78,9 +78,10 @@ function renderEmail(companyName: string, plan: string, periodEnd: Date, daysRem
     timeZone: 'America/Monterrey',
   }).format(periodEnd);
 
-  const title = daysRemaining === 0
-    ? 'Tu suscripción vence hoy'
-    : `Tu suscripción vence en ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}`;
+  const title =
+    daysRemaining === 0
+      ? 'Tu suscripción vence hoy'
+      : `Tu suscripción vence en ${daysRemaining} ${daysRemaining === 1 ? 'día' : 'días'}`;
 
   const billingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings/billing`;
 
@@ -93,13 +94,15 @@ function renderEmail(companyName: string, plan: string, periodEnd: Date, daysRem
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!process.env.RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY is not configured' }, { status: 500 });
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
 
   const now = new Date();
   let companiesChecked = 0;
   let remindersSent = 0;
   let remindersSkipped = 0;
-  const errors: string[] = [];
+  let failureCount = 0;
 
   try {
     const supabase = getSupabase();
@@ -117,7 +120,9 @@ export async function GET(request: NextRequest) {
 
     for (const subscription of subscriptions ?? []) {
       try {
-        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id!);
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          subscription.stripe_subscription_id!,
+        );
         const currentPeriodEnd = stripeSubscription.items.data[0]?.current_period_end;
         if (!currentPeriodEnd) throw new Error('Stripe subscription has no current period end');
 
@@ -148,11 +153,13 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Claim this reminder only after all data needed to send it has been validated.
-        // The unique constraint on (company_id, reminder_key, period_end) prevents duplicates.
         const { data: reservation, error: reservationError } = await reminderSupabase
           .from('subscription_email_reminders')
-          .insert({ company_id: subscription.id, reminder_key: key, period_end: periodEnd.toISOString() })
+          .insert({
+            company_id: subscription.id,
+            reminder_key: key,
+            period_end: periodEnd.toISOString(),
+          })
           .select('id')
           .maybeSingle();
 
@@ -181,7 +188,6 @@ export async function GET(request: NextRequest) {
           });
           remindersSent++;
         } catch (sendError) {
-          // Release the claim when delivery fails so the next cron execution can retry.
           await reminderSupabase
             .from('subscription_email_reminders')
             .delete()
@@ -189,21 +195,31 @@ export async function GET(request: NextRequest) {
           throw sendError;
         }
       } catch (companyError) {
-        const message = companyError instanceof Error ? companyError.message : String(companyError);
-        errors.push(`${subscription.id}: ${message}`);
+        failureCount++;
+        // Log interno only — never surface raw messages to the HTTP response.
         console.error('[Subscription expiry cron]', subscription.id, companyError);
       }
     }
 
-    return NextResponse.json({ success: true, companiesChecked, remindersSent, remindersSkipped, errors });
-  } catch (error) {
-    console.error('[Subscription expiry cron] failed:', error);
     return NextResponse.json({
-      success: false,
+      success: true,
       companiesChecked,
       remindersSent,
       remindersSkipped,
-      errors: [...errors, error instanceof Error ? error.message : String(error)],
-    }, { status: 500 });
+      failureCount,
+    });
+  } catch (error) {
+    console.error('[Subscription expiry cron] failed:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+        companiesChecked,
+        remindersSent,
+        remindersSkipped,
+        failureCount,
+      },
+      { status: 500 },
+    );
   }
 }

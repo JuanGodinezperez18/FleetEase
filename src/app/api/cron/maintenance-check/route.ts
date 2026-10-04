@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase';
+import { internalError } from '@/lib/security/api-error';
 
 type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 
@@ -51,7 +52,6 @@ async function verifyAuth(request: NextRequest): Promise<boolean> {
   return authHeader === expected;
 }
 
-
 async function insertNotificationsBatched(
   supabase: SupabaseAdminClient,
   notifications: NotificationRecord[],
@@ -83,43 +83,42 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase();
     const [vehiclesResult, companiesResult, adminsResult] = await Promise.all([
-          supabase
-            .from('vehicles')
-            .select('id, plate, company_id, client_id, partner_id, current_mileage, last_maintenance_mileage')
-            .eq('is_deleted', false)
-             .neq('status', 'sold'),
-          supabase
-            .from('companies')
-            .select('id, maintenance_interval')
-            .eq('is_deleted', false),
-          supabase
-            .from('users')
-            .select('id, company_id')
-            .in('role', ['admin', 'editor']),
-        ]);
-    
-        if (vehiclesResult.error) {
-          console.error('Error fetching vehicles:', vehiclesResult.error);
-          return NextResponse.json({ error: 'Failed to fetch vehicles', details: vehiclesResult.error.message }, { status: 500 });
-        }
-        if (companiesResult.error) {
-          console.error('Error fetching company maintenance intervals:', companiesResult.error);
-          return NextResponse.json({ error: 'Failed to fetch company maintenance settings', details: companiesResult.error.message }, { status: 500 });
-        }
-        if (adminsResult.error) {
-          console.error('Error fetching admin users:', adminsResult.error);
-          return NextResponse.json({ error: 'Failed to fetch admin users', details: adminsResult.error.message }, { status: 500 });
-        }
-    
-        const vehicles = vehiclesResult.data;
-        const companies = companiesResult.data;
-        const adminIdsByCompany = new Map<string, string[]>();
-        for (const admin of adminsResult.data ?? []) {
-          if (!admin.company_id) continue;
-          const ids = adminIdsByCompany.get(admin.company_id) ?? [];
-          ids.push(admin.id);
-          adminIdsByCompany.set(admin.company_id, ids);
-        }
+      supabase
+        .from('vehicles')
+        .select(
+          'id, plate, company_id, client_id, partner_id, current_mileage, last_maintenance_mileage',
+        )
+        .eq('is_deleted', false)
+        .neq('status', 'sold'),
+      supabase.from('companies').select('id, maintenance_interval').eq('is_deleted', false),
+      supabase.from('users').select('id, company_id').in('role', ['admin', 'editor']),
+    ]);
+
+    if (vehiclesResult.error) {
+      console.error('Error fetching vehicles:', vehiclesResult.error);
+      return NextResponse.json({ error: 'Failed to fetch vehicles' }, { status: 500 });
+    }
+    if (companiesResult.error) {
+      console.error('Error fetching company maintenance intervals:', companiesResult.error);
+      return NextResponse.json(
+        { error: 'Failed to fetch company maintenance settings' },
+        { status: 500 },
+      );
+    }
+    if (adminsResult.error) {
+      console.error('Error fetching admin users:', adminsResult.error);
+      return NextResponse.json({ error: 'Failed to fetch admin users' }, { status: 500 });
+    }
+
+    const vehicles = vehiclesResult.data;
+    const companies = companiesResult.data;
+    const adminIdsByCompany = new Map<string, string[]>();
+    for (const admin of adminsResult.data ?? []) {
+      if (!admin.company_id) continue;
+      const ids = adminIdsByCompany.get(admin.company_id) ?? [];
+      ids.push(admin.id);
+      adminIdsByCompany.set(admin.company_id, ids);
+    }
 
     vehiclesChecked = vehicles?.length ?? 0;
 
@@ -136,7 +135,9 @@ export async function GET(request: NextRequest) {
       try {
         const interval = companyIntervals.get(vehicle.company_id);
         if (!interval) {
-          console.warn(`Skipping maintenance check for vehicle ${vehicle.id}: company ${vehicle.company_id} has no valid maintenance interval configured.`);
+          console.warn(
+            `Skipping maintenance check for vehicle ${vehicle.id}: company ${vehicle.company_id} has no valid maintenance interval configured.`,
+          );
           continue;
         }
 
@@ -214,9 +215,23 @@ export async function GET(request: NextRequest) {
       notificationsSent = await insertNotificationsBatched(supabase, allNotifications);
     }
 
-    return NextResponse.json({ success: true, vehiclesChecked, vehiclesNeedingAttention, notificationsSent });
+    return NextResponse.json({
+      success: true,
+      vehiclesChecked,
+      vehiclesNeedingAttention,
+      notificationsSent,
+    });
   } catch (error) {
     console.error('Maintenance check cron job failed:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error', vehiclesChecked, vehiclesNeedingAttention, notificationsSent }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+        vehiclesChecked,
+        vehiclesNeedingAttention,
+        notificationsSent,
+      },
+      { status: 500 },
+    );
   }
 }

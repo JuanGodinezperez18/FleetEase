@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { internalError } from '@/lib/security/api-error';
+import { idSchema, parseJsonBody } from '@/lib/security/validation';
 
-interface DeleteUserRequest {
-  uid: string;
-}
+const deleteUserSchema = z.object({
+  uid: idSchema,
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: DeleteUserRequest = await request.json();
-    const { uid } = body;
-
-    if (!uid) {
-      return NextResponse.json(
-        { success: false, message: 'uid es obligatorio.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(request, deleteUserSchema);
+    if (!parsed.ok) return parsed.response;
+    const { uid } = parsed.data;
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
@@ -56,11 +53,8 @@ export async function POST(request: NextRequest) {
       .eq('id', uid);
 
     if (profileError) {
-      console.error('[Delete User API] Profile error:', profileError);
-      return NextResponse.json(
-        { success: false, message: profileError.message },
-        { status: 500 },
-      );
+      // No exponer el mensaje interno de Postgres/Supabase al cliente.
+      return internalError('Delete User API', profileError, { uid });
     }
 
     await supabaseAdmin.auth.admin.updateUserById(uid, {

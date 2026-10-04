@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { hardenAuthCookieOptions } from '@/lib/security/cookies';
 import { NextResponse } from 'next/server';
 
 /**
@@ -22,10 +23,10 @@ export async function POST() {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({ name, value, ...hardenAuthCookieOptions(options) });
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options });
+            cookieStore.set({ name, value: '', ...hardenAuthCookieOptions(options) });
           },
         },
       }

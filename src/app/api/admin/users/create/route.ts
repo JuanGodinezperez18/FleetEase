@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { authErrorMessage } from '@/lib/security/api-error';
+import {
+  emailSchema,
+  idSchema,
+  nameSchema,
+  parseJsonBody,
+  passwordSchema,
+  phoneSchema,
+} from '@/lib/security/validation';
 import type { Database } from '@/lib/supabase';
 
-interface CreateUserRequest {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-  role: string;
-  companyId?: string;
-  partnerAccess?: string[];
-}
+const createUserSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+  name: nameSchema,
+  phone: phoneSchema,
+  role: z.string().trim().min(1).max(32),
+  companyId: idSchema.optional(),
+  partnerAccess: z.array(z.string().max(120)).max(100).optional(),
+});
 
 const PLAN_DEFAULTS: Record<string, { maxUsers: number }> = {
   starter: { maxUsers: 1 },
@@ -20,12 +30,9 @@ const PLAN_DEFAULTS: Record<string, { maxUsers: number }> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateUserRequest = await request.json();
-    const { email, password, name, phone, role, companyId, partnerAccess } = body;
-
-    if (!email || !password || !name || !role) {
-      return NextResponse.json({ success: false, message: 'Faltan campos obligatorios.' }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(request, createUserSchema);
+    if (!parsed.ok) return parsed.response;
+    const { email, password, name, phone, role, companyId, partnerAccess } = parsed.data;
 
     const auth = await requireAdmin(request, { targetCompanyId: companyId ?? null });
     if ('error' in auth) return auth.error;
@@ -104,7 +111,13 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('[Create User API] Auth error:', authError);
-      return NextResponse.json({ success: false, message: authError.message }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: authErrorMessage(authError, 'No se pudo crear el usuario.'),
+        },
+        { status: 400 },
+      );
     }
 
     if (!authData.user) {
