@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MultipleFileInput } from "@/components/common/multiple-file-input";
 import { infallibleNormalizeDate } from "@/lib/date-utils";
+import { isClientCreatedOnOrBefore } from "@/lib/filter-clients-by-date";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-provider";
 import { Loader2, Plus, PlusCircle, Trash2 } from "lucide-react";
@@ -192,6 +193,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const selectedVehicleId = useWatch({ control, name: "vehicleId" });
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
   const watchedItems = useWatch({ control, name: "items", defaultValue: defaultValues.items });
+  const selectedDate = useWatch({ control, name: "date" });
 
   const handleInvalidSubmit = () => {
     toast.error("No se puede guardar el gasto", { description: "Revisa que cada línea tenga concepto e importe mayor que cero, además de vehículo y categoría." });
@@ -233,9 +235,24 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   }, [formCompanyId]);
 
   const activeClients = useMemo(() => {
-    if (currentUser?.role === "superAdmin") return formCompanyId ? clients.filter(c => c.companyId === formCompanyId && c.status === "active" && !c.isDeleted) : clients.filter(c => c.status === "active" && !c.isDeleted);
-    return clients.filter(c => c.companyId === currentUser?.companyId && c.status === "active" && !c.isDeleted);
-  }, [clients, currentUser, formCompanyId]);
+    const base = currentUser?.role === "superAdmin"
+      ? (formCompanyId ? clients.filter(c => c.companyId === formCompanyId && c.status === "active" && !c.isDeleted) : clients.filter(c => c.status === "active" && !c.isDeleted))
+      : clients.filter(c => c.companyId === currentUser?.companyId && c.status === "active" && !c.isDeleted);
+    return base.filter(c => {
+      if (!isClientCreatedOnOrBefore(c.createdAt, selectedDate)) return false;
+      return true;
+    });
+  }, [clients, currentUser, formCompanyId, selectedDate]);
+
+  useEffect(() => {
+    if (
+      selectedClientId &&
+      selectedClientId !== NONE_SELECT_VALUE &&
+      !activeClients.some(c => c.id === selectedClientId)
+    ) {
+      setValue("clientId", NONE_SELECT_VALUE, { shouldDirty: true });
+    }
+  }, [activeClients, selectedClientId, setValue]);
 
   const selectableVehicles = useMemo(() => {
     const companyId = formCompanyId || currentUser?.companyId;
@@ -338,43 +355,62 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
             <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-            <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.plate})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-            <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje (opcional)</FormLabel><FormControl><Input type="number" placeholder={selectedVehicle ? "Ej: 120500" : "No aplica a gasto general"} {...field} value={field.value ?? ""} disabled={isSubmitting || isEditing || !selectedVehicle} /></FormControl>{selectedVehicle && <p className="text-xs text-white/40">Último kilometraje registrado: {selectedVehicle.currentMileage.toLocaleString()} km</p>}<FormMessage /></FormItem>} />
-            <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => v === newCategoryValue ? setIsNewCategoryModalOpen(true) : field.onChange(v)} value={field.value ?? ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una categoría" /></SelectTrigger></FormControl><SelectContent>{selectableCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}{(currentUser?.role === "superAdmin" || currentUser?.role === "admin") && <SelectItem value={newCategoryValue}><span className="flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Crear nueva categoría...</span></SelectItem>}</SelectContent></Select><FormMessage /></FormItem>} />
-            <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Pagado por</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa (afecta a socio)</SelectItem><SelectItem value="partner_pays">Socio (no afecta balance)</SelectItem><SelectItem value="company_absorbs">Empresa (absorbe el gasto)</SelectItem></SelectContent></Select></FormItem>} />
           </div>
 
-          <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción general (opcional)</FormLabel><FormControl><Input placeholder="Ej: Servicio de suspensión delantera" {...field} disabled={isSubmitting} /></FormControl></FormItem>} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField control={control} name="vehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo (opcional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar vehículo..." /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{availableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.make} {v.model}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+            <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => { if (v === newCategoryValue) { setIsNewCategoryModalOpen(true); return; } field.onChange(v); }} value={field.value || ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar categoría..." /></SelectTrigger></FormControl><SelectContent><SelectItem value={newCategoryValue} className="text-primary"><div className="flex items-center gap-2"><PlusCircle className="h-4 w-4" /> Crear nueva categoría</div></SelectItem>{selectableCategories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+          </div>
 
-          <div className="space-y-4 rounded-[14px] border border-white/[0.07] bg-white/[0.02] p-4">\n            {isCompanyExpense && <div className="rounded-xl border border-[#d7ff3f]/10 bg-[#d7ff3f]/[0.04] px-3 py-2 text-xs text-white/55">Gasto general de empresa: no se asociará a vehículo, cliente, socio ni kilometraje.</div>}
-            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-white">Conceptos del gasto</h3><p className="text-xs text-white/40">Puedes registrar refacciones, mano de obra y otros conceptos dentro del mismo gasto.</p></div><Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting || isEditing}><Plus className="mr-1 h-4 w-4" />Agregar línea</Button></div>
-            <div className="space-y-3">
-              {fields.map((field, index) => {
-                const typed = watchedItems[index]?.concept || "";
-                const suggestions = typed.trim().length >= 2 ? catalogItems.filter(item => `${item.name} ${item.part_number || ""} ${item.brand || ""}`.toLowerCase().includes(typed.toLowerCase())).slice(0, 6) : [];
-                return <div key={field.id} className="rounded-[12px] border border-white/[0.07] bg-white/[0.025] p-3.5">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_100px_140px_40px] md:items-end">
-                    <Controller control={control} name={`items.${index}.concept`} render={({ field: conceptField }) => <div className="space-y-2"><FormLabel>Concepto / refacción</FormLabel><div className="relative"><Input {...conceptField} placeholder="Escribe: horquilla, balatas, aceite..." disabled={isSubmitting || isEditing || catalogLoading} autoComplete="off" />{suggestions.length > 0 && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-[#11151b] shadow-[0_18px_50px_rgba(0,0,0,.38)]">{suggestions.map(item => <button key={item.id} type="button" className="block w-full px-3 py-2 text-left text-white/80 hover:bg-[#d7ff3f]/10 hover:text-white" onMouseDown={e => e.preventDefault()} onClick={() => applyCatalogItem(index, item)}><div className="font-medium text-white/90">{item.name}</div><div className="text-xs text-white/40">{[item.brand, item.part_number, item.default_cost != null ? `$${Number(item.default_cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</div></button>)}</div>}</div></div>} />
-                    <Controller control={control} name={`items.${index}.quantity`} render={({ field: quantityField }) => <div className="space-y-2"><FormLabel>Cantidad</FormLabel><Input type="number" min="1" step="1" {...quantityField} value={quantityField.value ?? 1} disabled={isSubmitting || isEditing} onChange={e => { const nextQuantity = Number(e.target.value) || 1; quantityField.onChange(e); const unit = Number(form.getValues(`items.${index}.unitAmount`)) || 0; setValue(`items.${index}.amount`, nextQuantity * unit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
-                    <Controller control={control} name={`items.${index}.unitAmount`} render={({ field: unitField }) => <div className="space-y-2"><FormLabel>Importe unitario</FormLabel><Input type="number" min="0" step="0.01" placeholder="0.00" {...unitField} value={unitField.value ?? ""} disabled={isSubmitting || isEditing} onChange={e => { const nextUnit = Number(e.target.value) || 0; unitField.onChange(e); const currentQuantity = Number(form.getValues(`items.${index}.quantity`)) || 1; setValue(`items.${index}.amount`, currentQuantity * nextUnit, { shouldDirty: true, shouldValidate: true }); }} /></div>} />
-                    <Button type="button" variant="ghost" size="icon" className="h-11 w-11 text-rose-400 hover:bg-rose-500/15 hover:text-rose-300" onClick={() => fields.length > 1 ? remove(index) : form.setValue(`items.${index}`, emptyLine(), { shouldDirty: true })} disabled={isSubmitting || isEditing}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between"><span className="text-xs text-white/40">Total de línea: <strong className="text-white/85">${Number(normalizedItems[index]?.amount || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></span>{watchedItems[index]?.partNumber && <span className="text-xs text-white/40">Parte: {watchedItems[index].partNumber}</span>}</div>
-                  <input type="hidden" {...form.register(`items.${index}.catalogItemId`)} />
-                  <input type="hidden" {...form.register(`items.${index}.partNumber`)} />
-                  <input type="hidden" {...form.register(`items.${index}.warrantyDays`)} />
-                  <input type="hidden" {...form.register(`items.${index}.warrantyExpiresAt`)} />
-                </div>;
-              })}
+          <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <FormLabel>Conceptos de gasto</FormLabel>
+              {!isEditing && <Button type="button" variant="outline" size="sm" onClick={() => append(emptyLine())} disabled={isSubmitting}><Plus className="h-4 w-4 mr-1" /> Agregar línea</Button>}
             </div>
-            <div className="flex justify-end border-t border-white/[0.06] pt-3"><div className="text-right"><div className="text-sm text-white/40">Total del gasto</div><div className="font-heading text-2xl font-semibold tabular-nums text-white">${total.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</div></div></div>
+            {fields.map((field, index) => (
+              <div key={field.id} className="rounded-lg border border-white/10 p-3 space-y-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+                  <div className="md:col-span-5">
+                    <FormField control={control} name={`items.${index}.concept`} render={({ field }) => <FormItem><FormLabel className="text-xs">Concepto</FormLabel><FormControl><Input {...field} disabled={isSubmitting || isEditing} placeholder="Ej: Cambio de aceite" /></FormControl><FormMessage /></FormItem>} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FormField control={control} name={`items.${index}.quantity`} render={({ field }) => <FormItem><FormLabel className="text-xs">Cant.</FormLabel><FormControl><Input type="number" step="1" min="1" {...field} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FormField control={control} name={`items.${index}.unitAmount`} render={({ field }) => <FormItem><FormLabel className="text-xs">P. unitario</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FormField control={control} name={`items.${index}.amount`} render={({ field }) => <FormItem><FormLabel className="text-xs">Importe</FormLabel><FormControl><Input type="number" step="0.01" {...field} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
+                  </div>
+                  <div className="md:col-span-1 flex items-end">
+                    {!isEditing && fields.length > 1 && <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={isSubmitting}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <FormField control={control} name={`items.${index}.catalogItemId`} render={({ field }) => <FormItem><FormLabel className="text-xs">Catálogo (opcional)</FormLabel><Select onValueChange={v => { field.onChange(v === NONE_SELECT_VALUE ? null : v); const item = catalogItems.find(i => i.id === v); if (item) applyCatalogItem(index, item); }} value={field.value || NONE_SELECT_VALUE} disabled={isSubmitting || isEditing || catalogLoading}><FormControl><SelectTrigger><SelectValue placeholder={catalogLoading ? "Cargando..." : "Seleccionar..."} /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{catalogItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name}{item.part_number ? ` (${item.part_number})` : ""}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+                  <FormField control={control} name={`items.${index}.partNumber`} render={({ field }) => <FormItem><FormLabel className="text-xs">Nº parte</FormLabel><FormControl><Input {...field} value={field.value ?? ""} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField control={control} name={`items.${index}.warrantyDays`} render={({ field }) => <FormItem><FormLabel className="text-xs">Garantía (días)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end text-sm font-medium">Total: ${total.toFixed(2)}</div>
           </div>
 
-          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Adjuntar archivos (facturas, tickets, etc.)</FormLabel><FormControl><MultipleFileInput initialValue={field.value as (string | File)[]} onFilesSelected={files => field.onChange(files)} disabled={isSubmitting} folder="financial_receipts" entityId={initialData?.id || form.getValues("vehicleId") || undefined} /></FormControl></FormItem>} />
+          <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción / Notas</FormLabel><FormControl><Textarea {...field} disabled={isSubmitting} rows={2} /></FormControl><FormMessage /></FormItem>} />
 
-          <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || !isDirty || total <= 0}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isSubmitting ? "Guardando..." : "Guardar gasto"}</Button></div>
+          <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Método de pago / Quién asume</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa paga por socio</SelectItem><SelectItem value="partner_pays">Socio paga</SelectItem><SelectItem value="company_absorbs">Empresa absorbe</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
+
+          <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (fotos / PDFs)</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value || []} disabled={isSubmitting} accept="image/*,application/pdf" folder="financial_receipts" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isEditing ? "Actualizar gasto" : "Registrar gasto"}</Button>
+          </div>
         </form>
       </Form>
+
       <NewCategoryModal open={isNewCategoryModalOpen} onOpenChange={setIsNewCategoryModalOpen} onCategoryCreated={category => form.setValue("categoryId", category.id, { shouldValidate: true, shouldDirty: true })} type="expense" companies={companies} />
     </>
   );
