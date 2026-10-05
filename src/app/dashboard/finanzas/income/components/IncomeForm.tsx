@@ -102,6 +102,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const selectedCompanyId = form.watch("companyId");
   const amount = form.watch("amount");
   const selectedCategoryId = form.watch("categoryId");
+  const selectedVehicleId = form.watch("vehicleId");
   const paymentMethod = form.watch("paymentMethod");
   const recordType = form.watch("type");
   const isPartnerPayment = selectedCategoryId === PARTNER_PAYMENT_CATEGORY_ID;
@@ -265,7 +266,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   // se deja el campo disponible para captura manual.
   useEffect(() => {
     if (!isWeeklyRent) return;
-    const vehicle = vehicles.find(v => v.id === form.getValues('vehicleId'));
+    const vehicle = vehicles.find(v => v.id === selectedVehicleId);
     if (vehicle) {
       const weeklyRentalValue = Number(vehicle.weeklyRentalValue);
       form.setValue('amount', weeklyRentalValue > 0 ? weeklyRentalValue : 0, {
@@ -275,7 +276,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     } else if (!initialData) {
       form.setValue('amount', 0, { shouldValidate: true });
     }
-  }, [isWeeklyRent, selectedCategoryId, vehicles, form, initialData]);
+  }, [isWeeklyRent, selectedCategoryId, selectedVehicleId, vehicles, form, initialData]);
 
   useEffect(() => {
     if (paymentMethod !== 'Uso de Depósito en Garantía') return;
