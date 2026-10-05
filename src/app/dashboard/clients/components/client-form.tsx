@@ -1,1 +1,1 @@
-@/home/workdir/artifacts/client-form-final.tsx
+SEE_ATTACHMENT:/home/workdir/artifacts/client-form-final.tsx
