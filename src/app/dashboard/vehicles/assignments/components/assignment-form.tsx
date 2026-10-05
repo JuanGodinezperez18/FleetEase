@@ -8,6 +8,7 @@ import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { compressImageIfNeeded } from '@/lib/image-compression';
+import { checkAssignmentDateAgainstEntityCreation, isDateOnOrAfter } from '@/lib/vehicle-assignment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +68,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
 
   const selectedClientId = form.watch('clientId');
   const selectedVehicleId = form.watch('vehicleId');
+  const assignedAt = form.watch('assignedAt');
 
   const activeAssignmentClientIds = useMemo(() => new Set(
     vehicleAssignmentLogs
@@ -80,19 +82,23 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       .map((log) => log.vehicleId)
   ), [vehicleAssignmentLogs]);
 
+  /** Vehículos disponibles en la fecha de asignación (registro <= fecha). */
   const availableVehicles = useMemo(() => rawVehicles.filter((v: Vehicle) =>
     !v.isDeleted &&
     v.status === 'active' &&
     !v.clientId &&
     !v.lockedByCredit &&
-    !activeAssignmentVehicleIds.has(v.id)
-  ), [rawVehicles, activeAssignmentVehicleIds]);
+    !activeAssignmentVehicleIds.has(v.id) &&
+    (!assignedAt || !v.createdAt || isDateOnOrAfter(assignedAt, v.createdAt))
+  ), [rawVehicles, activeAssignmentVehicleIds, assignedAt]);
 
+  /** Clientes disponibles en la fecha de asignación (registro <= fecha). */
   const activeClients = useMemo(() => clients.filter((c: Client) =>
-    !c.isDeleted && !activeAssignmentClientIds.has(c.id) && !rawVehicles.some((v: Vehicle) =>
-      !v.isDeleted && v.clientId === c.id
-    )
-  ), [clients, activeAssignmentClientIds, rawVehicles]);
+    !c.isDeleted &&
+    !activeAssignmentClientIds.has(c.id) &&
+    !rawVehicles.some((v: Vehicle) => !v.isDeleted && v.clientId === c.id) &&
+    (!assignedAt || !c.createdAt || isDateOnOrAfter(assignedAt, c.createdAt))
+  ), [clients, activeAssignmentClientIds, rawVehicles, assignedAt]);
 
   const selectedClientVehicle = useMemo(() => {
     if (!selectedClientId) return null;
@@ -110,6 +116,36 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     if (!selectedVehicleId) return null;
     return rawVehicles.find((vehicle: Vehicle) => vehicle.id === selectedVehicleId) || null;
   }, [rawVehicles, selectedVehicleId]);
+
+  const selectedClient = useMemo(() => {
+    if (!selectedClientId) return null;
+    return clients.find((c: Client) => c.id === selectedClientId) || null;
+  }, [clients, selectedClientId]);
+
+  // Si cambia la fecha y el vehículo/cliente elegido queda fuera del rango, se limpia la selección.
+  useEffect(() => {
+    if (!assignedAt) return;
+
+    if (selectedVehicleId) {
+      const stillValid = availableVehicles.some((v) => v.id === selectedVehicleId);
+      if (!stillValid) {
+        form.setValue('vehicleId', '', { shouldValidate: true });
+        toast.message('Vehículo no disponible en esa fecha', {
+          description: 'La fecha de asignación es anterior al registro del vehículo seleccionado. Elige otra unidad o una fecha posterior.',
+        });
+      }
+    }
+
+    if (selectedClientId) {
+      const stillValid = activeClients.some((c) => c.id === selectedClientId);
+      if (!stillValid) {
+        form.setValue('clientId', '', { shouldValidate: true });
+        toast.message('Cliente no disponible en esa fecha', {
+          description: 'La fecha de asignación es anterior al registro del cliente seleccionado. Elige otro cliente o una fecha posterior.',
+        });
+      }
+    }
+  }, [assignedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Precarga el último kilometraje conocido del vehículo. La BD también lo valida
   // al guardar, pero el usuario debe verlo y poder corregirlo hacia arriba.
@@ -192,6 +228,17 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       return;
     }
 
+    const client = clients.find((c) => c.id === data.clientId);
+    const dateCheck = checkAssignmentDateAgainstEntityCreation(data.assignedAt, {
+      vehicleCreatedAt: selected.createdAt,
+      clientCreatedAt: client?.createdAt,
+    });
+    if (!dateCheck.available) {
+      form.setError('assignedAt', { type: 'validate', message: dateCheck.error });
+      toast.error('Fecha de asignación inválida', { description: dateCheck.error });
+      return;
+    }
+
     const enteredMileage = data.odometerReading ? Number(data.odometerReading) : null;
     if (latestMileage != null && enteredMileage != null && enteredMileage < latestMileage) {
       form.setError('odometerReading', { type: 'validate', message: `El kilometraje no puede ser menor a ${latestMileage.toLocaleString()} km.` });
@@ -223,9 +270,36 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     }
   };
 
+  const minAssignableDateHint = useMemo(() => {
+    const dates: string[] = [];
+    if (selectedVehicle?.createdAt) dates.push(selectedVehicle.createdAt.slice(0, 10));
+    if (selectedClient?.createdAt) dates.push(selectedClient.createdAt.slice(0, 10));
+    if (dates.length === 0) return null;
+    return dates.sort().pop() ?? null;
+  }, [selectedVehicle, selectedClient]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <FormField control={form.control} name="assignedAt" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Fecha de asignación</FormLabel>
+            <FormControl>
+              <Input
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                min={minAssignableDateHint ?? undefined}
+                {...field}
+              />
+            </FormControl>
+            <p className="text-xs text-muted-foreground">
+              Debe ser igual o posterior a la fecha de registro del vehículo y del cliente.
+              {minAssignableDateHint ? ` Mínimo sugerido según la selección actual: ${minAssignableDateHint}.` : ' Los listados de vehículo y cliente se filtran según esta fecha.'}
+            </p>
+            <FormMessage />
+          </FormItem>
+        )} />
+
         <FormField control={form.control} name="clientId" render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-2"><User className="h-4 w-4" /> Cliente</FormLabel>
@@ -234,6 +308,9 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
               <SelectContent>{activeClients.map((c: Client) => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent>
             </Select>
             <FormMessage />
+            {assignedAt && activeClients.length === 0 && !selectedClientVehicle && (
+              <p className="text-xs text-muted-foreground">No hay clientes registrados en o antes de la fecha de asignación seleccionada.</p>
+            )}
             {selectedClientVehicle && <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><div><p className="font-medium text-foreground">Este cliente ya tiene vehículo</p><p className="text-muted-foreground">{selectedClientVehicle.plate} · {selectedClientVehicle.make} {selectedClientVehicle.model}</p><p className="mt-1 text-xs text-muted-foreground">{selectedClientActiveCredit ? 'Está protegido por un crédito activo. Debe liquidarse o cancelarse antes de liberar la unidad.' : 'Primero debes desasignar esta unidad para poder asignarle otra.'}</p></div></div></div>}
           </FormItem>
         )} />
@@ -246,16 +323,13 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
               <SelectContent>{availableVehicles.map((v: Vehicle) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.make} {v.model}</SelectItem>)}</SelectContent>
             </Select>
             <FormMessage />
-            {availableVehicles.length === 0 && !selectedClientVehicle && <p className="text-xs text-muted-foreground">No hay vehículos disponibles para asignar.</p>}
-          </FormItem>
-        )} />
-
-        <FormField control={form.control} name="assignedAt" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Fecha de asignación</FormLabel>
-            <FormControl><Input type="date" max={new Date().toISOString().slice(0, 10)} {...field} /></FormControl>
-            <p className="text-xs text-muted-foreground">Permite registrar asignaciones históricas con la fecha real de entrega.</p>
-            <FormMessage />
+            {availableVehicles.length === 0 && !selectedClientVehicle && (
+              <p className="text-xs text-muted-foreground">
+                {assignedAt
+                  ? 'No hay vehículos disponibles registrados en o antes de la fecha de asignación seleccionada.'
+                  : 'No hay vehículos disponibles para asignar.'}
+              </p>
+            )}
           </FormItem>
         )} />
 
