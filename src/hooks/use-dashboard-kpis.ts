@@ -100,9 +100,58 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const licensesExpiringSoon = licensesExpiringClients.length;
 
     const operationalVehicles = vehicles.filter(v => v.status !== 'sold' && !v.isDeleted);
-    const totalRented = operationalVehicles.filter(v => v.status === 'rented' || v.clientId !== null).length;
-    const availableVehiclesData = operationalVehicles.filter(v => v.status === 'active' && v.clientId === null);
+    // Rentado = tiene cliente asignado (clientId). No usar solo status==='rented'
+    // porque en datos legacy muchos vehículos quedan en 'rented' sin cliente.
+    const rentedVehiclesData = operationalVehicles.filter(v => v.clientId != null);
+    const totalRented = rentedVehiclesData.length;
+    const availableVehiclesData = operationalVehicles.filter(
+      v => v.clientId == null && v.status !== 'maintenance' && v.status !== 'inactive'
+    );
     const availableVehicles = availableVehiclesData.length;
+    const maintenanceVehiclesCount = operationalVehicles.filter(
+      v => v.clientId == null && v.status === 'maintenance'
+    ).length;
+    const inactiveVehiclesCount = operationalVehicles.filter(
+      v => v.clientId == null && v.status === 'inactive'
+    ).length;
+
+    // Último ingreso por vehículo (histórico completo, no solo el período filtrado)
+    const lastIncomeByVehicleId = new Map<string, string>();
+    for (const record of financialRecords) {
+      if (record.isDeleted || record.type !== 'income' || !record.vehicleId) continue;
+      const prev = lastIncomeByVehicleId.get(record.vehicleId);
+      if (!prev || record.date > prev) lastIncomeByVehicleId.set(record.vehicleId, record.date);
+    }
+    // Ingresos del período por vehículo
+    const incomeInPeriodByVehicle = new Set<string>();
+    for (const record of incomeRecords) {
+      if (record.vehicleId) incomeInPeriodByVehicle.add(record.vehicleId);
+    }
+    const nowMs = Date.now();
+    const vehiclesWithoutIncomeData = operationalVehicles
+      .filter(v => !incomeInPeriodByVehicle.has(v.id))
+      .map(v => {
+        const last = lastIncomeByVehicleId.get(v.id) ?? null;
+        const daysWithoutIncome = last
+          ? Math.max(0, Math.floor((nowMs - new Date(last).getTime()) / 86_400_000))
+          : null;
+        return {
+          ...v,
+          lastIncomeDate: last,
+          daysWithoutIncome,
+          neverHadIncome: !last,
+        };
+      })
+      .sort((a, b) => {
+        // Sin historial primero, luego más días sin ingreso
+        if (a.neverHadIncome !== b.neverHadIncome) return a.neverHadIncome ? -1 : 1;
+        return (b.daysWithoutIncome ?? 0) - (a.daysWithoutIncome ?? 0);
+      });
+    const avgDaysWithoutIncome = (() => {
+      const withDays = vehiclesWithoutIncomeData.filter(v => v.daysWithoutIncome != null);
+      if (withDays.length === 0) return null;
+      return Math.round(withDays.reduce((s, v) => s + (v.daysWithoutIncome || 0), 0) / withDays.length);
+    })();
     const maintenanceDue = mileageMetrics.filter(vm => (vm.kmToNextMaintenance || 0) <= 0).length;
     const now = new Date();
     const thirtyDaysFromNow = new Date();
@@ -202,6 +251,19 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         }),
         loading: false
       },
+      'vehicles-without-income': {
+        value: vehiclesWithoutIncomeData.length,
+        subtitle: vehiclesWithoutIncomeData.length === 0
+          ? 'Todos generaron ingreso en el período'
+          : avgDaysWithoutIncome != null
+            ? `Promedio ${avgDaysWithoutIncome} días sin ingreso`
+            : `${vehiclesWithoutIncomeData.filter(v => v.neverHadIncome).length} sin historial de ingresos`,
+        details: vehiclesWithoutIncomeData,
+        loading: false
+      },
+      // Expuestos para el gráfico Estado de la Flota (segmentos adicionales)
+      'vehicles-maintenance': { value: maintenanceVehiclesCount, loading: false },
+      'vehicles-inactive': { value: inactiveVehiclesCount, loading: false },
 
       'income-month': {
         value: financialAnalytics.totalIncome || 0,
