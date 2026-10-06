@@ -98,6 +98,50 @@ export function checkVehicleAssignmentAvailability(
   return { available: true };
 }
 
+/**
+ * Compara solo el día calendario (YYYY-MM-DD) para evitar problemas de zona horaria.
+ * Devuelve true si `candidate` es el mismo día o posterior a `reference`.
+ */
+export function isDateOnOrAfter(candidate: string, reference: string): boolean {
+  const candidateDay = candidate.slice(0, 10);
+  const referenceDay = reference.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidateDay) || !/^\d{4}-\d{2}-\d{2}$/.test(referenceDay)) {
+    return false;
+  }
+  return candidateDay >= referenceDay;
+}
+
+export interface EntityCreationDates {
+  vehicleCreatedAt?: string | null;
+  clientCreatedAt?: string | null;
+}
+
+/**
+ * La fecha de asignación no puede ser anterior a la fecha de registro
+ * del vehículo ni del cliente. Evita historiales inconsistentes
+ * (asignaciones "en el pasado" antes de que existieran en el sistema).
+ */
+export function checkAssignmentDateAgainstEntityCreation(
+  assignedAt: string,
+  entity: EntityCreationDates
+): AssignmentAvailabilityResult {
+  if (entity.vehicleCreatedAt && !isDateOnOrAfter(assignedAt, entity.vehicleCreatedAt)) {
+    return {
+      available: false,
+      error: `La fecha de asignación no puede ser anterior a la fecha de registro del vehículo (${entity.vehicleCreatedAt.slice(0, 10)}).`,
+    };
+  }
+
+  if (entity.clientCreatedAt && !isDateOnOrAfter(assignedAt, entity.clientCreatedAt)) {
+    return {
+      available: false,
+      error: `La fecha de asignación no puede ser anterior a la fecha de registro del cliente (${entity.clientCreatedAt.slice(0, 10)}).`,
+    };
+  }
+
+  return { available: true };
+}
+
 export interface NewAssignmentInput {
   vehicleId: string;
   clientId: string;
