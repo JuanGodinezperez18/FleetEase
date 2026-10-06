@@ -225,7 +225,6 @@ export const navItemsBase: NavItem[] = [
       { href: "/dashboard/finanzas", label: "Análisis Financiero", icon: AreaChart },
       { href: "/dashboard/finanzas/income", label: "Ingresos", icon: FolderKanban },
       { href: "/dashboard/finanzas/payments", label: "Pagos", icon: HandCoins },
-      { href: "/dashboard/finanzas/payments/history", label: "Historial de Pagos", icon: History },
       { href: "/dashboard/finanzas/expenses", label: "Gastos", icon: FileText },
       { href: "/dashboard/finanzas/supplier-purchases", label: "Proveedores", icon: Briefcase },
       { href: "/dashboard/finanzas/accounts-payable", label: "Cuentas por pagar", icon: HandCoins },
