@@ -3,20 +3,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Plus, X, Gauge, Wrench, DollarSign, Landmark, Users, Car, Camera
+  Plus, X, Gauge, Wrench, DollarSign, Banknote
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-provider';
 
+/** Solo acciones operativas diarias; el resto se hace en su módulo. */
 const ALL_QUICK_ACTIONS = [
-  { icon: Gauge, label: 'Registrar Kilometraje', action: 'mileage', roles: ['superAdmin', 'super_admin', 'admin', 'editor', 'client'] },
-  { icon: Wrench, label: 'Registrar Gasto', action: 'expense', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: DollarSign, label: 'Registrar Ingreso', action: 'income', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: DollarSign, label: 'Pagos', action: 'payments', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: Landmark, label: 'Nuevo Crédito', action: 'credit', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: Users, label: 'Nuevo Cliente', action: 'client', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: Car, label: 'Nuevo Vehículo', action: 'vehicle', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
-  { icon: Camera, label: 'Inspección de Vehículo', action: 'vehicle-inspection', roles: ['superAdmin', 'super_admin', 'admin', 'editor', 'client'] },
+  { icon: DollarSign, label: 'Registro de ingreso', action: 'income', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
+  { icon: Wrench, label: 'Registro de gasto', action: 'expense', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
+  { icon: Banknote, label: 'Pagos', action: 'payments', roles: ['superAdmin', 'super_admin', 'admin', 'editor'] },
+  { icon: Gauge, label: 'Registro de kilometraje', action: 'mileage', roles: ['superAdmin', 'super_admin', 'admin', 'editor', 'client'] },
 ];
 
 interface FloatingActionButtonProps {
@@ -52,6 +49,15 @@ export function FloatingActionButton({
     });
   }, [currentUser?.role, availableActions]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
   if (!isMounted) return null;
 
   const handleActionClick = (actionName: string) => {
@@ -61,14 +67,15 @@ export function FloatingActionButton({
 
   return (
     <>
+      {/* Backdrop */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            data-fab-overlay
-            className="fixed inset-0 z-40 bg-black/15 backdrop-blur-[2px] dark:bg-black/40"
+            className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] dark:bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
@@ -76,24 +83,27 @@ export function FloatingActionButton({
       </AnimatePresence>
 
       <div
-        className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-5 md:bottom-8 md:right-8 z-50 ${className}`}
-        role="region"
-        aria-label="Acciones rápidas"
+        className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 ${className}`}
+        data-fab-root
       >
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="mb-4 flex flex-col items-end gap-2.5 bg-transparent"
+              className="mb-1 flex flex-col items-end gap-2.5"
               data-fab-actions
+              role="menu"
+              aria-label="Acciones rápidas"
               initial="closed"
               animate="open"
               exit="closed"
               variants={{
-                open: { transition: { staggerChildren: 0.055, delayChildren: 0.04 } },
-                closed: { transition: { staggerChildren: 0.035, staggerDirection: -1 } },
+                open: {
+                  transition: { staggerChildren: 0.06, delayChildren: 0.04 },
+                },
+                closed: {
+                  transition: { staggerChildren: 0.04, staggerDirection: -1 },
+                },
               }}
-              role="menu"
-              aria-label="Acciones rápidas de FleetEase"
             >
               {filteredActions.map((action) => {
                 const Icon = action.icon;
@@ -102,16 +112,27 @@ export function FloatingActionButton({
                     key={action.action}
                     type="button"
                     role="menuitem"
-                    className="group flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-3 py-2.5 text-left text-sm font-semibold text-[#0a0c12] shadow-[0_12px_35px_rgba(0,0,0,.12)] backdrop-blur-xl transition-all duration-200 hover:-translate-x-1 hover:border-[#d7ff3f]/50 hover:bg-[#f6f7f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] dark:border-white/10 dark:bg-[#0e1117]/95 dark:text-white dark:shadow-[0_12px_35px_rgba(0,0,0,.35)] dark:hover:border-[#d7ff3f]/35 dark:hover:bg-[#151922]"
+                    className="group flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-[var(--fe-surface,#fff)] px-4 py-3 text-sm font-medium text-foreground shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-md transition-colors hover:border-[#d7ff3f]/40 hover:bg-[#d7ff3f]/10 dark:border-white/10 dark:bg-[#0e1117]/95 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45)] dark:hover:border-[#d7ff3f]/35"
                     onClick={() => handleActionClick(action.action)}
                     variants={{
-                      open: { y: 0, opacity: 1, scale: 1 },
-                      closed: { y: 24, opacity: 0, scale: 0.92 },
+                      open: {
+                        y: 0,
+                        opacity: 1,
+                        scale: 1,
+                        transition: { type: 'spring', stiffness: 420, damping: 28 },
+                      },
+                      closed: {
+                        y: 16,
+                        opacity: 0,
+                        scale: 0.92,
+                        transition: { duration: 0.15 },
+                      },
                     }}
+                    whileHover={{ scale: 1.03, x: -2 }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d7ff3f]/15 text-[#5c6d08] ring-1 ring-inset ring-[#d7ff3f]/25 transition-colors group-hover:bg-[#d7ff3f]/25 dark:bg-[#d7ff3f]/10 dark:text-[#d7ff3f] dark:ring-[#d7ff3f]/15">
-                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden="true" />
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d7ff3f]/15 text-[#5a6b00] transition-colors group-hover:bg-[#d7ff3f]/30 dark:text-[#d7ff3f]">
+                      <Icon className="h-4.5 w-4.5" strokeWidth={1.9} aria-hidden="true" />
                     </span>
                     <span className="whitespace-nowrap pr-1">{action.label}</span>
                   </motion.button>
@@ -134,27 +155,41 @@ export function FloatingActionButton({
 
         <motion.button
           type="button"
-          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f] text-[#080a0f] shadow-[0_10px_30px_rgba(215,255,63,.20)] transition-shadow duration-200 hover:shadow-[0_14px_40px_rgba(215,255,63,.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f] text-[#080a0f] shadow-[0_10px_30px_rgba(215,255,63,.22)] transition-shadow duration-200 hover:shadow-[0_14px_40px_rgba(215,255,63,.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           onClick={() => setIsOpen((open) => !open)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' && isOpen) setIsOpen(false);
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          animate={{
+            rotate: isOpen ? 45 : 0,
+            boxShadow: isOpen
+              ? '0 8px 24px rgba(215,255,63,0.15)'
+              : '0 10px 30px rgba(215,255,63,0.22)',
           }}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 22 }}
           aria-expanded={isOpen}
           aria-label={isOpen ? 'Cerrar menú de acciones rápidas' : 'Abrir menú de acciones rápidas'}
           aria-haspopup="menu"
         >
-          {isOpen ? (
-            <X className="h-6 w-6" strokeWidth={2.2} aria-hidden="true" />
-          ) : (
-            <Plus className="h-6 w-6" strokeWidth={2.2} aria-hidden="true" />
+          {/* Soft pulse when closed */}
+          {!isOpen && (
+            <motion.span
+              className="pointer-events-none absolute inset-0 rounded-2xl bg-[#d7ff3f]"
+              animate={{ scale: [1, 1.18, 1], opacity: [0.35, 0, 0.35] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              aria-hidden="true"
+            />
           )}
+          <span className="relative z-[1]">
+            {isOpen ? (
+              <X className="h-6 w-6" strokeWidth={2.2} aria-hidden="true" />
+            ) : (
+              <Plus className="h-6 w-6" strokeWidth={2.2} aria-hidden="true" />
+            )}
+          </span>
 
           {!isOpen && urgentActionsCount > 0 && (
             <motion.span
-              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-white dark:ring-[#080a0f]"
+              className="absolute -right-1 -top-1 z-[2] flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-white dark:ring-[#080a0f]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
