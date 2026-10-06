@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useData, calculatePartnerBalance } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2, RotateCcw, ShieldCheck } from "lucide-react";
+import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2, RotateCcw, ShieldCheck, History, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PaymentHistoryView } from "./history/components/payment-history-view";
 
 const PAYMENT_KINDS = [
   { value: "client_payment", label: "Pago de Cliente", short: "Clientes", affects: "client_balance", icon: UserRound },
@@ -43,9 +45,19 @@ function getSupabaseErrorMessage(error: unknown): string {
   return "Error inesperado.";
 }
 
-export default function PaymentsPage() {
+function PaymentsPageInner() {
   const { financialRecords, financialCategories, clients, partners, vehicles, credits, creditPaymentSchedules, refreshData, selectedCompanyId } = useData();
   const { currentUser } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pageMode = (searchParams.get("tab") === "historial" ? "historial" : "registrar") as "registrar" | "historial";
+  const setPageMode = (mode: "registrar" | "historial") => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (mode === "historial") params.set("tab", "historial");
+    else params.delete("tab");
+    const qs = params.toString();
+    router.replace(qs ? `/dashboard/finanzas/payments?${qs}` : "/dashboard/finanzas/payments", { scroll: false });
+  };
   const [kind, setKind] = useState<OperationKind>("client_payment");
   const [entityId, setEntityId] = useState("");
   const [targetId, setTargetId] = useState("");
@@ -267,6 +279,8 @@ export default function PaymentsPage() {
       } catch (refreshError) {
         console.warn("Pago registrado correctamente, pero no se pudo actualizar la vista automáticamente.", refreshError);
       }
+      // Mostrar el historial para confirmar el movimiento recién registrado
+      setPageMode("historial");
     } catch (error) {
       toast.error("No se pudo registrar la operación", { description: getSupabaseErrorMessage(error) });
     } finally { setSaving(false); }
@@ -289,7 +303,7 @@ export default function PaymentsPage() {
               Pagos
             </h1>
             <p className="fe-module-subtitle">
-              Aplicación de pagos, depósitos y devoluciones
+              Formulario de aplicación y historial de pagos, depósitos y devoluciones
             </p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
@@ -297,6 +311,37 @@ export default function PaymentsPage() {
           </div>
         </header>
 
+        {/* Navegación principal: Registrar | Historial */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setPageMode("registrar")}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-colors ${
+              pageMode === "registrar"
+                ? "border-[#d7ff3f]/35 bg-[#d7ff3f]/15 text-[#d7ff3f]"
+                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white"
+            }`}
+          >
+            <PlusCircle className="h-4 w-4" strokeWidth={1.75} />
+            Registrar pago
+          </button>
+          <button
+            type="button"
+            onClick={() => setPageMode("historial")}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-colors ${
+              pageMode === "historial"
+                ? "border-[#d7ff3f]/35 bg-[#d7ff3f]/15 text-[#d7ff3f]"
+                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white"
+            }`}
+          >
+            <History className="h-4 w-4" strokeWidth={1.75} />
+            Historial de pagos
+          </button>
+        </div>
+
+        {pageMode === "historial" ? (
+          <PaymentHistoryView embedded />
+        ) : (
         <Tabs value={kind} onValueChange={v => { setKind(v as OperationKind); reset(); }}>
           <TabsList className="grid h-auto w-full max-w-5xl grid-cols-2 gap-1 rounded-[16px] border border-white/[0.07] bg-[#0e1117] p-1.5 md:grid-cols-5">
             {tabItems.map(item => {
@@ -588,7 +633,16 @@ export default function PaymentsPage() {
             </TabsContent>
           ))}
         </Tabs>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-white/50">Cargando módulo de pagos...</div>}>
+      <PaymentsPageInner />
+    </Suspense>
   );
 }

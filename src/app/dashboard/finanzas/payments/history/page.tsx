@@ -1,7 +1,17 @@
 "use client";
 
-import { PaymentHistoryView } from "./components/payment-history-view";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
+/** Redirige al módulo unificado de Pagos (pestaña Historial). */
 export default function PaymentHistoryPage() {
-  return <PaymentHistoryView />;
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/dashboard/finanzas/payments?tab=historial");
+  }, [router]);
+  return (
+    <div className="p-6 text-sm text-muted-foreground">
+      Redirigiendo al historial de pagos...
+    </div>
+  );
 }

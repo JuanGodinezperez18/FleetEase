@@ -36,7 +36,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Error inesperado.";
 }
 
-export function PaymentHistoryView() {
+export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } = {}) {
   const { financialRecords, clients, partners, credits, loadingData, selectedCompanyId, refreshData } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentFilter>("all");
@@ -280,10 +280,17 @@ export function PaymentHistoryView() {
 
   const resetFilters = () => { setKind("all"); setSearch(""); setFrom(""); setTo(""); };
 
+  const shellClass = embedded
+    ? "relative space-y-5 text-white"
+    : "relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7";
+
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
-      <div className="relative z-10 space-y-5 sm:space-y-6">
+    <div className={shellClass}>
+      {!embedded && (
+        <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+      )}
+      <div className={embedded ? "space-y-5" : "relative z-10 space-y-5 sm:space-y-6"}>
+        {!embedded && (
         <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">
@@ -297,6 +304,15 @@ export function PaymentHistoryView() {
             <Link href="/dashboard/finanzas/payments"><HandCoins className="mr-2 h-4 w-4" strokeWidth={1.75} />Registrar pago</Link>
           </Button>
         </header>
+        )}
+        {embedded && (
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold tracking-tight text-white">Historial de pagos</h2>
+              <p className="mt-0.5 text-xs text-white/45">Consulta, edita y elimina con reversión atómica</p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard title="Total pagado" value={formatCurrency(analysis.total)} description={`${analysis.count} registros`} icon={<HandCoins className="h-5 w-5" strokeWidth={1.75} />} />
