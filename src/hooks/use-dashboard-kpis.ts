@@ -1,4 +1,5 @@
 // hooks/use-dashboard-kpis.ts
+/* vercel-redeploy: dashboard fleet kpi fab */
 import { useMemo } from 'react';
 import type { MetricKPIData } from '@/types/dashboard';
 import { useFinancialAnalytics } from './use-financial-analytics';
