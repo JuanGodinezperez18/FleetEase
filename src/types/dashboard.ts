@@ -40,6 +40,7 @@ export const AVAILABLE_KPIS = {
     { id: 'total-vehicles', label: 'Vehículos Activos', icon: 'Truck', color: 'indigo', category: 'FLOTA' },
     { id: 'vehicles-rented', label: 'Vehículos Rentados', icon: 'Car', color: 'cyan', category: 'FLOTA' },
     { id: 'vehicles-available', label: 'Vehículos Disponibles', icon: 'CheckCircle', isInteractive: true, color: 'green', category: 'FLOTA' },
+    { id: 'vehicles-without-income', label: 'Sin Generar Ingresos', icon: 'Clock', isInteractive: true, color: 'orange', category: 'FLOTA' },
     { id: 'insurance-expiring', label: 'Seguros por Vencer', icon: 'Shield', isInteractive: true, color: 'orange', category: 'FLOTA' },
   ],
   FINANZAS: [

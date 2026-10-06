@@ -71,6 +71,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
   const totalVehicles = valueOf(allKPIs, 'total-vehicles');
   const rentedVehicles = valueOf(allKPIs, 'vehicles-rented');
   const availableVehicles = valueOf(allKPIs, 'vehicles-available');
+  const maintenanceVehicles = valueOf(allKPIs, 'vehicles-maintenance');
+  const inactiveVehicles = valueOf(allKPIs, 'vehicles-inactive');
   const lent = valueOf(allKPIs, 'total-lent');
   const pending = valueOf(allKPIs, 'total-pending');
   const recovered = Math.max(lent - pending, 0);
@@ -103,11 +105,13 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
         return {
           kind: 'pie' as const,
           icon: Car,
-          description: 'Distribución actual de vehículos operativos',
+          description: 'Distribución por asignación de cliente y estado operativo',
           data: [
             { name: 'Rentados', value: rentedVehicles },
             { name: 'Disponibles', value: availableVehicles },
-          ],
+            { name: 'Mantenimiento', value: maintenanceVehicles },
+            { name: 'Inactivos', value: inactiveVehicles },
+          ].filter((d) => d.value > 0),
         };
       case 'credit-portfolio-chart':
         return {
@@ -180,7 +184,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
 
   const pieLabels =
     widget.dataKey === 'fleet-status-chart'
-      ? ['#d7ff3f', '#667085']
+      ? ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8'] // Rentados, Disponibles, Mantenimiento, Inactivos
       : widget.dataKey === 'credit-portfolio-chart'
         ? ['#d7ff3f', '#f59e0b']
         : ['#d7ff3f', '#f59e0b', '#ef4444'];

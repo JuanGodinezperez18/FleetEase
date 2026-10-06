@@ -34,6 +34,7 @@ const COUNT_KPI_IDS = new Set([
   'total-vehicles',
   'vehicles-rented',
   'vehicles-available',
+  'vehicles-without-income',
   'total-clients',
   'clients-with-debt',
   'critical-clients',
