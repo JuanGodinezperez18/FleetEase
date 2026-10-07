@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -7,6 +6,8 @@ import { DataTable } from '@/components/common/data-table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { Search } from '@/components/ui/search';
+import { useClientPagination } from '@/hooks/use-client-pagination';
+import { ListPagination } from '@/components/common/list-pagination';
 
 interface ResponsiveTableProps<TData, TValue> {
   data: TData[];
@@ -18,6 +19,8 @@ interface ResponsiveTableProps<TData, TValue> {
   loading?: boolean;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  /** Filas por página (móvil y escritorio vía DataTable). Default 15. */
+  pageSize?: number;
 }
 
 function TableSkeleton() {
@@ -45,7 +48,8 @@ export function ResponsiveTable<TData, TValue>({
   noResultsText,
   loading = false,
   rowSelection,
-  setRowSelection
+  setRowSelection,
+  pageSize = 15,
 }: ResponsiveTableProps<TData, TValue>) {
   const isMobile = useIsMobile();
   const [globalFilter, setGlobalFilter] = React.useState('');
@@ -53,13 +57,24 @@ export function ResponsiveTable<TData, TValue>({
   const filteredData = React.useMemo(() => {
     if (!globalFilter) return data;
     const searchTerm = globalFilter.toLowerCase();
-    
-    return data.filter(item => 
-        Object.values(item as any).some(value => 
-            String(value).toLowerCase().includes(searchTerm)
-        )
+
+    return data.filter(item =>
+      Object.values(item as Record<string, unknown>).some(value =>
+        String(value ?? '').toLowerCase().includes(searchTerm)
+      )
     );
   }, [data, globalFilter]);
+
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems,
+    prevPage,
+    nextPage,
+  } = useClientPagination(filteredData, pageSize);
 
   if (loading) {
     return <TableSkeleton />;
@@ -77,38 +92,55 @@ export function ResponsiveTable<TData, TValue>({
             width={280}
           />
           <span className="text-sm text-muted-foreground self-end sm:self-center">
-            {filteredData.length} resultados
+            {total} resultados
           </span>
         </div>
-        
+
         <div className="space-y-3">
-          {filteredData.map((item: any, index: number) => (
-            <div key={item.id || index}>
-              {mobileCardRenderer(item)}
-            </div>
-          ))}
+          {paginatedItems.map((item, index) => {
+            const key =
+              item && typeof item === "object" && "id" in item && (item as { id?: unknown }).id != null
+                ? String((item as { id: unknown }).id)
+                : String(index);
+            return (
+              <div key={key}>
+                {mobileCardRenderer(item)}
+              </div>
+            );
+          })}
         </div>
-        
-        {filteredData.length === 0 && (
+
+        {total === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               {noResultsText || "No se encontraron resultados"}
             </CardContent>
           </Card>
+        ) : (
+          <ListPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            from={from}
+            to={to}
+            onPrev={prevPage}
+            onNext={nextPage}
+          />
         )}
       </div>
     );
   }
 
   return (
-    <DataTable 
-      columns={columns} 
+    <DataTable
+      columns={columns}
       data={data}
       searchPlaceholder={searchPlaceholder}
       noResultsText={noResultsText}
       loading={loading}
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
+      pageSize={pageSize}
     />
   );
 }

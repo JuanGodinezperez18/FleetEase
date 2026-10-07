@@ -58,6 +58,8 @@ interface DataTableProps<TData, TValue> {
   compactMode?: boolean;
   stickyHeader?: boolean;
   bulkActions?: BulkAction<TData>[];
+  /** Filas por página. Default 15. */
+  pageSize?: number;
 }
 
 interface DataTableFilterRowProps<TData> {
@@ -143,6 +145,7 @@ export function DataTable<TData, TValue>({
   compactMode = false,
   stickyHeader = true,
   bulkActions = [],
+  pageSize = 15,
 }: DataTableProps<TData, TValue>) {
     const [isCompact, setIsCompact] = React.useState(compactMode);
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -189,7 +192,7 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     globalFilterFn: 'auto',
     initialState: {
-      pagination: { pageSize: 15 },
+      pagination: { pageSize },
     },
     state: {
       sorting,
@@ -442,7 +445,7 @@ export function DataTable<TData, TValue>({
         </ShadcnTable>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 py-4">
+      <div className="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length > 0 ? (
             <>
