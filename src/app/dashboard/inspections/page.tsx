@@ -2,6 +2,9 @@
 // app/(dashboard)/inspections/page.tsx
 'use client';
 
+import { useClientPagination } from '@/hooks/use-client-pagination';
+import { ListPagination } from '@/components/common/list-pagination';
+
 import { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/hooks/use-data';
 import { supabase } from '@/lib/supabase';
@@ -238,7 +241,7 @@ export default function InspectionsPage() {
       {/* Grid de inspecciones */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence mode="popLayout">
-          {paginatedInspections.map((inspection) => (
+          {paginatedInspections.map((inspection: (typeof filteredInspections)[number]) => (
             <motion.div
               key={inspection.id}
               layout
@@ -305,7 +308,18 @@ export default function InspectionsPage() {
         </AnimatePresence>
       </div>
 
-      {filteredInspections.length === 0 && (
+      
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        from={from}
+        to={to}
+        onPrev={prevPage}
+        onNext={nextPage}
+      />
+
+{filteredInspections.length === 0 && (
         <Card className="p-12 text-center">
           <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-lg font-medium mb-2">No se encontraron inspecciones</p>
