@@ -3,6 +3,7 @@
 import { EmptyState } from '@/components/common/empty-state';
 import { Settings } from 'lucide-react';
 import { DraggableMetricCard } from '@/components/dashboard/draggrable-metric-card';
+import { UnreadNotificationsCard } from '@/components/dashboard/unread-notifications-card';
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import type { DashboardWidget, MetricKPIData, KPIConfig } from '@/types/dashboard';
 
@@ -41,6 +42,13 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {enabledWidgets.map(widget => {
+            if (widget.id === 'unread-notifications') {
+              return (
+                <div key={widget.id} className="md:col-span-2 xl:col-span-2">
+                  <UnreadNotificationsCard />
+                </div>
+              );
+            }
             if (widget.type === 'chart') {
               const actionId = chartActionMap[widget.id];
               const chartAction = actionId ? ({ ...widget, id: actionId } as DashboardWidget) : undefined;

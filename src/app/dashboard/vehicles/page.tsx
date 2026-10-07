@@ -3,9 +3,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useDashboardDate } from '@/contexts/dashboard-date-context';
-import { ModuleDateFilterBar } from '@/components/common/module-date-filter-bar';
-import { isDateInRange } from '@/lib/is-date-in-range';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
 import type { Vehicle } from '@/types';
@@ -42,7 +39,6 @@ export default function VehiclesPage() {
   } = useData();
   
   const { currentUser } = useAuth();
-  const { dateRange } = useDashboardDate();
   const { uploadFile, deleteFileByUrl } = useStorage();
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -89,12 +85,7 @@ export default function VehiclesPage() {
     resetFilters,
     debouncedSetQuery,
     totalResults,
-  } = useVehicleSearch(
-    useMemo(
-      () => vehiclesWithAllData.filter(v => isDateInRange(v.createdAt, dateRange)),
-      [vehiclesWithAllData, dateRange]
-    )
-  );
+  } = useVehicleSearch(vehiclesWithAllData);
 
   const handleCloseVehicleModal = useCallback(() => {
     if (isSubmitting) return;
@@ -263,8 +254,7 @@ export default function VehiclesPage() {
             </p>
           </div>
           <div className="fe-module-actions">
-            <ModuleDateFilterBar />
-              <Button
+            <Button
               variant="outline"
               onClick={() => router.push('/dashboard/vehicles/assignments')}
               className="h-11 rounded-xl border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"

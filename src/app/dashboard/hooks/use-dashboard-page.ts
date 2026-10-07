@@ -101,7 +101,19 @@ export function useDashboardPage() {
       dashboardConfig?.widgets.filter(w => w.enabled).sort((a, b) => a.order - b.order) || [];
     const configuredIds = new Set(configured.map(w => w.id));
     const missingCharts = CHART_WIDGETS.filter(chart => !configuredIds.has(chart.id));
-    return [...configured, ...missingCharts].sort((a, b) => a.order - b.order);
+    const notificationsWidget = !configuredIds.has('unread-notifications')
+      ? [{
+          id: 'unread-notifications',
+          type: 'metric' as const,
+          title: 'Notificaciones sin leer',
+          category: 'SISTEMA' as const,
+          dataKey: 'unread-notifications',
+          enabled: true,
+          order: -1,
+          size: 'large' as const,
+        }]
+      : [];
+    return [...notificationsWidget, ...configured, ...missingCharts].sort((a, b) => a.order - b.order);
   }, [dashboardConfig]);
 
   const openClientListModal = React.useCallback(
