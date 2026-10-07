@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useDashboardDate } from "@/contexts/dashboard-date-context";
+import { ModuleDateFilterBar } from "@/components/common/module-date-filter-bar";
+import { isDateInRange } from "@/lib/is-date-in-range";
 import { useData } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
 import { supabase } from "@/lib/supabase";
@@ -41,6 +44,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentFilter>("all");
   const [search, setSearch] = useState("");
+  const { dateRange } = useDashboardDate();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [links, setLinks] = useState<LinkRow[]>([]);
@@ -165,6 +169,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
         return { ...r, recordKind, entityName: entityName || "Sin asignar", targetId: targetLink?.target_financial_record_id || "" };
       })
       .filter(r => kind === "all" || r.recordKind === kind)
+      .filter(r => isDateInRange(r.date, dateRange))
       .filter(r => !from || r.date >= from)
       .filter(r => !to || r.date <= to)
       .filter(r => {
@@ -174,7 +179,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
           .some(v => String(v || "").toLowerCase().includes(q));
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [financialRecords, companyId, clientMap, partnerMap, creditMap, links, supplierByTarget, kind, from, to, search]);
+  }, [financialRecords, companyId, clientMap, partnerMap, creditMap, links, supplierByTarget, kind, from, to, search, dateRange]);
 
   const analysis = useMemo(() => {
     const total = paymentRecords.reduce((sum, r) => sum + Number(r.amount || 0), 0);
@@ -304,6 +309,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
             <h1 className="fe-module-title">Historial de pagos</h1>
             <p className="fe-module-subtitle">Consulta, edita y elimina con reversión atómica</p>
           </div>
+          <ModuleDateFilterBar />
           <Button asChild className="h-10 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90">
             <Link href="/dashboard/finanzas/payments"><HandCoins className="mr-2 h-4 w-4" strokeWidth={1.75} />Registrar pago</Link>
           </Button>

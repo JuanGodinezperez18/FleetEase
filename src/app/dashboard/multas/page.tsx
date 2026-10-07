@@ -12,11 +12,15 @@ import { MultasTable } from "./components/multas-table";
 import type { Multa, MultaWithDetails } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { differenceInCalendarDays, parseISO } from "date-fns";
+import { useDashboardDate } from "@/contexts/dashboard-date-context";
+import { ModuleDateFilterBar } from "@/components/common/module-date-filter-bar";
+import { isDateInRange } from "@/lib/is-date-in-range";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 import { supabase } from "@/lib/supabase";
 
 export default function MultasPage() {
   const { multas, financialRecords, loading: loadingFinances } = useFinances();
+  const { dateRange } = useDashboardDate();
   const { vehicles, vehiclesLoading } = useVehicles();
   const { clients, loading: loadingClients } = useClients();
   const loadingData = loadingFinances || vehiclesLoading || loadingClients;
@@ -81,7 +85,7 @@ export default function MultasPage() {
 
   const multasWithDetails: MultaWithDetails[] = useMemo(() => {
     return multas
-      .filter(m => !m.isDeleted)
+      .filter(m => !m.isDeleted && isDateInRange(m.fechaInfraccion, dateRange))
       .map(multa => {
         const vehicle = vehicles.find(v => v.id === multa.vehicleId);
         const client = clients.find(c => c.id === multa.clientId);
@@ -96,7 +100,7 @@ export default function MultasPage() {
         };
       })
       .sort((a, b) => new Date(b.fechaInfraccion).getTime() - new Date(a.fechaInfraccion).getTime());
-  }, [multas, vehicles, clients, multaPaidAmounts]);
+  }, [multas, vehicles, clients, multaPaidAmounts, dateRange]);
 
   const stats = useMemo(() => {
     const pendientes = multasWithDetails.filter(m => m.status === "pendiente");
@@ -150,7 +154,8 @@ export default function MultasPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[color:var(--fe-lime)]/15 bg-[color:var(--fe-lime)]/[0.08] text-[var(--fe-lime)]">
               <ShieldAlert className="h-5 w-5" strokeWidth={1.75} />
             </div>
-            <Button
+            <ModuleDateFilterBar />
+              <Button
               onClick={() => {
                 setSelectedMulta(null);
                 setIsFormOpen(true);

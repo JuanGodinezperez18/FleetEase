@@ -3,6 +3,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 import React, { useMemo, useCallback, useRef, useState, useEffect } from 'react';
+import { useDashboardDate } from '@/contexts/dashboard-date-context';
+import { ModuleDateFilterBar } from '@/components/common/module-date-filter-bar';
+import { isDateInRange } from '@/lib/is-date-in-range';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, Trash2 } from 'lucide-react';
 import { useData } from '@/hooks/use-data';
@@ -46,6 +49,7 @@ export default function ClientsPage() {
   } = useData();
 
   const { currentUser } = useAuth();
+  const { dateRange } = useDashboardDate();
   const { uploadFile, deleteFileByUrl } = useStorage();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -79,7 +83,10 @@ export default function ClientsPage() {
     }));
   }, [clients, clientMetrics, clientBalances]);
   
-  const filteredAndSortedClients = allClientsWithData;
+  const filteredAndSortedClients = useMemo(
+    () => allClientsWithData.filter(c => isDateInRange(c.createdAt, dateRange)),
+    [allClientsWithData, dateRange]
+  );
   
   const { exportToExcel, isExporting } = useExportData();
 
@@ -358,7 +365,8 @@ export default function ClientsPage() {
           <div className="fe-module-actions">
                   {selectedCount > 0 ? (
                     <>
-                      <Button variant="outline" onClick={() => handleExport({filename: 'seleccion_clientes'})}>
+                      <ModuleDateFilterBar />
+              <Button variant="outline" onClick={() => handleExport({filename: 'seleccion_clientes'})}>
                         <Download className="h-4 w-4 mr-2" />
                         Exportar ({selectedCount})
                       </Button>

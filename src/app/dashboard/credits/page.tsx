@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useDashboardDate } from "@/contexts/dashboard-date-context";
+import { ModuleDateFilterBar } from "@/components/common/module-date-filter-bar";
+import { isDateInRange } from "@/lib/is-date-in-range";
 import { useData } from "@/hooks/use-data";
 import { getCreditColumns } from "./columns";
 import { ResponsiveTable } from "@/components/common/ResponsiveTable";
@@ -125,6 +128,7 @@ export default function CreditsPage() {
   } = useData();
 
   const { currentUser } = useAuth();
+  const { dateRange } = useDashboardDate();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,13 +147,13 @@ export default function CreditsPage() {
   const creditsWithMetrics: CreditWithMetrics[] = useMemo(() => {
     const metricsMap = new Map(creditMetrics.map(m => [m.creditId, m]));
     return credits
-      .filter(c => !c.isDeleted)
+      .filter(c => !c.isDeleted && isDateInRange(c.createdAt, dateRange))
       .map(credit => ({
         ...credit,
         ...metricsMap.get(credit.id),
         clientName: clientNames[credit.clientId] || "Cliente Desconocido",
       }));
-  }, [credits, creditMetrics, clientNames]);
+  }, [credits, creditMetrics, clientNames, dateRange]);
 
   const { filters, filteredCredits, updateFilter, resetFilters, debouncedSetQuery, totalResults } =
     useCreditsSearch(creditsWithMetrics);
@@ -302,7 +306,8 @@ export default function CreditsPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <CreditCard className="h-5 w-5" strokeWidth={1.75} />
             </div>
-            <Button
+            <ModuleDateFilterBar />
+              <Button
               data-add-button="true"
               onClick={handleCreateNew}
               className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90"

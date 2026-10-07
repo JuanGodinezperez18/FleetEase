@@ -18,8 +18,10 @@ import { formatCurrency } from '@/lib/utils';
 import { toast as sonnerToast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Download, Users, TrendingUp, Hash, Banknote } from 'lucide-react';
-import type { DateRange } from 'react-day-picker';
-import { startOfDay, endOfDay, format } from 'date-fns';
+import { format } from 'date-fns';
+import { useDashboardDate } from '@/contexts/dashboard-date-context';
+import { ModuleDateFilterBar } from '@/components/common/module-date-filter-bar';
+import { isDateInRange } from '@/lib/is-date-in-range';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IncomeForm from './components/IncomeForm';
 import MassIncomeForm from './components/MassIncomeForm';
@@ -44,7 +46,7 @@ export default function IncomesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<IncomeData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  const { dateRange } = useDashboardDate();
   const [isIncomeFormOpen, setIsIncomeFormOpen] = useState(false);
   const [isMassIncomeFormOpen, setIsMassIncomeFormOpen] = useState(false);
 
@@ -56,20 +58,7 @@ export default function IncomesPage() {
       income => !income.isDeleted && income.type === 'income'
     );
 
-    if (dateRange?.from) {
-      const fromDate = startOfDay(dateRange.from).getTime();
-      allIncomes = allIncomes.filter(income => {
-        const d = infallibleNormalizeDate(income.date);
-        return d && d.getTime() >= fromDate;
-      });
-    }
-    if (dateRange?.to) {
-      const toDate = endOfDay(dateRange.to).getTime();
-      allIncomes = allIncomes.filter(income => {
-        const d = infallibleNormalizeDate(income.date);
-        return d && d.getTime() <= toDate;
-      });
-    }
+    allIncomes = allIncomes.filter(income => isDateInRange(income.date, dateRange));
     return allIncomes.sort((a, b) => b.sortableDate - a.sortableDate);
   }, [financialRecords, clients, vehicles, dateRange, selectedCompanyId, financialCategories]);
 
@@ -203,7 +192,8 @@ export default function IncomesPage() {
                 {stats.count} registro{stats.count === 1 ? '' : 's'} en esta vista
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+              <ModuleDateFilterBar />
               <Button
                 variant="outline"
                 size="sm"
