@@ -510,7 +510,13 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                       onChange={e => {
                         const raw = e.target.value.replace(/[^0-9.]/g, "");
                         const next = Number(raw);
-                        if (Number.isFinite(next) && next > maxAmount && maxAmount > 0) {
+                        // client_payment permite sobrante: se aplica en cascada a facturas siguientes
+                        if (
+                          kind !== "client_payment"
+                          && Number.isFinite(next)
+                          && next > maxAmount
+                          && maxAmount > 0
+                        ) {
                           setAmount(maxAmount.toFixed(2));
                           return;
                         }
