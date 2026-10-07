@@ -97,11 +97,17 @@ export function ResponsiveTable<TData, TValue>({
         </div>
 
         <div className="space-y-3">
-          {paginatedItems.map((item: TData & { id?: string }, index: number) => (
-            <div key={item.id ?? index}>
-              {mobileCardRenderer(item)}
-            </div>
-          ))}
+          {paginatedItems.map((item, index) => {
+            const key =
+              item && typeof item === "object" && "id" in item && (item as { id?: unknown }).id != null
+                ? String((item as { id: unknown }).id)
+                : String(index);
+            return (
+              <div key={key}>
+                {mobileCardRenderer(item)}
+              </div>
+            );
+          })}
         </div>
 
         {total === 0 ? (
