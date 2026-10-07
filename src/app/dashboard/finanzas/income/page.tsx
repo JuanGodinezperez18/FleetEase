@@ -251,6 +251,7 @@ export default function IncomesPage() {
           <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
             <div className="p-4 sm:p-5">
               <ResponsiveTable
+                key={`dr-${dateRange?.from?.toISOString() ?? ""}-${dateRange?.to?.toISOString() ?? ""}`}
                 columns={columns}
                 data={incomes}
                 loading={loadingData}
