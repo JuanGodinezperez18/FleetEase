@@ -1,4 +1,7 @@
 "use client";
+
+import { useClientPagination } from "@/hooks/use-client-pagination";
+import { ListPagination } from "@/components/common/list-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useEffect, useState } from "react";
@@ -205,6 +208,18 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
     );
   }
 
+
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems: paginatedPayables,
+    prevPage,
+    nextPage,
+  } = useClientPagination(supplierPayables);
+
   return (
     <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
@@ -252,7 +267,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
               <p className="py-8 text-center text-sm text-white/35">No hay cuentas por pagar a proveedores.</p>
             ) : (
               <div className="space-y-3">
-                {supplierPayables.map(p => {
+                {paginatedPayables.map(p => {
                   const remaining = Math.max(0, p.original - p.applied);
                   return (
                     <div
@@ -359,7 +374,17 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
               </div>
             )}
           </div>
-        </section>
+        
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        from={from}
+        to={to}
+        onPrev={prevPage}
+        onNext={nextPage}
+      />
+</section>
       </div>
     </div>
   );

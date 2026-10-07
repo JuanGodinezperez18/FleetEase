@@ -70,6 +70,18 @@ export default function VehicleAssignmentsPage() {
     );
   }, [vehicleAssignmentLogs, preselectedVehicleId]);
 
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems: paginatedLogs,
+    prevPage,
+    nextPage,
+  } = useClientPagination(sortedLogs);
+
+
   const activeAssignments = useMemo(
     () => sortedLogs.filter(log => !log.unassignedAt),
     [sortedLogs]
@@ -255,7 +267,7 @@ export default function VehicleAssignmentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedLogs.map(log => {
+                    {paginatedLogs.map(log => {
                       const vehicle = vehicleById.get(log.vehicleId);
                       const client = log.clientId ? clientById.get(log.clientId) : null;
                       const isActive = !log.unassignedAt;
@@ -345,7 +357,7 @@ export default function VehicleAssignmentsPage() {
 
               {/* Mobile cards */}
               <div className="space-y-3 p-4 md:hidden">
-                {sortedLogs.map(log => {
+                {paginatedLogs.map(log => {
                   const vehicle = vehicleById.get(log.vehicleId);
                   const client = log.clientId ? clientById.get(log.clientId) : null;
                   const isActive = !log.unassignedAt;
@@ -443,7 +455,17 @@ export default function VehicleAssignmentsPage() {
               </div>
             </>
           )}
-        </section>
+        
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        from={from}
+        to={to}
+        onPrev={prevPage}
+        onNext={nextPage}
+      />
+</section>
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

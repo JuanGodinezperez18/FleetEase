@@ -113,6 +113,18 @@ export default function InspectionsPage() {
     return filtered;
   }, [enrichedInspections, searchTerm, filterStatus]);
 
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems: paginatedInspections,
+    prevPage,
+    nextPage,
+  } = useClientPagination(filteredInspections);
+
+
   // Estadísticas
   const stats = useMemo(() => {
     return {
@@ -226,7 +238,7 @@ export default function InspectionsPage() {
       {/* Grid de inspecciones */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence mode="popLayout">
-          {filteredInspections.map((inspection) => (
+          {paginatedInspections.map((inspection) => (
             <motion.div
               key={inspection.id}
               layout
