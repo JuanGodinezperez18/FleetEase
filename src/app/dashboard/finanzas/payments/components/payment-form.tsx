@@ -9,11 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2, RotateCcw, ShieldCheck } 
+import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2, RotateCcw, ShieldCheck, History } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { PaymentHistoryView } from "../history/components/payment-history-view";
-import { History } 
 
 const PAYMENT_KINDS = [
   { value: "client_payment", label: "Pago de Cliente", short: "Clientes", affects: "client_balance", icon: UserRound },
