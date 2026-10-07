@@ -254,16 +254,6 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     }
   }, [activeClients, selectedClientId, setValue]);
 
-  useEffect(() => {
-    if (
-      selectedVehicleId &&
-      selectedVehicleId !== NONE_SELECT_VALUE &&
-      !selectableVehicles.some(v => v.id === selectedVehicleId)
-    ) {
-      setValue("vehicleId", "", { shouldDirty: true });
-    }
-  }, [selectableVehicles, selectedVehicleId, setValue]);
-
   const selectableVehicles = useMemo(() => {
     const companyId = formCompanyId || currentUser?.companyId;
     if (!companyId) return [];
@@ -274,6 +264,16 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
       && isVehicleCreatedOnOrBefore(v.createdAt, selectedDate)
     );
   }, [vehicles, formCompanyId, currentUser?.companyId, selectedDate]);
+
+  useEffect(() => {
+    if (
+      selectedVehicleId &&
+      selectedVehicleId !== NONE_SELECT_VALUE &&
+      !selectableVehicles.some(v => v.id === selectedVehicleId)
+    ) {
+      setValue("vehicleId", "", { shouldDirty: true });
+    }
+  }, [selectableVehicles, selectedVehicleId, setValue]);
 
   const selectedClient = useMemo(() => (
     selectedClientId && selectedClientId !== NONE_SELECT_VALUE
