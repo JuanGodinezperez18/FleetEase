@@ -33,6 +33,7 @@ const CreditForm = dynamic(() => import('@/app/dashboard/credits/components/cred
 const ClientForm = dynamic(() => import('@/app/dashboard/clients/components/client-form').then(mod => mod.ClientForm), { ssr: false });
 const VehicleForm = dynamic(() => import('@/app/dashboard/vehicles/components/vehicle-form').then(mod => mod.VehicleForm), { ssr: false });
 const MileageLogForm = dynamic(() => import('@/app/dashboard/mileage/components/mileage-log-form'), { ssr: false });
+const PaymentForm = dynamic(() => import('@/app/dashboard/finanzas/payments/components/payment-form').then(m => m.PaymentForm), { ssr: false });
 
 export function QuickActions({
   quickActionModal,
@@ -55,12 +56,9 @@ export function QuickActions({
   const router = useRouter();
   const handleSuccess = useCallback(() => onCloseModal(), [onCloseModal]);
   const handleOpenAction = useCallback((action: string) => {
-    if (action === 'payments') {
-      router.push('/dashboard/finanzas/payments');
-      return;
-    }
+    // Pagos se abre como modal (formulario), igual que ingresos/gastos
     onOpenModal(action);
-  }, [onOpenModal, router]);
+  }, [onOpenModal]);
 
   const incomeCategories = useCallback(
     () => incomeAndPaymentCategories.filter((category: any) => category.type === 'income'),
@@ -109,6 +107,9 @@ export function QuickActions({
             )}
             {quickActionModal === 'mileage' && (
               <MileageLogForm onSubmit={onMileageSubmit} companies={companies} isSubmitting={isSubmittingForm} onClose={onCloseModal} />
+            )}
+            {(quickActionModal === 'payment' || quickActionModal === 'payments') && (
+              <PaymentForm embedded onClose={onCloseModal} onSuccess={onCloseModal} />
             )}
           </Suspense>
         </FormModal>

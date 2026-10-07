@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MultipleFileInput } from "@/components/common/multiple-file-input";
 import { infallibleNormalizeDate } from "@/lib/date-utils";
-import { isClientCreatedOnOrBefore } from "@/lib/filter-clients-by-date";
+import { isClientCreatedOnOrBefore, isVehicleCreatedOnOrBefore } from "@/lib/filter-clients-by-date";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-provider";
 import { Loader2, Plus, PlusCircle, Trash2 } from "lucide-react";
@@ -257,8 +257,23 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const selectableVehicles = useMemo(() => {
     const companyId = formCompanyId || currentUser?.companyId;
     if (!companyId) return [];
-    return vehicles.filter(v => v.companyId === companyId && (v.status === "active" || v.status === "rented") && !v.isDeleted);
-  }, [vehicles, formCompanyId, currentUser?.companyId]);
+    return vehicles.filter(v =>
+      v.companyId === companyId
+      && (v.status === "active" || v.status === "rented")
+      && !v.isDeleted
+      && isVehicleCreatedOnOrBefore(v.createdAt, selectedDate)
+    );
+  }, [vehicles, formCompanyId, currentUser?.companyId, selectedDate]);
+
+  useEffect(() => {
+    if (
+      selectedVehicleId &&
+      selectedVehicleId !== NONE_SELECT_VALUE &&
+      !selectableVehicles.some(v => v.id === selectedVehicleId)
+    ) {
+      setValue("vehicleId", "", { shouldDirty: true });
+    }
+  }, [selectableVehicles, selectedVehicleId, setValue]);
 
   const selectedClient = useMemo(() => (
     selectedClientId && selectedClientId !== NONE_SELECT_VALUE

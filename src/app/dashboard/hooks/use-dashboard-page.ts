@@ -36,6 +36,8 @@ export type QuickActionModal =
   | 'vehicle'
   | 'mileage'
   | 'vehicle-inspection'
+  | 'payment'
+  | 'payments'
   | null;
 
 export function useDashboardPage() {

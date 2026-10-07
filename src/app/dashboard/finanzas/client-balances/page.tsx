@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useClientPagination } from '@/hooks/use-client-pagination';
+import { ListPagination } from '@/components/common/list-pagination';
 
 export default function ClientBalancesPage() {
   const { clients, credits } = useClients();
@@ -26,6 +28,17 @@ export default function ClientBalancesPage() {
     });
   }, [clients, credits, canonicalClientBalances]);
 
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems,
+    prevPage,
+    nextPage,
+  } = useClientPagination(clientBalances);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -42,7 +55,7 @@ export default function ClientBalancesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clientBalances.map(cb => (
+              {paginatedItems.map(cb => (
                 <TableRow key={cb.clientId}>
                   <TableCell>{cb.clientName}</TableCell>
                   <TableCell className="text-right text-orange-600">{formatCurrency(cb.creditBalance)}</TableCell>
@@ -55,6 +68,16 @@ export default function ClientBalancesPage() {
               ))}
             </TableBody>
           </Table>
+          <ListPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            from={from}
+            to={to}
+            onPrev={prevPage}
+            onNext={nextPage}
+            className="border-border text-muted-foreground"
+          />
         </CardContent>
       </Card>
     </div>

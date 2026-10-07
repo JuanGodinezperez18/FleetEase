@@ -2,16 +2,31 @@ import { format } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
 /**
- * Returns true if the client existed on or before the given date (yyyy-MM-dd).
- * Inclusive of the same day (matches income form behaviour).
+ * Returns true if the entity existed on or before the given date (yyyy-MM-dd).
+ * Inclusive of the same day.
  */
-export function isClientCreatedOnOrBefore(
+export function isCreatedOnOrBefore(
   createdAt: string | Date | null | undefined,
   dateKey: string | null | undefined,
 ): boolean {
   if (!dateKey) return true;
-  const clientCreatedDate = infallibleNormalizeDate(createdAt as string | Date | null | undefined);
-  if (!clientCreatedDate) return false;
-  const clientCreatedDateKey = format(clientCreatedDate, 'yyyy-MM-dd');
-  return clientCreatedDateKey <= dateKey;
+  const createdDate = infallibleNormalizeDate(createdAt as string | Date | null | undefined);
+  if (!createdDate) return false;
+  const createdDateKey = format(createdDate, 'yyyy-MM-dd');
+  return createdDateKey <= dateKey;
+}
+
+/** @deprecated use isCreatedOnOrBefore */
+export function isClientCreatedOnOrBefore(
+  createdAt: string | Date | null | undefined,
+  dateKey: string | null | undefined,
+): boolean {
+  return isCreatedOnOrBefore(createdAt, dateKey);
+}
+
+export function isVehicleCreatedOnOrBefore(
+  createdAt: string | Date | null | undefined,
+  dateKey: string | null | undefined,
+): boolean {
+  return isCreatedOnOrBefore(createdAt, dateKey);
 }

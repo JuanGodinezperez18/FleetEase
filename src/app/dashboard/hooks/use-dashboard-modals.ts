@@ -41,6 +41,8 @@ export function useDashboardModals() {
       vehicle: 'Registrar Vehículo',
       mileage: 'Registrar Kilometraje',
       'vehicle-inspection': 'Registrar Inspección',
+      payment: 'Registrar Pago',
+      payments: 'Registrar Pago',
     }),
     []
   );

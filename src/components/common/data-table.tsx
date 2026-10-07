@@ -188,6 +188,9 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     globalFilterFn: 'auto',
+    initialState: {
+      pagination: { pageSize: 15 },
+    },
     state: {
       sorting,
       columnFilters,
@@ -439,27 +442,49 @@ export function DataTable<TData, TValue>({
         </ShadcnTable>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} de{" "}
-            {table.getFilteredRowModel().rows.length} fila(s) seleccionadas.
+      <div className="flex flex-wrap items-center justify-between gap-2 py-4">
+        <div className="text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length > 0 ? (
+            <>
+              {table.getFilteredSelectedRowModel().rows.length} de{" "}
+              {table.getFilteredRowModel().rows.length} fila(s) seleccionadas.
+            </>
+          ) : (
+            <>
+              Mostrando{" "}
+              {table.getFilteredRowModel().rows.length === 0
+                ? 0
+                : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
+              –
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}{" "}
+              de {table.getFilteredRowModel().rows.length}
+            </>
+          )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage() || loading}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage() || loading}
-        >
-          Siguiente
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage() || loading}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage() || loading}
+          >
+            Siguiente
+          </Button>
+        </div>
       </div>
     </div>
   )

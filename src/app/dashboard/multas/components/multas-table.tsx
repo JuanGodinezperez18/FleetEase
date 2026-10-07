@@ -1,5 +1,8 @@
 "use client";
 
+import { useClientPagination } from "@/hooks/use-client-pagination";
+import { ListPagination } from "@/components/common/list-pagination";
+
 import React, { useState, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -165,6 +168,18 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
     });
   }, [multas, searchTerm, statusFilter, vehicleFilter]);
 
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems: paginatedMultas,
+    prevPage,
+    nextPage,
+  } = useClientPagination(filteredMultas);
+
+
   const handleDelete = async () => {
     if (!multaToDelete) return;
     try {
@@ -249,7 +264,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
         {filteredMultas.length === 0 ? (
           <p className="py-10 text-center text-sm text-white/35">No se encontraron multas</p>
         ) : (
-          filteredMultas.map(multa => (
+          paginatedMultas.map(multa => (
             <MultaMobileCard
               key={multa.id}
               multa={multa}
@@ -287,7 +302,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredMultas.map(multa => {
+              paginatedMultas.map(multa => {
                 const daysOverdue = multa.daysOverdue ?? 0;
                 return (
                 <TableRow key={multa.id} className="border-white/[0.04] hover:bg-white/[0.02]">
@@ -358,6 +373,16 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        from={from}
+        to={to}
+        onPrev={prevPage}
+        onNext={nextPage}
+      />
 
       <AlertDialog open={!!multaToPay} onOpenChange={open => !open && !paying && setMultaToPay(null)}>
         <AlertDialogContent className="border-white/10 bg-[#0e1117] text-white">

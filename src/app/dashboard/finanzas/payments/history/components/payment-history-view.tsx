@@ -36,7 +36,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Error inesperado.";
 }
 
-export function PaymentHistoryView() {
+export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } = {}) {
   const { financialRecords, clients, partners, credits, loadingData, selectedCompanyId, refreshData } = useData();
   const { currentUser } = useAuth();
   const [kind, setKind] = useState<PaymentFilter>("all");
@@ -53,6 +53,8 @@ export function PaymentHistoryView() {
   const [editTarget, setEditTarget] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   const companyId = selectedCompanyId || currentUser?.companyId || null;
 
@@ -278,13 +280,22 @@ export function PaymentHistoryView() {
     }
   };
 
-  const resetFilters = () => { setKind("all"); setSearch(""); setFrom(""); setTo(""); };
+  const resetFilters = () => { setKind("all"); setSearch(""); setFrom(""); setTo(""); setPage(1); };
+
+  useEffect(() => { setPage(1); }, [kind, search, from, to]);
+
+  const totalPages = Math.max(1, Math.ceil(paymentRecords.length / pageSize));
+  const paginatedRecords = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return paymentRecords.slice(start, start + pageSize);
+  }, [paymentRecords, page, pageSize]);
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className={embedded ? "relative space-y-5 text-white" : "relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7"}>
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="fe-module-header">
+{!embedded && (
+                <header className="fe-module-header">
           <div>
             <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
@@ -297,6 +308,7 @@ export function PaymentHistoryView() {
             <Link href="/dashboard/finanzas/payments"><HandCoins className="mr-2 h-4 w-4" strokeWidth={1.75} />Registrar pago</Link>
           </Button>
         </header>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard title="Total pagado" value={formatCurrency(analysis.total)} description={`${analysis.count} registros`} icon={<HandCoins className="h-5 w-5" strokeWidth={1.75} />} />
@@ -354,7 +366,7 @@ export function PaymentHistoryView() {
             ) : (
               <>
                 <div className="space-y-3 md:hidden">
-                  {paymentRecords.map(r => (
+                  {paginatedRecords.map(r => (
                     <div key={r.id} className="rounded-[14px] border border-white/[0.07] bg-white/[0.02] p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -383,7 +395,7 @@ export function PaymentHistoryView() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentRecords.map(r => (
+                      {paginatedRecords.map(r => (
                         <tr key={r.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
                           <td className="whitespace-nowrap p-3 text-white/70">{new Date(r.date).toLocaleDateString("es-MX")}</td>
                           <td className="p-3"><span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">{PAYMENT_LABELS[r.recordKind] || "Pago"}</span></td>
@@ -406,6 +418,24 @@ export function PaymentHistoryView() {
                 </div>
               </>
             )}
+            
+            {paymentRecords.length > 0 && (
+              <div className="mt-4 flex flex-col items-center justify-between gap-3 border-t border-white/[0.06] pt-4 sm:flex-row">
+                <p className="text-xs text-white/40">
+                  Mostrando {Math.min((page - 1) * pageSize + 1, paymentRecords.length)}–{Math.min(page * pageSize, paymentRecords.length)} de {paymentRecords.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white">
+                    Anterior
+                  </Button>
+                  <span className="text-xs tabular-nums text-white/50">{page} / {totalPages}</span>
+                  <Button type="button" variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white">
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            )}
+
           </div>
         </section>
       </div>
