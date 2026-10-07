@@ -29,11 +29,20 @@ type SupplierPayable = { id: string; purchaseId: string | null; sourceFinancialR
 const SECURITY_DEPOSIT_CATEGORY = "Depósito en Garantía";
 
 function getSupabaseErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    if (/financial_records_company_reference_code_uidx|duplicate key.*reference_code/i.test(error.message)) {
+      return "La referencia ya existe en esta empresa. Déjala vacía para generar un folio automático, o usa una referencia distinta.";
+    }
+    return error.message;
+  }
   if (error && typeof error === "object") {
     const e = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const msg = typeof e.message === "string" ? e.message : "";
+    if (e.code === "23505" || /financial_records_company_reference_code_uidx|duplicate key.*reference_code/i.test(msg)) {
+      return "La referencia ya existe en esta empresa. Déjala vacía para generar un folio automático, o usa una referencia distinta.";
+    }
     const parts = [
-      typeof e.message === "string" ? e.message : "",
+      msg,
       typeof e.code === "string" ? `Código: ${e.code}` : "",
       typeof e.details === "string" ? e.details : "",
       typeof e.hint === "string" ? `Ayuda: ${e.hint}` : "",
@@ -223,7 +232,7 @@ export default function PaymentsPage() {
       if (kind === "security_deposit_refund") {
         const { data, error } = await supabase.rpc("refund_security_deposit", {
           p_company_id: companyId, p_client_id: entityId, p_amount: numericAmount,
-          p_payment_date: date, p_payment_method: method, p_reference: reference || null,
+          p_payment_date: date, p_payment_method: method, p_reference: (reference || "").trim() || null,
           p_created_by: currentUser?.uid || null,
         } as any);
         if (error) throw error;
@@ -233,7 +242,7 @@ export default function PaymentsPage() {
         const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
           p_company_id: companyId, p_credit_id: entityId, p_client_id: selectedCredit?.clientId || null,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
-          p_reference: reference || null, p_created_by: currentUser?.uid || null,
+          p_reference: (reference || "").trim() || null, p_created_by: currentUser?.uid || null,
         } as any);
         if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió el pago del crédito.");
@@ -242,14 +251,14 @@ export default function PaymentsPage() {
         const { data, error } = await supabase.rpc("apply_security_deposit_payment", {
           p_company_id: companyId, p_client_id: entityId, p_target_financial_record_id: targetId,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
-          p_reference: reference || null, p_created_by: currentUser?.uid || null,
+          p_reference: (reference || "").trim() || null, p_created_by: currentUser?.uid || null,
         } as any);        if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió la aplicación del depósito.");
         toast.success("Depósito aplicado", { description: "El depósito disminuyó y el importe se aplicó al folio seleccionado sin generar un ingreso duplicado." });
       } else {
         const { data, error } = await supabase.rpc("create_financial_payment", {
           p_company_id: companyId, p_payment_kind: kind, p_amount: numericAmount,
-          p_payment_date: date, p_payment_method: method, p_reference: reference || null,
+          p_payment_date: date, p_payment_method: method, p_reference: (reference || "").trim() || null,
           p_client_id: (kind === "client_payment" || kind === "multa_payment") ? entityId : null,
           p_partner_id: kind === "partner_payment" ? entityId : null,
           p_supplier_id: kind === "supplier_payment" ? entityId : null,
