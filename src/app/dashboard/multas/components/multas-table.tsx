@@ -81,16 +81,6 @@ function MultaMobileCard({
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
             <ShieldAlert className="h-5 w-5" strokeWidth={1.75} />
           </div>
-      <ListPagination
-        page={page}
-        totalPages={totalPages}
-        total={total}
-        from={from}
-        to={to}
-        onPrev={prevPage}
-        onNext={nextPage}
-      />
-
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate font-semibold text-white/90">{multa.vehiclePlate || "Sin placa"}</h3>
@@ -383,6 +373,16 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        from={from}
+        to={to}
+        onPrev={prevPage}
+        onNext={nextPage}
+      />
 
       <AlertDialog open={!!multaToPay} onOpenChange={open => !open && !paying && setMultaToPay(null)}>
         <AlertDialogContent className="border-white/10 bg-[#0e1117] text-white">
