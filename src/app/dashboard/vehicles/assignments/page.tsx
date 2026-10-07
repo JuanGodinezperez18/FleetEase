@@ -1,5 +1,8 @@
 'use client';
 
+import { useClientPagination } from '@/hooks/use-client-pagination';
+import { ListPagination } from '@/components/common/list-pagination';
+
 import { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
@@ -267,7 +270,7 @@ export default function VehicleAssignmentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedLogs.map(log => {
+                    {paginatedLogs.map((log: (typeof sortedLogs)[number]) => {
                       const vehicle = vehicleById.get(log.vehicleId);
                       const client = log.clientId ? clientById.get(log.clientId) : null;
                       const isActive = !log.unassignedAt;
@@ -357,7 +360,7 @@ export default function VehicleAssignmentsPage() {
 
               {/* Mobile cards */}
               <div className="space-y-3 p-4 md:hidden">
-                {paginatedLogs.map(log => {
+                {paginatedLogs.map((log: (typeof sortedLogs)[number]) => {
                   const vehicle = vehicleById.get(log.vehicleId);
                   const client = log.clientId ? clientById.get(log.clientId) : null;
                   const isActive = !log.unassignedAt;
