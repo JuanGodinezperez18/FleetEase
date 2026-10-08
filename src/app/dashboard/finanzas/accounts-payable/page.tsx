@@ -188,6 +188,17 @@ export default function AccountsPayablePage() {
 
   const payableStatusLabels: Record<string, string> = { paid: "Pagada", partially_paid: "Parcialmente pagada", pending: "Pendiente", cancelled: "Cancelada" };
 
+  const {
+    page,
+    totalPages,
+    total,
+    from,
+    to,
+    paginatedItems: paginatedPayables,
+    prevPage,
+    nextPage,
+  } = useClientPagination(supplierPayables);
+
 const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.original - p.applied), 0);
   const totalPending = supplierPending;
   const dueSoon = supplierPayables
@@ -209,16 +220,7 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
   }
 
 
-  const {
-    page,
-    totalPages,
-    total,
-    from,
-    to,
-    paginatedItems: paginatedPayables,
-    prevPage,
-    nextPage,
-  } = useClientPagination(supplierPayables);
+
 
   return (
     <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
