@@ -146,7 +146,7 @@ export function IncomeListModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="flex h-[85vh] max-w-6xl flex-col gap-4 overflow-hidden sm:max-w-6xl">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-4 overflow-hidden rounded-none p-4 sm:h-[85vh] sm:max-h-[85vh] sm:max-w-5xl sm:rounded-lg sm:p-6">
         <DialogHeader>
           <div className="flex flex-col gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
