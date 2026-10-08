@@ -14,6 +14,7 @@ type ActiveModal =
   | 'incomes'
   | 'expenses'
   | 'multas'
+  | 'vehicle-profitability'
   | null;
 
 interface ModalData {
