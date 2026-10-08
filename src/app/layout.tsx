@@ -10,6 +10,7 @@ import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
@@ -147,6 +148,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <PwaInstallButton />
             <Toaster />
             <CookieBanner />
+            <Analytics />
           </Providers>
         </GlobalErrorBoundary>
       </body>
