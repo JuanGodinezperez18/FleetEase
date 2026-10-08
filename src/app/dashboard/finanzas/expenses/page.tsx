@@ -16,6 +16,9 @@ import { useData } from '@/contexts/data-provider';
 import { getColumns, type ExpenseData } from './columns';
 import { toast } from 'sonner';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
+import { useDashboardDate } from '@/contexts/dashboard-date-context';
+import { ModuleDateFilterBar } from '@/components/common/module-date-filter-bar';
+import { isDateInRange } from '@/lib/is-date-in-range';
 import { sanitizeExpenseFormData } from '@/lib/sanitize-expense';
 import { formatCurrency } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -97,6 +100,7 @@ export default function ExpensesPage() {
   const { companies, selectedCompanyId } = useData();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { dateRange } = useDashboardDate();
   const loadingData = loadingFinances || vehiclesLoading || loadingClients;
   const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +119,7 @@ export default function ExpensesPage() {
     const expenses = companyFilteredRecords
       .filter(
         (r): r is FinancialRecord & { type: 'expense' } =>
-          r.type === 'expense' && !r.isDeleted
+          r.type === 'expense' && !r.isDeleted && isDateInRange(r.date, dateRange)
       )
       .map(expense => ({
         ...expense,
@@ -126,7 +130,7 @@ export default function ExpensesPage() {
       }));
 
     return expenses.sort((a, b) => b.sortableDate - a.sortableDate);
-  }, [financialRecords, clients, vehicles, selectedCompanyId, financialCategories]);
+  }, [financialRecords, clients, vehicles, selectedCompanyId, financialCategories, dateRange]);
 
   const stats = useMemo(() => {
     const totalExpenses = expensesWithDetails.reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -304,6 +308,7 @@ export default function ExpensesPage() {
         <section className="overflow-hidden rounded-[20px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="p-4 sm:p-5">
             <ResponsiveTable
+                key={`dr-${dateRange?.from?.toISOString() ?? ""}-${dateRange?.to?.toISOString() ?? ""}`}
               columns={columns}
               data={expensesWithDetails}
               loading={loadingData}

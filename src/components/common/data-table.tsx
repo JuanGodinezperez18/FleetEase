@@ -205,6 +205,13 @@ export function DataTable<TData, TValue>({
   
   const loadingRows = React.useMemo(() => Array.from({ length: 10 }, (_, i) => i), []);
 
+  // Al cambiar el dataset (filtros de fecha, búsqueda, etc.) volver a la página 1
+  const dataLen = data.length;
+  React.useEffect(() => {
+    table.setPageIndex(0);
+  }, [dataLen, pageSize]);
+
+
   const selectedRows = React.useMemo(() => {
     return table.getFilteredSelectedRowModel().rows.map(row => row.original);
   }, [table, rowSelection]);

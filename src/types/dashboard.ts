@@ -5,14 +5,14 @@ import {
     Shield, ShieldAlert, Truck, Car, Wrench, Gauge, Key, AlertCircle, AlertTriangle, Settings, Users,
     UserPlus, Heart, UserCheck, UserX, Star, XCircle, Landmark, CreditCard, CheckCircle, Wallet,
     CheckSquare, Banknote, Trophy, FileText, Award, Activity, BarChart, Zap, Server, PieChart, Building,
-    Lock, type LucideIcon
+    Lock, Bell, type LucideIcon
   } from 'lucide-react';
 
 export const IconMap: Record<string, LucideIcon> = {
   DollarSign, TrendingUp, TrendingDown, Percent, Clock, Target, Calculator, Calendar, CalendarCheck,
   Shield, ShieldAlert, Truck, Car, Wrench, Gauge, Key, AlertCircle, AlertTriangle, Settings, Users,
   UserPlus, Heart, UserCheck, UserX, Star, XCircle, Landmark, CreditCard, CheckCircle, Wallet,
-  CheckSquare, Banknote, Trophy, FileText, Award, Activity, BarChart, Zap, Server, PieChart, Building, Lock,
+  CheckSquare, Banknote, Trophy, FileText, Award, Activity, BarChart, Zap, Server, PieChart, Building, Lock, Bell,
 } as const;
 
 export type IconName = keyof typeof IconMap;
@@ -77,6 +77,9 @@ export const AVAILABLE_KPIS = {
     { id: 'avg-daily-km', label: 'KM Promedio Diario', icon: 'Activity', color: 'purple', category: 'KILOMETRAJE' },
     { id: 'total-mileage-logs', label: 'Total Registros', icon: 'FileText', color: 'cyan', category: 'KILOMETRAJE' },
   ],
+  SISTEMA: [
+    { id: 'unread-notifications', label: 'Notificaciones sin leer', icon: 'Bell', isInteractive: false, color: 'cyan', category: 'SISTEMA' },
+  ],
   MULTAS: [
     { id: 'total-multas', label: 'Total Multas', icon: 'ShieldAlert', color: 'red', category: 'MULTAS' },
     { id: 'multas-pendientes', label: 'Multas Pendientes', icon: 'AlertTriangle', isInteractive: true, color: 'yellow', category: 'MULTAS' },
@@ -122,7 +125,8 @@ export const DEFAULT_DASHBOARD_CONFIG: Omit<UserDashboardConfig, 'userId' | 'com
   layout: 'grid',
   theme: 'system',
   widgets: [
-    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 0 },
+    { id: 'unread-notifications', type: 'metric', title: 'Notificaciones sin leer', category: 'SISTEMA', dataKey: 'unread-notifications', enabled: true, order: 0, size: 'large' },
+    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 1 },
     { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'totalActive', enabled: true, order: 1 },
     { id: 'total-clients', type: 'metric', title: 'Clientes Activos', category: 'CLIENTES', dataKey: 'totalActiveClients', enabled: true, order: 2 },
     { id: 'active-credits', type: 'metric', title: 'Créditos Activos', category: 'CREDITOS', dataKey: 'totalActiveCredits', enabled: true, order: 3 },
