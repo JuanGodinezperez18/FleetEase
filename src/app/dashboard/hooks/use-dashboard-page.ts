@@ -130,6 +130,13 @@ export function useDashboardPage() {
     },
     [allKPIs, modals]
   );
+  const openVehicleProfitabilityModal = React.useCallback(
+    (kpiKey: string, title: string) => {
+      const kpiDetails = (allKPIs[kpiKey] as any)?.details ?? [];
+      modals.handleOpenListModal('vehicle-profitability', title, kpiDetails);
+    },
+    [allKPIs, modals]
+  );
   const openPartnerBalancesModal = React.useCallback(() => {
     const kpiDetails = (allKPIs['total-partner-balance'] as any)?.details;
     if (kpiDetails) modals.handleOpenListModal('partners', 'Balances de Socios', kpiDetails);
@@ -213,10 +220,15 @@ export function useDashboardPage() {
         openMultasListModal('multas-pendientes', 'Vehículos con Multas Pendientes'),
       'vehiculos-con-multas': () =>
         openMultasListModal('vehiculos-con-multas', 'Vehículos con Multas'),
+      'vehicles-without-income': () =>
+        openVehicleListModal('vehicles-without-income', 'Vehículos sin generar ingresos'),
+      'vehicle-gross-profitability': () =>
+        openVehicleProfitabilityModal('vehicle-gross-profitability', 'Rentabilidad del vehículo'),
     }),
     [
       openClientListModal,
       openVehicleListModal,
+      openVehicleProfitabilityModal,
       openPartnerBalancesModal,
       openCreditListModal,
       openLicenseExpiringModal,

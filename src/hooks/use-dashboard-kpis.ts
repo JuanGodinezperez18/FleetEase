@@ -11,6 +11,12 @@ import { useMultasAnalytics } from './use-multas-analytics';
 import type { DateRange } from 'react-day-picker';
 import { isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
+import {
+  categoryIdsByAffects,
+  filterRecordsByVehicle,
+  sumExpense,
+  sumRentalIncome,
+} from '@/lib/financial-metrics';
 
 /**
  * Hook central que agrega todos los KPIs de los hooks especializados.
@@ -129,30 +135,81 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       if (record.vehicleId) incomeInPeriodByVehicle.add(record.vehicleId);
     }
     const nowMs = Date.now();
+    const periodDays =
+      dateRange?.from && dateRange?.to
+        ? Math.max(
+            1,
+            Math.floor((dateRange.to.getTime() - dateRange.from.getTime()) / 86_400_000) + 1
+          )
+        : 30;
+    const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
+
     const vehiclesWithoutIncomeData = operationalVehicles
       .filter(v => !incomeInPeriodByVehicle.has(v.id))
       .map(v => {
         const last = lastIncomeByVehicleId.get(v.id) ?? null;
         const daysWithoutIncome = last
           ? Math.max(0, Math.floor((nowMs - new Date(last).getTime()) / 86_400_000))
-          : null;
+          : periodDays;
+        const neverHadIncome = !last;
+        const weekly = Number(v.weeklyRentalValue) || 0;
+        const dailyRate = weekly > 0 ? weekly / 7 : 0;
+        const estimatedLostIncome = dailyRate > 0 ? Math.round(dailyRate * daysWithoutIncome) : 0;
         return {
           ...v,
           lastIncomeDate: last,
           daysWithoutIncome,
-          neverHadIncome: !last,
+          neverHadIncome,
+          estimatedLostIncome,
+          imageUrl: typeof v.imageUrl === 'string' ? v.imageUrl : undefined,
         };
       })
       .sort((a, b) => {
-        // Sin historial primero, luego más días sin ingreso
         if (a.neverHadIncome !== b.neverHadIncome) return a.neverHadIncome ? -1 : 1;
-        return (b.daysWithoutIncome ?? 0) - (a.daysWithoutIncome ?? 0);
+        return (b.estimatedLostIncome || 0) - (a.estimatedLostIncome || 0);
       });
     const avgDaysWithoutIncome = (() => {
-      const withDays = vehiclesWithoutIncomeData.filter(v => v.daysWithoutIncome != null);
-      if (withDays.length === 0) return null;
-      return Math.round(withDays.reduce((s, v) => s + (v.daysWithoutIncome || 0), 0) / withDays.length);
+      if (vehiclesWithoutIncomeData.length === 0) return null;
+      return Math.round(
+        vehiclesWithoutIncomeData.reduce((s, v) => s + (v.daysWithoutIncome || 0), 0) /
+          vehiclesWithoutIncomeData.length
+      );
     })();
+    const totalEstimatedLostIncome = vehiclesWithoutIncomeData.reduce(
+      (s, v) => s + (v.estimatedLostIncome || 0),
+      0
+    );
+
+    // Rentabilidad bruta por vehículo = ingresos operativos − gastos (sin costo de adquisición)
+    const vehicleGrossProfitabilityData = operationalVehicles
+      .map(v => {
+        const vehicleRecords = filterRecordsByVehicle(filteredFinancialRecords, v.id);
+        const totalIncome = sumRentalIncome(vehicleRecords, depositCategoryIds);
+        const totalExpenses = sumExpense(vehicleRecords);
+        const grossProfit = totalIncome - totalExpenses;
+        const netProfit = grossProfit - (Number(v.cost) || 0);
+        return {
+          id: v.id,
+          alias: v.alias,
+          plate: v.plate,
+          make: v.make,
+          model: v.model,
+          status: v.status,
+          imageUrl: typeof v.imageUrl === 'string' ? v.imageUrl : undefined,
+          weeklyRentalValue: v.weeklyRentalValue,
+          totalIncome,
+          totalExpenses,
+          grossProfit,
+          netProfit,
+          vehicleCost: Number(v.cost) || 0,
+        };
+      })
+      .sort((a, b) => b.grossProfit - a.grossProfit);
+    const totalGrossProfit = vehicleGrossProfitabilityData.reduce((s, v) => s + v.grossProfit, 0);
+    const avgGrossProfit =
+      vehicleGrossProfitabilityData.length > 0
+        ? totalGrossProfit / vehicleGrossProfitabilityData.length
+        : 0;
     const maintenanceDue = mileageMetrics.filter(vm => (vm.kmToNextMaintenance || 0) <= 0).length;
     const now = new Date();
     const thirtyDaysFromNow = new Date();
@@ -256,10 +313,23 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         value: vehiclesWithoutIncomeData.length,
         subtitle: vehiclesWithoutIncomeData.length === 0
           ? 'Todos generaron ingreso en el período'
-          : avgDaysWithoutIncome != null
-            ? `Promedio ${avgDaysWithoutIncome} días sin ingreso`
-            : `${vehiclesWithoutIncomeData.filter(v => v.neverHadIncome).length} sin historial de ingresos`,
+          : [
+              avgDaysWithoutIncome != null ? `Prom. ${avgDaysWithoutIncome} días sin ingreso` : null,
+              totalEstimatedLostIncome > 0
+                ? `Dejado de ganar ~$${totalEstimatedLostIncome.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`
+                : null,
+            ].filter(Boolean).join(' · ') || `${vehiclesWithoutIncomeData.length} sin ingreso`,
         details: vehiclesWithoutIncomeData,
+        loading: false
+      },
+      'vehicle-gross-profitability': {
+        value: avgGrossProfit,
+        subtitle:
+          vehicleGrossProfitabilityData.length === 0
+            ? 'Sin vehículos operativos'
+            : `Bruta prom. · Total $${totalGrossProfit.toLocaleString('es-MX', { maximumFractionDigits: 0 })} (ingresos − gastos)`,
+        trend: avgGrossProfit >= 0,
+        details: vehicleGrossProfitabilityData,
         loading: false
       },
       // Expuestos para el gráfico Estado de la Flota (segmentos adicionales)
@@ -419,6 +489,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     portfolioAnalytics,
     partnerBalancesFromData,
     financialAnalytics,
-    multasAnalytics
+    multasAnalytics,
+    financialCategories,
   ]);
 }

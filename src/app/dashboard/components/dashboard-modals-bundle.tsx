@@ -79,6 +79,14 @@ export const VehicleInspectionModal = dynamic(
   { ssr: false }
 );
 
+export const VehicleProfitabilityModal = dynamic(
+  () =>
+    import('@/components/dashboard/components/vehicle-profitability-modal').then(mod => ({
+      default: mod.VehicleProfitabilityModal,
+    })),
+  { ssr: false }
+);
+
 export const ModalSkeleton = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div className="w-full max-w-md animate-pulse rounded-lg bg-background p-6">

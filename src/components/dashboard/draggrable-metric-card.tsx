@@ -38,7 +38,7 @@ function formatNumber(value: string | number): string {
 const MONETARY_KPI_IDS = new Set([
   'client-balance-total', 'avg-client-balance', 'income-month', 'income-today', 'expenses-month',
   'expenses-today', 'net-income', 'cash-flow-month', 'projected-income', 'total-lent', 'total-pending',
-  'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas',
+  'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas', 'vehicle-gross-profitability',
 ]);
 
 function MetricCardSkeleton() {
