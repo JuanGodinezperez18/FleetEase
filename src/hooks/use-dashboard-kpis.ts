@@ -49,17 +49,19 @@ export function useDashboardKPIs(dateRange?: DateRange) {
   const multasAnalytics = useMultasAnalytics(multas, vehicles, clients);
 
   return useMemo(() => {
-    const filteredFinancialRecords = dateRange && dateRange.from && dateRange.to
-      ? financialRecords.filter(r => {
-          if (r.isDeleted) return false;
-          const recordDate = infallibleNormalizeDate(r.date);
-          if (!recordDate) return false;
-          return isWithinInterval(recordDate, {
-            start: dateRange.from!,
-            end: dateRange.to!
-          });
-        })
-      : financialRecords;
+    // Si no hay rango, usar últimos 30 días (evita que "vehículos sin ingreso" use todo el historial).
+    const effectiveFrom =
+      dateRange?.from && dateRange?.to
+        ? dateRange.from
+        : new Date(Date.now() - 30 * 86_400_000);
+    const effectiveTo =
+      dateRange?.from && dateRange?.to ? dateRange.to : new Date();
+    const filteredFinancialRecords = financialRecords.filter(r => {
+      if (r.isDeleted) return false;
+      const recordDate = infallibleNormalizeDate(r.date);
+      if (!recordDate) return false;
+      return isWithinInterval(recordDate, { start: effectiveFrom, end: effectiveTo });
+    });
 
     const incomeRecords: typeof filteredFinancialRecords = [];
     const expenseRecords: typeof filteredFinancialRecords = [];
@@ -131,13 +133,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       if (record.vehicleId) incomeInPeriodByVehicle.add(record.vehicleId);
     }
     const nowMs = Date.now();
-    const periodDays =
-      dateRange?.from && dateRange?.to
-        ? Math.max(
-            1,
-            Math.floor((dateRange.to.getTime() - dateRange.from.getTime()) / 86_400_000) + 1
-          )
-        : 30;
+    const periodDays = Math.max(
+      1,
+      Math.floor((effectiveTo.getTime() - effectiveFrom.getTime()) / 86_400_000) + 1
+    );
     const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
 
     const vehiclesWithoutIncomeData = operationalVehicles
@@ -453,6 +452,39 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       'projected-income': { value: projectedIncome, loading: false },
       'total-lent': { value: totalLent, loading: false },
       'total-pending': { value: totalRemaining, loading: false },
+
+      // Socios
+      'total-partners': {
+        value: partners.filter(p => !p.isDeleted).length,
+        loading: false,
+      },
+      'total-partner-balance': {
+        value: Number.isFinite(totalPartnerBalance) ? totalPartnerBalance : 0,
+        details: partnerBalances,
+        loading: false,
+      },
+      'partners-positive-balance': {
+        value: partnersPositiveBalance,
+        details: partnerBalances.filter((p: { balance: number }) => p.balance > 0),
+        loading: false,
+      },
+      'partners-negative-balance': {
+        value: partnersNegativeBalance,
+        details: partnerBalances.filter((p: { balance: number }) => p.balance < 0),
+        loading: false,
+      },
+      'vehicles-by-partners': {
+        value: vehicles.filter(v => !!v.partnerId && !v.isDeleted).length,
+        loading: false,
+      },
+      'avg-partner-balance': {
+        value:
+          partnerBalances.length > 0
+            ? (Number.isFinite(totalPartnerBalance) ? totalPartnerBalance : 0) / partnerBalances.length
+            : 0,
+        details: partnerBalances,
+        loading: false,
+      },
     };
 
     // Multas KPIs (si el analytics los expone)

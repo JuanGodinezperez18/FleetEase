@@ -224,14 +224,16 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 w-full sm:w-auto sm:max-w-[280px]">
         <Search
           placeholder="Buscar folio, vehículo, cliente..."
           value={searchTerm}
           onValueChange={setSearchTerm}
           width={280}
         />
+        </div>
         <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
           <SelectTrigger className="w-full border-white/10 bg-white/[0.03] text-white sm:w-[200px]">
             <SelectValue placeholder="Vehículo" />

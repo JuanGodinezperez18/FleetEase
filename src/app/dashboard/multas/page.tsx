@@ -139,8 +139,8 @@ export default function MultasPage() {
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
-        <header className="fe-module-header">
-          <div>
+        <header className="fe-module-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <div className="fe-module-eyebrow">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
               Operación
@@ -150,17 +150,19 @@ export default function MultasPage() {
             </h1>
             <p className="fe-module-subtitle">Infracciones de tránsito de la flota</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[color:var(--fe-lime)]/15 bg-[color:var(--fe-lime)]/[0.08] text-[var(--fe-lime)]">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[color:var(--fe-lime)]/15 bg-[color:var(--fe-lime)]/[0.08] text-[var(--fe-lime)] sm:flex">
               <ShieldAlert className="h-5 w-5" strokeWidth={1.75} />
             </div>
-            <ModuleDateFilterBar />
-              <Button
+            <div className="min-w-0 w-full sm:w-auto">
+              <ModuleDateFilterBar />
+            </div>
+            <Button
               onClick={() => {
                 setSelectedMulta(null);
                 setIsFormOpen(true);
               }}
-              className="h-11 rounded-xl px-4 text-xs font-semibold"
+              className="h-11 w-full shrink-0 rounded-xl px-4 text-xs font-semibold sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Registrar multa
@@ -215,7 +217,7 @@ export default function MultasPage() {
           else setIsFormOpen(true);
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-[color:var(--fe-border)] bg-[var(--fe-panel)] fe-text">
+        <DialogContent className="w-full max-w-full h-[100dvh] max-h-[100dvh] overflow-y-auto rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
           <DialogHeader>
             <DialogTitle className="font-heading text-white">
               {selectedMulta ? "Editar multa" : "Registrar multa"}

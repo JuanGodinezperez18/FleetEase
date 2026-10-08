@@ -81,14 +81,19 @@ function DraggableMetricCardBase({
     : null;
   if (!IconComponent) return null;
 
-  const rawNumericValue = kpiData?.value !== undefined
+  const rawNumericValue = kpiData?.value !== undefined && kpiData?.value !== null
     ? Number(String(kpiData.value).replace(/[$,\s]/g, ''))
-    : NaN;
+    : (kpiData ? 0 : NaN);
   const isMonetary = MONETARY_KPI_IDS.has(widget.id) || MONETARY_KPI_IDS.has(widget.dataKey);
   const isNegativeMoney = isMonetary && Number.isFinite(rawNumericValue) && rawNumericValue < 0;
-  const displayValue = kpiData?.value !== undefined
-    ? (isMonetary && Number.isFinite(rawNumericValue) ? formatCurrency(rawNumericValue) : formatNumber(kpiData.value))
-    : 'N/A';
+  // Monetary KPIs must never show N/A (0 is a valid balance). Only show N/A when the whole KPI is missing.
+  const displayValue = !kpiData
+    ? 'N/A'
+    : isMonetary
+      ? formatCurrency(Number.isFinite(rawNumericValue) ? rawNumericValue : 0)
+      : (kpiData.value !== undefined && kpiData.value !== null
+          ? formatNumber(kpiData.value)
+          : 'N/A');
   const changePercent = kpiData?.changePercent ?? (
     kpiData?.previousValue && kpiData?.value
       ? ((Number(kpiData.value) - Number(kpiData.previousValue)) / Number(kpiData.previousValue)) * 100
