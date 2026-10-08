@@ -41,6 +41,14 @@ interface INEScannerProps {
   disabled?: boolean;
 }
 
+/** True cuando la app corre instalada como PWA (standalone / fullscreen). */
+function isStandalonePWA(): boolean {
+  if (typeof window === "undefined") return false;
+  const mq = window.matchMedia?.("(display-mode: standalone)")?.matches;
+  const iosStandalone = (navigator as unknown as { standalone?: boolean }).standalone === true;
+  return Boolean(mq || iosStandalone);
+}
+
 /** Heurística simple: contraste en el centro del frame (documento tipo INE). */
 function looksLikeDocumentFrame(video: HTMLVideoElement): boolean {
   const w = 64;
@@ -201,9 +209,11 @@ export function INEScanner({ onDataExtracted, disabled }: INEScannerProps) {
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("Cámara no disponible", {
-        description: "Tu navegador no soporta acceso a la cámara. Usa «Subir Imagen».",
+      // En algunas PWA iOS getUserMedia no está disponible: forzar captura nativa.
+      toast.info("Usa la cámara del sistema", {
+        description: "Tu dispositivo no expone la cámara en la app instalada. Se abrirá el selector de fotos/cámara.",
       });
+      fileInputRef.current?.click();
       return;
     }
 
@@ -221,7 +231,7 @@ export function INEScanner({ onDataExtracted, disabled }: INEScannerProps) {
       } catch {
         mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: true,
+          video: { facingMode: "environment" },
         });
       }
       setStream(mediaStream);
@@ -232,18 +242,23 @@ export function INEScanner({ onDataExtracted, disabled }: INEScannerProps) {
       console.error("Error al acceder a la cámara:", error);
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        toast.error("Permiso de cámara denegado", {
-          description:
-            "En la barra del navegador, permite el acceso a la cámara para este sitio y vuelve a intentar.",
-        });
+        const pwaHint = isStandalonePWA()
+          ? " En la app instalada: Ajustes del teléfono → FleetEase → permitir Cámara, o usa «Subir Imagen»."
+          : " En la barra del navegador, permite el acceso a la cámara para este sitio y vuelve a intentar.";
+        toast.error("Permiso de cámara denegado", { description: pwaHint });
+        // Fallback: abrir selector nativo con capture (iOS/Android PWA)
+        fileInputRef.current?.click();
       } else if (name === "NotFoundError") {
         toast.error("No se encontró cámara", {
           description: "Conecta una cámara o usa «Subir Imagen».",
         });
       } else {
         toast.error("No se pudo acceder a la cámara", {
-          description: "Verifica los permisos del navegador o usa «Subir Imagen».",
+          description: isStandalonePWA()
+            ? "En la app instalada prueba «Subir Imagen» (abre la cámara del sistema)."
+            : "Verifica los permisos del navegador o usa «Subir Imagen».",
         });
+        if (isStandalonePWA()) fileInputRef.current?.click();
       }
     }
   }, []);
@@ -320,8 +335,9 @@ export function INEScanner({ onDataExtracted, disabled }: INEScannerProps) {
           <DialogHeader>
             <DialogTitle>Escanear INE</DialogTitle>
             <DialogDescription>
-              Sube una foto o usa la cámara (lado frontal). Con detección automática, centra la
-              credencial en el marco.
+              Sube una foto o usa la cámara (lado frontal). En la app instalada del teléfono,
+              si no pide permiso de cámara, usa «Subir Imagen» (abre la cámara del sistema).
+              Con detección automática, centra la credencial en el marco.
             </DialogDescription>
           </DialogHeader>
 
