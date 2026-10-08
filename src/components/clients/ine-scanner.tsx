@@ -1,1 +1,542 @@
-see-file
+"use client";
+
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Camera,
+  Upload,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  CreditCard,
+} from "lucide-react";
+import { toast } from "sonner";
+import Image from "next/image";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { scanDocument } from "@/lib/ocr/client";
+import { supabase } from "@/lib/supabase-browser";
+
+export interface ExtractedINEData {
+  firstname?: string;
+  lastname?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  curp?: string;
+  claveElector?: string;
+  birthDate?: string;
+  sex?: string;
+}
+
+interface INEScannerProps {
+  onDataExtracted: (data: ExtractedINEData) => void;
+  disabled?: boolean;
+}
+
+/** Heurística simple: contraste en el centro del frame (documento tipo INE). */
+function looksLikeDocumentFrame(video: HTMLVideoElement): boolean {
+  const w = 64;
+  const h = 40;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx || video.videoWidth < 16) return false;
+  ctx.drawImage(video, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let sum = 0;
+  let sumSq = 0;
+  const n = w * h;
+  for (let i = 0; i < data.length; i += 4) {
+    const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    sum += y;
+    sumSq += y * y;
+  }
+  const mean = sum / n;
+  const variance = sumSq / n - mean * mean;
+  return variance > 400 && mean > 40 && mean < 220;
+}
+
+export function INEScanner({ onDataExtracted, disabled }: INEScannerProps) {
+  const [open, setOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedINEData | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [hadError, setHadError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [useCamera, setUseCamera] = useState(false);
+  const [autoDetect, setAutoDetect] = useState(true);
+  const [detectStatus, setDetectStatus] = useState<string>("");
+  const stableHitsRef = useRef(0);
+  const processingRef = useRef(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!useCamera || !stream || !video) return;
+    video.srcObject = stream;
+    video.muted = true;
+    video.setAttribute("playsinline", "true");
+    video.play().catch((err) => {
+      console.warn("video.play()", err);
+    });
+  }, [useCamera, stream]);
+
+  useEffect(() => {
+    if (!useCamera || !autoDetect || isProcessing || previewUrl) return;
+    const id = window.setInterval(() => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2 || processingRef.current) return;
+      if (looksLikeDocumentFrame(video)) {
+        stableHitsRef.current += 1;
+        setDetectStatus(`INE detectada (${stableHitsRef.current}/3)…`);
+        if (stableHitsRef.current >= 3) {
+          stableHitsRef.current = 0;
+          setDetectStatus("Capturando…");
+          capturePhoto();
+        }
+      } else {
+        stableHitsRef.current = Math.max(0, stableHitsRef.current - 1);
+        setDetectStatus("Centra la INE dentro del marco");
+      }
+    }, 700);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useCamera, autoDetect, isProcessing, previewUrl]);
+
+  const processImage = useCallback(async (file: File) => {
+    processingRef.current = true;
+    setIsProcessing(true);
+    setExtractedData(null);
+    setWarnings([]);
+    setHadError(false);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => setPreviewUrl(e.target?.result as string);
+      reader.readAsDataURL(file);
+
+      toast.info("Procesando INE...", {
+        description: "Extracción con IA, puede tomar unos segundos",
+      });
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Sesión no disponible. Inicia sesión de nuevo.");
+
+      const result = await scanDocument("ine", file, token);
+      const d = result.data;
+
+      const mapped: ExtractedINEData = {};
+      if (d.nombres) mapped.firstname = d.nombres;
+      const apellidos = [d.apellidoPaterno, d.apellidoMaterno].filter(Boolean).join(" ");
+      if (apellidos) mapped.lastname = apellidos;
+      if (d.calle) mapped.street = d.calle;
+      if (d.ciudad) mapped.city = d.ciudad;
+      if (d.estado) mapped.state = d.estado;
+      if (d.codigoPostal) mapped.zipCode = d.codigoPostal;
+      if (d.curp) mapped.curp = d.curp;
+      if (d.claveElector) mapped.claveElector = d.claveElector;
+      if (d.fechaNacimiento) mapped.birthDate = d.fechaNacimiento;
+      if (d.sexo) mapped.sex = d.sexo === "H" ? "Masculino" : "Femenino";
+
+      if (result.warnings.length) setWarnings(result.warnings);
+
+      const filled = Object.keys(mapped).length;
+      if (filled === 0 || d.legible === false) {
+        setHadError(true);
+        toast.error("No se pudieron extraer datos", {
+          description: "Intenta con una imagen más clara del frente de la INE",
+        });
+      } else {
+        setExtractedData(mapped);
+        toast.success("Datos extraídos exitosamente", {
+          description: `Se encontraron ${filled} campos`,
+        });
+        for (const w of result.warnings) toast.warning(w);
+      }
+    } catch (error) {
+      console.error("Error al procesar INE:", error);
+      setHadError(true);
+      toast.error("Error al procesar la imagen", {
+        description: error instanceof Error ? error.message : "Verifica que la imagen sea legible",
+      });
+    } finally {
+      setIsProcessing(false);
+      processingRef.current = false;
+    }
+  }, []);
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Archivo muy grande", { description: "El tamaño máximo es 10MB" });
+        return;
+      }
+      processImage(file);
+    },
+    [processImage]
+  );
+
+  const startCamera = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    if (!window.isSecureContext) {
+      toast.error("La cámara requiere HTTPS", {
+        description: "Abre la app en https:// o localhost para usar la cámara.",
+      });
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Cámara no disponible", {
+        description: "Tu navegador no soporta acceso a la cámara. Usa «Subir Imagen».",
+      });
+      return;
+    }
+
+    try {
+      let mediaStream: MediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+        });
+      } catch {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: true,
+        });
+      }
+      setStream(mediaStream);
+      setUseCamera(true);
+      stableHitsRef.current = 0;
+      setDetectStatus("Centra la INE dentro del marco");
+    } catch (error: unknown) {
+      console.error("Error al acceder a la cámara:", error);
+      const name = error instanceof DOMException ? error.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        toast.error("Permiso de cámara denegado", {
+          description:
+            "En la barra del navegador, permite el acceso a la cámara para este sitio y vuelve a intentar.",
+        });
+      } else if (name === "NotFoundError") {
+        toast.error("No se encontró cámara", {
+          description: "Conecta una cámara o usa «Subir Imagen».",
+        });
+      } else {
+        toast.error("No se pudo acceder a la cámara", {
+          description: "Verifica los permisos del navegador o usa «Subir Imagen».",
+        });
+      }
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      setStream(null);
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setUseCamera(false);
+    setDetectStatus("");
+    stableHitsRef.current = 0;
+  }, [stream]);
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) {
+      toast.error("La cámara aún no está lista");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            processImage(new File([blob], "ine.jpg", { type: "image/jpeg" }));
+            stopCamera();
+          }
+        },
+        "image/jpeg",
+        0.92
+      );
+    }
+  }, [processImage, stopCamera]);
+
+  const handleClose = useCallback(() => {
+    stopCamera();
+    setPreviewUrl(null);
+    setExtractedData(null);
+    setWarnings([]);
+    setHadError(false);
+    setOpen(false);
+  }, [stopCamera]);
+
+  const handleApplyData = useCallback(() => {
+    if (extractedData) {
+      onDataExtracted(extractedData);
+      toast.success("Datos aplicados al formulario");
+      handleClose();
+    }
+  }, [extractedData, onDataExtracted, handleClose]);
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="w-full"
+      >
+        <CreditCard className="mr-2 h-4 w-4" />
+        Escanear INE
+      </Button>
+
+      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Escanear INE</DialogTitle>
+            <DialogDescription>
+              Sube una foto o usa la cámara (lado frontal). Con detección automática, centra la
+              credencial en el marco.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {!previewUrl && !useCamera && (
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                  className="h-24"
+                >
+                  <Upload className="mr-2 h-6 w-6" />
+                  Subir Imagen
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={startCamera}
+                  disabled={isProcessing}
+                  className="h-24"
+                >
+                  <Camera className="mr-2 h-6 w-6" />
+                  Usar Cámara
+                </Button>
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {useCamera && (
+              <div className="space-y-3">
+                <div className="relative w-full rounded-lg border overflow-hidden bg-black aspect-[4/3]">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="w-[86%] max-w-md aspect-[1.6/1] rounded-md border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                  </div>
+                  {detectStatus && (
+                    <div className="absolute bottom-2 left-0 right-0 text-center">
+                      <span className="rounded bg-black/60 px-2 py-1 text-xs text-white">
+                        {detectStatus}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={autoDetect}
+                    onChange={(e) => {
+                      setAutoDetect(e.target.checked);
+                      stableHitsRef.current = 0;
+                    }}
+                  />
+                  Detectar INE automáticamente y capturar
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={capturePhoto}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Capturar Foto
+                  </Button>
+                  <Button type="button" variant="outline" onClick={stopCamera}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {previewUrl && (
+              <div className="space-y-4">
+                <div className="relative w-full h-64 rounded-lg border overflow-hidden">
+                  <Image src={previewUrl} alt="INE" fill className="object-contain" />
+                </div>
+
+                {isProcessing && (
+                  <Alert>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      Procesando INE con IA... Esto puede tomar unos segundos
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {extractedData && !isProcessing && (
+                  <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="font-semibold">Datos extraídos:</p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {extractedData.firstname && (
+                            <div>
+                              <span className="font-medium">Nombre(s):</span>{" "}
+                              {extractedData.firstname}
+                            </div>
+                          )}
+                          {extractedData.lastname && (
+                            <div>
+                              <span className="font-medium">Apellidos:</span>{" "}
+                              {extractedData.lastname}
+                            </div>
+                          )}
+                          {extractedData.curp && (
+                            <div className="col-span-2">
+                              <span className="font-medium">CURP:</span> {extractedData.curp}
+                            </div>
+                          )}
+                          {extractedData.birthDate && (
+                            <div>
+                              <span className="font-medium">Fecha Nac.:</span>{" "}
+                              {extractedData.birthDate}
+                            </div>
+                          )}
+                          {extractedData.sex && (
+                            <div>
+                              <span className="font-medium">Sexo:</span> {extractedData.sex}
+                            </div>
+                          )}
+                          {extractedData.street && (
+                            <div className="col-span-2">
+                              <span className="font-medium">Calle:</span> {extractedData.street}
+                            </div>
+                          )}
+                          {extractedData.city && (
+                            <div>
+                              <span className="font-medium">Ciudad:</span> {extractedData.city}
+                            </div>
+                          )}
+                          {extractedData.state && (
+                            <div>
+                              <span className="font-medium">Estado:</span> {extractedData.state}
+                            </div>
+                          )}
+                          {extractedData.zipCode && (
+                            <div>
+                              <span className="font-medium">C.P.:</span> {extractedData.zipCode}
+                            </div>
+                          )}
+                          {extractedData.claveElector && (
+                            <div className="col-span-2">
+                              <span className="font-medium">Clave Elector:</span>{" "}
+                              {extractedData.claveElector}
+                            </div>
+                          )}
+                        </div>
+                        {warnings.length > 0 && (
+                          <ul className="mt-2 text-amber-700 dark:text-amber-400 text-xs list-disc pl-4">
+                            {warnings.map((w) => (
+                              <li key={w}>{w}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {hadError && !isProcessing && !extractedData && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      No se pudieron extraer datos suficientes. Intenta con una imagen más clara del
+                      lado frontal de la INE o ingresa los datos manualmente.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex gap-2">
+                  {extractedData && (
+                    <Button type="button" onClick={handleApplyData} className="flex-1">
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Aplicar Datos
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setPreviewUrl(null);
+                      setExtractedData(null);
+                      setWarnings([]);
+                      setHadError(false);
+                    }}
+                    disabled={isProcessing}
+                  >
+                    Intentar de Nuevo
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={handleClose}>
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
