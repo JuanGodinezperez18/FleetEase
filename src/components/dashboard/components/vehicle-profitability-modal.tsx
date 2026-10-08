@@ -146,7 +146,7 @@ export function VehicleProfitabilityModal({
                     }}
                     className="flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
                   >
-                    <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+                    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-sm">
                       {v.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={v.imageUrl} alt={name} className="h-full w-full object-cover" />

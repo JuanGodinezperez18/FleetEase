@@ -364,7 +364,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     toast.success('Registro agregado');
   }, [queryClient]);
-  const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
+  const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => {
+    const incomePayload = { ...data, type: 'income' as const, createdAt: new Date().toISOString() };
+    await createFinancialRecord(toSbFinancialRecord(incomePayload) as any);
+
+    // Side-effect atómico de negocio: renta semanal → gasto de administración del vehículo
+    // (el trigger SQL create_vehicle_admin_income genera el ingreso de la empresa si el vehículo es de socio).
+    try {
+      const categoryName = (
+        data.category ||
+        allFinancialCategories.find(c => c.id === data.categoryId)?.name ||
+        ''
+      ).trim();
+      const isWeeklyRental = /renta|rent/i.test(categoryName);
+      const vehicleId = data.vehicleId || null;
+      if (isWeeklyRental && vehicleId) {
+        const vehicle = allVehicles.find(v => v.id === vehicleId);
+        const adminFee = Number(vehicle?.adminCommission);
+        if (vehicle && Number.isFinite(adminFee) && adminFee > 0) {
+          const adminCat =
+            allFinancialCategories.find(
+              c =>
+                c.type === 'expense' &&
+                c.name?.toLowerCase().trim() === 'administración de vehículo'
+            ) ||
+            allFinancialCategories.find(
+              c =>
+                c.type === 'expense' &&
+                /administraci[oó]n/.test((c.name || '').toLowerCase())
+            );
+          await createFinancialRecord(
+            toSbFinancialRecord({
+              companyId: data.companyId || vehicle.companyId,
+              type: 'expense',
+              categoryId: adminCat?.id || ('' as any),
+              category: adminCat?.name || 'Administración de Vehículo',
+              amount: adminFee,
+              date: data.date || new Date().toISOString().slice(0, 10),
+              description: `Administración del vehículo ${vehicle.alias || vehicle.plate || ''}`.trim(),
+              vehicleId,
+              partnerId: vehicle.partnerId || undefined,
+              clientId: data.clientId || vehicle.clientId || undefined,
+              isDeleted: false,
+              createdAt: new Date().toISOString(),
+              sourceRecordType: 'vehicle_admin_fee_from_rental',
+            } as any) as any
+          );
+        }
+      }
+    } catch (sideError) {
+      console.error('[addIncome] Error al crear gasto de administración ligado a la renta:', sideError);
+      toast.error('Ingreso creado, pero falló el gasto de administración', {
+        description: sideError instanceof Error ? sideError.message : 'Revisa el costo de administración del vehículo.',
+      });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+    toast.success('Registro agregado');
+  }, [allVehicles, allFinancialCategories, queryClient]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = typeof result.id === 'string' ? result.id : null; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
   const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => { try { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); const paymentCompanyId = companyId || currentUser.companyId; if (!paymentCompanyId) throw new Error('Empresa no disponible para procesar el pago'); if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero'); const { data, error } = await supabase.rpc('process_credit_payment_atomic', { p_company_id: paymentCompanyId, p_credit_id: creditId, p_client_id: clientId, p_amount: amount, p_payment_date: new Date().toISOString().slice(0, 10), p_payment_method: paymentMethod || 'transferencia', ...(description ? { p_reference: description } : {}) }); if (error) throw error; await refreshData(); const result = isJsonObject(data) ? data : {}; const responseCreditId = [result.creditId, result.credit_id].find((value): value is string => typeof value === 'string') ?? creditId; const scheduleId = [result.paymentScheduleId, result.payment_schedule_id].find((value): value is string => typeof value === 'string') ?? null; const completed = result.creditCompleted ?? result.credit_completed; return { success: result.success !== false, newCreditBalance: Number(result.newCreditBalance ?? result.new_remaining_balance ?? result.remaining_balance ?? 0), creditId: responseCreditId, paymentScheduleId: scheduleId, creditCompleted: typeof completed === 'boolean' ? completed : result.status === 'completed', ...(typeof result.error === 'string' ? { error: result.error } : {}) }; } catch (error: unknown) { logger.error('Error processing credit payment:', error); return { success: false, error: error instanceof Error ? error.message : 'No fue posible procesar el pago', newCreditBalance: 0, creditId: null, paymentScheduleId: null }; } }, [currentUser, refreshData]);

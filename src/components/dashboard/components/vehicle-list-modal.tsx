@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useShareContent } from '@/hooks/use-share-content';
 import { useModalData } from '@/hooks/use-modal-data';
 import { Share2, Search, Car, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
@@ -45,6 +45,12 @@ interface VehicleData {
   maintenanceInterval?: number;
   insuranceExpiryDate?: string;
   verificationExpiryDate?: string;
+  daysWithoutIncome?: number;
+  estimatedLostIncome?: number;
+  neverHadIncome?: boolean;
+  lastIncomeDate?: string | null;
+  imageUrl?: string;
+  weeklyRentalValue?: number;
 }
 
 interface VehicleListModalProps {
@@ -115,6 +121,16 @@ export function VehicleListModal({
     },
     initialPageSize: 20,
   });
+
+  const hasIdleMetrics = useMemo(
+    () =>
+      vehicles.some(
+        v =>
+          typeof v.daysWithoutIncome === 'number' ||
+          typeof v.estimatedLostIncome === 'number'
+      ),
+    [vehicles]
+  );
 
   const stats = useMemo(() => {
     const overdue = filteredData.filter(v => getMaintenanceStatus(v) === 'overdue').length;
@@ -215,6 +231,12 @@ export function VehicleListModal({
                     <TableHead className="text-white/40">Placa</TableHead>
                     <TableHead className="text-right text-white/40">Kilometraje</TableHead>
                     <TableHead className="text-right text-white/40">Próx. mant.</TableHead>
+                    {hasIdleMetrics && (
+                      <TableHead className="text-center text-white/40">Días sin ingreso</TableHead>
+                    )}
+                    {hasIdleMetrics && (
+                      <TableHead className="text-right text-white/40">Dejado de ganar</TableHead>
+                    )}
                     <TableHead className="text-center text-white/40">Estado</TableHead>
                     <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
@@ -242,6 +264,12 @@ export function VehicleListModal({
                     <TableHead className="text-white/40">Placa</TableHead>
                     <TableHead className="text-right text-white/40">Kilometraje</TableHead>
                     <TableHead className="text-right text-white/40">Próx. mant.</TableHead>
+                    {hasIdleMetrics && (
+                      <TableHead className="text-center text-white/40">Días sin ingreso</TableHead>
+                    )}
+                    {hasIdleMetrics && (
+                      <TableHead className="text-right text-white/40">Dejado de ganar</TableHead>
+                    )}
                     <TableHead className="text-center text-white/40">Estado</TableHead>
                     <TableHead className="text-right text-white/40">Acción</TableHead>
                   </TableRow>
@@ -302,6 +330,34 @@ export function VehicleListModal({
                             <span className="text-white/35">No configurado</span>
                           )}
                         </TableCell>
+                        {hasIdleMetrics && (
+                          <TableCell className="text-center tabular-nums text-white/70">
+                            {typeof vehicle.daysWithoutIncome === 'number' ? (
+                              <span>
+                                {vehicle.daysWithoutIncome} días
+                                {vehicle.neverHadIncome ? (
+                                  <span className="block text-[10px] text-amber-300/80">
+                                    Nunca generó ingreso
+                                  </span>
+                                ) : null}
+                              </span>
+                            ) : (
+                              <span className="text-white/35">—</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {hasIdleMetrics && (
+                          <TableCell className="text-right tabular-nums">
+                            {typeof vehicle.estimatedLostIncome === 'number' &&
+                            vehicle.estimatedLostIncome > 0 ? (
+                              <span className="font-medium text-rose-300">
+                                {formatCurrency(vehicle.estimatedLostIncome)}
+                              </span>
+                            ) : (
+                              <span className="text-white/35">—</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell className="text-center">
                           <span className={STATUS_BADGE[status]}>
                             {status === 'overdue' && (

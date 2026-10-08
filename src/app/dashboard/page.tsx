@@ -26,6 +26,7 @@ import {
   ExpenseListModal,
   MultaVehiclesListModal,
   VehicleInspectionModal,
+  VehicleProfitabilityModal,
 } from './components/dashboard-modals-bundle';
 
 const COUNT_KPI_IDS = new Set([
@@ -449,6 +450,14 @@ export default function DashboardPage() {
           )}
           {activeModal === 'multas' && (
             <MultaVehiclesListModal
+              isOpen={true}
+              onClose={() => setActiveModal(null)}
+              title={modalData.title}
+              vehicles={modalData.data}
+            />
+          )}
+          {activeModal === 'vehicle-profitability' && (
+            <VehicleProfitabilityModal
               isOpen={true}
               onClose={() => setActiveModal(null)}
               title={modalData.title}
