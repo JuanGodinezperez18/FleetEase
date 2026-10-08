@@ -94,15 +94,42 @@ export const useClientAnalytics = (
       const lastActivityDate = latestRecordDate;
       const daysSinceLastActivity = hydrated && lastActivityDate ? differenceInDays(new Date(), lastActivityDate) : null;
 
+      // Estado de pago: considera saldo pendiente (facturas/cargos de contado sin abono)
+      // y antigüedad sin pago. Un cargo de contado impago por meses debe marcar Crítico/Malo.
       let paymentBehavior: ClientMetric['paymentBehavior'] = 'Regular';
-      if (currentBalance > 0 && daysSinceLastPayment !== null) {
-        if (daysSinceLastPayment <= 7) paymentBehavior = 'Bueno';
-        else if (daysSinceLastPayment <= 14) paymentBehavior = 'Regular';
-        else if (daysSinceLastPayment <= 30) paymentBehavior = 'Malo';
-        else paymentBehavior = 'Crítico';
-      } else if (currentBalance <= 0) {
+      const debtAgeDays =
+        currentBalance > 0
+          ? (daysSinceLastPayment !== null
+              ? daysSinceLastPayment
+              : (hydrated && latestRecordDate
+                  ? differenceInDays(new Date(), latestRecordDate)
+                  : null))
+          : null;
+
+      if (currentBalance <= 0) {
         paymentBehavior = 'Excelente';
-      } else if (balanceRecordCount > 0) {
+      } else if (debtAgeDays !== null) {
+        // Deuda activa: antigüedad + monto
+        if (currentBalance > 10000 || debtAgeDays > 60) {
+          paymentBehavior = 'Crítico';
+        } else if (currentBalance > 6000 || debtAgeDays > 30) {
+          paymentBehavior = 'Malo';
+        } else if (debtAgeDays > 14) {
+          paymentBehavior = 'Regular';
+        } else if (debtAgeDays <= 7) {
+          paymentBehavior = 'Bueno';
+        } else {
+          paymentBehavior = 'Regular';
+        }
+      } else if (balanceRecordCount > 0 && currentBalance > 0) {
+        // Tiene deuda pero no pudimos calcular antigüedad
+        paymentBehavior = currentBalance > 6000 ? 'Malo' : 'Regular';
+      }
+
+      if (currentBalance > 6000 && paymentBehavior === 'Bueno') {
+        paymentBehavior = 'Regular';
+      }
+      if (currentBalance > 10000 && (paymentBehavior === 'Bueno' || paymentBehavior === 'Regular')) {
         paymentBehavior = 'Malo';
       }
 
