@@ -47,13 +47,23 @@ export const plans: Record<PlanType, PlanConfig> = {
     comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp para administradores, socios y clientes','Automatizaciones operativas avanzadas'], popular:true,
   },
   enterprise: {
-    id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:50, maxUsers:10, requiresPaymentMethod:true,
+    id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:-1, maxUsers:-1, requiresPaymentMethod:true,
     description:'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
-    features:['Todo lo incluido en Pro','Hasta 50 vehículos','Hasta 10 usuarios','Soporte y acompañamiento empresarial'],
+    features:['Todo lo incluido en Pro','Vehículos ilimitados','Usuarios ilimitados','Soporte y acompañamiento empresarial'],
     // No se anuncian como disponibles hasta que exista implementación real.
     comingSoon:['API de integración y webhooks','Multiempresa','Personalización de marca (white-label)','Reportes personalizados','Integraciones GPS multi-proveedor'],
   },
 };
+
+/** IDs de empresas de prueba con plan Enterprise permanente (no degradables por Stripe). */
+export const PERMANENT_ENTERPRISE_COMPANY_IDS = [
+  'cca57015-9633-42a2-870e-72e713d8e17b', // Mi Empresa — empresa de prueba
+] as const;
+
+export function isPermanentEnterpriseCompany(companyId: string | null | undefined): boolean {
+  if (!companyId) return false;
+  return (PERMANENT_ENTERPRISE_COMPANY_IDS as readonly string[]).includes(companyId);
+}
 
 export function getPlanConfig(planId: PlanType): PlanConfig { return plans[planId]; }
 export function hasVehicleLimit(planId: PlanType): boolean { return plans[planId].maxVehicles !== -1; }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe';
-import { plans, type PlanType } from '@/config/plans';
+import { isPermanentEnterpriseCompany, plans, type PlanType } from '@/config/plans';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -43,6 +43,14 @@ async function applyCompanyPlan(
   stripeSubscriptionId: string | null,
   stripeCustomerId?: string | null,
 ) {
+  // Empresas de prueba con Enterprise permanente: nunca degradar a free / past_due.
+  if (isPermanentEnterpriseCompany(companyId) && plan === 'free') {
+    console.log(
+      `[Stripe webhook] Skipping plan downgrade for permanent test company ${companyId}`,
+    );
+    return;
+  }
+
   const config = plans[plan];
   const supabaseAdmin = getSupabaseAdmin();
   await supabaseAdmin
