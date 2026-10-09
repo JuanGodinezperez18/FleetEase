@@ -252,10 +252,11 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       })
       .sort((a, b) => b.grossProfit - a.grossProfit);
     const totalGrossProfit = vehicleGrossProfitabilityData.reduce((s, v) => s + v.grossProfit, 0);
-    const avgGrossProfit =
-      vehicleGrossProfitabilityData.length > 0
-        ? totalGrossProfit / vehicleGrossProfitabilityData.length
-        : 0;
+    const totalProfitabilityIncome = vehicleGrossProfitabilityData.reduce((s, v) => s + v.totalIncome, 0);
+    // Margen ponderado del portafolio; no promediar porcentajes individuales.
+    const averageVehicleProfitability = totalProfitabilityIncome > 0
+      ? (totalGrossProfit / totalProfitabilityIncome) * 100
+      : null;
     const maintenanceDue = mileageMetrics.filter(vm => (vm.kmToNextMaintenance || 0) <= 0).length;
     const now = new Date();
     const thirtyDaysFromNow = new Date();
@@ -369,12 +370,11 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         loading: false
       },
       'vehicle-gross-profitability': {
-        value: avgGrossProfit,
-        subtitle:
-          vehicleGrossProfitabilityData.length === 0
-            ? 'Sin vehículos operativos'
-            : `Bruta prom. · Total $${totalGrossProfit.toLocaleString('es-MX', { maximumFractionDigits: 0 })} (renta o crédito − gastos)`,
-        trend: avgGrossProfit >= 0,
+        value: averageVehicleProfitability ?? 0,
+        subtitle: averageVehicleProfitability === null
+          ? 'Sin ingresos en el período'
+          : `${vehicleGrossProfitabilityData.length} vehículos · Margen sobre ingresos`,
+        trend: (averageVehicleProfitability ?? 0) >= 0,
         details: vehicleGrossProfitabilityData,
         loading: false
       },
