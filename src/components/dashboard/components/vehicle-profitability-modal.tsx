@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useModalData } from '@/hooks/use-modal-data';
-import { Search, TrendingUp, TrendingDown, Car, Percent } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Car } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { EmptyState } from '@/components/common/empty-state';
 
