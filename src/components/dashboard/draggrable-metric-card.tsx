@@ -91,7 +91,7 @@ function DraggableMetricCardBase({
   const displayValue = !kpiData
     ? 'N/A'
     : isProfitabilityPercent
-      ? (kpiData.value === null || kpiData.value === undefined ? '—' : `${Number.isFinite(rawNumericValue) ? rawNumericValue.toFixed(1) : '0.0'}%`)
+      ? (kpiData.value === null || kpiData.value === undefined || kpiData.value === '—' ? '—' : `${Number.isFinite(rawNumericValue) ? rawNumericValue.toFixed(1) : '—'}%`)
       : isMonetary
       ? formatCurrency(Number.isFinite(rawNumericValue) ? rawNumericValue : 0)
       : (kpiData.value !== undefined && kpiData.value !== null
