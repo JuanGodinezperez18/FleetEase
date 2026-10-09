@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useModalData } from '@/hooks/use-modal-data';
-import { Search, TrendingUp, TrendingDown, Car } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Car, Percent } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { EmptyState } from '@/components/common/empty-state';
 
@@ -33,6 +33,7 @@ export interface VehicleProfitabilityRow {
   netProfit?: number;
   vehicleCost?: number;
   weeklyRentalValue?: number;
+  operationType?: 'rental' | 'credit';
 }
 
 interface VehicleProfitabilityModalProps {
@@ -73,7 +74,7 @@ export function VehicleProfitabilityModal({
     const gross = filteredData.reduce((s, v) => s + (v.grossProfit || 0), 0);
     const income = filteredData.reduce((s, v) => s + (v.totalIncome || 0), 0);
     const expenses = filteredData.reduce((s, v) => s + (v.totalExpenses || 0), 0);
-    return { gross, income, expenses };
+    return { gross, income, expenses, margin: income > 0 ? (gross / income) * 100 : null };
   }, [filteredData]);
 
   return (
@@ -87,28 +88,29 @@ export function VehicleProfitabilityModal({
             <div>
               <DialogTitle>{title}</DialogTitle>
               <DialogDescription className="mt-1">
-                Rentabilidad bruta = ingresos − gastos (sin costo del vehículo). {totalResults} unidad
-                {totalResults !== 1 ? 'es' : ''}.
+                Rentabilidad por unidad · {totalResults} vehículos
               </DialogDescription>
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 font-semibold text-emerald-300">
-              Ingresos {formatCurrency(totals.income)}
-            </span>
-            <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2.5 py-1 font-semibold text-rose-300">
-              Gastos {formatCurrency(totals.expenses)}
-            </span>
-            <span
-              className={cn(
-                'rounded-full border px-2.5 py-1 font-semibold',
-                totals.gross >= 0
-                  ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
-                  : 'border-rose-400/20 bg-rose-400/10 text-rose-300'
-              )}
-            >
-              Bruta {formatCurrency(totals.gross)}
-            </span>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08] p-3 sm:col-span-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Margen global</p>
+              <p className={cn("mt-1 text-2xl font-bold tabular-nums", totals.margin !== null && totals.margin < 0 ? "text-rose-300" : "text-[#d7ff3f]")}>
+                {totals.margin === null ? '—' : `${totals.margin.toFixed(1)}%`}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[10px] uppercase tracking-wider text-white/40">Ingresos</p>
+              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(totals.income)}</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[10px] uppercase tracking-wider text-white/40">Gastos</p>
+              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(totals.expenses)}</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="text-[10px] uppercase tracking-wider text-white/40">Resultado</p>
+              <p className={cn("mt-1 text-sm font-semibold", totals.gross >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(totals.gross)}</p>
+            </div>
           </div>
         </DialogHeader>
 
@@ -136,6 +138,8 @@ export function VehicleProfitabilityModal({
                 const name = v.alias || `${v.make || ''} ${v.model || ''}`.trim() || v.plate;
                 const gross = v.grossProfit || 0;
                 const positive = gross >= 0;
+                const income = Number(v.totalIncome) || 0;
+                const margin = income > 0 ? (gross / income) * 100 : null;
                 return (
                   <button
                     key={v.id}
@@ -144,7 +148,7 @@ export function VehicleProfitabilityModal({
                       router.push(`/dashboard/vehicles/${v.id}`);
                       onClose();
                     }}
-                    className="flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
+                    className={cn("group flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.06]", positive ? "border-emerald-400/15 bg-emerald-400/[0.025]" : "border-rose-400/20 bg-rose-400/[0.04]")}
                   >
                     <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-sm">
                       {v.imageUrl ? (
@@ -162,25 +166,18 @@ export function VehicleProfitabilityModal({
                         Placas: {v.plate}
                         {v.make || v.model ? ` · ${v.make || ''} ${v.model || ''}`.trim() : ''}
                       </p>
-                      <p className="mt-1 text-[10px] text-white/35">
-                        Ing. {formatCurrency(v.totalIncome || 0)} · Gast. {formatCurrency(v.totalExpenses || 0)}
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="text-emerald-300/90">Ing. {formatCurrency(v.totalIncome || 0)}</span>
+                        <span className="text-white/20">·</span>
+                        <span className="text-rose-300/90">Gast. {formatCurrency(v.totalExpenses || 0)}</span>
+                      </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p
-                        className={cn(
-                          'flex items-center justify-end gap-1 text-sm font-semibold tabular-nums',
-                          positive ? 'text-emerald-300' : 'text-rose-300'
-                        )}
-                      >
-                        {positive ? (
-                          <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        ) : (
-                          <TrendingDown className="h-3.5 w-3.5" strokeWidth={1.75} />
-                        )}
-                        {formatCurrency(gross)}
-                      </p>
-                      <p className="text-[10px] text-white/35">bruta</p>
+                    <div className="min-w-[88px] shrink-0 text-right">
+                      <div className={cn("ml-auto flex h-12 w-20 flex-col items-center justify-center rounded-xl border", margin === null ? "border-white/10 bg-white/[0.04] text-white/45" : positive ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-rose-400/20 bg-rose-400/10 text-rose-300")}>
+                        <span className="text-lg font-bold leading-tight tabular-nums">{margin === null ? '—' : `${margin.toFixed(1)}%`}</span>
+                        <span className="text-[9px] uppercase tracking-wide opacity-70">{margin === null ? 'Sin ingresos' : 'Margen'}</span>
+                      </div>
+                      <p className={cn("mt-1 text-[11px] font-semibold tabular-nums", positive ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(gross)}</p>
                     </div>
                   </button>
                 );
