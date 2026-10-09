@@ -38,7 +38,7 @@ function formatNumber(value: string | number): string {
 const MONETARY_KPI_IDS = new Set([
   'client-balance-total', 'avg-client-balance', 'income-month', 'income-today', 'expenses-month',
   'expenses-today', 'net-income', 'cash-flow-month', 'projected-income', 'total-lent', 'total-pending',
-  'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas', 'vehicle-gross-profitability',
+  'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas',
 ]);
 
 function MetricCardSkeleton() {
@@ -84,12 +84,15 @@ function DraggableMetricCardBase({
   const rawNumericValue = kpiData?.value !== undefined && kpiData?.value !== null
     ? Number(String(kpiData.value).replace(/[$,\s]/g, ''))
     : (kpiData ? 0 : NaN);
+  const isProfitabilityPercent = widget.id === 'vehicle-gross-profitability' || widget.dataKey === 'vehicle-gross-profitability';
   const isMonetary = MONETARY_KPI_IDS.has(widget.id) || MONETARY_KPI_IDS.has(widget.dataKey);
   const isNegativeMoney = isMonetary && Number.isFinite(rawNumericValue) && rawNumericValue < 0;
   // Monetary KPIs must never show N/A (0 is a valid balance). Only show N/A when the whole KPI is missing.
   const displayValue = !kpiData
     ? 'N/A'
-    : isMonetary
+    : isProfitabilityPercent
+      ? (kpiData.value === null || kpiData.value === undefined ? '—' : `${Number.isFinite(rawNumericValue) ? rawNumericValue.toFixed(1) : '0.0'}%`)
+      : isMonetary
       ? formatCurrency(Number.isFinite(rawNumericValue) ? rawNumericValue : 0)
       : (kpiData.value !== undefined && kpiData.value !== null
           ? formatNumber(kpiData.value)
