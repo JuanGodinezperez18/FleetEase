@@ -370,7 +370,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         loading: false
       },
       'vehicle-gross-profitability': {
-        value: averageVehicleProfitability ?? 0,
+        value: averageVehicleProfitability ?? '—',
         subtitle: averageVehicleProfitability === null
           ? 'Sin ingresos en el período'
           : `${vehicleGrossProfitabilityData.length} vehículos · Margen sobre ingresos`,
