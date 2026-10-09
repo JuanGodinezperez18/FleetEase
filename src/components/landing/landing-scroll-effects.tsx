@@ -6,7 +6,7 @@ import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 const scenes = [
   { selector: "[data-scroll-scene='hero']", background: "/images/landing/fleet-hero.svg" },
   { selector: "[data-scroll-scene='product']", background: "/images/landing/operations-dashboard.svg" },
-  { selector: "[data-scroll-scene='closing']", background: "/images/landing/fleet-hero.svg" },
+  { selector: "[data-scroll-scene='closing']", background: "/images/landing/fleet-operations.svg" },
 ];
 
 /** Cambia los fondos de forma progresiva según la sección visible. */
