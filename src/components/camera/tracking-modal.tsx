@@ -229,6 +229,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
                               [item.id]: { ...previous[item.id], details: event.target.value },
                             }))}
                             placeholder="¿Qué no funciona o qué desgaste observaste?"
+                            maxLength={100}
                             rows={2}
                             className="resize-y"
                           />
@@ -245,6 +246,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
               <Textarea
                 id="description"
                 placeholder="Otros daños, ruidos, accesorios faltantes o tareas pendientes..."
+                maxLength={300}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
