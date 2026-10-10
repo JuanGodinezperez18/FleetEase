@@ -186,7 +186,21 @@ export function CreditListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[800px]">
+          <div className="space-y-3 md:hidden">
+            {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
+              paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron créditos' : 'No hay créditos para mostrar'}</p> :
+              paginatedData.map(credit => {
+                const progress = credit.amount > 0 ? ((credit.amount - credit.balance) / credit.amount) * 100 : 0;
+                const status = credit.status || 'active';
+                return <article key={credit.id} className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                  <div className="flex items-start justify-between gap-3"><p className="min-w-0 break-words text-sm font-semibold text-white/90">{credit.clientName}</p><span className={STATUS_BADGE[status] || STATUS_BADGE.active}>{status === 'overdue' && <AlertCircle className="mr-1 inline h-3 w-3" />} {status === 'paid' ? 'Pagado' : status === 'overdue' ? 'Vencido' : status === 'active' ? 'Activo' : status}</span></div>
+                  <div className="grid grid-cols-2 gap-3"><div><p className="text-[10px] uppercase tracking-wide text-white/35">Prestado</p><p className="text-sm font-semibold tabular-nums text-white/80">{formatCurrency(credit.amount)}</p></div><div><p className="text-[10px] uppercase tracking-wide text-white/35">Pendiente</p><p className={cn("text-sm font-semibold tabular-nums", credit.balance > 0 ? "text-amber-300" : "text-emerald-300")}>{formatCurrency(credit.balance)}</p></div></div>
+                  <div className="space-y-1"><div className="flex justify-between text-[10px] text-white/40"><span>Recuperado</span><span>{progress.toFixed(0)}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]"><div className="h-full rounded-full bg-sky-400" style={{ width: `${Math.min(progress, 100)}%` }} /></div></div>
+                  <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2"><span className="text-xs text-white/45">{format(new Date(credit.createdAt), 'dd MMM yyyy', { locale: es })}</span><Button variant="outline" size="sm" onClick={() => handleViewCredit(credit.id)} className="h-9 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/80">Ver crédito</Button></div>
+                </article>;
+              })}
+          </div>
+          <div className="hidden min-w-[800px] md:block">
             {loading ? (
               <Table>
                 <TableHeader>
@@ -311,7 +325,7 @@ export function CreditListModal({
               </Table>
             )}
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden md:flex" />
         </ScrollArea>
 
         {!loading && paginatedData.length > 0 && (
