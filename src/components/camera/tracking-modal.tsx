@@ -42,7 +42,10 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
   const [step, setStep] = useState<'camera' | 'details'>('camera');
   const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [description, setDescription] = useState('');\n  const [inspectionResults, setInspectionResults] = useState<Record<string, InspectionResult>>(() =>\n    Object.fromEntries(INSPECTION_ITEMS.map(item => [item.id, { status: null, details: '' }]))\n  );
+  const [description, setDescription] = useState('');
+  const [inspectionResults, setInspectionResults] = useState<Record<string, InspectionResult>>(() =>
+    Object.fromEntries(INSPECTION_ITEMS.map(item => [item.id, { status: null, details: '' }]))
+  );
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [uploading, setUploading] = useState(false);
