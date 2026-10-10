@@ -288,7 +288,6 @@ export function LicenseExpiringModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && (
