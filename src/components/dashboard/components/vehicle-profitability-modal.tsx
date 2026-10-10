@@ -148,36 +148,41 @@ export function VehicleProfitabilityModal({
                       router.push(`/dashboard/vehicles/${v.id}`);
                       onClose();
                     }}
-                    className={cn("group flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.06]", positive ? "border-emerald-400/15 bg-emerald-400/[0.025]" : "border-rose-400/20 bg-rose-400/[0.04]")}
+                    className={cn("group flex w-full flex-col items-stretch gap-3 rounded-2xl border p-3 text-left transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.06] sm:flex-row sm:items-center", positive ? "border-emerald-400/15 bg-emerald-400/[0.025]" : "border-rose-400/20 bg-rose-400/[0.04]")}
                   >
-                    <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-sm">
-                      {v.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={v.imageUrl} alt={name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-white/25">
-                          <Car className="h-6 w-6" strokeWidth={1.5} />
+                    <div className="flex min-w-0 w-full flex-1 items-center gap-3 sm:w-auto">
+                      <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-sm">
+                        {v.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={v.imageUrl} alt={name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-white/25">
+                            <Car className="h-6 w-6" strokeWidth={1.5} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-white/90">{name}</p>
+                        <p className="truncate text-xs text-white/40">
+                          Placas: {v.plate}
+                          {v.make || v.model ? ` · ${v.make || ''} ${v.model || ''}`.trim() : ''}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className="text-emerald-300/90">Ing. {formatCurrency(v.totalIncome || 0)}</span>
+                          <span className="text-white/20">·</span>
+                          <span className="text-rose-300/90">Gast. {formatCurrency(v.totalExpenses || 0)}</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-white/90">{name}</p>
-                      <p className="truncate text-xs text-white/40">
-                        Placas: {v.plate}
-                        {v.make || v.model ? ` · ${v.make || ''} ${v.model || ''}`.trim() : ''}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="text-emerald-300/90">Ing. {formatCurrency(v.totalIncome || 0)}</span>
-                        <span className="text-white/20">·</span>
-                        <span className="text-rose-300/90">Gast. {formatCurrency(v.totalExpenses || 0)}</span>
                       </div>
                     </div>
-                    <div className="min-w-[88px] shrink-0 text-right">
-                      <div className={cn("ml-auto flex h-12 w-20 flex-col items-center justify-center rounded-xl border", margin === null ? "border-white/10 bg-white/[0.04] text-white/45" : positive ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-rose-400/20 bg-rose-400/10 text-rose-300")}>
+                    <div className="flex w-full items-center justify-between gap-3 border-t border-white/[0.06] pt-3 sm:w-auto sm:shrink-0 sm:flex-col sm:items-end sm:justify-center sm:border-0 sm:pt-0">
+                      <span className="text-xs font-medium text-white/45 sm:hidden">Margen individual</span>
+                      <div className={cn("ml-auto flex h-12 min-w-24 flex-col items-center justify-center rounded-xl border px-3 sm:ml-0 sm:min-w-[80px] sm:px-2", margin === null ? "border-white/10 bg-white/[0.04] text-white/45" : positive ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-rose-400/20 bg-rose-400/10 text-rose-300")}>
                         <span className="text-lg font-bold leading-tight tabular-nums">{margin === null ? '—' : `${margin.toFixed(1)}%`}</span>
                         <span className="text-[9px] uppercase tracking-wide opacity-70">{margin === null ? 'Sin ingresos' : 'Margen'}</span>
                       </div>
-                      <p className={cn("mt-1 text-[11px] font-semibold tabular-nums", positive ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(gross)}</p>
+                      <p className="text-right text-[11px] font-semibold tabular-nums text-white/60 sm:mt-1">
+                        Resultado: <span className={cn(positive ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(gross)}</span>
+                      </p>
                     </div>
                   </button>
                 );
