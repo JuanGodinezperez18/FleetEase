@@ -23,7 +23,7 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MetricCard } from '@/components/dashboard/components/MetricCard';
+import { MetricCard } from '@/components/dashboard/components/MetricCard';\nimport { TrackingModal } from '@/components/camera/tracking-modal';
 
 interface Seguimiento {
   id: string;
@@ -52,7 +52,7 @@ export default function SeguimientosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);
+  const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);\n  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
@@ -130,7 +130,7 @@ export default function SeguimientosPage() {
     return filteredSeguimientos.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredSeguimientos, page]);
 
-  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;\n  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
 
   const stats = useMemo(() => {
     const withLocation = seguimientos.filter(s => s.latitude && s.longitude).length;
@@ -179,12 +179,20 @@ export default function SeguimientosPage() {
             <h1 className="fe-module-title">
               Seguimientos fotográficos
             </h1>
-            <p className="fe-module-subtitle">Historial de fotos de la flota</p>
+            <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>\n            {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <Camera className="h-5 w-5" strokeWidth={1.75} />
             </div>
+            <Button
+              onClick={() => setIsTrackingOpen(true)}
+              disabled={!inspectionVehicle}
+              className="h-11 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 sm:w-auto"
+            >
+              <Camera className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Nueva inspección
+            </Button>
             <Button
               onClick={loadSeguimientos}
               variant="outline"
@@ -384,6 +392,18 @@ export default function SeguimientosPage() {
           </>
         )}
       </div>
+
+      {inspectionVehicle && (
+        <TrackingModal
+          open={isTrackingOpen}
+          onClose={() => {
+            setIsTrackingOpen(false);
+            void loadSeguimientos();
+          }}
+          vehicleId={inspectionVehicle.id}
+          vehicleName={inspectionVehicle.alias || inspectionVehicle.plate || 'Vehículo'}
+        />
+      )}
 
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl border-white/10 bg-[#0e1117] text-white">
