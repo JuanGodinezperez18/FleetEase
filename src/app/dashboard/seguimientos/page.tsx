@@ -185,8 +185,8 @@ export default function SeguimientosPage() {
             <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>
             {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex h-12 w-12 items-center justify-center self-start rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f] sm:self-auto">
               <Camera className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <Button
@@ -200,7 +200,7 @@ export default function SeguimientosPage() {
             <Button
               onClick={loadSeguimientos}
               variant="outline"
-              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
             >
               <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Actualizar
