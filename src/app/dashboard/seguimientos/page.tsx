@@ -135,6 +135,23 @@ export default function SeguimientosPage() {
   const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
   const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
 
+  const weeklyIssues = useMemo(() => {
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    return seguimientos.flatMap(seg => {
+      if (new Date(seg.timestamp) < since || !seg.description?.includes('INSPECCIÓN FÍSICA')) return [];
+      return seg.description
+        .split('\n')
+        .filter(line => line.startsWith('- ') && line.includes(': No'))
+        .map((line, index) => ({
+          id: `${seg.id}-${index}`,
+          vehicle: seg.vehicle_alias || 'Vehículo',
+          timestamp: seg.timestamp,
+          issue: line.replace(/^-\s*/, ''),
+        }));
+    }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [seguimientos]);
+
   const stats = useMemo(() => {
     const withLocation = seguimientos.filter(s => s.latitude && s.longitude).length;
     const uniqueVehicles = new Set(seguimientos.map(s => s.vehicle_id)).size;
@@ -268,6 +285,31 @@ export default function SeguimientosPage() {
             </SelectContent>
           </Select>
         </div>
+
+        <section className="space-y-3 rounded-[14px] border border-amber-400/15 bg-amber-400/[0.035] p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Hallazgos de los últimos 7 días</h2>
+              <p className="mt-1 text-xs text-white/45">Fallas detectadas en las inspecciones recientes. Confirma su reparación antes de considerarlas atendidas.</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-200">{weeklyIssues.length}</span>
+          </div>
+          {weeklyIssues.length === 0 ? (
+            <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-white/45">No hay fallas registradas en las inspecciones de los últimos 7 días.</p>
+          ) : (
+            <div className="space-y-2">
+              {weeklyIssues.map(issue => (
+                <article key={issue.id} className="flex flex-col gap-1.5 rounded-lg border border-white/[0.07] bg-black/10 p-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-white/85">{issue.issue}</p>
+                    <p className="mt-1 text-xs text-white/45">{issue.vehicle}</p>
+                  </div>
+                  <time className="shrink-0 text-[11px] text-white/35">{format(new Date(issue.timestamp), 'dd MMM yyyy, HH:mm', { locale: es })}</time>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Grid */}
         {loading ? (
