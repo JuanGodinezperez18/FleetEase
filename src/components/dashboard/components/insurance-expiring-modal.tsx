@@ -218,7 +218,20 @@ export function InsuranceExpiringModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[800px]">
+          <div className="space-y-3 lg:hidden">
+            {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
+              paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron seguros' : 'No hay seguros para mostrar'}</p> :
+              paginatedData.map(vehicle => {
+                const days = getDaysUntilExpiry(vehicle.insuranceExpiryDate);
+                const expired = days !== null && days < 0;
+                return <article key={vehicle.id} className={cn("space-y-3 rounded-xl border p-3", expired ? "border-rose-400/20 bg-rose-400/[0.04]" : "border-white/[0.08] bg-white/[0.02]")}>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-sm font-semibold text-white/90">{vehicle.alias || vehicle.plate}</p><p className="mt-1 text-xs text-white/45">{vehicle.make && vehicle.model ? `${vehicle.make} ${vehicle.model} · ` : ''}{vehicle.plate}</p></div><div className="shrink-0">{getInsuranceStatusBadge(vehicle)}</div></div>
+                  <div className="grid grid-cols-1 gap-2 border-t border-white/[0.06] pt-2"><div><p className="text-[10px] uppercase tracking-wide text-white/35">Aseguradora</p><p className="break-words text-xs text-white/70">{vehicle.insuranceCompany || 'N/A'}</p></div><div><p className="text-[10px] uppercase tracking-wide text-white/35">Póliza</p><p className="break-words text-xs text-white/70">{vehicle.insurancePolicyNumber || 'N/A'}</p></div><div><p className="text-[10px] uppercase tracking-wide text-white/35">Vencimiento</p><p className="text-xs text-white/70">{formatInsuranceExpiry(vehicle.insuranceExpiryDate)}</p></div></div>
+                  <Button variant="outline" size="sm" onClick={() => handleViewVehicle(vehicle.id)} className="h-9 w-full rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/80">Ver detalle</Button>
+                </article>;
+              })}
+          </div>
+          <div className="hidden min-w-[800px] lg:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -293,7 +306,7 @@ export function InsuranceExpiringModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && (

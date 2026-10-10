@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MetricCard } from '@/components/dashboard/components/MetricCard';
+import { TrackingModal } from '@/components/camera/tracking-modal';
 
 interface Seguimiento {
   id: string;
@@ -53,6 +54,7 @@ export default function SeguimientosPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
@@ -131,6 +133,24 @@ export default function SeguimientosPage() {
   }, [filteredSeguimientos, page]);
 
   const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
+  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
+
+  const weeklyIssues = useMemo(() => {
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    return seguimientos.flatMap(seg => {
+      if (new Date(seg.timestamp) < since || !seg.description?.includes('INSPECCIÓN FÍSICA')) return [];
+      return seg.description
+        .split('\n')
+        .filter(line => line.startsWith('- ') && line.includes(': No'))
+        .map((line, index) => ({
+          id: `${seg.id}-${index}`,
+          vehicle: seg.vehicle_alias || 'Vehículo',
+          timestamp: seg.timestamp,
+          issue: line.replace(/^-\s*/, ''),
+        }));
+    }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [seguimientos]);
 
   const stats = useMemo(() => {
     const withLocation = seguimientos.filter(s => s.latitude && s.longitude).length;
@@ -179,16 +199,25 @@ export default function SeguimientosPage() {
             <h1 className="fe-module-title">
               Seguimientos fotográficos
             </h1>
-            <p className="fe-module-subtitle">Historial de fotos de la flota</p>
+            <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>
+            {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex h-12 w-12 items-center justify-center self-start rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f] sm:self-auto">
               <Camera className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <Button
+              onClick={() => setIsTrackingOpen(true)}
+              disabled={!inspectionVehicle}
+              className="h-11 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 sm:w-auto"
+            >
+              <Camera className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Nueva inspección
+            </Button>
+            <Button
               onClick={loadSeguimientos}
               variant="outline"
-              className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white"
+              className="h-11 w-full rounded-xl border-white/10 bg-white/[0.03] text-xs text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
             >
               <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.75} />
               Actualizar
@@ -256,6 +285,31 @@ export default function SeguimientosPage() {
             </SelectContent>
           </Select>
         </div>
+
+        <section className="space-y-3 rounded-[14px] border border-amber-400/15 bg-amber-400/[0.035] p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Hallazgos de los últimos 7 días</h2>
+              <p className="mt-1 text-xs text-white/45">Fallas detectadas en las inspecciones recientes. Confirma su reparación antes de considerarlas atendidas.</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-200">{weeklyIssues.length}</span>
+          </div>
+          {weeklyIssues.length === 0 ? (
+            <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-white/45">No hay fallas registradas en las inspecciones de los últimos 7 días.</p>
+          ) : (
+            <div className="space-y-2">
+              {weeklyIssues.map(issue => (
+                <article key={issue.id} className="flex flex-col gap-1.5 rounded-lg border border-white/[0.07] bg-black/10 p-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-white/85">{issue.issue}</p>
+                    <p className="mt-1 text-xs text-white/45">{issue.vehicle}</p>
+                  </div>
+                  <time className="shrink-0 text-[11px] text-white/35">{format(new Date(issue.timestamp), 'dd MMM yyyy, HH:mm', { locale: es })}</time>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Grid */}
         {loading ? (
@@ -384,6 +438,18 @@ export default function SeguimientosPage() {
           </>
         )}
       </div>
+
+      {inspectionVehicle && (
+        <TrackingModal
+          open={isTrackingOpen}
+          onClose={() => {
+            setIsTrackingOpen(false);
+            void loadSeguimientos();
+          }}
+          vehicleId={inspectionVehicle.id}
+          vehicleName={inspectionVehicle.alias || inspectionVehicle.plate || 'Vehículo'}
+        />
+      )}
 
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl border-white/10 bg-[#0e1117] text-white">

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
@@ -159,7 +160,18 @@ export function MultaVehiclesListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[640px]">
+          <div className="space-y-3 lg:hidden">
+            {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
+              paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'Sin resultados' : 'Sin vehículos con multas'}</p> :
+              paginatedData.map(row => (
+                <article key={row.vehicleId} className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-sm font-semibold text-white/90">{row.alias || row.plate || row.vehicleId}</p>{row.alias && row.plate && <p className="mt-1 text-xs text-white/40">{row.plate}</p>}</div><p className="shrink-0 text-sm font-semibold tabular-nums text-white/85">{formatCurrency(row.totalAmount)}</p></div>
+                  <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-2 text-center"><div><p className="text-[10px] text-white/40">Total</p><p className="text-sm text-white/80">{row.count}</p></div><div><p className="text-[10px] text-white/40">Pendientes</p><p className={cn("text-sm font-semibold", row.pendientes > 0 ? "text-amber-300" : "text-white/45")}>{row.pendientes}</p></div><div><p className="text-[10px] text-white/40">Pagadas</p><p className="text-sm text-emerald-300/80">{row.pagadas}</p></div></div>
+                  <Button variant="outline" size="sm" onClick={() => handleViewVehicle(row.vehicleId)} className="h-9 w-full rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/80">Ver multas</Button>
+                </article>
+              ))}
+          </div>
+          <div className="hidden min-w-[640px] lg:block">
             {loading ? (
               <Table>
                 <TableHeader>
@@ -247,7 +259,7 @@ export function MultaVehiclesListModal({
               </Table>
             )}
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && paginatedData.length > 0 && (

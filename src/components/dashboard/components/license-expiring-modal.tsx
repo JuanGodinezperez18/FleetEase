@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useShareContent } from '@/hooks/use-share-content';
@@ -161,7 +161,7 @@ export function LicenseExpiringModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="flex h-[85vh] max-w-5xl flex-col gap-4 overflow-hidden sm:max-w-5xl">
+      <DialogContent className="flex h-[min(88dvh,760px)] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-3 overflow-hidden p-4 sm:gap-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-start gap-3 pr-8">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/[0.08] text-amber-300">
@@ -196,7 +196,37 @@ export function LicenseExpiringModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[640px]">
+          <div className="space-y-3 pr-2 lg:hidden">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-28 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />
+              ))
+            ) : paginatedData.length === 0 ? (
+              <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron licencias' : 'No hay licencias para mostrar'}</p>
+            ) : paginatedData.map(client => {
+              const days = getDaysUntilExpiry(client.licenseExpiry);
+              const isExpired = days !== null && days < 0;
+              return (
+                <article key={client.id} className={cn("space-y-3 rounded-xl border p-3", isExpired ? "border-rose-400/20 bg-rose-400/[0.04]" : "border-white/[0.08] bg-white/[0.02]")}>
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-semibold text-white/90">{client.firstname} {client.lastname}</p>
+                      <p className="mt-1 break-all text-xs text-white/45">Licencia: {client.licenseNumber || 'Sin número'}</p>
+                    </div>
+                    <div className="shrink-0">{getLicenseStatusBadge(client)}</div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-white/35">Vencimiento</p>
+                      <p className="text-xs text-white/75">{formatLicenseExpiry(client.licenseExpiry)}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleViewClient(client.id)} className="h-9 shrink-0 rounded-lg border-white/10 bg-white/[0.03] px-3 text-xs text-white/80">Ver cliente</Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden min-w-[640px] lg:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -258,7 +288,6 @@ export function LicenseExpiringModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
         {!loading && (
@@ -277,19 +306,19 @@ export function LicenseExpiringModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-white/[0.06] pt-3 sm:flex-row sm:pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
             Compartir lista
           </Button>
           <Button
             onClick={onClose}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-10 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] sm:w-auto"
           >
             Cerrar
           </Button>
