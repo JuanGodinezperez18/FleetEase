@@ -148,7 +148,17 @@ export function ClientListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[560px]">
+          <div className="space-y-3 md:hidden">
+            {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
+              paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron clientes' : 'No hay clientes para mostrar'}</p> :
+              paginatedData.map(client => (
+                <article key={client.id} className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                  <div className="min-w-0"><p className="break-words text-sm font-semibold text-white/90">{client.firstname} {client.lastname}</p><p className="mt-1 break-all text-xs text-white/45">{client.email || 'Sin correo'}</p></div>
+                  <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2"><div><p className="text-[10px] uppercase tracking-wide text-white/35">Saldo</p><p className={cn("text-sm font-semibold tabular-nums", client.balance > 0 ? "text-rose-300" : "text-emerald-300")}>{formatCurrency(client.balance)}</p></div><Button variant="outline" size="sm" onClick={() => handleViewClient(client.id)} className="h-9 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/80">Ver cliente</Button></div>
+                </article>
+              ))}
+          </div>
+          <div className="hidden min-w-[560px] md:block">
             {loading ? (
               <Table>
                 <TableHeader>
@@ -220,7 +230,7 @@ export function ClientListModal({
               </Table>
             )}
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden md:flex" />
         </ScrollArea>
 
         {!loading && paginatedData.length > 0 && (
