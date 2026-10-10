@@ -196,7 +196,7 @@ export function ExpenseListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-3 lg:hidden">
             {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-28 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
               paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron gastos' : 'No hay gastos para mostrar'}</p> :
               paginatedData.map((expense: any) => (
@@ -212,7 +212,7 @@ export function ExpenseListModal({
                 </article>
               ))}
           </div>
-          <div className="hidden min-w-[800px] md:block">
+          <div className="hidden min-w-[800px] lg:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -272,7 +272,7 @@ export function ExpenseListModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" className="hidden md:flex" />
+          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && (
