@@ -79,7 +79,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     }
     const item = availableWidgets.find(w => w.id === widgetId);
     if (item) {
-      setWidgets([...widgets, {
+      setWidgets(normalizeDashboardWidgets([...widgets, {
         id: item.id,
         type: item.type,
         title: item.type === 'metric' ? item.label : item.title,
@@ -88,7 +88,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
         enabled: true,
         order: widgets.length,
         ...(item.size ? { size: item.size } : {}),
-      }]);
+      }]));
     }
   };
 
