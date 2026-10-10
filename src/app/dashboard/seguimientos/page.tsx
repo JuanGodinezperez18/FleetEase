@@ -207,8 +207,20 @@ export default function SeguimientosPage() {
               <Camera className="h-5 w-5" strokeWidth={1.75} />
             </div>
             <Button
-              onClick={() => setIsTrackingOpen(true)}
-              disabled={!inspectionVehicle}
+              onClick={() => {
+                if (inspectionVehicle) {
+                  setIsTrackingOpen(true);
+                  return;
+                }
+                const firstAvailableVehicle = vehicles?.find(vehicle => !vehicle.isDeleted);
+                if (!firstAvailableVehicle) {
+                  toast.error('Primero debes registrar un vehículo activo.');
+                  return;
+                }
+                setSelectedVehicle(firstAvailableVehicle.id);
+                setIsTrackingOpen(true);
+                toast.info(`Se seleccionó ${firstAvailableVehicle.alias || firstAvailableVehicle.plate || 'el primer vehículo activo'} para la inspección.`);
+              }}
               className="h-11 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 sm:w-auto"
             >
               <Camera className="mr-2 h-4 w-4" strokeWidth={1.75} />
