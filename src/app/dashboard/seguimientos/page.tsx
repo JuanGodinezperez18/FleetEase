@@ -23,7 +23,8 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MetricCard } from '@/components/dashboard/components/MetricCard';\nimport { TrackingModal } from '@/components/camera/tracking-modal';
+import { MetricCard } from '@/components/dashboard/components/MetricCard';
+import { TrackingModal } from '@/components/camera/tracking-modal';
 
 interface Seguimiento {
   id: string;
@@ -52,7 +53,8 @@ export default function SeguimientosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);\n  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
@@ -130,7 +132,8 @@ export default function SeguimientosPage() {
     return filteredSeguimientos.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredSeguimientos, page]);
 
-  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;\n  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
+  const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
+  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
 
   const stats = useMemo(() => {
     const withLocation = seguimientos.filter(s => s.latitude && s.longitude).length;
@@ -179,7 +182,8 @@ export default function SeguimientosPage() {
             <h1 className="fe-module-title">
               Seguimientos fotográficos
             </h1>
-            <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>\n            {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
+            <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>
+            {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
