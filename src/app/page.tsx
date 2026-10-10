@@ -19,6 +19,8 @@ import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingStickyCta } from "@/components/landing/landing-sticky-cta";
 import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { WhatsAppWidget } from "@/components/landing/whatsapp-widget";
+import { LandingScrollEffects } from "@/components/landing/landing-scroll-effects";
+import { Reveal } from "@/components/landing/landing-reveal";
 
 const features = [
   {
@@ -54,8 +56,9 @@ const features = [
 export default function LandingPage() {
   return (
     <LandingAuthRedirect>
-      <div className="min-h-screen overflow-x-hidden bg-[var(--fe-ink)] text-white selection:bg-[var(--fe-lime)] selection:text-[var(--fe-ink)]">
-        <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+      <div className="min-h-screen overflow-x-hidden text-white selection:bg-[var(--fe-lime)] selection:text-[var(--fe-ink)]">
+        <LandingScrollEffects />
+        <div className="pointer-events-none fixed inset-0 z-[1] opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
         <div className="pointer-events-none absolute left-1/2 top-[-260px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[var(--fe-lime)]/[0.08] blur-[130px]" />
 
         <LandingHeader />
@@ -64,7 +67,8 @@ export default function LandingPage() {
         </a>
 
         <main id="contenido" className="relative z-10 pt-[64px] sm:pt-[72px]">
-          <section className="mx-auto grid min-h-[560px] max-w-[1240px] items-center gap-10 px-5 py-12 sm:min-h-[640px] sm:gap-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-8 lg:py-20">
+          <section data-scroll-scene="hero" className="mx-auto grid min-h-[560px] max-w-[1240px] items-center gap-10 px-5 py-12 sm:min-h-[640px] sm:gap-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-8 lg:py-20">
+            <Reveal className="relative z-10">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" /> Gestión de flotillas sin ruido
@@ -105,7 +109,9 @@ export default function LandingPage() {
                 </span>
               </div>
             </div>
+            </Reveal>
 
+            <Reveal className="relative" delay={0.12}>
             <div className="relative">
               <div className="absolute -inset-10 rounded-[40px] bg-[var(--fe-lime)]/[0.07] blur-3xl" />
               <div className="relative overflow-hidden rounded-[22px] sm:rounded-[26px] border border-white/[0.12] bg-[var(--fe-dark-surface)]/90 shadow-[0_40px_100px_rgba(0,0,0,.55)] backdrop-blur-xl">
@@ -189,12 +195,13 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+            </Reveal>
           </section>
 
           <LandingSocialProof />
 
-          <section id="producto" aria-labelledby="producto-title" className="mx-auto max-w-[1240px] px-5 py-16 lg:px-8 lg:py-24">
-            <div className="max-w-xl">
+          <section data-scroll-scene="product" id="producto" aria-labelledby="producto-title" className="mx-auto max-w-[1240px] px-5 py-16 lg:px-8 lg:py-24">
+            <Reveal className="max-w-xl">
               <h2 id="producto-title" className="text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
                 Menos hojas de cálculo. Más control.
               </h2>
@@ -204,21 +211,23 @@ export default function LandingPage() {
               <Link href="/registro" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[var(--fe-lime)]">
                 Conocer FleetEase <ArrowRight className="h-4 w-4" />
               </Link>
-            </div>
+            </Reveal>
             <div className="mt-10 grid gap-3 sm:grid-cols-2">
-              {features.map((feature) => (
-                <article key={feature.number} className="rounded-[22px] border border-white/[0.08] bg-white/[0.03] p-6">
+              {features.map((feature, index) => (
+                <Reveal key={feature.number} delay={index * 0.08} className="h-full">
+                <article className="h-full rounded-[22px] border border-white/[0.08] bg-white/[0.045] p-6 backdrop-blur-sm">
                   <feature.icon className="h-5 w-5 text-white/50" />
                   <h3 className="mt-6 text-xl font-semibold">{feature.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-white/50">{feature.description}</p>
                 </article>
+                </Reveal>
               ))}
             </div>
           </section>
 
           <LandingFaq />
 
-          <section className="mx-auto max-w-[1240px] px-5 py-10 sm:py-14 lg:px-8 lg:py-20">
+          <section data-scroll-scene="closing" className="mx-auto max-w-[1240px] px-5 py-10 sm:py-14 lg:px-8 lg:py-20">
             <div className="relative overflow-hidden rounded-[28px] border border-[var(--fe-lime)]/25 bg-[var(--fe-lime)] px-6 py-10 sm:px-10 sm:py-12">
               <h2 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--fe-ink)] sm:text-4xl">
                 Empieza a controlar tu flotilla hoy.
