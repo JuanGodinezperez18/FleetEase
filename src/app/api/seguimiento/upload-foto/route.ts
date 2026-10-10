@@ -33,7 +33,7 @@ const seguimientoFieldsSchema = z.object({
   longitude: z.string().trim().max(32).optional(),
   speed: z.string().trim().max(32).optional(),
   heading: z.string().trim().max(32).optional(),
-  notes: shortTextSchema.optional(),
+  notes: z.string().trim().max(2000).refine(value => !/[<>]/.test(value), 'Caracteres no permitidos.').optional(),
 });
 
 async function ensureBucket(): Promise<void> {
