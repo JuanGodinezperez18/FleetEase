@@ -141,7 +141,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
             role="dialog"
             aria-modal="true"
             aria-labelledby="dashboard-config-title"
-            className="relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[20px] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)]"
+            className="relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[20px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px]"
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
