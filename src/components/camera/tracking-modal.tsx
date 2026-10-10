@@ -89,6 +89,16 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
   };
 
   const handleUpload = async () => {
+    const incompleteItem = INSPECTION_ITEMS.find(item => {
+      const result = inspectionResults[item.id];
+      return !result?.status || (result.status === 'no' && !result.details.trim());
+    });
+    if (incompleteItem) {
+      toast.error('Completa la inspección', {
+        description: `Indica el estado de: ${incompleteItem.label}${inspectionResults[incompleteItem.id]?.status === 'no' ? ' y describe la falla' : ''}.`,
+      });
+      return;
+    }
     if (!capturedPhoto) {
       toast.error('No hay foto capturada');
       return;
@@ -117,9 +127,15 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
       // La API espera `file` (no `photo`) y `notes` (no `description`)
       formData.append('file', compressed, compressed.name || `seguimiento_${Date.now()}.jpg`);
       formData.append('vehicleId', vehicleId);
-      if (description.trim()) {
-        formData.append('notes', description.trim());
-      }
+      const inspectionNotes = [
+        'INSPECCIÓN FÍSICA',
+        ...INSPECTION_ITEMS.map(item => {
+          const result = inspectionResults[item.id];
+          return `- ${item.label}: ${result.status === 'yes' ? 'Sí' : 'No'}${result.status === 'no' ? ` — ${result.details.trim()}` : ''}`;
+        }),
+        description.trim() ? `Comentarios generales: ${description.trim()}` : '',
+      ].filter(Boolean).join('\n');
+      formData.append('notes', inspectionNotes);
 
       if (location) {
         formData.append('latitude', location.latitude.toString());
@@ -161,6 +177,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
     setCapturedPhoto(null);
     setPhotoPreview(null);
     setDescription('');
+    setInspectionResults(Object.fromEntries(INSPECTION_ITEMS.map(item => [item.id, { status: null, details: '' }])));
     setLocation(null);
   };
 
