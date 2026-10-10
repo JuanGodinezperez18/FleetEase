@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 
 const scenes = [
-  { selector: "[data-scroll-scene='hero']", background: "/images/landing/fleet-hero.svg" },
-  { selector: "[data-scroll-scene='product']", background: "/images/landing/operations-dashboard.svg" },
-  { selector: "[data-scroll-scene='closing']", background: "/images/landing/fleet-operations.svg" },
+  { selector: "[data-scroll-scene='hero']", background: "/images/landing/hero-flotilla.webp" },
+  { selector: "[data-scroll-scene='product']", background: "/images/landing/dashboard-gestion.webp" },
+  { selector: "[data-scroll-scene='closing']", background: "/images/landing/cierre-flotilla.webp" },
 ];
 
 /** Cambia los fondos de forma progresiva según la sección visible. */
@@ -42,12 +42,12 @@ export function LandingScrollEffects() {
       .fe-scroll-backdrop { position: fixed; inset: 64px 0 0; z-index: 0; pointer-events: none; overflow: hidden; background: #080d11; }
       .fe-scroll-backdrop__scene { position: absolute; inset: 0; background-position: center 56%; background-size: cover; transform: scale(1.015); transition: opacity 950ms cubic-bezier(.22,1,.36,1), transform 4s ease; will-change: opacity, transform; }
       .fe-scroll-backdrop__scene.is-active { transform: scale(1.055); }
-      .fe-scroll-backdrop__veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,13,17,.18) 0%, rgba(8,13,17,.43) 34%, rgba(8,13,17,.67) 72%, rgba(8,13,17,.82) 100%), linear-gradient(90deg, rgba(8,13,17,.28), rgba(8,13,17,.08) 55%, rgba(8,13,17,.30)); }
+      .fe-scroll-backdrop__veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,13,17,.10) 0%, rgba(8,13,17,.28) 34%, rgba(8,13,17,.48) 72%, rgba(8,13,17,.68) 100%), linear-gradient(90deg, rgba(8,13,17,.24), rgba(8,13,17,.04) 55%, rgba(8,13,17,.24)); }
       .fe-scroll-progress { position: fixed; z-index: 100; top: 0; left: 0; right: 0; height: 3px; background: var(--fe-lime, #d7ff3f); transform-origin: 0 50%; box-shadow: 0 0 14px rgba(215,255,63,.45); }
       @media (max-width: 639px) {
         .fe-scroll-backdrop { inset-block-start: 64px; }
         .fe-scroll-backdrop__scene { background-position: center 62%; }
-        .fe-scroll-backdrop__veil { background: linear-gradient(180deg, rgba(8,13,17,.12) 0%, rgba(8,13,17,.34) 38%, rgba(8,13,17,.62) 76%, rgba(8,13,17,.78) 100%), linear-gradient(90deg, rgba(8,13,17,.16), rgba(8,13,17,.04) 55%, rgba(8,13,17,.20)); }
+        .fe-scroll-backdrop__veil { background: linear-gradient(180deg, rgba(8,13,17,.08) 0%, rgba(8,13,17,.24) 38%, rgba(8,13,17,.44) 76%, rgba(8,13,17,.62) 100%), linear-gradient(90deg, rgba(8,13,17,.14), rgba(8,13,17,.03) 55%, rgba(8,13,17,.16)); }
       }
       @media (min-width: 640px) { .fe-scroll-backdrop { top: 72px; } }
       @media (prefers-reduced-motion: reduce) { .fe-scroll-backdrop__scene, .fe-scroll-backdrop__scene.is-active { transition: none; transform: none; } }
