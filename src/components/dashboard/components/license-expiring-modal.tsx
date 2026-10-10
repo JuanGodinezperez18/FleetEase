@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useShareContent } from '@/hooks/use-share-content';
@@ -161,7 +161,7 @@ export function LicenseExpiringModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="flex h-[85vh] max-w-5xl flex-col gap-4 overflow-hidden sm:max-w-5xl">
+      <DialogContent className="flex h-[min(88dvh,760px)] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-3 overflow-hidden p-4 sm:gap-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-start gap-3 pr-8">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/[0.08] text-amber-300">
@@ -277,19 +277,19 @@ export function LicenseExpiringModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-white/[0.06] pt-3 sm:flex-row sm:pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
             Compartir lista
           </Button>
           <Button
             onClick={onClose}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-10 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] sm:w-auto"
           >
             Cerrar
           </Button>
