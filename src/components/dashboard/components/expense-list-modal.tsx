@@ -196,7 +196,23 @@ export function ExpenseListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[800px]">
+          <div className="space-y-3 md:hidden">
+            {loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-28 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.03]" />) :
+              paginatedData.length === 0 ? <p className="py-8 text-center text-sm text-white/45">{searchTerm ? 'No se encontraron gastos' : 'No hay gastos para mostrar'}</p> :
+              paginatedData.map((expense: any) => (
+                <article key={expense.id} className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><p className="break-words text-sm font-medium text-white/85">{expense.description || 'Sin descripción'}</p><p className="mt-1 text-xs text-white/45">{format(new Date(expense.date), 'dd MMM yyyy', { locale: es })}</p></div>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-rose-300">{formatCurrency(expense.amount)}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-2">
+                    <div className="min-w-0"><span className="block text-xs text-white/60">{expense.categoryName || 'Sin categoría'}</span><span className="text-[11px] text-white/40">{expense.paymentMethodLabel || 'No especificado'}</span></div>
+                    <Button variant="outline" size="sm" onClick={() => handleViewTransaction(expense.id)} className="h-9 rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/80">Ver detalles</Button>
+                  </div>
+                </article>
+              ))}
+          </div>
+          <div className="hidden min-w-[800px] md:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -256,7 +272,7 @@ export function ExpenseListModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden md:flex" />
         </ScrollArea>
 
         {!loading && (
