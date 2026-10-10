@@ -13,10 +13,23 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CameraCapture } from './camera-capture';
-import { MapPin, Upload, Loader2 } from 'lucide-react';
+import { MapPin, Upload, Loader2, CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { compressImageIfNeeded } from '@/lib/image-compression';
 import { supabase } from '@/lib/supabase';
+
+const INSPECTION_ITEMS = [
+  { id: 'front_signals', label: 'Intermitentes delanteras' },
+  { id: 'rear_signals', label: 'Intermitentes traseras' },
+  { id: 'lights', label: 'Luces principales y de freno' },
+  { id: 'brakes', label: 'Frenos' },
+  { id: 'tires', label: 'Llantas' },
+  { id: 'mirrors_windows', label: 'Espejos y cristales' },
+  { id: 'accessories', label: 'Accesorios y equipamiento' },
+  { id: 'bodywork', label: 'Carrocería y daños visibles' },
+] as const;
+
+type InspectionResult = { status: 'yes' | 'no' | null; details: string };
 
 interface TrackingModalProps {
   open: boolean;
@@ -29,7 +42,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
   const [step, setStep] = useState<'camera' | 'details'>('camera');
   const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState('');\n  const [inspectionResults, setInspectionResults] = useState<Record<string, InspectionResult>>(() =>\n    Object.fromEntries(INSPECTION_ITEMS.map(item => [item.id, { status: null, details: '' }]))\n  );
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -153,7 +166,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {step === 'camera' ? 'Capturar Foto de Seguimiento' : 'Detalles del Seguimiento'}
@@ -161,7 +174,7 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
           <DialogDescription>
             {step === 'camera'
               ? `Toma una foto del vehículo ${vehicleName} para registrar su seguimiento`
-              : 'Agrega una descripción y confirma el envío'}
+               : 'Revisa cada elemento, documenta las fallas y agrega comentarios'}
           </DialogDescription>
         </DialogHeader>
 
@@ -175,15 +188,67 @@ export function TrackingModal({ open, onClose, vehicleId, vehicleName }: Trackin
               </div>
             )}
 
+            <section className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold">Inspección física</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Marca Sí o No en cada elemento. Si marcas No, describe la falla para que pueda atenderse.</p>
+              </div>
+              <div className="space-y-3">
+                {INSPECTION_ITEMS.map(item => {
+                  const result = inspectionResults[item.id];
+                  return (
+                    <div key={item.id} className="space-y-2 rounded-xl border p-3">
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['yes', 'no'] as const).map(status => (
+                          <button
+                            key={status}
+                            type="button"
+                            aria-pressed={result.status === status}
+                            onClick={() => setInspectionResults(previous => ({
+                              ...previous,
+                              [item.id]: { ...previous[item.id], status },
+                            }))}
+                            className={`flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm transition-colors ${result.status === status ? status === 'yes' ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-rose-500/50 bg-rose-500/10 text-rose-700 dark:text-rose-300' : 'border-border text-muted-foreground'}`}
+                          >
+                            {result.status === status ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                            {status === 'yes' ? 'Sí, funciona' : 'No funciona'}
+                          </button>
+                        ))}
+                      </div>
+                      {result.status === 'no' && (
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`issue-${item.id}`} className="flex items-center gap-1 text-xs">
+                            <AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> Describe la falla (obligatorio)
+                          </Label>
+                          <Textarea
+                            id={`issue-${item.id}`}
+                            value={result.details}
+                            onChange={event => setInspectionResults(previous => ({
+                              ...previous,
+                              [item.id]: { ...previous[item.id], details: event.target.value },
+                            }))}
+                            placeholder="¿Qué no funciona o qué desgaste observaste?"
+                            rows={2}
+                            className="resize-y"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             <div className="space-y-2">
-              <Label htmlFor="description">Descripción (opcional)</Label>
+              <Label htmlFor="description">Comentarios adicionales (opcional)</Label>
               <Textarea
                 id="description"
-                placeholder="Ej: Vehículo en buen estado, sin daños visibles..."
+                placeholder="Otros daños, ruidos, accesorios faltantes o tareas pendientes..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="resize-none"
+                className="resize-y"
               />
             </div>
 
