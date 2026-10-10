@@ -55,6 +55,8 @@ export default function SeguimientosPage() {
   const [page, setPage] = useState(1);
   const [selectedImage, setSelectedImage] = useState<Seguimiento | null>(null);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [isVehiclePickerOpen, setIsVehiclePickerOpen] = useState(false);
+  const [inspectionVehicleId, setInspectionVehicleId] = useState('');
 
   const loadSeguimientos = useCallback(async () => {
     if (!currentUser?.companyId) return;
@@ -133,7 +135,8 @@ export default function SeguimientosPage() {
   }, [filteredSeguimientos, page]);
 
   const totalPages = Math.ceil(filteredSeguimientos.length / ITEMS_PER_PAGE) || 1;
-  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === selectedVehicle && !vehicle.isDeleted);
+  const inspectionVehicle = vehicles?.find(vehicle => vehicle.id === inspectionVehicleId && !vehicle.isDeleted);
+  const activeVehicles = vehicles?.filter(vehicle => !vehicle.isDeleted) ?? [];
 
   const weeklyIssues = useMemo(() => {
     const since = new Date();
@@ -200,7 +203,7 @@ export default function SeguimientosPage() {
               Seguimientos fotográficos
             </h1>
             <p className="fe-module-subtitle">Inspecciones, fotografías y fallas reportadas de la flota</p>
-            {!inspectionVehicle && <p className="mt-2 text-xs text-white/45">Selecciona un vehículo en el filtro para registrar una inspección.</p>}
+            <p className="mt-2 text-xs text-white/45">Elige el vehículo al iniciar cada inspección.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <div className="flex h-12 w-12 items-center justify-center self-start rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f] sm:self-auto">
@@ -208,18 +211,12 @@ export default function SeguimientosPage() {
             </div>
             <Button
               onClick={() => {
-                if (inspectionVehicle) {
-                  setIsTrackingOpen(true);
-                  return;
-                }
-                const firstAvailableVehicle = vehicles?.find(vehicle => !vehicle.isDeleted);
-                if (!firstAvailableVehicle) {
+                if (activeVehicles.length === 0) {
                   toast.error('Primero debes registrar un vehículo activo.');
                   return;
                 }
-                setSelectedVehicle(firstAvailableVehicle.id);
-                setIsTrackingOpen(true);
-                toast.info(`Se seleccionó ${firstAvailableVehicle.alias || firstAvailableVehicle.plate || 'el primer vehículo activo'} para la inspección.`);
+                setInspectionVehicleId('');
+                setIsVehiclePickerOpen(true);
               }}
               className="h-11 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 sm:w-auto"
             >
@@ -450,6 +447,47 @@ export default function SeguimientosPage() {
           </>
         )}
       </div>
+
+      <Dialog open={isVehiclePickerOpen} onOpenChange={setIsVehiclePickerOpen}>
+        <DialogContent className="border-white/10 bg-[#0e1117] text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Seleccionar vehículo</DialogTitle>
+            <DialogDescription className="text-white/55">
+              Elige el vehículo que vas a inspeccionar. La inspección quedará registrada en ese vehículo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={inspectionVehicleId} onValueChange={setInspectionVehicleId}>
+              <SelectTrigger className="w-full border-white/10 bg-white/[0.03] text-white">
+                <SelectValue placeholder="Selecciona un vehículo" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeVehicles.map(vehicle => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.alias || vehicle.plate || 'Vehículo sin nombre'}{vehicle.plate && vehicle.alias ? ` · ${vehicle.plate}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setIsVehiclePickerOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={!inspectionVehicle}
+                onClick={() => {
+                  if (!inspectionVehicle) return;
+                  setIsVehiclePickerOpen(false);
+                  setIsTrackingOpen(true);
+                }}
+                className="bg-[#d7ff3f] text-[#080a0f] hover:bg-[#d7ff3f]/90"
+              >
+                Continuar inspección
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {inspectionVehicle && (
         <TrackingModal
