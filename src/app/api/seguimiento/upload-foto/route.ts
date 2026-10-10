@@ -7,7 +7,6 @@ import { internalError } from '@/lib/security/api-error';
 import {
   idSchema,
   parseFormFields,
-  shortTextSchema,
   validateUploadFile,
 } from '@/lib/security/validation';
 
