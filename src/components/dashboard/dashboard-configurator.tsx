@@ -35,15 +35,26 @@ type AvailableWidget = {
   size?: DashboardWidget['size'];
 };
 
+function normalizeDashboardWidgets(items: DashboardWidget[]): DashboardWidget[] {
+  const seen = new Set<string>();
+  return items
+    .filter(widget => {
+      if (seen.has(widget.id)) return false;
+      seen.add(widget.id);
+      return true;
+    })
+    .map((widget, index) => ({ ...widget, order: index }));
+}
+
 export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave }: DashboardConfiguratorProps) {
   const { currentUser } = useAuth();
-  const [widgets, setWidgets] = useState<DashboardWidget[]>(currentWidgets);
+  const [widgets, setWidgets] = useState<DashboardWidget[]>(() => normalizeDashboardWidgets(currentWidgets));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isSaving, setIsSaving] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
-  useEffect(() => { setWidgets(currentWidgets); }, [currentWidgets]);
+  useEffect(() => { setWidgets(normalizeDashboardWidgets(currentWidgets)); }, [currentWidgets]);
 
   const categories = ['all', 'CLIENTES', 'FLOTA', 'FINANZAS', 'CREDITOS', 'SOCIOS', 'KILOMETRAJE', 'MULTAS'];
   const categoryTranslations: Record<string, string> = {
@@ -130,11 +141,11 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
             role="dialog"
             aria-modal="true"
             aria-labelledby="dashboard-config-title"
-            className="relative flex max-h-[calc(100dvh-1.25rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)]"
+            className="relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[20px] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)]"
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
-            <div className="relative flex items-center justify-between border-b border-white/[0.07] px-5 py-4 sm:px-6">
+            <div className="relative flex items-center justify-between border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07]">
                   <Settings className="h-5 w-5 text-[#d7ff3f]" />
@@ -149,7 +160,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </button>
             </div>
 
-            <div className="relative border-b border-white/[0.07] px-5 py-4 sm:px-6">
+            <div className="relative border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
               <div className="mb-2.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                   <Filter className="h-3.5 w-3.5 text-[#d7ff3f]" />
@@ -179,7 +190,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </div>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+            <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-5">
               <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 {filteredWidgets.map(item => {
                   const widget = widgets.find(w => w.id === item.id);
@@ -225,15 +236,15 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </div>
             </div>
 
-            <div className="relative flex flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="relative flex flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
               <div className="text-[10px] text-white/30">
                 <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> elementos visibles
               </div>
-              <div className="flex gap-2">
-                <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-11 rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-11 w-full rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white sm:w-auto">
                   Cancelar
                 </Button>
-                <Button type="button" onClick={handleSave} disabled={isSaving} className="h-11 rounded-xl bg-[#d7ff3f] px-4 text-xs font-bold text-black hover:bg-[#d7ff3f]/90 shadow-[0_0_22px_rgba(215,255,63,.12)]">
+                <Button type="button" onClick={handleSave} disabled={isSaving} className="h-11 w-full rounded-xl bg-[#d7ff3f] px-4 text-xs font-bold text-black hover:bg-[#d7ff3f]/90 shadow-[0_0_22px_rgba(215,255,63,.12)] sm:w-auto">
                   {isSaving ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Guardando</> : <><Save className="mr-2 h-3.5 w-3.5" />Guardar cambios</>}
                 </Button>
               </div>
