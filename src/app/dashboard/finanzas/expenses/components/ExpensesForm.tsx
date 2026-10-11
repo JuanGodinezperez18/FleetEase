@@ -153,6 +153,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogSearches, setCatalogSearches] = useState<Record<number, string>>({});
   const [activeCatalogSearch, setActiveCatalogSearch] = useState<number | null>(null);
+  const [activeCatalogOptionIndex, setActiveCatalogOptionIndex] = useState(0);
 
   const existingItems = useMemo(() => {
     const raw = initialData?.items;
@@ -398,17 +399,23 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
                       return <FormItem>
                         <FormLabel className="text-xs">Artículo o concepto</FormLabel>
                         <div className="relative">
-                          <FormControl><Input {...field} value={searchTerm} disabled={isSubmitting || isEditing} autoComplete="off" placeholder={catalogLoading ? "Cargando catálogo..." : "Escribe para buscar artículos..."} onFocus={() => setActiveCatalogSearch(index)} onChange={event => {
+                          <FormControl><Input {...field} value={searchTerm} disabled={isSubmitting || isEditing} autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={!isEditing && activeCatalogSearch === index && matches.length > 0} aria-controls={`expense-catalog-options-${index}`} placeholder={catalogLoading ? "Cargando catálogo..." : "Escribe para buscar artículos..."} onFocus={() => { setActiveCatalogSearch(index); setActiveCatalogOptionIndex(0); }} onKeyDown={event => {
+                            if (event.key === "Escape") { setActiveCatalogSearch(null); return; }
+                            if (event.key === "ArrowDown" && matches.length > 0) { event.preventDefault(); setActiveCatalogSearch(index); setActiveCatalogOptionIndex(previous => Math.min(previous + 1, matches.length - 1)); }
+                            if (event.key === "ArrowUp" && matches.length > 0) { event.preventDefault(); setActiveCatalogOptionIndex(previous => Math.max(previous - 1, 0)); }
+                            if (event.key === "Enter" && activeCatalogSearch === index && matches.length > 0) { event.preventDefault(); const item = matches[Math.min(activeCatalogOptionIndex, matches.length - 1)]; applyCatalogItem(index, item); setCatalogSearches(previous => ({ ...previous, [index]: item.name })); setActiveCatalogSearch(null); }
+                          }} onChange={event => {
                             const value = event.target.value;
                             field.onChange(value);
                             setCatalogSearches(previous => ({ ...previous, [index]: value }));
                             setActiveCatalogSearch(index);
+                            setActiveCatalogOptionIndex(0);
                             const selected = catalogItems.find(item => item.id === form.getValues(`items.${index}.catalogItemId`));
                             if (selected && selected.name !== value) setValue(`items.${index}.catalogItemId`, null, { shouldDirty: true });
                           }} /></FormControl>
                           {!isEditing && activeCatalogSearch === index && matches.length > 0 && (
-                            <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/15 bg-[#11151d] p-1 shadow-xl" role="listbox" aria-label="Artículos del catálogo">
-                              {matches.map(item => <button key={item.id} type="button" className="flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left hover:bg-white/10 focus:bg-white/10 focus:outline-none" onMouseDown={event => event.preventDefault()} onClick={() => {
+                            <div id={`expense-catalog-options-${index}`} className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/15 bg-[#11151d] p-1 shadow-xl" role="listbox" aria-label="Artículos del catálogo">
+                              {matches.map(item => <button key={item.id} type="button" className={`flex min-h-11 w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left hover:bg-white/10 focus:bg-white/10 focus:outline-none ${matches[activeCatalogOptionIndex]?.id === item.id ? "bg-white/10" : ""}`} role="option" aria-selected={matches[activeCatalogOptionIndex]?.id === item.id} onMouseEnter={() => setActiveCatalogOptionIndex(matches.findIndex(match => match.id === item.id))} onMouseDown={event => event.preventDefault()} onClick={() => {
                                 applyCatalogItem(index, item);
                                 setCatalogSearches(previous => ({ ...previous, [index]: item.name }));
                                 setActiveCatalogSearch(null);
