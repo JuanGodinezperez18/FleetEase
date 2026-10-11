@@ -151,6 +151,8 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogSearches, setCatalogSearches] = useState<Record<number, string>>({});
+  const [activeCatalogSearch, setActiveCatalogSearch] = useState<number | null>(null);
 
   const existingItems = useMemo(() => {
     const raw = initialData?.items;
@@ -388,7 +390,41 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
               <div key={field.id} className="rounded-lg border border-white/10 p-3 space-y-3">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
                   <div className="md:col-span-5">
-                    <FormField control={control} name={`items.${index}.concept`} render={({ field }) => <FormItem><FormLabel className="text-xs">Concepto</FormLabel><FormControl><Input {...field} disabled={isSubmitting || isEditing} placeholder="Ej: Cambio de aceite" /></FormControl><FormMessage /></FormItem>} />
+                    <FormField control={control} name={`items.${index}.concept`} render={({ field }) => {
+                      const searchTerm = catalogSearches[index] ?? field.value ?? "";
+                      const matches = searchTerm.trim().length >= 2
+                        ? catalogItems.filter(item => `${item.name} ${item.part_number || ""} ${item.brand || ""}`.toLowerCase().includes(searchTerm.trim().toLowerCase())).slice(0, 8)
+                        : [];
+                      return <FormItem>
+                        <FormLabel className="text-xs">Artículo o concepto</FormLabel>
+                        <div className="relative">
+                          <FormControl><Input {...field} value={searchTerm} disabled={isSubmitting || isEditing} autoComplete="off" placeholder={catalogLoading ? "Cargando catálogo..." : "Escribe para buscar artículos..."} onFocus={() => setActiveCatalogSearch(index)} onChange={event => {
+                            const value = event.target.value;
+                            field.onChange(value);
+                            setCatalogSearches(previous => ({ ...previous, [index]: value }));
+                            setActiveCatalogSearch(index);
+                            const selected = catalogItems.find(item => item.id === form.getValues(`items.${index}.catalogItemId`));
+                            if (selected && selected.name !== value) setValue(`items.${index}.catalogItemId`, null, { shouldDirty: true });
+                          }} /></FormControl>
+                          {!isEditing && activeCatalogSearch === index && matches.length > 0 && (
+                            <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-white/15 bg-[#11151d] p-1 shadow-xl" role="listbox" aria-label="Artículos del catálogo">
+                              {matches.map(item => <button key={item.id} type="button" className="flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left hover:bg-white/10 focus:bg-white/10 focus:outline-none" onMouseDown={event => event.preventDefault()} onClick={() => {
+                                applyCatalogItem(index, item);
+                                setCatalogSearches(previous => ({ ...previous, [index]: item.name }));
+                                setActiveCatalogSearch(null);
+                              }}>
+                                <span className="text-sm font-medium text-white">{item.name}</span>
+                                <span className="text-xs text-white/60">{[item.part_number ? `Parte: ${item.part_number}` : null, item.brand, item.default_cost != null ? `Precio: ${Number(item.default_cost).toFixed(2)}` : null].filter(Boolean).join(" · ")}</span>
+                              </button>)}
+                            </div>
+                          )}
+                          {!isEditing && activeCatalogSearch === index && searchTerm.trim().length >= 2 && !catalogLoading && matches.length === 0 && (
+                            <div className="absolute z-50 mt-1 w-full rounded-lg border border-white/10 bg-[#11151d] px-3 py-2 text-xs text-white/65 shadow-xl">No hay coincidencias. Puedes registrar este concepto libremente.</div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>;
+                    }} />
                   </div>
                   <div className="md:col-span-2">
                     <FormField control={control} name={`items.${index}.quantity`} render={({ field }) => <FormItem><FormLabel className="text-xs">Cant.</FormLabel><FormControl><Input type="number" step="1" min="1" {...field} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
@@ -404,7 +440,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <FormField control={control} name={`items.${index}.catalogItemId`} render={({ field }) => <FormItem><FormLabel className="text-xs">Catálogo (opcional)</FormLabel><Select onValueChange={v => { field.onChange(v === NONE_SELECT_VALUE ? null : v); const item = catalogItems.find(i => i.id === v); if (item) applyCatalogItem(index, item); }} value={field.value || NONE_SELECT_VALUE} disabled={isSubmitting || isEditing || catalogLoading}><FormControl><SelectTrigger><SelectValue placeholder={catalogLoading ? "Cargando..." : "Seleccionar..."} /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{catalogItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name}{item.part_number ? ` (${item.part_number})` : ""}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
+                  <div className="flex items-end text-xs text-white/50">{catalogLoading ? "Cargando catálogo…" : "Catálogo vinculado automáticamente al seleccionar un resultado."}</div>
                   <FormField control={control} name={`items.${index}.partNumber`} render={({ field }) => <FormItem><FormLabel className="text-xs">Nº parte</FormLabel><FormControl><Input {...field} value={field.value ?? ""} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
                   <FormField control={control} name={`items.${index}.warrantyDays`} render={({ field }) => <FormItem><FormLabel className="text-xs">Garantía (días)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} disabled={isSubmitting || isEditing} /></FormControl><FormMessage /></FormItem>} />
                 </div>
