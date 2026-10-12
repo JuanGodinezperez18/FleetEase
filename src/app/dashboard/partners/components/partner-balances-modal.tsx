@@ -139,7 +139,38 @@ export function PartnerBalancesModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[480px]">
+          <div className="space-y-3 sm:hidden">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-24 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.04]" />
+              ))
+            ) : filteredAndSortedBalances.length === 0 ? (
+              <div className="rounded-xl border border-white/[0.07] px-4 py-10 text-center text-sm text-white/45">
+                {searchTerm ? 'No se encontraron socios' : 'No hay socios con saldo'}
+              </div>
+            ) : (
+              filteredAndSortedBalances.map(partner => (
+                <article key={partner.id} className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 break-words text-sm font-semibold text-white/90">{partner.name}</p>
+                    <p className={cn('shrink-0 text-right text-sm font-bold tabular-nums', partner.balance >= 0 ? 'text-emerald-300' : 'text-rose-300')}>
+                      {formatCurrency(partner.balance)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-white/35">Saldo del socio</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewTransactions(partner.id)}
+                    className="mt-3 h-10 w-full rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/75 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    Ver transacciones
+                  </Button>
+                </article>
+              ))
+            )}
+          </div>
+          <div className="hidden min-w-[480px] sm:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -195,7 +226,7 @@ export function PartnerBalancesModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden sm:flex" />
         </ScrollArea>
 
         <DialogFooter className="mt-1 border-t border-white/[0.06] pt-4 sm:justify-between">
@@ -203,7 +234,7 @@ export function PartnerBalancesModal({
             variant="outline"
             onClick={handleShare}
             disabled={balances.length === 0 || isSharing}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             {isSharing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} />
@@ -214,7 +245,7 @@ export function PartnerBalancesModal({
           </Button>
           <Button
             onClick={onClose}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-10 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] sm:w-auto"
           >
             Cerrar
           </Button>
