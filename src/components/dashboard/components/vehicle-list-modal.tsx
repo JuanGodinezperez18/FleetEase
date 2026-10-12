@@ -222,7 +222,90 @@ export function VehicleListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[720px]">
+          <div className="space-y-3 lg:hidden">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-32 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.04]" />
+              ))
+            ) : paginatedData.length === 0 ? (
+              <div className="rounded-xl border border-white/[0.07] px-4 py-10 text-center text-sm text-white/45">
+                {searchTerm ? 'No se encontraron vehículos' : 'No hay vehículos para mostrar'}
+              </div>
+            ) : (
+              paginatedData.map(vehicle => {
+                const status = getMaintenanceStatus(vehicle);
+                const remaining =
+                  typeof vehicle.kmToNextMaintenance === 'number'
+                    ? vehicle.kmToNextMaintenance
+                    : vehicle.nextMaintenanceAt != null && vehicle.currentMileage != null
+                      ? vehicle.nextMaintenanceAt - vehicle.currentMileage
+                      : null;
+                return (
+                  <article key={vehicle.id} className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-semibold text-white/90">{vehicle.alias || vehicle.plate}</p>
+                        <p className="mt-1 break-words text-xs text-white/45">
+                          {vehicle.make && vehicle.model ? `${vehicle.make} ${vehicle.model} · ` : ''}{vehicle.plate}
+                        </p>
+                      </div>
+                      <span className={cn(STATUS_BADGE[status], 'shrink-0')}>
+                        {status === 'overdue' && <AlertTriangle className="h-3 w-3" strokeWidth={1.75} />}
+                        {status === 'soon' && <Clock className="h-3 w-3" strokeWidth={1.75} />}
+                        {status === 'ok' && <CheckCircle className="h-3 w-3" strokeWidth={1.75} />}
+                        {status === 'overdue' ? 'Vencido' : status === 'soon' ? 'Próximo' : 'OK'}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="min-w-0 rounded-lg border border-white/[0.06] bg-black/10 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-white/35">Kilometraje</p>
+                        <p className="mt-1 break-words text-sm font-semibold tabular-nums text-white/80">
+                          {vehicle.currentMileage != null ? `${vehicle.currentMileage.toLocaleString('es-MX')} km` : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="min-w-0 rounded-lg border border-white/[0.06] bg-black/10 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-white/35">Próx. mantenimiento</p>
+                        <p className={cn('mt-1 break-words text-sm font-semibold tabular-nums', status === 'overdue' ? 'text-rose-300' : status === 'soon' ? 'text-amber-300' : 'text-white/80')}>
+                          {vehicle.nextMaintenanceAt != null ? `${vehicle.nextMaintenanceAt.toLocaleString('es-MX')} km` : 'No configurado'}
+                        </p>
+                        {remaining !== null && (
+                          <p className="mt-1 text-[10px] text-white/40">
+                            {remaining > 0 ? `Faltan ${remaining.toLocaleString('es-MX')} km` : `Excedido ${Math.abs(remaining).toLocaleString('es-MX')} km`}
+                          </p>
+                        )}
+                      </div>
+                      {hasIdleMetrics && (
+                        <div className="min-w-0 rounded-lg border border-white/[0.06] bg-black/10 p-2.5">
+                          <p className="text-[10px] uppercase tracking-wide text-white/35">Días sin ingreso</p>
+                          <p className="mt-1 break-words text-sm font-semibold tabular-nums text-white/80">
+                            {typeof vehicle.daysWithoutIncome === 'number' ? `${vehicle.daysWithoutIncome} días` : '—'}
+                          </p>
+                          {vehicle.neverHadIncome && <p className="mt-1 text-[10px] text-amber-300/80">Nunca generó ingreso</p>}
+                        </div>
+                      )}
+                      {hasIdleMetrics && (
+                        <div className="min-w-0 rounded-lg border border-white/[0.06] bg-black/10 p-2.5">
+                          <p className="text-[10px] uppercase tracking-wide text-white/35">Ingreso estimado perdido</p>
+                          <p className="mt-1 break-words text-sm font-semibold tabular-nums text-rose-300">
+                            {typeof vehicle.estimatedLostIncome === 'number' && vehicle.estimatedLostIncome > 0 ? formatCurrency(vehicle.estimatedLostIncome) : '—'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewVehicle(vehicle.id)}
+                      className="mt-3 h-10 w-full rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/75 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      Ver detalle
+                    </Button>
+                  </article>
+                );
+              })
+            )}
+          </div>
+          <div className="hidden min-w-[720px] lg:block">
             {loading ? (
               <Table>
                 <TableHeader>
@@ -387,7 +470,7 @@ export function VehicleListModal({
               </Table>
             )}
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && paginatedData.length > 0 && (
@@ -406,19 +489,19 @@ export function VehicleListModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
+        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-3 sm:pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
             Compartir reporte
           </Button>
           <Button
             onClick={onClose}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-10 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] sm:w-auto"
           >
             Cerrar
           </Button>
