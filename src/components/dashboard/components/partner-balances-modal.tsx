@@ -120,7 +120,7 @@ Balance Total: ${formatCurrency(totals.totalBalance)}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={cn("flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col p-0 rounded-none sm:h-[90vh] sm:max-h-[90vh] sm:max-w-5xl sm:w-[95vw] sm:rounded-lg")}>
+      <DialogContent className={cn("flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-5xl sm:w-[95vw] sm:rounded-[var(--fe-radius-lg)]")}>
         <DialogHeader className="px-6 pt-6 pb-3">
           <DialogTitle>Balance de Socios</DialogTitle>
           <DialogDescription>
