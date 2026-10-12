@@ -144,6 +144,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
 
   if (!isOpen) return null;
   const enabledCount = widgets.filter(w => w.enabled).length;
+  const enabledOrder = widgets.filter(entry => entry.enabled).sort((a, b) => a.order - b.order);
 
   return (
     <AnimatePresence>
@@ -219,7 +220,6 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                   const widget = widgets.find(w => w.id === item.id);
                   const isEnabled = widget?.enabled || false;
                   const isChart = item.type === 'chart';
-                  const enabledOrder = widgets.filter(entry => entry.enabled).sort((a, b) => a.order - b.order);
                   const enabledIndex = enabledOrder.findIndex(entry => entry.id === item.id);
                   const canMoveUp = isEnabled && enabledIndex > 0;
                   const canMoveDown = isEnabled && enabledIndex >= 0 && enabledIndex < enabledOrder.length - 1;
