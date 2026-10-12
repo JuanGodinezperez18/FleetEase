@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Eye, EyeOff, GripVertical, Save, X, Filter, AreaChart, Loader2, BarChart3, PieChart } from 'lucide-react';
+import { Settings, Eye, EyeOff, GripVertical, Save, X, Filter, AreaChart, Loader2, BarChart3, PieChart, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AVAILABLE_KPIS, CHART_WIDGETS, IconMap } from '@/types/dashboard';
 import type { DashboardWidget } from '@/types/dashboard';
@@ -69,7 +69,17 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     ...availableKPIs,
     ...CHART_WIDGETS.map(widget => ({ ...widget, type: 'chart' as const })),
   ];
-  const filteredWidgets = selectedCategory === 'all' ? availableWidgets : availableWidgets.filter(widget => widget.category === selectedCategory);
+  const filteredWidgets = (selectedCategory === 'all' ? availableWidgets : availableWidgets.filter(widget => widget.category === selectedCategory))
+    .slice()
+    .sort((a, b) => {
+      const aWidget = widgets.find(widget => widget.id === a.id);
+      const bWidget = widgets.find(widget => widget.id === b.id);
+      const aEnabled = Boolean(aWidget?.enabled);
+      const bEnabled = Boolean(bWidget?.enabled);
+      if (aEnabled !== bEnabled) return aEnabled ? -1 : 1;
+      if (aEnabled && bEnabled) return (aWidget?.order ?? 0) - (bWidget?.order ?? 0);
+      return 0;
+    });
 
   const handleToggleWidget = (widgetId: string) => {
     const existingWidget = widgets.find(w => w.id === widgetId);
@@ -107,6 +117,19 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     setDraggedId(null); setOverId(null);
   };
   const handleDragEnd = () => { setDraggedId(null); setOverId(null); };
+
+  // Touch-friendly alternative to HTML5 drag-and-drop for enabled widgets.
+  const handleMoveWidget = (widgetId: string, direction: -1 | 1) => {
+    const ordered = [...widgets].sort((a, b) => a.order - b.order);
+    const enabledIndexes = ordered.map((widget, index) => widget.enabled ? index : -1).filter(index => index >= 0);
+    const position = enabledIndexes.findIndex(index => ordered[index].id === widgetId);
+    const targetPosition = position + direction;
+    if (position < 0 || targetPosition < 0 || targetPosition >= enabledIndexes.length) return;
+    const currentIndex = enabledIndexes[position];
+    const targetIndex = enabledIndexes[targetPosition];
+    [ordered[currentIndex], ordered[targetIndex]] = [ordered[targetIndex], ordered[currentIndex]];
+    setWidgets(ordered.map((widget, index) => ({ ...widget, order: index })));
+  };
 
   const handleSave = async () => {
     if (!currentUser) { toast.error('Usuario no autenticado'); return; }
@@ -152,7 +175,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                 </div>
                 <div className="min-w-0">
                   <h2 id="dashboard-config-title" className="truncate text-base font-semibold tracking-[-0.02em] sm:text-lg">Personalizar dashboard</h2>
-                  <p className="mt-0.5 text-[11px] text-white/35">Elige qué ves y arrastra para ordenar.</p>
+                  <p className="mt-0.5 text-[11px] text-white/35">Elige qué ves; usa las flechas o arrastra para ordenar.</p>
                 </div>
               </div>
               <button type="button" onClick={onClose} className="ml-3 rounded-xl p-2 text-white/35 transition-colors hover:bg-white/[0.05] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/40" aria-label="Cerrar personalización">
@@ -196,6 +219,10 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                   const widget = widgets.find(w => w.id === item.id);
                   const isEnabled = widget?.enabled || false;
                   const isChart = item.type === 'chart';
+                  const enabledOrder = widgets.filter(entry => entry.enabled).sort((a, b) => a.order - b.order);
+                  const enabledIndex = enabledOrder.findIndex(entry => entry.id === item.id);
+                  const canMoveUp = isEnabled && enabledIndex > 0;
+                  const canMoveDown = isEnabled && enabledIndex >= 0 && enabledIndex < enabledOrder.length - 1;
                   const Icon = isChart ? (item.id === 'finance-summary-chart' ? BarChart3 : PieChart) : (item.icon ? IconMap[item.icon as keyof typeof IconMap] : AreaChart);
                   return (
                     <div
@@ -212,7 +239,19 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                         overId === item.id && 'border-dashed border-[#d7ff3f]/60'
                       )}
                     >
-                      {isEnabled && <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-white/20 transition-colors group-hover:text-white/40 active:cursor-grabbing" aria-hidden="true" />}
+                      {isEnabled && (
+                        <>
+                          <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-white/20 transition-colors group-hover:text-white/40 active:cursor-grabbing sm:block" aria-hidden="true" />
+                          <div className="flex shrink-0 flex-col gap-1 sm:hidden">
+                            <button type="button" onClick={() => handleMoveWidget(item.id, -1)} disabled={!canMoveUp} aria-label={`Mover ${item.type === 'metric' ? item.label : item.title} hacia arriba`} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                            <button type="button" onClick={() => handleMoveWidget(item.id, 1)} disabled={!canMoveDown} aria-label={`Mover ${item.type === 'metric' ? item.label : item.title} hacia abajo`} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                       <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border', isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.07]' : 'border-white/[0.07] bg-white/[0.03]')}>
                         <Icon className={cn('h-4 w-4', isEnabled ? 'text-[#d7ff3f]' : 'text-white/30')} />
                       </div>
