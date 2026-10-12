@@ -40,11 +40,11 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
           onAction={onOpenConfig}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="min-w-0 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {enabledWidgets.map(widget => {
             if (widget.id === 'unread-notifications') {
               return (
-                <div key={widget.id} className="md:col-span-2 xl:col-span-2">
+                <div key={widget.id} className="min-w-0 md:col-span-2 xl:col-span-2">
                   <UnreadNotificationsCard />
                 </div>
               );
@@ -53,7 +53,7 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
               const actionId = chartActionMap[widget.id];
               const chartAction = actionId ? ({ ...widget, id: actionId } as DashboardWidget) : undefined;
               return (
-                <div key={widget.id} className="md:col-span-2 xl:col-span-4">
+                <div key={widget.id} className="min-w-0 md:col-span-2 xl:col-span-4">
                   <DashboardChartCard
                     widget={widget}
                     allKPIs={allKPIs as Record<string, MetricKPIData>}
