@@ -359,7 +359,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="max-w-[80%] truncate font-heading text-[clamp(1rem,6vw,25px)] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
+              <span className="max-w-[85%] break-words text-center font-heading text-[clamp(0.875rem,5vw,25px)] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
                 {isMoney ? moneyText(centerValue) : centerValue}
               </span>
               <span className="mt-0.5 max-w-[90px] truncate text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
