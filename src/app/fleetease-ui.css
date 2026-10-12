@@ -245,6 +245,7 @@
 /* ---- Canonical metric surface ---- */
 .fe-metric-card {
   position: relative;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--fe-border);
   border-radius: var(--fe-radius-lg);
@@ -282,17 +283,24 @@
 }
 .fe-metric-value {
   color: var(--fe-text);
-  font-size: 2rem;
+  font-size: clamp(1.25rem, 6vw, 2rem);
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.08;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 .fe-metric-description {
   color: var(--fe-text-muted);
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 380px) {
+  .fe-metric-card { padding: 1rem; }
+  .fe-metric-value { letter-spacing: -0.045em; }
 }
 .fe-metric-divider {
   border-top: 1px solid var(--fe-border);

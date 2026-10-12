@@ -212,7 +212,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? 'button' : 'article'}
       className={cn(
-        'group relative min-h-[292px] overflow-hidden rounded-[18px] border border-black/[0.08] bg-white p-5 text-[#0a0c12] shadow-[0_6px_22px_rgba(8,10,15,.05)]',
+        'group relative min-h-[292px] min-w-0 overflow-hidden rounded-[18px] border border-black/[0.08] bg-white p-3 text-[#0a0c12] shadow-[0_6px_22px_rgba(8,10,15,.05)] sm:p-5',
         'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-black/[0.14] hover:shadow-[0_10px_28px_rgba(8,10,15,.08)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f7f2]',
         'dark:border-white/[0.08] dark:bg-[#0d1016] dark:text-white dark:shadow-[0_12px_40px_rgba(0,0,0,.18)] dark:hover:border-white/[0.15] dark:hover:shadow-[0_18px_48px_rgba(0,0,0,.28)] dark:focus-visible:ring-offset-[#080a0f]',
@@ -359,7 +359,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-heading text-[25px] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
+              <span className="max-w-[85%] break-words text-center font-heading text-[clamp(0.875rem,5vw,25px)] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
                 {isMoney ? moneyText(centerValue) : centerValue}
               </span>
               <span className="mt-0.5 max-w-[90px] truncate text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
@@ -384,7 +384,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   if (chart.kind === 'pie') onLegendToggle(index);
                 }}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all duration-150',
+                  'flex min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all duration-150',
                   chart.kind === 'pie' && 'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
                   isActive && 'bg-black/[0.06] dark:bg-white/[0.1]',
                   isDimmed && 'opacity-40'
@@ -397,7 +397,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 <span>{item.name}</span>
                 <strong
                   className={cn(
-                    'font-medium tabular-nums',
+                    'break-words font-medium tabular-nums',
                     isMoney && item.value < 0
                       ? 'text-rose-500 dark:text-rose-400'
                       : 'text-black/70 dark:text-white/70'

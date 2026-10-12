@@ -79,7 +79,7 @@ export function VehicleProfitabilityModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="flex h-[85vh] max-w-3xl flex-col gap-4 overflow-hidden sm:max-w-3xl">
+      <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col gap-3 overflow-hidden rounded-2xl p-3 sm:h-[85vh] sm:max-h-[85vh] sm:max-w-3xl sm:gap-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-start gap-3 pr-8">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
@@ -92,24 +92,24 @@ export function VehicleProfitabilityModal({
               </DialogDescription>
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08] p-3 sm:col-span-1">
+          <div className="mt-2 grid min-w-0 grid-cols-2 gap-2 sm:mt-3 sm:grid-cols-4 sm:gap-3">
+            <div className="min-w-0 rounded-xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08] p-2.5 sm:col-span-1 sm:p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Margen global</p>
-              <p className={cn("mt-1 text-2xl font-bold tabular-nums", totals.margin !== null && totals.margin < 0 ? "text-rose-300" : "text-[#d7ff3f]")}>
+              <p className={cn("mt-1 break-words text-xl font-bold tabular-nums sm:text-2xl", totals.margin !== null && totals.margin < 0 ? "text-rose-300" : "text-[#d7ff3f]")}>
                 {totals.margin === null ? '—' : `${totals.margin.toFixed(1)}%`}
               </p>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+            <div className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.03] p-2.5 sm:p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Ingresos</p>
-              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(totals.income)}</p>
+              <p className="mt-1 break-words text-xs font-semibold text-white sm:text-sm">{formatCurrency(totals.income)}</p>
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Gastos</p>
-              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(totals.expenses)}</p>
+              <p className="mt-1 break-words text-xs font-semibold text-white sm:text-sm">{formatCurrency(totals.expenses)}</p>
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Resultado</p>
-              <p className={cn("mt-1 text-sm font-semibold", totals.gross >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(totals.gross)}</p>
+              <p className={cn("mt-1 break-words text-xs font-semibold sm:text-sm", totals.gross >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(totals.gross)}</p>
             </div>
           </div>
         </DialogHeader>

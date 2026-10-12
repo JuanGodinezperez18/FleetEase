@@ -193,7 +193,48 @@ export function IncomeListModal({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="min-w-[800px]">
+          <div className="space-y-3 lg:hidden">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-28 animate-pulse rounded-xl border border-white/[0.07] bg-white/[0.04]" />
+              ))
+            ) : paginatedData.length === 0 ? (
+              <div className="rounded-xl border border-white/[0.07] px-4 py-10 text-center text-sm text-white/45">
+                {searchTerm ? 'No se encontraron ingresos' : 'No hay ingresos para mostrar'}
+              </div>
+            ) : (
+              paginatedData.map((income: any) => (
+                <article key={income.id} className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold text-white/90">{income.description || 'Ingreso sin descripción'}</p>
+                      <p className="mt-1 text-xs text-white/45">
+                        {format(new Date(income.date), 'dd MMM yyyy', { locale: es })}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-right text-sm font-bold tabular-nums text-emerald-300">
+                      {formatCurrency(income.amount)}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="max-w-full break-words rounded-full border border-white/10 bg-white/[0.06] px-2 py-1 text-[10px] font-semibold text-white/65">
+                      {income.categoryName || 'Sin categoría'}
+                    </span>
+                    <span className="text-[11px] text-white/45">{income.paymentMethodLabel || 'No especificado'}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewTransaction(income.id)}
+                    className="mt-3 h-10 w-full rounded-lg border-white/10 bg-white/[0.03] text-xs text-white/75 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    Ver detalles
+                  </Button>
+                </article>
+              ))
+            )}
+          </div>
+          <div className="hidden min-w-[800px] lg:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-white/[0.06] hover:bg-transparent">
@@ -253,7 +294,7 @@ export function IncomeListModal({
               </TableBody>
             </Table>
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="hidden lg:flex" />
         </ScrollArea>
 
         {!loading && (
@@ -272,19 +313,19 @@ export function IncomeListModal({
           </div>
         )}
 
-        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-4">
+        <DialogFooter className="shrink-0 border-t border-white/[0.06] pt-3 sm:pt-4">
           <Button
             variant="outline"
             onClick={handleShare}
             disabled={isSharing || paginatedData.length === 0}
-            className="h-10 rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white"
+            className="h-10 w-full rounded-xl border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white sm:w-auto"
           >
             <Share2 className="mr-2 h-4 w-4" strokeWidth={1.75} />
             Compartir reporte
           </Button>
           <Button
             onClick={onClose}
-            className="h-10 rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e]"
+            className="h-10 w-full rounded-xl bg-[#d7ff3f] text-xs font-semibold text-black hover:bg-[#c8f02e] sm:w-auto"
           >
             Cerrar
           </Button>
