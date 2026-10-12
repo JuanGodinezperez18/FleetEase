@@ -95,7 +95,7 @@ export function VehicleProfitabilityModal({
           <div className="mt-2 grid min-w-0 grid-cols-2 gap-2 sm:mt-3 sm:grid-cols-4 sm:gap-3">
             <div className="min-w-0 rounded-xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08] p-2.5 sm:col-span-1 sm:p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Margen global</p>
-              <p className={cn("mt-1 text-2xl font-bold tabular-nums", totals.margin !== null && totals.margin < 0 ? "text-rose-300" : "text-[#d7ff3f]")}>
+              <p className={cn("mt-1 break-words text-xl font-bold tabular-nums sm:text-2xl", totals.margin !== null && totals.margin < 0 ? "text-rose-300" : "text-[#d7ff3f]")}>
                 {totals.margin === null ? '—' : `${totals.margin.toFixed(1)}%`}
               </p>
             </div>
@@ -105,7 +105,7 @@ export function VehicleProfitabilityModal({
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Gastos</p>
-              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(totals.expenses)}</p>
+              <p className="mt-1 break-words text-xs font-semibold text-white sm:text-sm">{formatCurrency(totals.expenses)}</p>
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Resultado</p>
