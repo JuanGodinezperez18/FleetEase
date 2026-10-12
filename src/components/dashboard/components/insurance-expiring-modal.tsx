@@ -183,7 +183,7 @@ export function InsuranceExpiringModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="flex h-[85vh] max-w-6xl flex-col gap-4 overflow-hidden sm:max-w-6xl">
+      <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-6xl flex-col gap-3 overflow-hidden rounded-2xl p-3 sm:h-[85vh] sm:max-h-[85vh] sm:gap-4 sm:rounded-[var(--fe-radius-lg)] sm:p-6 sm:max-w-6xl">
         <DialogHeader>
           <div className="flex items-start gap-3 pr-8">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/[0.08] text-amber-300">
