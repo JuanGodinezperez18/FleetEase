@@ -128,6 +128,50 @@ export async function middleware(req: NextRequest) {
     );
   }
 
+  // Enforce route authorization on the server. Client-side layouts are not a
+  // security boundary: the role must be read from the authenticated profile.
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('role, is_deleted')
+    .eq('id', user.id)
+    .eq('is_deleted', false)
+    .single();
+
+  if (profileError || !profile || profile.is_deleted) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return applySecurityHeaders(
+      NextResponse.redirect(loginUrl),
+      contentSecurityPolicy
+    );
+  }
+
+  const role = profile.role as string;
+  const isPartnerRoute = pathname === '/partner' || pathname.startsWith('/partner/');
+  const isClientRoute = pathname === '/client' || pathname.startsWith('/client/');
+  const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+
+  const dashboardRoles = ['admin', 'editor', 'viewer', 'super_admin'];
+  const roleHome = role === 'partner'
+    ? '/partner'
+    : role === 'client'
+      ? '/client'
+      : dashboardRoles.includes(role)
+        ? '/dashboard'
+        : '/login';
+
+  const forbidden =
+    (isPartnerRoute && role !== 'partner') ||
+    (isClientRoute && role !== 'client') ||
+    (isDashboardRoute && !dashboardRoles.includes(role));
+
+  if (forbidden) {
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL(roleHome, req.url)),
+      contentSecurityPolicy
+    );
+  }
+
   return response;
 }
 
