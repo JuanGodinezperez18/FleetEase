@@ -11,7 +11,7 @@ export interface VehicleMetric {
   totalExpenses: number;
   netProfit: number;
   profitability: number;
-  utilizationRate: number;
+  utilizationRate: number | null;
   transactionsCount: number;
 }
 
@@ -200,8 +200,10 @@ export class ReportAnalyticsService {
     const periodEnd = endOfDay(requestedEnd < today ? requestedEnd : today);
     if (periodStart > periodEnd) return 0;
 
-    const intervals = assignmentLogs
-      .filter(log => log.vehicleId === vehicle.id)
+    const vehicleLogs = assignmentLogs.filter(log => log.vehicleId === vehicle.id);
+    if (vehicleLogs.length === 0) return vehicle.clientId ? null : 0;
+
+    const intervals = vehicleLogs
       .map(log => {
         const start = infallibleNormalizeDate(log.startDate || log.assignedAt);
         const end = infallibleNormalizeDate(log.endDate || log.unassignedAt) ?? today;
