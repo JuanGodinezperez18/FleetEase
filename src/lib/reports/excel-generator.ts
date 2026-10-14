@@ -261,7 +261,7 @@ export class ExcelReportGenerator {
         metric.totalExpenses,
         metric.netProfit,
         Number(metric.profitability.toFixed(2)),
-        Number(metric.utilizationRate.toFixed(2)),
+        metric.utilizationRate == null ? 'N/D' : Number(metric.utilizationRate.toFixed(2)),
       ]);
     });
 
