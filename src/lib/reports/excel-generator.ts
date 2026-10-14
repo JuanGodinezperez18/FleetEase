@@ -246,6 +246,7 @@ export class ExcelReportGenerator {
         'Gastos',
         'Beneficio Neto',
         'Rentabilidad %',
+        'Utilización en periodo %',
       ],
     ];
 
@@ -260,6 +261,7 @@ export class ExcelReportGenerator {
         metric.totalExpenses,
         metric.netProfit,
         Number(metric.profitability.toFixed(2)),
+        Number(metric.utilizationRate.toFixed(2)),
       ]);
     });
 
@@ -274,6 +276,7 @@ export class ExcelReportGenerator {
       { wch: 15 },
       { wch: 15 },
       { wch: 14 },
+      { wch: 22 },
     ];
     this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehiculos');
   }
