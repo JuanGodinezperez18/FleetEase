@@ -1,5 +1,4 @@
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
-import { isWithinInterval } from 'date-fns';
 import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
@@ -179,7 +178,7 @@ export class ReportAnalyticsService {
   }
 
   static filterRecordsByDateRange(records: FinancialRecord[], dateRange: { from: Date; to: Date }): FinancialRecord[] {
-    return records.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
+    return filterRecordsByDateRange(records, dateRange);
   }
 
   static getTopVehicles(vehicleMetrics: VehicleMetric[], limit: number = 5): VehicleMetric[] { return vehicleMetrics.sort((a, b) => b.netProfit - a.netProfit).slice(0, limit); }
