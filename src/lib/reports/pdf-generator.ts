@@ -198,7 +198,7 @@ export class PDFReportGenerator {
     this.addHeader(data);
     this.addCompanyBlock(data);
     this.addKpiCards(data);
-    if (data.kpis && data.kpis.length >= 2) this.addKpiComparisonCharts(data.kpis);
+    if (data.kpis && data.kpis.length >= 2) this.addKpiComparisonCharts(data.kpis, data.type);
     if (data.income !== undefined && data.expenses !== undefined) this.addIncomeExpenseVisual(data);
     this.addAlertDetails(data);
     switch (data.type) {
@@ -458,7 +458,7 @@ export class PDFReportGenerator {
     this.currentY += 4;
   }
 
-  private addKpiComparisonCharts(kpis: ReportKpi[]) {
+  private addKpiComparisonCharts(kpis: ReportKpi[], reportType: ReportData['type']) {
     const money: Array<{ label: string; value: number; format: KpiFormat }> = [];
     const counts: Array<{ label: string; value: number; format: KpiFormat }> = [];
     kpis.forEach(k => {
@@ -470,7 +470,13 @@ export class PDFReportGenerator {
       else if (Math.abs(n) >= 100) money.push({ label: k.label, value: n, format: 'currency' });
       else counts.push({ label: k.label, value: n, format: 'number' });
     });
-    if (money.length >= 1) this.drawComparisonBlock('Comparativa financiera', money.slice(0, 6), 'currency');
+    const moneyTitle: Record<ReportData['type'], string> = {
+      financial: 'Comparativa financiera',
+      vehicle: 'Resumen económico de flota',
+      client: 'Cobranza y saldos de clientes',
+      partner: 'Resultados económicos por socio',
+    };
+    if (money.length >= 1) this.drawComparisonBlock(moneyTitle[reportType], money.slice(0, 6), 'currency');
     if (counts.length >= 1) this.drawComparisonBlock('Indicadores operativos', counts.slice(0, 6), 'number');
   }
 
