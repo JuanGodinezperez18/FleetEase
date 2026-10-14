@@ -37,7 +37,7 @@ export function findAssignmentAtDate(
   // This matters because assignment records are stored with a time
   // component (historical captures are normalized to noon local time).
   const dateOnly = date.slice(0, 10);
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateOnly)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return null;
 
   // The caller may pass either YYYY-MM-DD or a full ISO timestamp.
   // Normalize to UTC midnight so an ISO suffix does not make the date invalid.
