@@ -42,15 +42,17 @@ export interface PartnerMetric {
 export class ReportAnalyticsService {
   static calculateVehicleMetrics(vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
-    financialRecords.forEach(record => {
-      if (record.isDeleted || (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))) return;
+    const scopedRecords = dateRange
+      ? filterRecordsByDateRange(financialRecords, dateRange)
+      : financialRecords.filter(record => !record.isDeleted);
+    scopedRecords.forEach(record => {
       if (!record.vehicleId) return;
       const records = recordsByVehicle.get(record.vehicleId);
       if (records) records.push(record);
       else recordsByVehicle.set(record.vehicleId, [record]);
     });
 
-    return vehicles.map(vehicle => {
+    return vehicles.filter(vehicle => !vehicle.isDeleted).map(vehicle => {
       const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
       const rentalIncome = sumRentalIncome(vehicleRecords);
       const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
@@ -64,19 +66,20 @@ export class ReportAnalyticsService {
 
   static calculateClientMetrics(clients: Client[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): ClientMetric[] {
     const recordsByClient = new Map<string, FinancialRecord[]>();
-    financialRecords.forEach(record => {
+    const scopedRecords = dateRange
+      ? filterRecordsByDateRange(financialRecords, dateRange)
+      : financialRecords.filter(record => !record.isDeleted);
+    scopedRecords.forEach(record => {
       if (
-        record.isDeleted ||
         record.category === SECURITY_DEPOSIT_CATEGORY ||
-        !record.clientId ||
-        (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))
+        !record.clientId
       ) return;
       const records = recordsByClient.get(record.clientId);
       if (records) records.push(record);
       else recordsByClient.set(record.clientId, [record]);
     });
 
-    return clients.map(client => {
+    return clients.filter(client => !client.isDeleted).map(client => {
       const clientRecords = recordsByClient.get(client.id) ?? [];
 
       const paymentRecords = clientRecords.filter(r => r.type === 'payment');
@@ -137,7 +140,7 @@ export class ReportAnalyticsService {
       }
     }
 
-    return partners.map(partner => {
+    return partners.filter(partner => !partner.isDeleted).map(partner => {
       const partnerVehicles = vehiclesByPartner.get(partner.id) ?? [];
       const activeVehicles = partnerVehicles.filter(v => v.status === 'active' || v.status === 'rented').length;
 
@@ -163,7 +166,7 @@ export class ReportAnalyticsService {
       }
 
       const partnerRecordsInRange = dateRange
-        ? relatedRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }))
+        ? filterRecordsByDateRange(relatedRecords, dateRange)
         : relatedRecords;
 
       const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
