@@ -47,7 +47,7 @@ export interface ReportData {
   expensesByCategory?: Record<string, number>;
   incomeByCategory?: Record<string, number>;
   vehicles?: Vehicle[];
-  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number }>;
+  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number }>;
   clients?: Client[];
   clientMetrics?: Array<{ client: Client; totalPayments: number; balance: number; daysSinceLastPayment: number; paymentBehavior: string }>;
   partners?: Partner[];
