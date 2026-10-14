@@ -640,13 +640,13 @@ export class PDFReportGenerator {
     this.addSectionTitle('Analisis de vehiculos');
     this.autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Utilizacion']],
+      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Rentabilidad']],
       body: data.vehicleMetrics.map(m => [
         `${m.vehicle.alias || m.vehicle.plate}`.slice(0, 22),
         this.formatCurrency(m.totalIncome),
         this.formatCurrency(m.totalExpenses),
         this.formatCurrency(m.netProfit),
-        `${m.utilizationRate.toFixed(0)}%`,
+        `${m.profitability.toFixed(1)}%`,
       ]),
       ...this.tableTheme(),
     });
