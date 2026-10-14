@@ -2,6 +2,8 @@
 /* vercel-redeploy: dashboard fleet kpi fab */
 import { useMemo } from 'react';
 import type { MetricKPIData } from '@/types/dashboard';
+import type { Vehicle } from '@/types';
+import type { VehicleMileageMetric } from './use-mileage-analytics';
 import { useFinancialAnalytics } from './use-financial-analytics';
 import { useData } from './use-data';
 import { useMileageAnalytics } from './use-mileage-analytics';
@@ -17,6 +19,43 @@ import {
   sumExpense,
   sumRentalIncome,
 } from '@/lib/financial-metrics';
+
+/**
+ * Calcula el estado de mantenimiento usando la misma métrica de kilometraje
+ * que consume el módulo de analíticas y excluyendo vehículos no operativos.
+ */
+export function getMaintenanceKpiSummary(
+  vehicles: Vehicle[],
+  mileageMetrics: VehicleMileageMetric[],
+) {
+  const operationalVehicles = vehicles.filter(vehicle => vehicle.status !== 'sold' && !vehicle.isDeleted);
+  const metricsByVehicleId = new Map(mileageMetrics.map(metric => [metric.vehicleId, metric]));
+  const overdueVehicles = operationalVehicles.filter(vehicle => {
+    const metric = metricsByVehicleId.get(vehicle.id);
+    return metric !== undefined && metric.kmToNextMaintenance <= 0;
+  });
+  const soonVehicles = operationalVehicles.filter(vehicle => {
+    const kmToNext = metricsByVehicleId.get(vehicle.id)?.kmToNextMaintenance;
+    return kmToNext !== undefined && kmToNext > 0 && kmToNext <= 1500;
+  });
+  const withMetricDetails = (vehicle: Vehicle) => {
+    const metric = metricsByVehicleId.get(vehicle.id);
+    return {
+      ...vehicle,
+      currentMileage: metric?.currentMileage,
+      nextMaintenanceAt: metric?.nextMaintenanceDue,
+      kmToNextMaintenance: metric?.kmToNextMaintenance,
+      maintenanceScore: metric?.maintenanceScore,
+    };
+  };
+
+  return {
+    overdueCount: overdueVehicles.length,
+    soonCount: soonVehicles.length,
+    overdueDetails: overdueVehicles.map(withMetricDetails),
+    soonDetails: soonVehicles.map(withMetricDetails),
+  };
+}
 
 /**
  * Hook central que agrega todos los KPIs de los hooks especializados.
@@ -257,7 +296,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const averageVehicleProfitability = totalProfitabilityIncome > 0
       ? (totalGrossProfit / totalProfitabilityIncome) * 100
       : null;
-    const maintenanceDue = mileageMetrics.filter(vm => (vm.kmToNextMaintenance || 0) <= 0).length;
+    const maintenanceSummary = getMaintenanceKpiSummary(vehicles, mileageMetrics);
+    const maintenanceDue = maintenanceSummary.overdueCount;
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
@@ -313,10 +353,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         };
       });
     
-    const maintenanceSoon = mileageMetrics.filter(vm => {
-      const kmToNext = vm.kmToNextMaintenance || 0;
-      return kmToNext > 0 && kmToNext <= 1500;
-    }).length;
+    const maintenanceSoon = maintenanceSummary.soonCount;
 
     const cashFlow = financialAnalytics.cashFlowAnalysis || [];
     const incomeTrendData = cashFlow.map(m => (m.income || 0) + (m.payments || 0));
@@ -379,6 +416,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         loading: false
       },
       'vehicles-maintenance': { value: maintenanceVehiclesCount, loading: false },
+      'maintenance-overdue': { value: maintenanceDue, details: maintenanceSummary.overdueDetails, loading: false },
+      'maintenance-soon': { value: maintenanceSoon, details: maintenanceSummary.soonDetails, loading: false },
       'vehicles-inactive': { value: inactiveVehiclesCount, loading: false },
 
       'income-month': {
@@ -490,8 +529,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     // Multas KPIs (si el analytics los expone)
     if (multasAnalytics) {
       Object.assign(allKPIs, {
-        'multas-pendientes': { value: (multasAnalytics as any).pendientes ?? 0, loading: false },
-        'multas-monto': { value: (multasAnalytics as any).montoPendiente ?? 0, loading: false },
+        'total-multas': { value: multasAnalytics.totalMultas, loading: false },
+        'multas-pendientes': { value: multasAnalytics.multasPendientes, loading: false },
+        'multas-pagadas': { value: multasAnalytics.multasPagadas, loading: false },
+        'multas-monto': { value: multasAnalytics.totalPendienteAmount, loading: false },
       });
     }
 
