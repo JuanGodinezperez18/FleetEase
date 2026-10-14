@@ -73,12 +73,20 @@ export async function middleware(req: NextRequest) {
       contentSecurityPolicy
     );
 
+  // Keep protected application routes behind authorization even when a URL
+  // contains a dot (for example, an export or a filename-like route segment).
+  const isProtectedAppRoute =
+    pathname === '/dashboard' || pathname.startsWith('/dashboard/') ||
+    pathname === '/partner' || pathname.startsWith('/partner/') ||
+    pathname === '/client' || pathname.startsWith('/client/');
+
   // Security headers must also reach Next.js static assets such as
-  // /_next/static/media/*.woff2.
+  // /_next/static/media/*.woff2. Public files may pass through, but a dotted
+  // path inside a protected app area must still be authenticated below.
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-    pathname.includes('.')
+    (pathname.includes('.') && !isProtectedAppRoute)
   ) {
     return createResponse();
   }
