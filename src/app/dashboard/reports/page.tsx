@@ -162,11 +162,6 @@ export default function ReportsPageImproved() {
   const prepareReportData = (): ReportData | null => {
     if (!dateRange?.from || !dateRange.to || !financialSummary) return null;
 
-    const filteredRecords = ReportAnalyticsService.filterRecordsByDateRange(
-      financialRecords,
-      { from: dateRange.from, to: dateRange.to }
-    );
-
     const baseData: ReportData = {
       type: reportType,
       title: getReportTitle(),
@@ -174,14 +169,21 @@ export default function ReportsPageImproved() {
       dateRange: { from: dateRange.from, to: dateRange.to },
       companyName: 'FleetEase Manager',
       generatedBy: currentUser?.name || undefined,
-      income: financialSummary.income,
-      expenses: financialSummary.expenses,
-      netProfit: financialSummary.netProfit,
-      profitMargin: financialSummary.profitMargin,
-      transactionsCount: financialSummary.transactionsCount,
-      expensesByCategory: financialSummary.expensesByCategory,
-      incomeByCategory: financialSummary.incomeByCategory,
-      records: filteredRecords,
+      ...(reportType === 'financial'
+        ? {
+            income: financialSummary.income,
+            expenses: financialSummary.expenses,
+            netProfit: financialSummary.netProfit,
+            profitMargin: financialSummary.profitMargin,
+            transactionsCount: financialSummary.transactionsCount,
+            expensesByCategory: financialSummary.expensesByCategory,
+            incomeByCategory: financialSummary.incomeByCategory,
+            records: ReportAnalyticsService.filterRecordsByDateRange(
+              financialRecords,
+              { from: dateRange.from, to: dateRange.to }
+            ),
+          }
+        : {}),
     };
 
     switch (reportType) {
