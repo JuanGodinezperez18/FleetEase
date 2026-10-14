@@ -481,6 +481,7 @@ export default function ReportsPageImproved() {
                         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
                         <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
                         <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                         <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
                         <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
                       </BarChart>
@@ -524,6 +525,7 @@ export default function ReportsPageImproved() {
                           {Object.keys(clientMetrics.reduce<Record<string, number>>((acc, m) => { acc[m.paymentBehavior] = (acc[m.paymentBehavior] || 0) + 1; return acc; }, {})).map((name, index) => <Cell key={name} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
                         </Pie>
                         <Tooltip contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -553,6 +555,7 @@ export default function ReportsPageImproved() {
                         <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
                         <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
                         <Tooltip contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                         <Bar dataKey="vehiculos" name="Vehículos activos" fill="#38bdf8" radius={[0, 6, 6, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -571,6 +574,7 @@ export default function ReportsPageImproved() {
                   <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} />
                   <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                   <Line type="monotone" dataKey="income" stroke="#d7ff3f" strokeWidth={2} name="Ingresos" />
                   <Line type="monotone" dataKey="expenses" stroke="#fb7185" strokeWidth={2} name="Gastos" />
                   <Area type="monotone" dataKey="netProfit" fill="#d7ff3f20" stroke="#a3e635" name="Neto" />
