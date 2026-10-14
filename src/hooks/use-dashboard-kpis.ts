@@ -5,6 +5,7 @@ import type { MetricKPIData } from '@/types/dashboard';
 import { useFinancialAnalytics } from './use-financial-analytics';
 import { useData } from './use-data';
 import { useMileageAnalytics } from './use-mileage-analytics';
+import { getMaintenanceKpiSummary } from '@/lib/maintenance-kpi-summary';
 import { usePartnerAnalytics } from './use-partner-analytics';
 import { useCreditAnalytics } from './use-credits-analytics';
 import { useMultasAnalytics } from './use-multas-analytics';
@@ -257,7 +258,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     const averageVehicleProfitability = totalProfitabilityIncome > 0
       ? (totalGrossProfit / totalProfitabilityIncome) * 100
       : null;
-    const maintenanceDue = mileageMetrics.filter(vm => (vm.kmToNextMaintenance || 0) <= 0).length;
+    const maintenanceSummary = getMaintenanceKpiSummary(vehicles, mileageMetrics);
+    const maintenanceDue = maintenanceSummary.overdueCount;
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
@@ -313,10 +315,7 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         };
       });
     
-    const maintenanceSoon = mileageMetrics.filter(vm => {
-      const kmToNext = vm.kmToNextMaintenance || 0;
-      return kmToNext > 0 && kmToNext <= 1500;
-    }).length;
+    const maintenanceSoon = maintenanceSummary.soonCount;
 
     const cashFlow = financialAnalytics.cashFlowAnalysis || [];
     const incomeTrendData = cashFlow.map(m => (m.income || 0) + (m.payments || 0));
@@ -379,6 +378,8 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         loading: false
       },
       'vehicles-maintenance': { value: maintenanceVehiclesCount, loading: false },
+      'maintenance-overdue': { value: maintenanceDue, details: maintenanceSummary.overdueDetails, loading: false },
+      'maintenance-soon': { value: maintenanceSoon, details: maintenanceSummary.soonDetails, loading: false },
       'vehicles-inactive': { value: inactiveVehiclesCount, loading: false },
 
       'income-month': {
@@ -490,8 +491,10 @@ export function useDashboardKPIs(dateRange?: DateRange) {
     // Multas KPIs (si el analytics los expone)
     if (multasAnalytics) {
       Object.assign(allKPIs, {
-        'multas-pendientes': { value: (multasAnalytics as any).pendientes ?? 0, loading: false },
-        'multas-monto': { value: (multasAnalytics as any).montoPendiente ?? 0, loading: false },
+        'total-multas': { value: multasAnalytics.totalMultas, loading: false },
+        'multas-pendientes': { value: multasAnalytics.multasPendientes, loading: false },
+        'multas-pagadas': { value: multasAnalytics.multasPagadas, loading: false },
+        'multas-monto': { value: multasAnalytics.totalPendienteAmount, loading: false },
       });
     }
 
