@@ -399,24 +399,19 @@ export default function ReportsPageImproved() {
           <TabsContent value="overview" className="space-y-4">
             {reportType === 'financial' ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <ChartPanel title="Ingresos vs gastos">
+              <ChartPanel title="Ingresos vs gastos del periodo">
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={90}
-                      dataKey="value"
-                    >
+                  <BarChart data={chartData} margin={{ top: 16, right: 16, left: 12, bottom: 8 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
+                    <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                    <Bar dataKey="value" name="Monto" radius={[8, 8, 0, 0]}>
                       {chartData.map((entry, index) => (
                         <Cell key={index} fill={entry.color} />
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </ChartPanel>
 
@@ -547,11 +542,82 @@ export default function ReportsPageImproved() {
               </ResponsiveContainer>
             </ChartPanel>
             ) : reportType === 'vehicle' ? (
-              <MetricsList title="Vehículos por beneficio neto" empty="Sin datos" items={vehicleMetrics.slice(0, 10).map(m => ({ id: m.vehicle.id, primary: m.vehicle.alias || m.vehicle.plate, secondary: m.vehicle.plate, value: formatCurrency(m.netProfit), meta: `Utilización ${m.utilizationRate.toFixed(0)}%`, positive: m.netProfit >= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Rentabilidad comparada por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={vehicleMetrics.slice(0, 10).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, beneficio: m.netProfit, margen: m.profitability }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number, name: string) => name === 'margen' ? `${v.toFixed(1)}%` : formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="beneficio" name="Beneficio neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Ingresos y gastos de la flota">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={[{ name: 'Flota', ingresos: vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0), gastos: vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0) }]}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }} />
+                      <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
             ) : reportType === 'client' ? (
-              <MetricsList title="Clientes por pagos" empty="Sin datos" items={clientMetrics.slice(0, 10).map(m => ({ id: m.client.id, primary: `${m.client.firstname} ${m.client.lastname}`, secondary: m.paymentBehavior, value: formatCurrency(m.totalPayments), meta: `Días desde último pago: ${m.daysSinceLastPayment >= 0 ? m.daysSinceLastPayment : 'Sin pagos'}`, positive: m.balance <= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Saldos pendientes por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay clientes para comparar." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={clientMetrics.filter(m => m.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 10).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), saldo: m.balance }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="saldo" name="Saldo vigente" fill="#fb7185" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Pagos por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay pagos registrados." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={clientMetrics.slice(0, 10).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), pagos: m.totalPayments }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="pagos" name="Pagos del periodo" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
             ) : (
-              <MetricsList title="Socios por balance neto" empty="Sin datos" items={partnerMetrics.map(m => ({ id: m.partner.id, primary: `${m.partner.firstname} ${m.partner.lastname}`, secondary: `${m.activeVehicles} vehículos activos`, value: formatCurrency(m.netBalance), meta: `${m.transactionsCount} movimientos`, positive: m.netBalance >= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Balance neto por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay socios con movimientos en este periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={partnerMetrics.slice(0, 10).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), balance: m.netBalance }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="balance" name="Balance neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Ingresos y gastos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                      <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
             )}
           </TabsContent>
 
