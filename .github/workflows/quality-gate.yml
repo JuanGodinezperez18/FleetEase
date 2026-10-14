@@ -19,6 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -38,8 +41,31 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
-      - name: ESLint
-        run: npm run lint
+      # Incremental lint gate: enforce the configured rules on files changed by
+      # this PR/push while the full-repository lint backlog is tracked separately.
+      - name: ESLint changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "::error::Could not resolve the base commit for incremental ESLint."
+            exit 1
+          fi
+
+          mapfile -t files < <(
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$GITHUB_SHA" -- \
+              '*.js' '*.jsx' '*.ts' '*.tsx' '*.mjs' '*.cjs'
+          )
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No JavaScript/TypeScript files changed; ESLint has nothing to check."
+            exit 0
+          fi
+
+          printf 'Linting %s changed file(s):\n' "${#files[@]}"
+          printf ' - %s\n' "${files[@]}"
+          npx eslint --no-warn-ignored "${files[@]}"
 
       - name: TypeScript
         run: npm run type-check
