@@ -441,11 +441,93 @@ export default function ReportsPageImproved() {
               </ChartPanel>
             </div>
             ) : reportType === 'vehicle' ? (
-              <MetricsList title="Rentabilidad por vehículo" empty="Sin datos de vehículos para este periodo" items={vehicleMetrics.slice(0, 10).map(m => ({ id: m.vehicle.id, primary: m.vehicle.alias || m.vehicle.plate, secondary: m.vehicle.plate, value: formatCurrency(m.netProfit), meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)} · ${m.profitability.toFixed(1)}%`, positive: m.netProfit >= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Ingresos y gastos por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay movimientos asociados a vehículos en este periodo." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                        <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Beneficio neto por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay vehículos para comparar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, beneficio: m.netProfit }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={95} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="beneficio" name="Beneficio neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
             ) : reportType === 'client' ? (
-              <MetricsList title="Resumen de clientes" empty="Sin datos de clientes para este periodo" items={clientMetrics.slice(0, 10).map(m => ({ id: m.client.id, primary: `${m.client.firstname} ${m.client.lastname}`, secondary: m.paymentBehavior, value: formatCurrency(m.totalPayments), meta: `Saldo vigente ${formatCurrency(m.balance)}`, positive: m.balance <= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Pagos registrados por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay clientes para el periodo seleccionado." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={clientMetrics.slice(0, 8).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), pagos: m.totalPayments }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="pagos" name="Pagos" fill="#a3e635" radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Distribución de comportamiento de pago">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay datos de comportamiento para mostrar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={Object.entries(clientMetrics.reduce<Record<string, number>>((acc, m) => { acc[m.paymentBehavior] = (acc[m.paymentBehavior] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value }))} dataKey="value" nameKey="name" cx="50%" cy="48%" innerRadius={58} outerRadius={92} paddingAngle={3}>
+                          {Object.keys(clientMetrics.reduce<Record<string, number>>((acc, m) => { acc[m.paymentBehavior] = (acc[m.paymentBehavior] || 0) + 1; return acc; }, {})).map((name, index) => <Cell key={name} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
             ) : (
-              <MetricsList title="Resumen de socios" empty="Sin datos de socios para este periodo" items={partnerMetrics.slice(0, 10).map(m => ({ id: m.partner.id, primary: `${m.partner.firstname} ${m.partner.lastname}`, secondary: `${m.activeVehicles} vehículos activos`, value: formatCurrency(m.netBalance), meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)}`, positive: m.netBalance >= 0 }))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Ingresos y gastos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay socios con información disponible." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                        <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Vehículos activos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay datos de socios para comparar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), vehiculos: m.activeVehicles }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="vehiculos" name="Vehículos activos" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
             )}
           </TabsContent>
 
