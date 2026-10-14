@@ -189,7 +189,7 @@ export class ReportAnalyticsService {
     vehicle: Vehicle,
     assignmentLogs: VehicleAssignmentLog[],
     dateRange?: { from: Date; to: Date },
-  ): number {
+  ): number | null {
     const today = endOfDay(new Date());
     const acquisitionDate = infallibleNormalizeDate(vehicle.acquisitionDate);
     const requestedStart = startOfDay(dateRange?.from ?? acquisitionDate ?? today);
