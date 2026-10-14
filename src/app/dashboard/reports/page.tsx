@@ -23,7 +23,7 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -88,7 +88,7 @@ export default function ReportsPageImproved() {
       expenses: financialAnalytics.totalExpenses,
       netProfit: financialAnalytics.netProfit,
       profitMargin: financialAnalytics.profitMargin,
-      transactionsCount: financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from!, end: dateRange.to! })).length,
+      transactionsCount: financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: startOfDay(dateRange.from!), end: endOfDay(dateRange.to!) })).length,
       expensesByCategory: Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
       incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
       incomeChange: financialAnalytics.monthlyGrowth.income,
@@ -306,7 +306,7 @@ export default function ReportsPageImproved() {
                 type="date"
                 value={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''}
                 onChange={e => {
-                  const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                  const newDate = e.target.value ? startOfDay(new Date(`${e.target.value}T00:00:00`)) : undefined;
                   setDateRange(prev => ({ from: newDate, to: prev?.to }));
                 }}
                 className="w-[150px] border-white/10 bg-white/[0.03] text-white"
@@ -318,7 +318,7 @@ export default function ReportsPageImproved() {
                 type="date"
                 value={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''}
                 onChange={e => {
-                  const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                  const newDate = e.target.value ? endOfDay(new Date(`${e.target.value}T00:00:00`)) : undefined;
                   setDateRange(prev => ({ from: prev?.from, to: newDate }));
                 }}
                 className="w-[150px] border-white/10 bg-white/[0.03] text-white"
