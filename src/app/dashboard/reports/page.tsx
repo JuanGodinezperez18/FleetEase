@@ -88,7 +88,7 @@ export default function ReportsPageImproved() {
       expenses: financialAnalytics.totalExpenses,
       netProfit: financialAnalytics.netProfit,
       profitMargin: financialAnalytics.profitMargin,
-      transactionsCount: financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: startOfDay(dateRange.from!), end: endOfDay(dateRange.to!) })).length,
+      transactionsCount: ReportAnalyticsService.filterRecordsByDateRange(financialRecords, { from: startOfDay(dateRange.from!), to: endOfDay(dateRange.to!) }).length,
       expensesByCategory: Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
       incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
       incomeChange: financialAnalytics.monthlyGrowth.income,
@@ -734,6 +734,16 @@ export default function ReportsPageImproved() {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function EmptyChart({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.015] px-5 text-center">
+      <BarChart3 className="h-7 w-7 text-white/25" strokeWidth={1.5} />
+      <p className="max-w-xs text-sm text-white/45">{message}</p>
+      <p className="text-[11px] text-white/25">Prueba otro rango de fechas o revisa los movimientos asociados.</p>
     </div>
   );
 }
