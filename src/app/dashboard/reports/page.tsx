@@ -595,15 +595,14 @@ export default function ReportsPageImproved() {
                     </BarChart>
                   </ResponsiveContainer>}
                 </ChartPanel>
-                <ChartPanel title="Ingresos y gastos de la flota">
-                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={[{ name: 'Flota', ingresos: vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0), gastos: vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0) }]}>
-                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }} />
-                      <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
-                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
-                      <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                <ChartPanel title="Utilización por vehículo en el periodo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay vehículos para calcular utilización." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={vehicleMetrics.slice(0, 10).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, utilizacion: m.utilizationRate }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="utilizacion" name="Utilización del periodo" fill="#38bdf8" radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>}
                 </ChartPanel>
