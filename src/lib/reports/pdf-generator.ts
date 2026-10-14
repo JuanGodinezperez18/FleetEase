@@ -47,7 +47,7 @@ export interface ReportData {
   expensesByCategory?: Record<string, number>;
   incomeByCategory?: Record<string, number>;
   vehicles?: Vehicle[];
-  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number }>;
+  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number | null }>;
   clients?: Client[];
   clientMetrics?: Array<{ client: Client; totalPayments: number; balance: number; daysSinceLastPayment: number; paymentBehavior: string }>;
   partners?: Partner[];
@@ -653,7 +653,7 @@ export class PDFReportGenerator {
         this.formatCurrency(m.totalExpenses),
         this.formatCurrency(m.netProfit),
         `${m.profitability.toFixed(1)}%`,
-        `${m.utilizationRate.toFixed(1)}%`,
+        m.utilizationRate == null ? 'N/D' : `${m.utilizationRate.toFixed(1)}%`,
       ]),
       ...this.tableTheme(),
     });
