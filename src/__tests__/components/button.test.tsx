@@ -37,10 +37,10 @@ describe('Components', () => {
 
     it('debería soportar diferentes variantes', () => {
       const { rerender } = render(<Button variant="default">Default</Button>);
-      expect(screen.getByRole('button')).toHaveClass('bg-primary');
+      expect(screen.getByRole('button')).toHaveClass('bg-[var(--fe-lime)]');
 
       rerender(<Button variant="destructive">Destructive</Button>);
-      expect(screen.getByRole('button')).toHaveClass('bg-destructive');
+      expect(screen.getByRole('button')).toHaveClass('bg-[var(--fe-danger)]/15');
 
       rerender(<Button variant="outline">Outline</Button>);
       expect(screen.getByRole('button')).toHaveClass('border');
