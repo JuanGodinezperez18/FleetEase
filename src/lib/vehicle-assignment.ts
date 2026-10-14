@@ -36,7 +36,12 @@ export function findAssignmentAtDate(
   // Treat the selected value as a calendar day, not as midnight.
   // This matters because assignment records are stored with a time
   // component (historical captures are normalized to noon local time).
-  const dayStart = new Date(`${date}T00:00:00`).getTime();
+  const dateOnly = date.slice(0, 10);
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateOnly)) return null;
+
+  // The caller may pass either YYYY-MM-DD or a full ISO timestamp.
+  // Normalize to UTC midnight so an ISO suffix does not make the date invalid.
+  const dayStart = new Date(`${dateOnly}T00:00:00.000Z`).getTime();
   const nextDayStart = dayStart + 24 * 60 * 60 * 1000;
 
   const covering = logs.filter(log => {
