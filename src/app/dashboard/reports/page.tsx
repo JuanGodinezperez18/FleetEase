@@ -62,7 +62,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function ReportsPageImproved() {
-  const { financialRecords, vehicles, clients, partners, financialCategories, selectedCompanyId, clientBalances } = useData();
+  const { financialRecords, vehicles, clients, partners, financialCategories, selectedCompanyId, clientBalances, vehicleAssignmentLogs } = useData();
   const { currentUser } = useAuth();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -103,9 +103,10 @@ export default function ReportsPageImproved() {
     return ReportAnalyticsService.calculateVehicleMetrics(
       vehicles,
       financialRecords,
-      { from: dateRange.from, to: dateRange.to }
+      { from: dateRange.from, to: dateRange.to },
+      vehicleAssignmentLogs
     );
-  }, [vehicles, financialRecords, dateRange]);
+  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs]);
 
   const clientsWithBalances = useMemo(() => {
     const balanceMap = new Map(clientBalances.map(cb => [cb.id, cb.balance]));
