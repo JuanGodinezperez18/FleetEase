@@ -603,7 +603,7 @@ export default function ReportsPageImproved() {
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
                       <XAxis type="number" domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
                       <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
-                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} contentStyle={TOOLTIP_STYLE} />
+                      <Tooltip formatter={(v: number | null) => v == null ? 'N/D' : `${v.toFixed(1)}%`} contentStyle={TOOLTIP_STYLE} />
                       <Bar dataKey="utilizacion" name="Utilización del periodo" fill="#38bdf8" radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>}
