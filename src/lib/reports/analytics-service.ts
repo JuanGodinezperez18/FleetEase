@@ -9,7 +9,6 @@ export interface VehicleMetric {
   totalExpenses: number;
   netProfit: number;
   profitability: number;
-  utilizationRate: number;
   transactionsCount: number;
 }
 
@@ -59,7 +58,7 @@ export class ReportAnalyticsService {
       const netProfit = calculateNetProfit(vehicleRecords);
       const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
       const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
-      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate: vehicle.clientId ? 100 : 0, transactionsCount: profitTransactions.length };
+      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, transactionsCount: profitTransactions.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
   }
 
@@ -181,8 +180,8 @@ export class ReportAnalyticsService {
     return filterRecordsByDateRange(records, dateRange);
   }
 
-  static getTopVehicles(vehicleMetrics: VehicleMetric[], limit: number = 5): VehicleMetric[] { return vehicleMetrics.sort((a, b) => b.netProfit - a.netProfit).slice(0, limit); }
-  static getTopClients(clientMetrics: ClientMetric[], limit: number = 5): ClientMetric[] { return clientMetrics.sort((a, b) => b.totalPayments - a.totalPayments).slice(0, limit); }
+  static getTopVehicles(vehicleMetrics: VehicleMetric[], limit: number = 5): VehicleMetric[] { return [...vehicleMetrics].sort((a, b) => b.netProfit - a.netProfit).slice(0, limit); }
+  static getTopClients(clientMetrics: ClientMetric[], limit: number = 5): ClientMetric[] { return [...clientMetrics].sort((a, b) => b.totalPayments - a.totalPayments).slice(0, limit); }
   static getClientsWithCriticalBalance(clientMetrics: ClientMetric[], threshold: number = 5000): ClientMetric[] { return clientMetrics.filter(m => m.balance > threshold).sort((a, b) => b.balance - a.balance); }
 
 }
