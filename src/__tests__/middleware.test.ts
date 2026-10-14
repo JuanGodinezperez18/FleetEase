@@ -87,6 +87,14 @@ describe('middleware (Supabase SSR and role authorization)', () => {
     expect(mockGetProfile).not.toHaveBeenCalled();
   });
 
+  it('does not bypass authorization for dotted paths inside protected routes', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    const res = asMockResponse(await middleware(buildRequest('/dashboard/reports/export.csv') as unknown as Parameters<typeof middleware>[0]));
+    expect(res.type).toBe('redirect');
+    expect(res.url?.pathname).toBe('/login');
+    expect(res.url?.searchParams.get('callbackUrl')).toBe('/dashboard/reports/export.csv');
+  });
+
   it('allows an admin role into dashboard routes', async () => {
     setAuthenticatedRole('admin');
     const res = asMockResponse(await middleware(buildRequest('/dashboard/vehicles') as unknown as Parameters<typeof middleware>[0]));
