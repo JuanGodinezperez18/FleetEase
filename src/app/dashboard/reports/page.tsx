@@ -188,13 +188,48 @@ export default function ReportsPageImproved() {
 
     switch (reportType) {
       case 'vehicle':
-        return { ...baseData, vehicleMetrics };
+        return {
+          ...baseData,
+          vehicleMetrics,
+          kpis: [
+            { label: 'Vehículos analizados', value: vehicleMetrics.length, format: 'number' },
+            { label: 'Ingresos de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0), format: 'currency' },
+            { label: 'Gastos de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
+            { label: 'Beneficio neto de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0), format: 'currency' },
+          ],
+        };
       case 'client':
-        return { ...baseData, clientMetrics };
+        return {
+          ...baseData,
+          clientMetrics,
+          kpis: [
+            { label: 'Clientes analizados', value: clientMetrics.length, format: 'number' },
+            { label: 'Pagos registrados en el periodo', value: clientMetrics.reduce((sum, m) => sum + m.totalPayments, 0), format: 'currency' },
+            { label: 'Saldo pendiente vigente', value: clientMetrics.reduce((sum, m) => sum + Math.max(0, m.balance), 0), format: 'currency' },
+            { label: 'Clientes con saldo crítico', value: clientMetrics.filter(m => m.balance > 5000).length, format: 'number' },
+          ],
+        };
       case 'partner':
-        return { ...baseData, partnerMetrics };
+        return {
+          ...baseData,
+          partnerMetrics,
+          kpis: [
+            { label: 'Socios analizados', value: partnerMetrics.length, format: 'number' },
+            { label: 'Ingresos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalIncome, 0), format: 'currency' },
+            { label: 'Gastos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
+            { label: 'Balance neto de socios', value: partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0), format: 'currency' },
+          ],
+        };
       default:
-        return baseData;
+        return {
+          ...baseData,
+          kpis: [
+            { label: 'Ingresos', value: financialSummary.income, format: 'currency' },
+            { label: 'Gastos', value: financialSummary.expenses, format: 'currency' },
+            { label: 'Beneficio neto', value: financialSummary.netProfit, format: 'currency' },
+            { label: 'Margen', value: financialSummary.profitMargin, format: 'percent' },
+          ],
+        };
     }
   };
 
