@@ -258,7 +258,7 @@ describe('financial-metrics', () => {
       // el nombre legado exacto (SECURITY_DEPOSIT_CATEGORY), no por cualquier
       // categoría que "suene" a depósito.
       const records = [
-        makeRecord({ id: '1', type: 'income', amount: 1000, categoryId: 'cat-deposito', category: 'Depósito en Garantía' }),
+        makeRecord({ id: '1', type: 'income', amount: 1000, categoryId: 'cat-deposito', category: 'Depósito Regional' }),
       ];
       expect(sumRentalIncome(records)).toBe(1000);
     });
