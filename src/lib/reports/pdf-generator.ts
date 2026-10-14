@@ -47,7 +47,7 @@ export interface ReportData {
   expensesByCategory?: Record<string, number>;
   incomeByCategory?: Record<string, number>;
   vehicles?: Vehicle[];
-  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number }>;
+  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number }>;
   clients?: Client[];
   clientMetrics?: Array<{ client: Client; totalPayments: number; balance: number; daysSinceLastPayment: number; paymentBehavior: string }>;
   partners?: Partner[];
@@ -646,13 +646,14 @@ export class PDFReportGenerator {
     this.addSectionTitle('Analisis de vehiculos');
     this.autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Rentabilidad']],
+      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Rentab.', 'Utiliz. periodo']],
       body: data.vehicleMetrics.map(m => [
         `${m.vehicle.alias || m.vehicle.plate}`.slice(0, 22),
         this.formatCurrency(m.totalIncome),
         this.formatCurrency(m.totalExpenses),
         this.formatCurrency(m.netProfit),
         `${m.profitability.toFixed(1)}%`,
+        `${m.utilizationRate.toFixed(1)}%`,
       ]),
       ...this.tableTheme(),
     });
