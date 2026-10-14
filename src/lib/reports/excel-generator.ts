@@ -85,25 +85,28 @@ export class ExcelReportGenerator {
       ],
       ['Generado', format(new Date(), 'dd/MM/yyyy HH:mm')],
       ['Generado por', data.generatedBy || ''],
-      [''],
-      ['RESUMEN FINANCIERO'],
-      [''],
     ];
 
-    if (data.income !== undefined) {
-      summaryData.push(['Ingresos Totales', data.income]);
-    }
-    if (data.expenses !== undefined) {
-      summaryData.push(['Gastos Totales', data.expenses]);
-    }
-    if (data.netProfit !== undefined) {
-      summaryData.push(['Beneficio Neto', data.netProfit]);
-    }
-    if (data.profitMargin !== undefined) {
-      summaryData.push(['Margen de Beneficio %', Number(data.profitMargin.toFixed(2))]);
-    }
-    if (data.transactionsCount !== undefined) {
-      summaryData.push(['Numero de Transacciones', data.transactionsCount]);
+    if (data.type === 'financial') {
+      summaryData.push(['']);
+      summaryData.push(['RESUMEN FINANCIERO']);
+      summaryData.push(['']);
+
+      if (data.income !== undefined) {
+        summaryData.push(['Ingresos Totales', data.income]);
+      }
+      if (data.expenses !== undefined) {
+        summaryData.push(['Gastos Totales', data.expenses]);
+      }
+      if (data.netProfit !== undefined) {
+        summaryData.push(['Beneficio Neto', data.netProfit]);
+      }
+      if (data.profitMargin !== undefined) {
+        summaryData.push(['Margen de Beneficio %', Number(data.profitMargin.toFixed(2))]);
+      }
+      if (data.transactionsCount !== undefined) {
+        summaryData.push(['Numero de Transacciones', data.transactionsCount]);
+      }
     }
 
     if (data.kpis && data.kpis.length > 0) {
