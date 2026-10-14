@@ -85,25 +85,28 @@ export class ExcelReportGenerator {
       ],
       ['Generado', format(new Date(), 'dd/MM/yyyy HH:mm')],
       ['Generado por', data.generatedBy || ''],
-      [''],
-      ['RESUMEN FINANCIERO'],
-      [''],
     ];
 
-    if (data.income !== undefined) {
-      summaryData.push(['Ingresos Totales', data.income]);
-    }
-    if (data.expenses !== undefined) {
-      summaryData.push(['Gastos Totales', data.expenses]);
-    }
-    if (data.netProfit !== undefined) {
-      summaryData.push(['Beneficio Neto', data.netProfit]);
-    }
-    if (data.profitMargin !== undefined) {
-      summaryData.push(['Margen de Beneficio %', Number(data.profitMargin.toFixed(2))]);
-    }
-    if (data.transactionsCount !== undefined) {
-      summaryData.push(['Numero de Transacciones', data.transactionsCount]);
+    if (data.type === 'financial') {
+      summaryData.push(['']);
+      summaryData.push(['RESUMEN FINANCIERO']);
+      summaryData.push(['']);
+
+      if (data.income !== undefined) {
+        summaryData.push(['Ingresos Totales', data.income]);
+      }
+      if (data.expenses !== undefined) {
+        summaryData.push(['Gastos Totales', data.expenses]);
+      }
+      if (data.netProfit !== undefined) {
+        summaryData.push(['Beneficio Neto', data.netProfit]);
+      }
+      if (data.profitMargin !== undefined) {
+        summaryData.push(['Margen de Beneficio %', Number(data.profitMargin.toFixed(2))]);
+      }
+      if (data.transactionsCount !== undefined) {
+        summaryData.push(['Numero de Transacciones', data.transactionsCount]);
+      }
     }
 
     if (data.kpis && data.kpis.length > 0) {
@@ -243,7 +246,7 @@ export class ExcelReportGenerator {
         'Gastos',
         'Beneficio Neto',
         'Rentabilidad %',
-        'Tasa Utilizacion %',
+        'Utilización en periodo %',
       ],
     ];
 
@@ -258,7 +261,7 @@ export class ExcelReportGenerator {
         metric.totalExpenses,
         metric.netProfit,
         Number(metric.profitability.toFixed(2)),
-        metric.utilizationRate != null ? Number(metric.utilizationRate.toFixed(2)) : 'N/A',
+        metric.utilizationRate == null ? 'N/D' : Number(metric.utilizationRate.toFixed(2)),
       ]);
     });
 
@@ -273,7 +276,7 @@ export class ExcelReportGenerator {
       { wch: 15 },
       { wch: 15 },
       { wch: 14 },
-      { wch: 16 },
+      { wch: 22 },
     ];
     this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Rentabilidad Vehiculos');
   }

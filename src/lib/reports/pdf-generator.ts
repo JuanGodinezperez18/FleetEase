@@ -47,7 +47,7 @@ export interface ReportData {
   expensesByCategory?: Record<string, number>;
   incomeByCategory?: Record<string, number>;
   vehicles?: Vehicle[];
-  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number }>;
+  vehicleMetrics?: Array<{ vehicle: Vehicle; totalIncome: number; totalExpenses: number; netProfit: number; profitability: number; utilizationRate: number | null }>;
   clients?: Client[];
   clientMetrics?: Array<{ client: Client; totalPayments: number; balance: number; daysSinceLastPayment: number; paymentBehavior: string }>;
   partners?: Partner[];
@@ -198,7 +198,7 @@ export class PDFReportGenerator {
     this.addHeader(data);
     this.addCompanyBlock(data);
     this.addKpiCards(data);
-    if (data.kpis && data.kpis.length >= 2) this.addKpiComparisonCharts(data.kpis);
+    if (data.kpis && data.kpis.length >= 2) this.addKpiComparisonCharts(data.kpis, data.type);
     if (data.income !== undefined && data.expenses !== undefined) this.addIncomeExpenseVisual(data);
     this.addAlertDetails(data);
     switch (data.type) {
@@ -458,7 +458,7 @@ export class PDFReportGenerator {
     this.currentY += 4;
   }
 
-  private addKpiComparisonCharts(kpis: ReportKpi[]) {
+  private addKpiComparisonCharts(kpis: ReportKpi[], reportType: ReportData['type']) {
     const money: Array<{ label: string; value: number; format: KpiFormat }> = [];
     const counts: Array<{ label: string; value: number; format: KpiFormat }> = [];
     kpis.forEach(k => {
@@ -470,7 +470,13 @@ export class PDFReportGenerator {
       else if (Math.abs(n) >= 100) money.push({ label: k.label, value: n, format: 'currency' });
       else counts.push({ label: k.label, value: n, format: 'number' });
     });
-    if (money.length >= 1) this.drawComparisonBlock('Comparativa financiera', money.slice(0, 6), 'currency');
+    const moneyTitle: Record<ReportData['type'], string> = {
+      financial: 'Comparativa financiera',
+      vehicle: 'Resumen económico de flota',
+      client: 'Cobranza y saldos de clientes',
+      partner: 'Resultados económicos por socio',
+    };
+    if (money.length >= 1) this.drawComparisonBlock(moneyTitle[reportType], money.slice(0, 6), 'currency');
     if (counts.length >= 1) this.drawComparisonBlock('Indicadores operativos', counts.slice(0, 6), 'number');
   }
 
@@ -640,13 +646,14 @@ export class PDFReportGenerator {
     this.addSectionTitle('Analisis de vehiculos');
     this.autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Utilizacion']],
+      head: [['Vehiculo', 'Ingresos', 'Gastos', 'Neto', 'Rentab.', 'Utiliz. periodo']],
       body: data.vehicleMetrics.map(m => [
         `${m.vehicle.alias || m.vehicle.plate}`.slice(0, 22),
         this.formatCurrency(m.totalIncome),
         this.formatCurrency(m.totalExpenses),
         this.formatCurrency(m.netProfit),
-        `${m.utilizationRate.toFixed(0)}%`,
+        `${m.profitability.toFixed(1)}%`,
+        m.utilizationRate == null ? 'N/D' : `${m.utilizationRate.toFixed(1)}%`,
       ]),
       ...this.tableTheme(),
     });

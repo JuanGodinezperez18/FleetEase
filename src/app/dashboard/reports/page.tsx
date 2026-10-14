@@ -23,7 +23,7 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -61,7 +62,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function ReportsPageImproved() {
-  const { financialRecords, vehicles, clients, partners, financialCategories, selectedCompanyId, clientBalances } = useData();
+  const { financialRecords, vehicles, clients, partners, financialCategories, selectedCompanyId, clientBalances, vehicleAssignmentLogs } = useData();
   const { currentUser } = useAuth();
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -88,7 +89,7 @@ export default function ReportsPageImproved() {
       expenses: financialAnalytics.totalExpenses,
       netProfit: financialAnalytics.netProfit,
       profitMargin: financialAnalytics.profitMargin,
-      transactionsCount: financialRecords.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from!, end: dateRange.to! })).length,
+      transactionsCount: ReportAnalyticsService.filterRecordsByDateRange(financialRecords, { from: startOfDay(dateRange.from!), to: endOfDay(dateRange.to!) }).length,
       expensesByCategory: Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
       incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
       incomeChange: financialAnalytics.monthlyGrowth.income,
@@ -102,9 +103,10 @@ export default function ReportsPageImproved() {
     return ReportAnalyticsService.calculateVehicleMetrics(
       vehicles,
       financialRecords,
-      { from: dateRange.from, to: dateRange.to }
+      { from: dateRange.from, to: dateRange.to },
+      vehicleAssignmentLogs
     );
-  }, [vehicles, financialRecords, dateRange]);
+  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs]);
 
   const clientsWithBalances = useMemo(() => {
     const balanceMap = new Map(clientBalances.map(cb => [cb.id, cb.balance]));
@@ -162,11 +164,6 @@ export default function ReportsPageImproved() {
   const prepareReportData = (): ReportData | null => {
     if (!dateRange?.from || !dateRange.to || !financialSummary) return null;
 
-    const filteredRecords = ReportAnalyticsService.filterRecordsByDateRange(
-      financialRecords,
-      { from: dateRange.from, to: dateRange.to }
-    );
-
     const baseData: ReportData = {
       type: reportType,
       title: getReportTitle(),
@@ -174,25 +171,67 @@ export default function ReportsPageImproved() {
       dateRange: { from: dateRange.from, to: dateRange.to },
       companyName: 'FleetEase Manager',
       generatedBy: currentUser?.name || undefined,
-      income: financialSummary.income,
-      expenses: financialSummary.expenses,
-      netProfit: financialSummary.netProfit,
-      profitMargin: financialSummary.profitMargin,
-      transactionsCount: financialSummary.transactionsCount,
-      expensesByCategory: financialSummary.expensesByCategory,
-      incomeByCategory: financialSummary.incomeByCategory,
-      records: filteredRecords,
+      ...(reportType === 'financial'
+        ? {
+            income: financialSummary.income,
+            expenses: financialSummary.expenses,
+            netProfit: financialSummary.netProfit,
+            profitMargin: financialSummary.profitMargin,
+            transactionsCount: financialSummary.transactionsCount,
+            expensesByCategory: financialSummary.expensesByCategory,
+            incomeByCategory: financialSummary.incomeByCategory,
+            records: ReportAnalyticsService.filterRecordsByDateRange(
+              financialRecords,
+              { from: dateRange.from, to: dateRange.to }
+            ),
+          }
+        : {}),
     };
 
     switch (reportType) {
       case 'vehicle':
-        return { ...baseData, vehicleMetrics };
+        return {
+          ...baseData,
+          vehicleMetrics,
+          kpis: [
+            { label: 'Vehículos analizados', value: vehicleMetrics.length, format: 'number' },
+            { label: 'Ingresos de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0), format: 'currency' },
+            { label: 'Gastos de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
+            { label: 'Beneficio neto de flota', value: vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0), format: 'currency' },
+          ],
+        };
       case 'client':
-        return { ...baseData, clientMetrics };
+        return {
+          ...baseData,
+          clientMetrics,
+          kpis: [
+            { label: 'Clientes analizados', value: clientMetrics.length, format: 'number' },
+            { label: 'Pagos registrados en el periodo', value: clientMetrics.reduce((sum, m) => sum + m.totalPayments, 0), format: 'currency' },
+            { label: 'Saldo pendiente vigente', value: clientMetrics.reduce((sum, m) => sum + Math.max(0, m.balance), 0), format: 'currency' },
+            { label: 'Clientes con saldo crítico', value: clientMetrics.filter(m => m.balance > 5000).length, format: 'number' },
+          ],
+        };
       case 'partner':
-        return { ...baseData, partnerMetrics };
+        return {
+          ...baseData,
+          partnerMetrics,
+          kpis: [
+            { label: 'Socios analizados', value: partnerMetrics.length, format: 'number' },
+            { label: 'Ingresos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalIncome, 0), format: 'currency' },
+            { label: 'Gastos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
+            { label: 'Balance neto de socios', value: partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0), format: 'currency' },
+          ],
+        };
       default:
-        return baseData;
+        return {
+          ...baseData,
+          kpis: [
+            { label: 'Ingresos', value: financialSummary.income, format: 'currency' },
+            { label: 'Gastos', value: financialSummary.expenses, format: 'currency' },
+            { label: 'Beneficio neto', value: financialSummary.netProfit, format: 'currency' },
+            { label: 'Margen', value: financialSummary.profitMargin, format: 'percent' },
+          ],
+        };
     }
   };
 
@@ -302,9 +341,10 @@ export default function ReportsPageImproved() {
               <Label className="text-[10px] uppercase tracking-wide text-white/35">Desde</Label>
               <Input
                 type="date"
+                max={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined}
                 value={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''}
                 onChange={e => {
-                  const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                  const newDate = e.target.value ? startOfDay(new Date(`${e.target.value}T00:00:00`)) : undefined;
                   setDateRange(prev => ({ from: newDate, to: prev?.to }));
                 }}
                 className="w-[150px] border-white/10 bg-white/[0.03] text-white"
@@ -314,9 +354,10 @@ export default function ReportsPageImproved() {
               <Label className="text-[10px] uppercase tracking-wide text-white/35">Hasta</Label>
               <Input
                 type="date"
+                min={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined}
                 value={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''}
                 onChange={e => {
-                  const newDate = e.target.value ? new Date(e.target.value) : undefined;
+                  const newDate = e.target.value ? endOfDay(new Date(`${e.target.value}T00:00:00`)) : undefined;
                   setDateRange(prev => ({ from: prev?.from, to: newDate }));
                 }}
                 className="w-[150px] border-white/10 bg-white/[0.03] text-white"
@@ -352,36 +393,30 @@ export default function ReportsPageImproved() {
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Ingresos"
-            value={formatCurrency(financialSummary.income)}
-            description="vs periodo anterior"
-            icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
-            variant="success"
-            trend={financialSummary.incomeChange}
-          />
-          <MetricCard
-            title="Gastos"
-            value={formatCurrency(financialSummary.expenses)}
-            description="vs periodo anterior"
-            icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />}
-            variant="danger"
-            trend={financialSummary.expensesChange}
-          />
-          <MetricCard
-            title="Beneficio neto"
-            value={formatCurrency(financialSummary.netProfit)}
-            description="vs periodo anterior"
-            icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />}
-            variant={financialSummary.netProfit >= 0 ? 'success' : 'danger'}
-            trend={financialSummary.profitChange}
-          />
-          <MetricCard
-            title="Margen"
-            value={`${financialSummary.profitMargin.toFixed(1)}%`}
-            description={`${financialSummary.transactionsCount} transacciones`}
-            icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />}
-          />
+          {reportType === 'financial' && <>
+            <MetricCard title="Ingresos" value={formatCurrency(financialSummary.income)} description="vs periodo anterior" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" trend={financialSummary.incomeChange} />
+            <MetricCard title="Gastos" value={formatCurrency(financialSummary.expenses)} description="vs periodo anterior" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" trend={financialSummary.expensesChange} />
+            <MetricCard title="Beneficio neto" value={formatCurrency(financialSummary.netProfit)} description="vs periodo anterior" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} variant={financialSummary.netProfit >= 0 ? 'success' : 'danger'} trend={financialSummary.profitChange} />
+            <MetricCard title="Margen" value={`${financialSummary.profitMargin.toFixed(1)}%`} description={`${financialSummary.transactionsCount} transacciones`} icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
+          {reportType === 'vehicle' && <>
+            <MetricCard title="Vehículos analizados" value={vehicleMetrics.length} description="Flota en el periodo" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Ingresos de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0))} description="Ingresos asociados a vehículos" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Gastos de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0))} description="Gastos asociados a vehículos" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Beneficio de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0))} description="Ingresos menos gastos" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} variant={vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0) >= 0 ? 'success' : 'danger'} />
+          </>}
+          {reportType === 'client' && <>
+            <MetricCard title="Clientes analizados" value={clientMetrics.length} description="Clientes incluidos" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Pagos registrados" value={formatCurrency(clientMetrics.reduce((sum, m) => sum + m.totalPayments, 0))} description="En el periodo seleccionado" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Saldo pendiente" value={formatCurrency(clientMetrics.reduce((sum, m) => sum + Math.max(0, m.balance), 0))} description="Saldos vigentes de clientes" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Saldos críticos" value={clientMetrics.filter(m => m.balance > 5000).length} description="Más de $5,000 pendientes" icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
+          {reportType === 'partner' && <>
+            <MetricCard title="Socios analizados" value={partnerMetrics.length} description="Socios incluidos" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Ingresos asociados" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.totalIncome, 0))} description="En el periodo seleccionado" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Gastos asociados" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0))} description="En el periodo seleccionado" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Balance neto de socios" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0))} description="Resultado agregado" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
@@ -401,25 +436,21 @@ export default function ReportsPageImproved() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {reportType === 'financial' ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <ChartPanel title="Ingresos vs gastos">
+              <ChartPanel title="Ingresos vs gastos del periodo">
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={90}
-                      dataKey="value"
-                    >
+                  <BarChart data={chartData} margin={{ top: 16, right: 16, left: 12, bottom: 8 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
+                    <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                    <Bar dataKey="value" name="Monto" radius={[8, 8, 0, 0]}>
                       {chartData.map((entry, index) => (
                         <Cell key={index} fill={entry.color} />
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </ChartPanel>
 
@@ -443,9 +474,102 @@ export default function ReportsPageImproved() {
                 </ResponsiveContainer>
               </ChartPanel>
             </div>
+            ) : reportType === 'vehicle' ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Ingresos y gastos por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay movimientos asociados a vehículos en este periodo." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                        <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                        <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Beneficio neto por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay vehículos para comparar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, beneficio: m.netProfit }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={95} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="beneficio" name="Beneficio neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
+            ) : reportType === 'client' ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Pagos registrados por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay clientes para el periodo seleccionado." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={clientMetrics.slice(0, 8).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), pagos: m.totalPayments }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="pagos" name="Pagos" fill="#a3e635" radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Distribución de comportamiento de pago">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay datos de comportamiento para mostrar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={Object.entries(clientMetrics.reduce<Record<string, number>>((acc, m) => { acc[m.paymentBehavior] = (acc[m.paymentBehavior] || 0) + 1; return acc; }, {})).map(([name, value]) => ({ name, value }))} dataKey="value" nameKey="name" cx="50%" cy="48%" innerRadius={58} outerRadius={92} paddingAngle={3}>
+                          {Object.keys(clientMetrics.reduce<Record<string, number>>((acc, m) => { acc[m.paymentBehavior] = (acc[m.paymentBehavior] || 0) + 1; return acc; }, {})).map((name, index) => <Cell key={name} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Ingresos y gastos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay socios con información disponible." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                        <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                        <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+                <ChartPanel title="Vehículos activos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay datos de socios para comparar." /> : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), vehiculos: m.activeVehicles }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                        <Bar dataKey="vehiculos" name="Vehículos activos" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartPanel>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="trends" className="space-y-4">
+            {reportType === 'financial' ? (
             <ChartPanel title="Tendencia mensual (6 meses)">
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={monthlyTrends}>
@@ -453,12 +577,91 @@ export default function ReportsPageImproved() {
                   <XAxis dataKey="month" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} />
                   <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                   <Line type="monotone" dataKey="income" stroke="#d7ff3f" strokeWidth={2} name="Ingresos" />
                   <Line type="monotone" dataKey="expenses" stroke="#fb7185" strokeWidth={2} name="Gastos" />
                   <Area type="monotone" dataKey="netProfit" fill="#d7ff3f20" stroke="#a3e635" name="Neto" />
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
+            ) : reportType === 'vehicle' ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Rentabilidad comparada por vehículo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={vehicleMetrics.slice(0, 10).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, beneficio: m.netProfit, margen: m.profitability }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number, name: string) => name === 'margen' ? `${v.toFixed(1)}%` : formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="beneficio" name="Beneficio neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Utilización por vehículo en el periodo">
+                  {vehicleMetrics.length === 0 ? <EmptyChart message="No hay vehículos para calcular utilización." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={vehicleMetrics.slice(0, 10).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, utilizacion: m.utilizationRate }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(value) => value == null ? 'N/D' : `${Number(value).toFixed(1)}%`} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="utilizacion" name="Utilización del periodo" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
+            ) : reportType === 'client' ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Saldos pendientes por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay clientes para comparar." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={clientMetrics.filter(m => m.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 10).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), saldo: m.balance }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="saldo" name="Saldo vigente" fill="#fb7185" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Pagos por cliente">
+                  {clientMetrics.length === 0 ? <EmptyChart message="No hay pagos registrados." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={clientMetrics.slice(0, 10).map(m => ({ name: `${m.client.firstname} ${m.client.lastname}`.trim(), pagos: m.totalPayments }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="pagos" name="Pagos del periodo" fill="#38bdf8" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <ChartPanel title="Balance neto por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay socios con movimientos en este periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={partnerMetrics.slice(0, 10).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), balance: m.netBalance }))} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                      <XAxis type="number" tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="balance" name="Balance neto" radius={[0, 6, 6, 0]} fill="#d7ff3f" />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+                <ChartPanel title="Ingresos y gastos por socio">
+                  {partnerMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
+                      <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
+                      <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
+                      <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>}
+                </ChartPanel>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4">
@@ -562,11 +765,33 @@ export default function ReportsPageImproved() {
                   }))}
                 />
               )}
+              {reportType === 'partner' && (
+                <MetricsList
+                  title="Socios por balance neto"
+                  empty="Sin datos de socios"
+                  items={partnerMetrics.slice(0, 10).map(m => ({
+                    id: m.partner.id,
+                    primary: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(),
+                    secondary: `${m.activeVehicles} vehículos activos · ${m.transactionsCount} movimientos`,
+                    value: formatCurrency(m.netBalance),
+                    meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)}`,
+                    positive: m.netBalance >= 0,
+                  }))}
+                />
+              )}
               {reportType === 'financial' && (
-                <ChartPanel title="Distribución">
-                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/40">
-                    <BarChart3 className="h-5 w-5 text-[#d7ff3f]" strokeWidth={1.75} />
-                    Usa la pestaña Resumen para gráficos del periodo.
+                <ChartPanel title="Indicadores clave del periodo">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {([
+                      ['Ingresos', formatCurrency(financialSummary.income), 'text-emerald-300'],
+                      ['Gastos', formatCurrency(financialSummary.expenses), 'text-rose-300'],
+                      ['Beneficio neto', formatCurrency(financialSummary.netProfit), financialSummary.netProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'],
+                    ] as const).map(([label, value, color]) => (
+                      <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">{label}</p>
+                        <p className={cn('mt-2 text-xl font-semibold tabular-nums', color)}>{value}</p>
+                      </div>
+                    ))}
                   </div>
                 </ChartPanel>
               )}
@@ -574,6 +799,25 @@ export default function ReportsPageImproved() {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function formatChartCurrency(value: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function EmptyChart({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.015] px-5 text-center">
+      <BarChart3 className="h-7 w-7 text-white/25" strokeWidth={1.5} />
+      <p className="max-w-xs text-sm text-white/45">{message}</p>
+      <p className="text-[11px] text-white/25">Prueba otro rango de fechas o revisa los movimientos asociados.</p>
     </div>
   );
 }

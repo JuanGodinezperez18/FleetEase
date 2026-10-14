@@ -1,6 +1,7 @@
-import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
-import { isWithinInterval } from 'date-fns';
+import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog } from '@/types';
 import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
+import { infallibleNormalizeDate } from '@/lib/date-utils';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -10,7 +11,7 @@ export interface VehicleMetric {
   totalExpenses: number;
   netProfit: number;
   profitability: number;
-  utilizationRate: number;
+  utilizationRate: number | null;
   transactionsCount: number;
 }
 
@@ -40,17 +41,24 @@ export interface PartnerMetric {
  * no una cuenta por cobrar ni ingreso operativo.
  */
 export class ReportAnalyticsService {
-  static calculateVehicleMetrics(vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): VehicleMetric[] {
+  static calculateVehicleMetrics(
+    vehicles: Vehicle[],
+    financialRecords: FinancialRecord[],
+    dateRange?: { from: Date; to: Date },
+    assignmentLogs: VehicleAssignmentLog[] = [],
+  ): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
-    financialRecords.forEach(record => {
-      if (record.isDeleted || (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))) return;
+    const scopedRecords = dateRange
+      ? filterRecordsByDateRange(financialRecords, dateRange)
+      : financialRecords.filter(record => !record.isDeleted);
+    scopedRecords.forEach(record => {
       if (!record.vehicleId) return;
       const records = recordsByVehicle.get(record.vehicleId);
       if (records) records.push(record);
       else recordsByVehicle.set(record.vehicleId, [record]);
     });
 
-    return vehicles.map(vehicle => {
+    return vehicles.filter(vehicle => !vehicle.isDeleted).map(vehicle => {
       const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
       const rentalIncome = sumRentalIncome(vehicleRecords);
       const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
@@ -58,25 +66,27 @@ export class ReportAnalyticsService {
       const netProfit = calculateNetProfit(vehicleRecords);
       const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
       const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
-      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate: vehicle.clientId ? 100 : 0, transactionsCount: profitTransactions.length };
+      const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
+      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactions.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
   }
 
   static calculateClientMetrics(clients: Client[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): ClientMetric[] {
     const recordsByClient = new Map<string, FinancialRecord[]>();
-    financialRecords.forEach(record => {
+    const scopedRecords = dateRange
+      ? filterRecordsByDateRange(financialRecords, dateRange)
+      : financialRecords.filter(record => !record.isDeleted);
+    scopedRecords.forEach(record => {
       if (
-        record.isDeleted ||
         record.category === SECURITY_DEPOSIT_CATEGORY ||
-        !record.clientId ||
-        (dateRange && !isWithinInterval(new Date(record.date), { start: dateRange.from, end: dateRange.to }))
+        !record.clientId
       ) return;
       const records = recordsByClient.get(record.clientId);
       if (records) records.push(record);
       else recordsByClient.set(record.clientId, [record]);
     });
 
-    return clients.map(client => {
+    return clients.filter(client => !client.isDeleted).map(client => {
       const clientRecords = recordsByClient.get(client.id) ?? [];
 
       const paymentRecords = clientRecords.filter(r => r.type === 'payment');
@@ -137,7 +147,7 @@ export class ReportAnalyticsService {
       }
     }
 
-    return partners.map(partner => {
+    return partners.filter(partner => !partner.isDeleted).map(partner => {
       const partnerVehicles = vehiclesByPartner.get(partner.id) ?? [];
       const activeVehicles = partnerVehicles.filter(v => v.status === 'active' || v.status === 'rented').length;
 
@@ -163,7 +173,7 @@ export class ReportAnalyticsService {
       }
 
       const partnerRecordsInRange = dateRange
-        ? relatedRecords.filter(r => isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }))
+        ? filterRecordsByDateRange(relatedRecords, dateRange)
         : relatedRecords;
 
       const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
@@ -175,12 +185,60 @@ export class ReportAnalyticsService {
     }).sort((a, b) => b.netBalance - a.netBalance);
   }
 
-  static filterRecordsByDateRange(records: FinancialRecord[], dateRange: { from: Date; to: Date }): FinancialRecord[] {
-    return records.filter(r => !r.isDeleted && isWithinInterval(new Date(r.date), { start: dateRange.from, end: dateRange.to }));
+  private static calculateUtilizationRate(
+    vehicle: Vehicle,
+    assignmentLogs: VehicleAssignmentLog[],
+    dateRange?: { from: Date; to: Date },
+  ): number | null {
+    const today = endOfDay(new Date());
+    const acquisitionDate = infallibleNormalizeDate(vehicle.acquisitionDate);
+    const requestedStart = startOfDay(dateRange?.from ?? acquisitionDate ?? today);
+    const requestedEnd = endOfDay(dateRange?.to ?? today);
+    const periodStart = startOfDay(
+      acquisitionDate && acquisitionDate > requestedStart ? acquisitionDate : requestedStart,
+    );
+    const periodEnd = endOfDay(requestedEnd < today ? requestedEnd : today);
+    if (periodStart > periodEnd) return 0;
+
+    const vehicleLogs = assignmentLogs.filter(log => log.vehicleId === vehicle.id);
+    if (vehicleLogs.length === 0) return vehicle.clientId ? null : 0;
+
+    const intervals = vehicleLogs
+      .map(log => {
+        const start = infallibleNormalizeDate(log.startDate || log.assignedAt);
+        const end = infallibleNormalizeDate(log.endDate || log.unassignedAt) ?? today;
+        if (!start || end < start) return null;
+        const clippedStart = startOfDay(start > periodStart ? start : periodStart);
+        const clippedEnd = endOfDay(end < periodEnd ? end : periodEnd);
+        return clippedStart <= clippedEnd ? { start: clippedStart, end: clippedEnd } : null;
+      })
+      .filter((interval): interval is { start: Date; end: Date } => interval !== null)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+    if (intervals.length === 0) return 0;
+    let assignedDays = 0;
+    let currentStart = intervals[0].start;
+    let currentEnd = intervals[0].end;
+    for (const interval of intervals.slice(1)) {
+      if (interval.start.getTime() <= currentEnd.getTime() + 24 * 60 * 60 * 1000) {
+        if (interval.end > currentEnd) currentEnd = interval.end;
+      } else {
+        assignedDays += differenceInCalendarDays(currentEnd, currentStart) + 1;
+        currentStart = interval.start;
+        currentEnd = interval.end;
+      }
+    }
+    assignedDays += differenceInCalendarDays(currentEnd, currentStart) + 1;
+    const periodDays = differenceInCalendarDays(periodEnd, periodStart) + 1;
+    return periodDays > 0 ? Math.min(100, Math.max(0, (assignedDays / periodDays) * 100)) : 0;
   }
 
-  static getTopVehicles(vehicleMetrics: VehicleMetric[], limit: number = 5): VehicleMetric[] { return vehicleMetrics.sort((a, b) => b.netProfit - a.netProfit).slice(0, limit); }
-  static getTopClients(clientMetrics: ClientMetric[], limit: number = 5): ClientMetric[] { return clientMetrics.sort((a, b) => b.totalPayments - a.totalPayments).slice(0, limit); }
+  static filterRecordsByDateRange(records: FinancialRecord[], dateRange: { from: Date; to: Date }): FinancialRecord[] {
+    return filterRecordsByDateRange(records, dateRange);
+  }
+
+  static getTopVehicles(vehicleMetrics: VehicleMetric[], limit: number = 5): VehicleMetric[] { return [...vehicleMetrics].sort((a, b) => b.netProfit - a.netProfit).slice(0, limit); }
+  static getTopClients(clientMetrics: ClientMetric[], limit: number = 5): ClientMetric[] { return [...clientMetrics].sort((a, b) => b.totalPayments - a.totalPayments).slice(0, limit); }
   static getClientsWithCriticalBalance(clientMetrics: ClientMetric[], threshold: number = 5000): ClientMetric[] { return clientMetrics.filter(m => m.balance > threshold).sort((a, b) => b.balance - a.balance); }
 
 }
