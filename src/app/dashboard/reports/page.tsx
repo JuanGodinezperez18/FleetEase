@@ -352,36 +352,30 @@ export default function ReportsPageImproved() {
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Ingresos"
-            value={formatCurrency(financialSummary.income)}
-            description="vs periodo anterior"
-            icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
-            variant="success"
-            trend={financialSummary.incomeChange}
-          />
-          <MetricCard
-            title="Gastos"
-            value={formatCurrency(financialSummary.expenses)}
-            description="vs periodo anterior"
-            icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />}
-            variant="danger"
-            trend={financialSummary.expensesChange}
-          />
-          <MetricCard
-            title="Beneficio neto"
-            value={formatCurrency(financialSummary.netProfit)}
-            description="vs periodo anterior"
-            icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />}
-            variant={financialSummary.netProfit >= 0 ? 'success' : 'danger'}
-            trend={financialSummary.profitChange}
-          />
-          <MetricCard
-            title="Margen"
-            value={`${financialSummary.profitMargin.toFixed(1)}%`}
-            description={`${financialSummary.transactionsCount} transacciones`}
-            icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />}
-          />
+          {reportType === 'financial' && <>
+            <MetricCard title="Ingresos" value={formatCurrency(financialSummary.income)} description="vs periodo anterior" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" trend={financialSummary.incomeChange} />
+            <MetricCard title="Gastos" value={formatCurrency(financialSummary.expenses)} description="vs periodo anterior" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" trend={financialSummary.expensesChange} />
+            <MetricCard title="Beneficio neto" value={formatCurrency(financialSummary.netProfit)} description="vs periodo anterior" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} variant={financialSummary.netProfit >= 0 ? 'success' : 'danger'} trend={financialSummary.profitChange} />
+            <MetricCard title="Margen" value={`${financialSummary.profitMargin.toFixed(1)}%`} description={`${financialSummary.transactionsCount} transacciones`} icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
+          {reportType === 'vehicle' && <>
+            <MetricCard title="Vehículos analizados" value={vehicleMetrics.length} description="Flota en el periodo" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Ingresos de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0))} description="Ingresos asociados a vehículos" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Gastos de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.totalExpenses, 0))} description="Gastos asociados a vehículos" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Beneficio de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0))} description="Ingresos menos gastos" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} variant={vehicleMetrics.reduce((sum, m) => sum + m.netProfit, 0) >= 0 ? 'success' : 'danger'} />
+          </>}
+          {reportType === 'client' && <>
+            <MetricCard title="Clientes analizados" value={clientMetrics.length} description="Clientes incluidos" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Pagos registrados" value={formatCurrency(clientMetrics.reduce((sum, m) => sum + m.totalPayments, 0))} description="En el periodo seleccionado" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Saldo pendiente" value={formatCurrency(clientMetrics.reduce((sum, m) => sum + Math.max(0, m.balance), 0))} description="Saldos vigentes de clientes" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Saldos críticos" value={clientMetrics.filter(m => m.balance > 5000).length} description="Más de $5,000 pendientes" icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
+          {reportType === 'partner' && <>
+            <MetricCard title="Socios analizados" value={partnerMetrics.length} description="Socios incluidos" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
+            <MetricCard title="Ingresos asociados" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.totalIncome, 0))} description="En el periodo seleccionado" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />
+            <MetricCard title="Gastos asociados" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0))} description="En el periodo seleccionado" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" />
+            <MetricCard title="Balance neto de socios" value={formatCurrency(partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0))} description="Resultado agregado" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} />
+          </>}
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
@@ -401,6 +395,7 @@ export default function ReportsPageImproved() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
+            {reportType === 'financial' ? (
             <div className="grid gap-4 md:grid-cols-2">
               <ChartPanel title="Ingresos vs gastos">
                 <ResponsiveContainer width="100%" height={280}>
@@ -443,9 +438,17 @@ export default function ReportsPageImproved() {
                 </ResponsiveContainer>
               </ChartPanel>
             </div>
+            ) : reportType === 'vehicle' ? (
+              <MetricsList title="Rentabilidad por vehículo" empty="Sin datos de vehículos para este periodo" items={vehicleMetrics.slice(0, 10).map(m => ({ id: m.vehicle.id, primary: m.vehicle.alias || m.vehicle.plate, secondary: m.vehicle.plate, value: formatCurrency(m.netProfit), meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)} · ${m.profitability.toFixed(1)}%`, positive: m.netProfit >= 0 }))} />
+            ) : reportType === 'client' ? (
+              <MetricsList title="Resumen de clientes" empty="Sin datos de clientes para este periodo" items={clientMetrics.slice(0, 10).map(m => ({ id: m.client.id, primary: `${m.client.firstname} ${m.client.lastname}`, secondary: m.paymentBehavior, value: formatCurrency(m.totalPayments), meta: `Saldo vigente ${formatCurrency(m.balance)}`, positive: m.balance <= 0 }))} />
+            ) : (
+              <MetricsList title="Resumen de socios" empty="Sin datos de socios para este periodo" items={partnerMetrics.slice(0, 10).map(m => ({ id: m.partner.id, primary: `${m.partner.firstname} ${m.partner.lastname}`, secondary: `${m.activeVehicles} vehículos activos`, value: formatCurrency(m.netBalance), meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)}`, positive: m.netBalance >= 0 }))} />
+            )}
           </TabsContent>
 
           <TabsContent value="trends" className="space-y-4">
+            {reportType === 'financial' ? (
             <ChartPanel title="Tendencia mensual (6 meses)">
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={monthlyTrends}>
@@ -459,6 +462,13 @@ export default function ReportsPageImproved() {
                 </LineChart>
               </ResponsiveContainer>
             </ChartPanel>
+            ) : reportType === 'vehicle' ? (
+              <MetricsList title="Vehículos por beneficio neto" empty="Sin datos" items={vehicleMetrics.slice(0, 10).map(m => ({ id: m.vehicle.id, primary: m.vehicle.alias || m.vehicle.plate, secondary: m.vehicle.plate, value: formatCurrency(m.netProfit), meta: `Utilización ${m.utilizationRate.toFixed(0)}%`, positive: m.netProfit >= 0 }))} />
+            ) : reportType === 'client' ? (
+              <MetricsList title="Clientes por pagos" empty="Sin datos" items={clientMetrics.slice(0, 10).map(m => ({ id: m.client.id, primary: `${m.client.firstname} ${m.client.lastname}`, secondary: m.paymentBehavior, value: formatCurrency(m.totalPayments), meta: `Días desde último pago: ${m.daysSinceLastPayment >= 0 ? m.daysSinceLastPayment : 'Sin pagos'}`, positive: m.balance <= 0 }))} />
+            ) : (
+              <MetricsList title="Socios por balance neto" empty="Sin datos" items={partnerMetrics.map(m => ({ id: m.partner.id, primary: `${m.partner.firstname} ${m.partner.lastname}`, secondary: `${m.activeVehicles} vehículos activos`, value: formatCurrency(m.netBalance), meta: `${m.transactionsCount} movimientos`, positive: m.netBalance >= 0 }))} />
+            )}
           </TabsContent>
 
           <TabsContent value="details" className="space-y-4">
