@@ -1,4 +1,4 @@
-import { getMaintenanceKpiSummary } from '@/hooks/use-dashboard-kpis';
+import { getMaintenanceKpiSummary } from '@/lib/maintenance-kpi-summary';
 import type { Vehicle } from '@/types';
 import type { VehicleMileageMetric } from '@/hooks/use-mileage-analytics';
 
