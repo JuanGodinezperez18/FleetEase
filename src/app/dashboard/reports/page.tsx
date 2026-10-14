@@ -23,7 +23,7 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -722,11 +722,33 @@ export default function ReportsPageImproved() {
                   }))}
                 />
               )}
+              {reportType === 'partner' && (
+                <MetricsList
+                  title="Socios por balance neto"
+                  empty="Sin datos de socios"
+                  items={partnerMetrics.slice(0, 10).map(m => ({
+                    id: m.partner.id,
+                    primary: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(),
+                    secondary: `${m.activeVehicles} vehículos activos · ${m.transactionsCount} movimientos`,
+                    value: formatCurrency(m.netBalance),
+                    meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)}`,
+                    positive: m.netBalance >= 0,
+                  }))}
+                />
+              )}
               {reportType === 'financial' && (
-                <ChartPanel title="Distribución">
-                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/40">
-                    <BarChart3 className="h-5 w-5 text-[#d7ff3f]" strokeWidth={1.75} />
-                    Usa la pestaña Resumen para gráficos del periodo.
+                <ChartPanel title="Indicadores clave del periodo">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {([
+                      ['Ingresos', formatCurrency(financialSummary.income), 'text-emerald-300'],
+                      ['Gastos', formatCurrency(financialSummary.expenses), 'text-rose-300'],
+                      ['Beneficio neto', formatCurrency(financialSummary.netProfit), financialSummary.netProfit >= 0 ? 'text-emerald-300' : 'text-rose-300'],
+                    ] as const).map(([label, value, color]) => (
+                      <div key={label} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">{label}</p>
+                        <p className={cn('mt-2 text-xl font-semibold tabular-nums', color)}>{value}</p>
+                      </div>
+                    ))}
                   </div>
                 </ChartPanel>
               )}
