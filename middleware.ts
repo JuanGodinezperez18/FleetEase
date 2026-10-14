@@ -73,12 +73,20 @@ export async function middleware(req: NextRequest) {
       contentSecurityPolicy
     );
 
+  // Keep protected application routes behind authorization even when a URL
+  // contains a dot (for example, an export or a filename-like route segment).
+  const isProtectedAppRoute =
+    pathname === '/dashboard' || pathname.startsWith('/dashboard/') ||
+    pathname === '/partner' || pathname.startsWith('/partner/') ||
+    pathname === '/client' || pathname.startsWith('/client/');
+
   // Security headers must also reach Next.js static assets such as
-  // /_next/static/media/*.woff2.
+  // /_next/static/media/*.woff2. Public files may pass through, but a dotted
+  // path inside a protected app area must still be authenticated below.
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
-    pathname.includes('.')
+    (pathname.includes('.') && !isProtectedAppRoute)
   ) {
     return createResponse();
   }
@@ -124,6 +132,50 @@ export async function middleware(req: NextRequest) {
     loginUrl.searchParams.set('callbackUrl', pathname);
     return applySecurityHeaders(
       NextResponse.redirect(loginUrl),
+      contentSecurityPolicy
+    );
+  }
+
+  // Enforce route authorization on the server. Client-side layouts are not a
+  // security boundary: the role must be read from the authenticated profile.
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('role, is_deleted')
+    .eq('id', user.id)
+    .eq('is_deleted', false)
+    .single();
+
+  if (profileError || !profile || profile.is_deleted) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return applySecurityHeaders(
+      NextResponse.redirect(loginUrl),
+      contentSecurityPolicy
+    );
+  }
+
+  const role = profile.role as string;
+  const isPartnerRoute = pathname === '/partner' || pathname.startsWith('/partner/');
+  const isClientRoute = pathname === '/client' || pathname.startsWith('/client/');
+  const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+
+  const dashboardRoles = ['admin', 'editor', 'viewer', 'super_admin'];
+  const roleHome = role === 'partner'
+    ? '/partner'
+    : role === 'client'
+      ? '/client'
+      : dashboardRoles.includes(role)
+        ? '/dashboard'
+        : '/login';
+
+  const forbidden =
+    (isPartnerRoute && role !== 'partner') ||
+    (isClientRoute && role !== 'client') ||
+    (isDashboardRoute && !dashboardRoles.includes(role));
+
+  if (forbidden) {
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL(roleHome, req.url)),
       contentSecurityPolicy
     );
   }
