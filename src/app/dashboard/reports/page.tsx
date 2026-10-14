@@ -33,6 +33,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -439,7 +440,7 @@ export default function ReportsPageImproved() {
                   <BarChart data={chartData} margin={{ top: 16, right: 16, left: 12, bottom: 8 }}>
                     <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
-                    <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
+                    <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
                     <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
                     <Bar dataKey="value" name="Monto" radius={[8, 8, 0, 0]}>
                       {chartData.map((entry, index) => (
@@ -793,6 +794,15 @@ export default function ReportsPageImproved() {
       </div>
     </div>
   );
+}
+
+function formatChartCurrency(value: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function EmptyChart({ message }: { message: string }) {
