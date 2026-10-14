@@ -25,6 +25,10 @@ jest.mock('@supabase/ssr', () => ({
   })),
 }));
 
+type MockMiddlewareResponse = { type: string; url?: URL; headers: Headers };
+
+const asMockResponse = (response: unknown): MockMiddlewareResponse => response as MockMiddlewareResponse;
+
 const buildRequest = (pathname: string) => ({
   nextUrl: { pathname, origin: 'http://localhost', searchParams: new URLSearchParams() },
   url: `http://localhost${pathname}`,
@@ -43,7 +47,7 @@ describe('middleware (Supabase SSR)', () => {
   });
 
   it('permite paso a rutas API y estáticas y aplica encabezados de seguridad', async () => {
-    const res = await middleware(buildRequest('/api/stripe/webhook') as any);
+    const res = asMockResponse(await middleware(buildRequest('/api/stripe/webhook') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('next');
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
@@ -51,36 +55,36 @@ describe('middleware (Supabase SSR)', () => {
   });
 
   it('trata "/" como ruta pública sin consultar Supabase', async () => {
-    const res = await middleware(buildRequest('/') as any);
+    const res = asMockResponse(await middleware(buildRequest('/') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('next');
     expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it('mantiene /login como ruta pública', async () => {
-    const res = await middleware(buildRequest('/login') as any);
+    const res = asMockResponse(await middleware(buildRequest('/login') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('next');
     expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it('redirige a login cuando una ruta protegida no tiene sesión', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-    const res = await middleware(buildRequest('/dashboard') as any);
+    const res = asMockResponse(await middleware(buildRequest('/dashboard') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/login');
+    expect(res.url?.pathname).toBe('/login');
     expect(res.headers.get('x-frame-options')).toBe('SAMEORIGIN');
   });
 
   it('permite una ruta protegida cuando Supabase confirma un usuario', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
-    const res = await middleware(buildRequest('/dashboard') as any);
+    const res = asMockResponse(await middleware(buildRequest('/dashboard') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('next');
     expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
   it('redirige a login si Supabase devuelve un error de autenticación', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'invalid token' } });
-    const res = await middleware(buildRequest('/partner') as any);
+    const res = asMockResponse(await middleware(buildRequest('/partner') as unknown as Parameters<typeof middleware>[0]));
     expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/login');
+    expect(res.url?.pathname).toBe('/login');
   });
 });
