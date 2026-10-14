@@ -1,5 +1,7 @@
-import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
+import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog } from '@/types';
 import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
+import { infallibleNormalizeDate } from '@/lib/date-utils';
 
 const SECURITY_DEPOSIT_CATEGORY = 'Depósito en Garantía';
 
@@ -9,6 +11,7 @@ export interface VehicleMetric {
   totalExpenses: number;
   netProfit: number;
   profitability: number;
+  utilizationRate: number;
   transactionsCount: number;
 }
 
@@ -38,7 +41,12 @@ export interface PartnerMetric {
  * no una cuenta por cobrar ni ingreso operativo.
  */
 export class ReportAnalyticsService {
-  static calculateVehicleMetrics(vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): VehicleMetric[] {
+  static calculateVehicleMetrics(
+    vehicles: Vehicle[],
+    financialRecords: FinancialRecord[],
+    dateRange?: { from: Date; to: Date },
+    assignmentLogs: VehicleAssignmentLog[] = [],
+  ): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
     const scopedRecords = dateRange
       ? filterRecordsByDateRange(financialRecords, dateRange)
@@ -58,7 +66,8 @@ export class ReportAnalyticsService {
       const netProfit = calculateNetProfit(vehicleRecords);
       const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
       const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
-      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, transactionsCount: profitTransactions.length };
+      const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
+      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactions.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
   }
 
@@ -174,6 +183,52 @@ export class ReportAnalyticsService {
       const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
       return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
+  }
+
+  private static calculateUtilizationRate(
+    vehicle: Vehicle,
+    assignmentLogs: VehicleAssignmentLog[],
+    dateRange?: { from: Date; to: Date },
+  ): number {
+    const today = endOfDay(new Date());
+    const acquisitionDate = infallibleNormalizeDate(vehicle.acquisitionDate);
+    const requestedStart = startOfDay(dateRange?.from ?? acquisitionDate ?? today);
+    const requestedEnd = endOfDay(dateRange?.to ?? today);
+    const periodStart = startOfDay(
+      acquisitionDate && acquisitionDate > requestedStart ? acquisitionDate : requestedStart,
+    );
+    const periodEnd = endOfDay(requestedEnd < today ? requestedEnd : today);
+    if (periodStart > periodEnd) return 0;
+
+    const intervals = assignmentLogs
+      .filter(log => log.vehicleId === vehicle.id)
+      .map(log => {
+        const start = infallibleNormalizeDate(log.startDate || log.assignedAt);
+        const end = infallibleNormalizeDate(log.endDate || log.unassignedAt) ?? today;
+        if (!start || end < start) return null;
+        const clippedStart = startOfDay(start > periodStart ? start : periodStart);
+        const clippedEnd = endOfDay(end < periodEnd ? end : periodEnd);
+        return clippedStart <= clippedEnd ? { start: clippedStart, end: clippedEnd } : null;
+      })
+      .filter((interval): interval is { start: Date; end: Date } => interval !== null)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+    if (intervals.length === 0) return 0;
+    let assignedDays = 0;
+    let currentStart = intervals[0].start;
+    let currentEnd = intervals[0].end;
+    for (const interval of intervals.slice(1)) {
+      if (interval.start.getTime() <= currentEnd.getTime() + 24 * 60 * 60 * 1000) {
+        if (interval.end > currentEnd) currentEnd = interval.end;
+      } else {
+        assignedDays += differenceInCalendarDays(currentEnd, currentStart) + 1;
+        currentStart = interval.start;
+        currentEnd = interval.end;
+      }
+    }
+    assignedDays += differenceInCalendarDays(currentEnd, currentStart) + 1;
+    const periodDays = differenceInCalendarDays(periodEnd, periodStart) + 1;
+    return periodDays > 0 ? Math.min(100, Math.max(0, (assignedDays / periodDays) * 100)) : 0;
   }
 
   static filterRecordsByDateRange(records: FinancialRecord[], dateRange: { from: Date; to: Date }): FinancialRecord[] {
