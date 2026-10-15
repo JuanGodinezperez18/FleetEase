@@ -67,7 +67,7 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     if (origin) {
       headers.set('Access-Control-Allow-Origin', origin);
       headers.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Method, Mcp-Name');
+      headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Session-Id, Last-Event-ID');
       headers.set('Access-Control-Max-Age', '600');
       headers.append('Vary', 'Origin');
     }
@@ -119,7 +119,7 @@ async function handleMcp(request: NextRequest): Promise<Response> {
   if (!authorization?.startsWith('Bearer ')) {
     return NextResponse.json(
       { error: 'Bearer token required.' },
-      { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
+      { status: 401, headers: { 'WWW-Authenticate': `Bearer resource_metadata="${MCP_RESOURCE_METADATA_URL}"` } },
     );
   }
 
@@ -133,7 +133,7 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     if (authError || !authData.user) {
       return NextResponse.json(
         { error: 'Invalid or expired bearer token.' },
-        { status: 401, headers: { 'WWW-Authenticate': 'Bearer error="invalid_token"' } },
+        { status: 401, headers: { 'WWW-Authenticate': `Bearer resource_metadata="${MCP_RESOURCE_METADATA_URL}", error="invalid_token"` } },
       );
     }
 
