@@ -24,7 +24,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   });
   registerReadOnlyTools(server, { requestInfo });
   return server;
-}, { responseMode: 'json' });
+}, { responseMode: 'auto' });
 
 function allowedOrigin(request: Request): string | null | false {
   const origin = request.headers.get('origin');
