@@ -53,3 +53,22 @@ No fusionar ni apuntar el dominio de producción a esta versión hasta:
 3. comprobar aislamiento multiempresa en pruebas automatizadas;
 4. verificar compatibilidad con ChatGPT y al menos un cliente MCP adicional;
 5. configurar rate limiting distribuido y límites de respuesta.
+
+
+## OAuth 2.1 discovery and consent
+
+The branch also includes:
+- `/oauth/consent`: consent UI using the Supabase Auth OAuth methods; it rejects users without an active company profile and allowed app role.
+- `/.well-known/oauth-protected-resource/api/mcp`: protected-resource metadata for MCP clients.
+- The MCP endpoint's `WWW-Authenticate` challenge points clients to the metadata endpoint.
+
+The OAuth authorization server itself is Supabase Auth at `https://qettktslcbjjuyejcpqy.supabase.co/auth/v1`. The corresponding OAuth authorization-server discovery URL is `https://qettktslcbjjuyejcpqy.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
+
+**Required dashboard setup before the real connection test:**
+1. In Supabase Dashboard → Authentication → OAuth Server, enable the OAuth 2.1 server.
+2. Set the authorization path to `/oauth/consent` and verify the Auth Site URL points to `https://www.fleetease.com.mx`.
+3. Enable dynamic client registration only if required by the chosen MCP clients; then monitor registrations and revocations.
+4. Confirm the project's JWT signing configuration and the OAuth server's discovery document. Do not rotate signing keys as part of this PR without a separate impact review.
+5. Test the full login → consent → callback → token refresh/revocation flow against a non-production client.
+
+The connected Supabase project settings are not exposed by the available project-management connector, so these OAuth dashboard settings have **not** been confirmed or changed by this work. Until verified, end-to-end OAuth is not considered complete.
