@@ -18,16 +18,11 @@ export const MCP_READ_TOOLS = [
   'vehicle_get',
   'clients_list',
   'client_get',
-  'maintenance_list',
   'expenses_list',
   'income_list',
   'credits_list',
-  'payments_list',
   'partners_list',
   'fines_list',
-  'reports_generate',
-  'dashboard_kpis',
-  'connection_status',
 ] as const;
 
 export type McpReadTool = (typeof MCP_READ_TOOLS)[number];
