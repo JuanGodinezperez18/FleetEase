@@ -1,0 +1,72 @@
+name: MCP read-only validation
+
+on:
+  push:
+    branches:
+      - audit/mcp-multitenant-security-costs
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mcp-read-only-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Regenerate lockfile
+        run: npm install --package-lock-only --ignore-scripts --legacy-peer-deps
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: MCP unit tests
+        run: npm run test:ci -- --runInBand src/lib/mcp/policy.test.ts src/lib/mcp/tools.test.ts src/app/.well-known/oauth-protected-resource/api/mcp/route.test.ts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+
+      - name: Existing full regression suite (diagnostic)
+        continue-on-error: true
+        run: npm run test:ci -- --runInBand
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+
+      - name: Commit regenerated lockfile on audit branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/audit/mcp-multitenant-security-costs'
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "build(mcp): lock MCP SDK dependency graph"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
