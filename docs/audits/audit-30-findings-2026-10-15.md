@@ -1,0 +1,107 @@
+# Auditoría de verificación de los 30 hallazgos — FleetEase Manager
+
+- **Fecha de revisión:** 2026-10-15
+- **Repositorio:** https://github.com/JuanGodinezperez18/FleetEase
+- **Rama base:** `master`
+- **Commit base revisado:** `01d8a9d9006b43555e87e6b135355a321cba6ccf`
+- **Alcance:** contraste estático de los 30 hallazgos aportados contra los archivos actuales accesibles en GitHub.
+- **Límite:** esta revisión de código no demuestra configuración de Supabase/Vercel, resultados actuales de producción, datos de telemetría ni ejecución local de tests/build. Los hallazgos que requieren esos accesos se marcan como pendientes de comprobación, no como vulnerabilidades confirmadas.
+
+## Resumen ejecutivo
+
+La auditoría de origen contiene hallazgos válidos, pero también afirmaciones obsoletas o incorrectas. Dos errores concretos de la auditoría original son que **sí existe un middleware en la raíz del repositorio** (`middleware.ts`) y que **sí existe un manifest PWA estático** (`public/manifest.json`). La aplicación no necesita crear `src/middleware.ts` ni `src/app/manifest.ts` para satisfacer esas funciones.
+
+El riesgo más claro que requiere atención inmediata es la autenticación/autorización real de rutas y la diferencia entre las expectativas de `src/__tests__/middleware.test.ts` y el comportamiento del middleware actual. También deben verificarse el estado de la protección de contraseñas filtradas en Supabase, el modo efectivo del rate limiter en producción, las vulnerabilidades de dependencias y la idempotencia de cron jobs.
+
+No se deben borrar índices, cifrar PII sin un diseño de claves/migración, cambiar la arquitectura de tipos ni aplicar una política nueva de contraseñas en el mismo cambio sin pruebas y compatibilidad.
+
+## Matriz de verificación
+
+Estados:
+- **Confirmado en código:** evidencia directa en los archivos revisados.
+- **Parcial / requiere comprobación:** el riesgo existe, pero falta verificar cobertura, configuración o ejecución.
+- **Incorrecto / desactualizado:** la afirmación original contradice el repositorio actual.
+- **No verificable desde el repositorio:** requiere dashboard, telemetría, base de datos o ejecución de CI.
+
+| # | Hallazgo original | Estado y evidencia actual | Prioridad recomendada |
+|---|---|---|---|
+| 1 | Falta `src/middleware.ts` y no hay protección central | **Incorrecto en ubicación / parcial en comportamiento.** Existe `middleware.ts` en la raíz. Protege páginas no públicas con `supabase.auth.getUser()`, pero el test existente espera restricciones por rol que no se observan en ese middleware. Revisar autorización por rol en server components y APIs; no duplicar middleware a ciegas. | **P0 — seguridad** |
+| 2 | Contraseña mínima de 6 caracteres | **Confirmado.** `src/lib/auth.ts` valida únicamente longitud >= 6. | P1 |
+| 3 | Leaked password protection pendiente | **Pendiente externo confirmado por documentación del repo.** `docs/bloque-b-security-audit-2026-10-03.md` la deja como acción manual en Supabase Dashboard. El estado actual del dashboard no se pudo comprobar. | P0 — configuración de Auth |
+| 4 | Falta manifest PWA dinámico | **Incorrecto.** Existe `public/manifest.json` y `layout.tsx` referencia `/manifest.json`. Verificar iconos y respuesta HTTP en producción, no crear otro manifest duplicado. | P2 |
+| 5 | Regex de email permisivo | **Confirmado parcialmente.** La regex de `validateEmail` es básica, aunque el proveedor también valida el email. No es por sí sola una vulnerabilidad crítica. | P2 |
+| 6 | Timeout de perfil de 7 segundos | **Confirmado.** `fetchProfileFromApp` aborta a los 7 s. Medir latencia antes de cambiar el timeout; considerar reintento limitado y mensajes diferenciados. | P2 |
+| 7 | Headers duplicados en Vercel y Next config | **Confirmado.** `vercel.json` y `next.config.mjs` declaran varios headers repetidos. El comportamiento efectivo debe comprobarse en respuestas HTTP; CSP se construye en `middleware.ts`. Centralizar con prueba de regresión. | P2 |
+| 8 | `src/lib/supabase.ts` demasiado grande | **Confirmado como deuda de mantenimiento, no como fallo funcional.** Contiene tipos de esquema y cliente. No dividir tipos generados manualmente; planear generación desde Supabase CLI y compatibilidad de imports. | P2 |
+| 9 | Alias `@/lib/supabase` ambiguo | **Confirmado.** `tsconfig.json` redirige ese alias a `supabase-browser`; existe también un módulo `supabase.ts`. El riesgo depende del contexto de importación. | P1 |
+| 10 | Variables `NEXT_PUBLIC_*` exponen secretos | **Generalización incorrecta.** Supabase URL y publishable/anon key están destinadas al cliente; no son equivalentes a service-role. Auditar las variables reales y prohibir secretos privados con prefijo público. | P1 — revisar secretos |
+| 11 | Falta rate limiting en middleware | **Parcial / desactualizado.** Existe `src/lib/rate-limit.ts` con limitadores para auth, registro, uploads, admin y billing, y soporte opcional de Upstash Redis; si faltan variables, usa memoria local. Falta verificar uso en todas las rutas sensibles y variables de producción. Middleware global no es necesariamente el lugar adecuado para todo rate limit. | P0/P1 |
+| 12 | `npm audit` no bloquea CI | **Confirmado.** `.github/workflows/quality-gate.yml` usa `continue-on-error: true`. Antes de hacerlo bloqueante, obtener el inventario actual, fijar versiones y resolver/admitir advisories explícitamente. | P1 |
+| 13 | `xlsx` desde CDN y SDK Anthropic | **Confirmado para XLSX; no probado para Anthropic.** `package.json` usa tarball de SheetJS por URL. `@anthropic-ai/sdk` está en `^0.39.0`; eso no prueba incompatibilidad. Verificar integridad, lockfile y advisories antes de cambiar. | P1 |
+| 14 | Bundle sin optimización | **No demostrado.** El repo incluye dependencias pesadas y tiene script `analyze:bundle`; no se midió bundle actual. Ejecutar análisis antes de implementar imports dinámicos. | P2 |
+| 15 | Cobertura de tests insuficiente y sin E2E | **Parcial.** `jest.config.js` existe y documenta baseline aproximado de 2% (agosto 2026); no se verificó ejecución/cobertura actual ni uso de E2E. El umbral configurado es 1%, lejos del 80% propuesto. | P1 |
+| 16 | Script `test` usa watch | **Confirmado, impacto bajo.** `test` usa `jest --watch` y `test:ci` usa `jest --ci`. El workflow debe llamar explícitamente a los comandos no interactivos. | P2 |
+| 17 | 85 errores TypeScript preexistentes | **No verificado en el commit actual.** El workflow ejecuta `npm run type-check`; se requiere resultado de CI sobre el SHA actual para confirmar el conteo. No aceptar 85 como cifra vigente sin reproducirla. | P1 |
+| 18 | Migraciones fragmentadas y 70+ archivos | **Parcial.** Hay migraciones versionadas; el número, duplicados y consistencia de nombres no se midieron de forma exhaustiva. No consolidar migraciones ya aplicadas en producción; solo ordenar documentación y convenciones futuras. | P2 |
+| 19 | 54 índices no utilizados | **No verificable con GitHub.** Requiere `pg_stat_user_indexes`, ventana representativa de uso y revisión de constraints/planes. No borrar índices por una captura aislada. | P2 |
+| 20 | Queries N+1 en hooks analíticos | **Hipótesis sin prueba.** Nombres de hooks y queries separadas no demuestran N+1. Medir con logs/EXPLAIN y optimizar consultas concretas manteniendo los cálculos financieros. | P2 |
+| 21 | Problemas de tema claro/oscuro | **No verificado de forma global.** Hay lógica de tema en `layout.tsx` y una referencia a una corrección de login, pero se requiere auditoría visual de pantallas. | P2 |
+| 22 | Accesibilidad básica | **No verificado.** La presencia o ausencia de una carpeta no demuestra cumplimiento. Ejecutar axe/Lighthouse y revisar teclado, etiquetas y contraste. | P2 |
+| 23 | Manejo de errores y falta de Sentry | **Parcial.** Existe `GlobalErrorBoundary`; no se verificó cobertura por módulo ni destino de logging. No añadir un proveedor externo sin decisión y configuración de privacidad. | P2 |
+| 24 | Limpieza residual de Service Worker | **Confirmado como código existente, impacto incierto.** `layout.tsx` ejecuta limpieza de registros y caches legacy. Validar que no borre caches ajenos a FleetEase ni interfiera con instalaciones; retirar solo con plan de migración. | P2 |
+| 25 | Install prompt básico | **Parcial.** `beforeinstallprompt` se captura en `layout.tsx`; el timing por visitas y tracking no están demostrados. Es mejora de producto, no bloqueo de seguridad. | P3 |
+| 26 | Cron jobs sin monitoreo | **Parcial.** Los cuatro crons están declarados en `vercel.json` y existen sus route handlers. La monitorización y alertas requieren revisar Vercel y el código completo de cada handler. | P1 |
+| 27 | Cron jobs sin idempotencia | **No demostrado para todos.** `subscription-expiry-check` ya declara una tabla de recordatorios con clave por compañía/tipo/periodo en su código. Revisar constraints y deduplicación de los cuatro handlers antes de añadir locks. | P1 |
+| 28 | Placeholders en CI | **Confirmado, riesgo matizado.** El workflow usa valores ficticios y también define `SUPABASE_SERVICE_ROLE_KEY` placeholder para build. Es válido para compilación sin conexiones reales solo si el código no acepta esa configuración como válida en producción. Mantener tests/build aislados de datos reales. | P1 |
+| 29 | Webpack forzado | **Confirmado.** El script build ejecuta `next build --webpack`; `next.config.mjs` tiene configuración Turbopack. No cambiar hasta comparar build, compatibilidad y resultados de CI. | P3 |
+| 30 | Documentación fragmentada | **Parcial.** Existen `docs/` y análisis de seguridad, pero no se verificó toda la documentación ni la ausencia de índice/API docs. Crear índice y mantener ADRs si el inventario lo confirma. | P2 |
+
+## Priorización propuesta
+
+### P0 — primero: seguridad de acceso y configuración de Auth
+1. Comparar el middleware real con sus tests; añadir pruebas de acceso anónimo, usuario autenticado, roles y rutas sensibles. El middleware no debe ser la única autorización de APIs.
+2. Confirmar en Supabase Dashboard que **Leaked password protection** esté habilitada.
+3. Confirmar si Upstash está configurado en Vercel Production y comprobar que registro, login, billing, administración y uploads usen el limiter correcto.
+4. Verificar con pruebas que no exista acceso cruzado entre empresas/roles. No tocar RLS ni la lógica financiera sin pruebas de regresión.
+
+### P1 — siguiente: cadena de suministro y calidad
+1. Obtener el resultado vigente de `npm audit`; resolver vulnerabilidades explotables de producción y revisar el origen/integridad del tarball `xlsx`.
+2. Obtener type-check, tests y build del SHA actual. Identificar el estado real de los errores TypeScript, sin asumir el número histórico de 85.
+3. Revisar variables de entorno en GitHub/Vercel; nunca publicar `SUPABASE_SERVICE_ROLE_KEY` ni otras credenciales privadas.
+4. Auditar cobertura real del rate limiter y las rutas cron; añadir deduplicación donde falte, con pruebas.
+5. Revisar alias Supabase para evitar usar el cliente browser en código server-side por error.
+
+### P2 — estabilidad y rendimiento medidos
+- Cobertura progresiva por flujo crítico: login/registro, aislamiento tenant, créditos/pagos, saldos de socios, gastos/mantenimiento y suscripciones.
+- Verificar índices con estadísticas de producción y planes SQL antes de retirar alguno.
+- Medir bundle y queries; evitar refactors especulativos.
+- Auditar accesibilidad, tema, headers efectivos, logging y limpieza del Service Worker.
+
+### P3 — mejoras no bloqueantes
+- UX del prompt PWA, migración evaluada de Webpack/Turbopack, y ampliación documental.
+
+## Validaciones requeridas antes de implementar correcciones
+
+- [ ] CI del commit base y de la rama: lint, type-check, tests y build.
+- [ ] Dashboard Supabase: estado de leaked-password protection.
+- [ ] Vercel Production: variables UPSTASH, cron deployments/logs y headers HTTP efectivos.
+- [ ] Supabase: estadísticas de índices y planes SQL antes de eliminar índices.
+- [ ] Tests de regresión para auth, roles, multi-tenant y módulos financieros.
+- [ ] PR independiente; no fusionar ni desplegar automáticamente a producción desde esta auditoría.
+
+## Fuentes de código revisadas
+
+- `middleware.ts`
+- `src/__tests__/middleware.test.ts`
+- `src/lib/auth.ts`
+- `src/lib/rate-limit.ts`
+- `src/app/layout.tsx`
+- `public/manifest.json`
+- `src/lib/supabase.ts`, `src/lib/supabase-browser.ts`
+- `tsconfig.json`, `package.json`, `jest.config.js`
+- `.github/workflows/quality-gate.yml`
+- `vercel.json`, `next.config.mjs`
+- Los cuatro handlers cron bajo `src/app/api/cron/`
+- `docs/bloque-b-security-audit-2026-10-03.md` y `FleetEase-seguridad-performance.md`
+
+**Conclusión:** esta PR registra la verificación y la priorización, no declara los 30 hallazgos como bugs confirmados ni aplica cambios funcionales. La siguiente PR debe atender primero los hallazgos P0/P1 confirmados y pasar los checks de GitHub antes de considerar cualquier integración.
