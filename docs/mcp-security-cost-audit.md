@@ -101,3 +101,28 @@ Proyecto consultado: `FleetEase` (`qettktslcbjjuyejcpqy`), estado `ACTIVE_HEALTH
 ### Decisión técnica derivada
 
 El primer piloto MCP debe ser estrictamente de solo lectura, con herramientas explícitas y filtros de empresa derivados de la identidad validada. Las escrituras financieras quedan fuera del piloto hasta revisar RPC por RPC y disponer de pruebas automatizadas de permisos e idempotencia.
+
+
+## Corrección tras verificar el middleware completo
+
+La inspección completa de `middleware.ts` corrigió una interpretación inicial: el archivo sí entra en la función middleware para rutas `/api` y aplica cabeceras de seguridad, pero las devuelve antes de ejecutar la comprobación de sesión de Supabase. Por tanto, el riesgo relevante no es que la ruta quede fuera del middleware, sino que **las rutas API no reciben la protección de sesión que se aplica a páginas privadas**. El endpoint MCP debe autenticar cada solicitud por sí mismo.
+
+## Revisión del modelo de identidad y roles
+
+El tipo compartido `src/types/supabase.ts` define `admin`, `editor`, `viewer`, `super_admin`, `partner` y `client`. También incluye `company_id` y `partner_access`. Estos tipos ayudan al inventario, pero no bastan para decidir permisos: la autorización MCP debe resolverse desde los registros actuales de usuario/membresía en el servidor y no desde argumentos enviados por el modelo.
+
+Se encontraron rutas API existentes que crean clientes Supabase con cookies, pero todavía falta un helper de servidor común que el endpoint MCP pueda reutilizar con manejo de cookies y errores consistente. No se reutilizará el cliente de navegador `src/lib/supabase-browser.ts` en código servidor MCP.
+
+## Decisión de alcance del primer prototipo
+
+Para no introducir un cambio de seguridad difícil de validar por falta de ejecución local/CI desde esta auditoría, la próxima entrega de código debe esperar a identificar el patrón SSR de servidor correcto, la forma exacta de recuperar el perfil activo y una manera de ejecutar build y pruebas en la rama. No se añadirá una ruta MCP que aparente funcionar pero carezca de pruebas o dependa de una sesión ambigua.
+
+Pruebas mínimas para el primer PR:
+- Sin token/sesión: denegar la llamada.
+- Token de usuario A con ID de recurso de empresa B: denegar sin filtrar datos.
+- Usuario `viewer`: solo herramientas de lectura, incluso si intenta invocar una herramienta no listada.
+- `partner` y `client`: limitar a su propio ámbito.
+- Usuario eliminado, membresía revocada o empresa deshabilitada: denegar.
+- Token vencido, audiencia incorrecta o conexión revocada: denegar.
+- Paginación/límites y respuestas sin datos sensibles internos.
+- Type-check, pruebas automatizadas y build del proyecto antes de abrir PR de integración.
