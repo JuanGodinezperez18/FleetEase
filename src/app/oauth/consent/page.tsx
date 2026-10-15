@@ -14,7 +14,9 @@ type AuthorizationDetails = {
   redirect_url?: string;
 };
 
-const ALLOWED_APP_ROLES = new Set(["admin", "editor", "viewer"]);
+// Do not grant broad MCP access to editor/viewer until their module permissions
+// can be enforced per tool. The pilot is limited to the company admin.
+const ALLOWED_APP_ROLES = new Set(["admin"]);
 
 function ConsentContent() {
   const searchParams = useSearchParams();
