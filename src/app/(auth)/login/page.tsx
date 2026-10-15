@@ -32,7 +32,7 @@ export default function LoginPage() {
       // Only allow same-origin relative paths. Never let a callback query
       // parameter turn the login flow into an open redirect.
       let destination = "/dashboard";
-      if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") && !callbackUrl.includes("\\\\")) {
+      if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") && !callbackUrl.includes("\\")) {
         try {
           const parsed = new URL(callbackUrl, window.location.origin);
           if (parsed.origin === window.location.origin) {
