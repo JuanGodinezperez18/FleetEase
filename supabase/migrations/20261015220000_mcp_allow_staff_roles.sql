@@ -1,5 +1,5 @@
--- Alinea el hook OAuth con consent + policy: staff de empresa puede usar MCP read-only.
--- Partner y client siguen en mcp_no_access.
+-- Alinea el hook OAuth: staff + partner + client pueden recibir mcp_read_only.
+-- El alcance (empresa vs propio) se aplica en la API MCP y en RLS.
 
 BEGIN;
 
@@ -18,8 +18,6 @@ BEGIN
   claims := event -> 'claims';
   auth_method := event ->> 'authentication_method';
 
-  -- OAuth-issued tokens include client_id. Regular FleetEase browser sessions
-  -- retain the normal "authenticated" database role.
   IF claims ? 'client_id'
      AND auth_method IN ('oauth_provider/authorization_code', 'token_refresh') THEN
     SELECT u.role::text
@@ -29,11 +27,11 @@ BEGIN
        AND u.is_deleted = false
      LIMIT 1;
 
-    -- Staff de la empresa: admin, editor, viewer, super_admin
-    IF app_role = ANY (ARRAY['admin', 'editor', 'viewer', 'super_admin']) THEN
+    IF app_role = ANY (
+      ARRAY['admin', 'editor', 'viewer', 'super_admin', 'partner', 'client']
+    ) THEN
       database_role := 'mcp_read_only';
     ELSE
-      -- Partner, client, missing/deleted users get no table grants.
       database_role := 'mcp_no_access';
     END IF;
 
