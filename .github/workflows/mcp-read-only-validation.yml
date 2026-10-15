@@ -42,7 +42,7 @@ jobs:
         run: npm run type-check
 
       - name: MCP unit tests
-        run: npm run test:ci -- --runInBand src/lib/mcp/policy.test.ts src/lib/mcp/tools.test.ts
+        run: npm run test:ci -- --runInBand src/lib/mcp/policy.test.ts src/lib/mcp/tools.test.ts src/app/.well-known/oauth-protected-resource/api/mcp/route.test.ts
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
