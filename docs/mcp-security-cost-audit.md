@@ -139,3 +139,26 @@ Se añadieron en esta rama:
 
 ### Validación pendiente
 No he podido ejecutar `npm run type-check`, `npm run test:ci` ni `npm run build` desde las herramientas de GitHub. Se debe abrir un PR en borrador para que la CI del repositorio ejecute los checks. El PR no debe fusionarse hasta revisar los resultados y completar autenticación, contexto de empresa y filtros por recurso.
+
+
+## Prototipo MCP de solo lectura añadido
+
+Se añadieron `src/app/api/mcp/route.ts`, `src/lib/mcp/tools.ts`, pruebas del registro de herramientas y la dependencia oficial `@modelcontextprotocol/server@2.3.1`. El endpoint está en la ruta `/api/mcp` y registra únicamente estas consultas: vehículos, detalle de vehículo, clientes, detalle de cliente, gastos, ingresos, créditos, socios y multas.
+
+Controles implementados en esta fase:
+- validación de JWT Supabase por solicitud y comprobación del perfil/empresa activa;
+- roles limitados a `admin`, `editor` y `viewer`;
+- filtro explícito por `company_id` en cada consulta y JWT de usuario para mantener RLS;
+- límites de paginación (máximo 50 filas por llamada), tamaño de cuerpo, rate limit y respuestas genéricas ante errores;
+- campos de respuesta minimizados: no se devuelven documentos, imágenes, domicilios ni URLs de evidencia;
+- no hay herramientas de escritura ni consultas SQL arbitrarias.
+
+### Bloqueos de publicación aún abiertos
+
+1. **OAuth 2.1 y consentimiento:** el endpoint actual requiere un JWT Supabase de usuario y aún no implementa el flujo OAuth de conexión de cliente, consentimiento, revocación y rotación. Por ello es un prototipo técnico autenticado, no una conexión comercial autoservicio para ChatGPT/otros agentes.
+2. **Lockfile:** se añadió la dependencia a `package.json`, pero el `package-lock.json` necesita regenerarse con npm y confirmarse en esta rama antes de fusionar.
+3. **Validación de build:** la primera compilación de Vercel detectó un error de sintaxis en la inicialización del cliente Supabase. Se corrigió después; la nueva compilación debe confirmar el arreglo y mostrar resultados de type-check/tests/build.
+4. **Rate limit distribuido:** el limiter existente usa memoria si no están configuradas las variables Upstash. El lanzamiento público requiere un limitador distribuido configurado y probado.
+5. **Pruebas de seguridad:** siguen pendientes pruebas de extremo a extremo con dos empresas y usuarios reales de cada rol, además de compatibilidad MCP en ChatGPT y un cliente adicional.
+
+No habilitar producción ni marcar como terminado hasta cerrar todos los bloqueos anteriores.
