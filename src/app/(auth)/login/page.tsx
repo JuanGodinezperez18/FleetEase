@@ -29,7 +29,19 @@ export default function LoginPage() {
     let isMounted = true;
     if (!loading && currentUser && !isRedirecting) {
       setIsRedirecting(true);
-      const destination = callbackUrl || "/dashboard";
+      // Only allow same-origin relative paths. Never let a callback query
+      // parameter turn the login flow into an open redirect.
+      let destination = "/dashboard";
+      if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") && !callbackUrl.includes("\\\\")) {
+        try {
+          const parsed = new URL(callbackUrl, window.location.origin);
+          if (parsed.origin === window.location.origin) {
+            destination = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          destination = "/dashboard";
+        }
+      }
       router.replace(destination);
     }
     return () => {
