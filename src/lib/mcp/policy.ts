@@ -27,9 +27,13 @@ export const MCP_READ_TOOLS = [
 
 export type McpReadTool = (typeof MCP_READ_TOOLS)[number];
 
-// Until FleetEase has module-level permissions in the data model, only the
-// company admin may read company-wide financial and operational information.
-const READ_ROLES: ReadonlySet<McpRole> = new Set(['admin']);
+// Solo lectura: staff de la empresa. Partner/client siguen denegados.
+const READ_ROLES: ReadonlySet<McpRole> = new Set([
+  'admin',
+  'editor',
+  'viewer',
+  'super_admin',
+]);
 
 /**
  * Checks only the role/tool combination. Tenant scope, resource ownership,
