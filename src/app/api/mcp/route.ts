@@ -86,7 +86,12 @@ async function handleMcp(request: NextRequest): Promise<Response> {
   const ip = request.headers.get('x-real-ip')
     ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? 'unknown';
-  const ipLimit = await apiLimiter.check(`mcp:ip:${ip}`);
+  let ipLimit;
+  try {
+    ipLimit = await apiLimiter.check(`mcp:ip:${ip}`);
+  } catch {
+    return NextResponse.json({ error: 'Rate limiting is temporarily unavailable.' }, { status: 503 });
+  }
   if (ipLimit.limited) {
     return NextResponse.json({ error: 'Rate limit exceeded.' }, {
       status: 429,
