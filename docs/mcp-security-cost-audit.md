@@ -88,3 +88,16 @@ El SDK/servidor MCP no debe reutilizar el cliente Supabase singleton de uso gene
 - Confirmar cómo se resuelven membresías y roles para usuarios con acceso a varias empresas.
 - Identificar pruebas actuales y crear casos cruzados entre tenants antes de añadir herramientas.
 - Confirmar el plan de Supabase y los cargos reales de Vercel; los datos de facturación consultados previamente no dieron un total verificable.
+
+
+## Revisión de advisors del proyecto Supabase activo (2026-10-15)
+
+Proyecto consultado: `FleetEase` (`qettktslcbjjuyejcpqy`), estado `ACTIVE_HEALTHY`, PostgreSQL 17.6, región `ca-central-1`.
+
+- **Security Advisor:** 15 avisos `authenticated_security_definer_function_executable`. Incluye helpers de identidad/rol y RPCs de negocio (créditos, gastos, multas, pagos y offboarding). Es un aviso de exposición por `authenticated`, no una prueba de vulnerabilidad por sí mismo. Antes de usar una RPC desde MCP hay que comprobar que el cuerpo valida el usuario/empresa, que no acepta una empresa ajena y que las operaciones sensibles exigen el permiso apropiado. No revocar en bloque: podría romper flujos existentes.
+- **Performance Advisor:** 54 índices marcados como no utilizados. No se eliminarán en lote; un índice puede ser necesario para consultas poco frecuentes, integridad o cargas no capturadas por el periodo del advisor.
+- **Limitación de verificación:** estos advisors no sustituyen la prueba de acceso cruzado entre empresas, ni confirman por sí solos el estado de la configuración de protección contra contraseñas filtradas.
+
+### Decisión técnica derivada
+
+El primer piloto MCP debe ser estrictamente de solo lectura, con herramientas explícitas y filtros de empresa derivados de la identidad validada. Las escrituras financieras quedan fuera del piloto hasta revisar RPC por RPC y disponer de pruebas automatizadas de permisos e idempotencia.
