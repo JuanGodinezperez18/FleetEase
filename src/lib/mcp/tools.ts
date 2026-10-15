@@ -34,7 +34,7 @@ function getScopedClient(token: string) {
 
   return createClient<Database>(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-    global: { headers: { Authorization: `Bearer ${token}} },
+    global: { headers: { Authorization: 'Bearer ' + token } },
   });
 }
 
