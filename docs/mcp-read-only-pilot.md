@@ -72,3 +72,8 @@ The OAuth authorization server itself is Supabase Auth at `https://qettktslcbjju
 5. Test the full login → consent → callback → token refresh/revocation flow against a non-production client.
 
 The connected Supabase project settings are not exposed by the available project-management connector, so these OAuth dashboard settings have **not** been confirmed or changed by this work. Until verified, end-to-end OAuth is not considered complete.
+
+
+## Access policy decision
+
+The initial read-only pilot is now **company-admin only**. The database currently has no dedicated module-permission table, so granting `editor` or `viewer` access to all company-wide financial and operational tools would exceed least privilege. Those roles, as well as `partner`, `client`, and `super_admin`, are denied until per-tool authorization and own-scope resolvers are implemented and tested.
