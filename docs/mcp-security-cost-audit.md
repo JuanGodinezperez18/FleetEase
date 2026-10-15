@@ -69,3 +69,22 @@ Auditoría inicial en curso. Esta rama documenta hallazgos y criterios; todavía
 ## Estimación preliminar — no es cotización
 
 La estimación anterior de 100–176 horas (aprox. $50,000–$176,000 MXN usando una referencia de $500–$1,000 MXN/h) es solo una hipótesis de planificación. Se actualizará después de revisar autorización, RLS, funciones financieras y cobertura de pruebas. No se dispone todavía de un desglose verificable de facturación real de Vercel ni del plan contratado de Supabase, por lo que los costes recurrentes deben confirmarse con los paneles de facturación.
+
+
+## Evidencia adicional revisada en el repositorio
+
+Se encontró un informe previo del 2026-10-03, `docs/bloque-b-security-audit-2026-10-03.md`, que declara RLS en 37/37 tablas públicas, aislamiento `company_id`, `search_path` fijo en funciones `SECURITY DEFINER`, revocaciones a `anon` y controles de Storage. También documenta que la protección de contraseñas filtradas en Supabase Auth quedó como paso manual pendiente. Este informe es evidencia de trabajo previo, no una verificación independiente del estado actual; se debe contrastar con las políticas y privilegios activos.
+
+La migración `supabase/migrations/20260927140500_security_definer_execute_hardening.sql` muestra revocaciones explícitas de `anon, public` para funciones RPC de negocio y revoca `authenticated` de dos funciones administrativas. Por tanto, no se debe concluir que todas las funciones privilegiadas están expuestas: hay que revisar función por función, quién la ejecuta y qué validación interna realiza.
+
+### Riesgo de diseño específico para MCP
+
+El SDK/servidor MCP no debe reutilizar el cliente Supabase singleton de uso general ni los métodos CRUD genéricos como frontera de autorización. Cada llamada deberá recibir un contexto autenticado y crear una ruta de ejecución acotada, con herramientas explícitas y validación de permisos/tenant en el servidor. La cobertura RLS existente debe mantenerse como segunda barrera.
+
+### Pendientes antes de programar el endpoint
+
+- Verificar en el proyecto Supabase activo la protección de contraseñas filtradas y registrar el resultado.
+- Obtener inventario de políticas activas por tabla y grants efectivos de las funciones RPC relevantes.
+- Confirmar cómo se resuelven membresías y roles para usuarios con acceso a varias empresas.
+- Identificar pruebas actuales y crear casos cruzados entre tenants antes de añadir herramientas.
+- Confirmar el plan de Supabase y los cargos reales de Vercel; los datos de facturación consultados previamente no dieron un total verificable.
