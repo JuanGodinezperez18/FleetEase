@@ -43,8 +43,8 @@ function withSecurityHeaders(response: Response, origin: string | null): Respons
   if (origin) {
     headers.set('Access-Control-Allow-Origin', origin);
     headers.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Method, Mcp-Name');
-    headers.set('Access-Control-Expose-Headers', 'MCP-Protocol-Version, Mcp-Method, Mcp-Name');
+    headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Session-Id, Last-Event-ID');
+    headers.set('Access-Control-Expose-Headers', 'MCP-Protocol-Version, Mcp-Session-Id');
     headers.append('Vary', 'Origin');
   }
   return new Response(response.body, {
