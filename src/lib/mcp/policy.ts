@@ -3,7 +3,7 @@
  *
  * This module is intentionally deny-by-default. It does not authenticate the
  * caller or resolve a company; callers must do both before consulting policy.
- * Partner/client tools stay disabled until their own-scope resolvers are tested.
+ * Partner/client tools are allowed, but tools.ts must apply own-scope filters.
  */
 export type McpRole =
   | 'admin'
@@ -27,12 +27,39 @@ export const MCP_READ_TOOLS = [
 
 export type McpReadTool = (typeof MCP_READ_TOOLS)[number];
 
-// Solo lectura: staff de la empresa. Partner/client siguen denegados.
+/** Staff: company-wide reads. Partner/client: own-scope only (enforced in tools). */
 const READ_ROLES: ReadonlySet<McpRole> = new Set([
   'admin',
   'editor',
   'viewer',
   'super_admin',
+  'partner',
+  'client',
+]);
+
+/** Tools a client may use (self + assigned records). */
+const CLIENT_TOOLS: ReadonlySet<string> = new Set([
+  'vehicles_list',
+  'vehicle_get',
+  'clients_list',
+  'client_get',
+  'expenses_list',
+  'income_list',
+  'credits_list',
+  'fines_list',
+]);
+
+/** Tools a partner may use (own partner row + linked vehicles/finances). */
+const PARTNER_TOOLS: ReadonlySet<string> = new Set([
+  'vehicles_list',
+  'vehicle_get',
+  'clients_list',
+  'client_get',
+  'expenses_list',
+  'income_list',
+  'credits_list',
+  'partners_list',
+  'fines_list',
 ]);
 
 /**
@@ -44,10 +71,11 @@ export function canUseMcpReadTool(
   role: McpRole,
   tool: string,
 ): tool is McpReadTool {
-  return (
-    (MCP_READ_TOOLS as readonly string[]).includes(tool) &&
-    READ_ROLES.has(role)
-  );
+  if (!(MCP_READ_TOOLS as readonly string[]).includes(tool)) return false;
+  if (!READ_ROLES.has(role)) return false;
+  if (role === 'client') return CLIENT_TOOLS.has(tool);
+  if (role === 'partner') return PARTNER_TOOLS.has(tool);
+  return true;
 }
 
 /** No writes are enabled in the initial MCP pilot. */

@@ -14,12 +14,15 @@ type AuthorizationDetails = {
   redirect_url?: string;
 };
 
-// Solo lectura: staff de la empresa puede autorizar. Partner/client quedan fuera.
+// Cualquier usuario activo de la empresa puede autorizar MCP de solo lectura.
+// Staff ve datos de la empresa; partner/client solo su propio alcance (tools).
 const ALLOWED_APP_ROLES = new Set([
   "admin",
   "editor",
   "viewer",
   "super_admin",
+  "partner",
+  "client",
 ]);
 
 function ConsentContent() {
@@ -152,15 +155,15 @@ function ConsentContent() {
 
         <p className="text-sm leading-6 text-muted-foreground">
           <strong className="text-foreground">{details?.client_name || "Una aplicación externa"}</strong> solicita conectar con tu cuenta de FleetEase.
-          Solo podrá consultar las herramientas de lectura habilitadas; no podrá crear, modificar ni eliminar registros a través de MCP.
+          Solo podrá consultar las herramientas de lectura habilitadas según tu rol; no podrá crear, modificar ni eliminar registros a través de MCP.
         </p>
 
         <div className="mt-6 rounded-xl bg-muted/50 p-4">
           <h2 className="text-sm font-semibold">Datos que podrá consultar</h2>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Vehículos y clientes de tu empresa.</li>
-            <li>Gastos, ingresos y saldos de créditos.</li>
-            <li>Socios y multas.</li>
+            <li>Staff (admin/editor/viewer): vehículos, clientes, finanzas y multas de tu empresa.</li>
+            <li>Cliente: solo tu perfil, vehículo asignado, créditos y multas propias.</li>
+            <li>Socio: solo tu perfil de socio, vehículos vinculados y movimientos asociados.</li>
           </ul>
           {scopes.length > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
@@ -170,7 +173,7 @@ function ConsentContent() {
         </div>
 
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          El acceso queda ligado a tu usuario y empresa. FleetEase aplica permisos de base de datos de solo lectura. Puedes rechazar la solicitud si no reconoces la aplicación.
+          El acceso queda ligado a tu usuario y empresa. FleetEase aplica permisos de base de datos de solo lectura y filtra por tu alcance. Puedes rechazar la solicitud si no reconoces la aplicación.
         </p>
 
         {error && <p role="alert" className="mt-4 rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{error}</p>}
