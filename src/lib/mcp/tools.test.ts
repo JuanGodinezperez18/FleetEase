@@ -1,15 +1,15 @@
 import { registerReadOnlyTools } from './tools';
 
 function makeRequest(role = 'admin') {
-  return new Request('https://www.fleetease.com.mx/api/mcp', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer test-token',
-      'x-fleetease-mcp-user': 'user-1',
-      'x-fleetease-mcp-company': 'company-1',
-      'x-fleetease-mcp-role': role,
-    },
-  });
+  const values: Record<string, string> = {
+    authorization: 'Bearer test-token',
+    'x-fleetease-mcp-user': 'user-1',
+    'x-fleetease-mcp-company': 'company-1',
+    'x-fleetease-mcp-role': role,
+  };
+  return {
+    headers: { get: (name: string) => values[name.toLowerCase()] ?? null },
+  } as unknown as Request;
 }
 
 function makeServer() {
