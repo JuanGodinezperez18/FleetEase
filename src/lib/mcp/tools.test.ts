@@ -40,9 +40,17 @@ describe('MCP read-only tool registry', () => {
     ]);
   });
 
+  it('denies broad company-wide reads to editor and viewer until granular permissions exist', () => {
+    for (const role of ['editor', 'viewer']) {
+      const server = makeServer();
+      registerReadOnlyTools(server, { requestInfo: makeRequest(role) });
+      expect(server.tools.size).toBe(0);
+    }
+  });
+
   it('does not register writes or generic table/SQL tools', () => {
     const server = makeServer();
-    registerReadOnlyTools(server, { requestInfo: makeRequest('editor') });
+    registerReadOnlyTools(server, { requestInfo: makeRequest('admin') });
 
     for (const name of server.tools.keys()) {
       expect(name).not.toMatch(/create|update|delete|execute_sql|any_table/i);
@@ -51,7 +59,7 @@ describe('MCP read-only tool registry', () => {
 
   it('does not allow caller-supplied company scope in list schemas', () => {
     const server = makeServer();
-    registerReadOnlyTools(server, { requestInfo: makeRequest('viewer') });
+    registerReadOnlyTools(server, { requestInfo: makeRequest('admin') });
 
     for (const name of ['vehicles_list', 'clients_list', 'expenses_list', 'income_list', 'credits_list', 'partners_list', 'fines_list']) {
       const schema = server.tools.get(name)?.config.inputSchema;
