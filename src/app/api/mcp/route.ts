@@ -14,8 +14,15 @@ const DEFAULT_MCP_BASE_URL = process.env.VERCEL_ENV === 'preview' && process.env
   : 'https://www.fleetease.com.mx';
 const MCP_PUBLIC_BASE_URL = (process.env.MCP_PUBLIC_BASE_URL || DEFAULT_MCP_BASE_URL).replace(/\/+$/, '');
 const MCP_RESOURCE_METADATA_URL = `${MCP_PUBLIC_BASE_URL}/.well-known/oauth-protected-resource/api/mcp`;
-// Company-wide read tools are admin-only until granular module permissions exist.
-const ALLOWED_ROLES = new Set<McpRole>(['admin']);
+// Staff: company-wide reads. Partner/client: own-scope filters in tools.
+const ALLOWED_ROLES = new Set<McpRole>([
+  'admin',
+  'editor',
+  'viewer',
+  'super_admin',
+  'partner',
+  'client',
+]);
 
 const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const server = new McpServer({
@@ -180,6 +187,37 @@ async function handleMcp(request: NextRequest): Promise<Response> {
       return NextResponse.json({ error: 'Active company required.' }, { status: 403 });
     }
 
+    let partnerId = '';
+    let clientId = '';
+
+    if (role === 'partner') {
+      const { data: partnerRow } = await supabaseAdmin
+        .from('partners')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .eq('company_id', profile.company_id)
+        .eq('is_deleted', false)
+        .maybeSingle();
+      if (!partnerRow?.id) {
+        return NextResponse.json({ error: 'Partner profile required for MCP access.' }, { status: 403 });
+      }
+      partnerId = partnerRow.id;
+    }
+
+    if (role === 'client') {
+      const { data: clientRow } = await supabaseAdmin
+        .from('clients')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .eq('company_id', profile.company_id)
+        .eq('is_deleted', false)
+        .maybeSingle();
+      if (!clientRow?.id) {
+        return NextResponse.json({ error: 'Client profile required for MCP access.' }, { status: 403 });
+      }
+      clientId = clientRow.id;
+    }
+
     const userLimit = await apiLimiter.check(`mcp:user:${authData.user.id}`);
     if (userLimit.limited) {
       return NextResponse.json({ error: 'Rate limit exceeded.' }, {
@@ -194,9 +232,13 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     headers.delete('x-fleetease-mcp-user');
     headers.delete('x-fleetease-mcp-company');
     headers.delete('x-fleetease-mcp-role');
+    headers.delete('x-fleetease-mcp-partner');
+    headers.delete('x-fleetease-mcp-client');
     headers.set('x-fleetease-mcp-user', authData.user.id);
     headers.set('x-fleetease-mcp-company', profile.company_id);
     headers.set('x-fleetease-mcp-role', role);
+    if (partnerId) headers.set('x-fleetease-mcp-partner', partnerId);
+    if (clientId) headers.set('x-fleetease-mcp-client', clientId);
 
     const securedRequest = new Request(request, { headers });
     const response = await mcpHandler.fetch(securedRequest);

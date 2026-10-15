@@ -6,8 +6,8 @@ import {
 } from './policy';
 
 describe('MCP deny-by-default policy', () => {
-  it.each(['admin'] as const) (
-    'allows only registered read tools for role %s',
+  it.each(['admin', 'editor', 'viewer', 'super_admin'] as const) (
+    'allows all registered read tools for staff role %s',
     (role) => {
       for (const tool of MCP_READ_TOOLS) {
         expect(canUseMcpReadTool(role, tool)).toBe(true);
@@ -17,13 +17,19 @@ describe('MCP deny-by-default policy', () => {
     },
   );
 
-  it.each(['editor', 'viewer', 'partner', 'client', 'super_admin'] as const) (
-    'denies tenant tools for %s until explicit scope resolution exists',
-    (role: McpRole) => {
-      expect(canUseMcpReadTool(role, 'vehicles_list')).toBe(false);
-      expect(canUseMcpReadTool(role, 'dashboard_kpis')).toBe(false);
-    },
-  );
+  it('allows client own-scope tools and denies partners_list', () => {
+    expect(canUseMcpReadTool('client', 'vehicles_list')).toBe(true);
+    expect(canUseMcpReadTool('client', 'client_get')).toBe(true);
+    expect(canUseMcpReadTool('client', 'credits_list')).toBe(true);
+    expect(canUseMcpReadTool('client', 'fines_list')).toBe(true);
+    expect(canUseMcpReadTool('client', 'partners_list')).toBe(false);
+  });
+
+  it('allows partner own-scope tools including partners_list', () => {
+    for (const tool of MCP_READ_TOOLS) {
+      expect(canUseMcpReadTool('partner', tool)).toBe(true);
+    }
+  });
 
   it.each([
     'expense_create',
