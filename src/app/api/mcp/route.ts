@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const DEFAULT_MCP_BASE_URL = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
-  ? \`https://\${process.env.VERCEL_URL}\`
+  ? 'https://' + process.env.VERCEL_URL
   : 'https://www.fleetease.com.mx';
 const MCP_PUBLIC_BASE_URL = (process.env.MCP_PUBLIC_BASE_URL || DEFAULT_MCP_BASE_URL).replace(/\/+$/, '');
 const MCP_RESOURCE_METADATA_URL = `${MCP_PUBLIC_BASE_URL}/.well-known/oauth-protected-resource/api/mcp`;
