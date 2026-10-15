@@ -4,7 +4,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const siteUrl = (process.env.MCP_PUBLIC_BASE_URL || 'https://www.fleetease.com.mx').replace(/\/$/, '');
+  const previewBaseUrl = process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+    ? \`https://\${process.env.VERCEL_URL}\`
+    : 'https://www.fleetease.com.mx';
+  const siteUrl = (process.env.MCP_PUBLIC_BASE_URL || previewBaseUrl).replace(/\/+$/, '');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '');
 
   if (!supabaseUrl) {
