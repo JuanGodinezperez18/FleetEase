@@ -126,3 +126,16 @@ Pruebas mínimas para el primer PR:
 - Token vencido, audiencia incorrecta o conexión revocada: denegar.
 - Paginación/límites y respuestas sin datos sensibles internos.
 - Type-check, pruebas automatizadas y build del proyecto antes de abrir PR de integración.
+
+
+## Primer artefacto de código (15-oct-2026)
+
+Se añadieron en esta rama:
+
+- `src/lib/mcp/policy.ts`: lista explícita de herramientas de lectura registradas y autorización por rol con denegación por defecto. Ninguna escritura está habilitada.
+- `src/lib/mcp/policy.test.ts`: pruebas para roles permitidos, roles restringidos, herramientas desconocidas y operaciones genéricas/peligrosas.
+
+**Límite importante:** este módulo no autentica solicitudes, no resuelve la empresa, no verifica membresías activas ni filtra recursos por tenant. No es un servidor MCP y no debe usarse como única barrera de seguridad. Los roles `partner`, `client` y `super_admin` quedan bloqueados para herramientas tenant hasta implementar y probar su ámbito exacto; el acceso se ampliará solo con evidencia.
+
+### Validación pendiente
+No he podido ejecutar `npm run type-check`, `npm run test:ci` ni `npm run build` desde las herramientas de GitHub. Se debe abrir un PR en borrador para que la CI del repositorio ejecute los checks. El PR no debe fusionarse hasta revisar los resultados y completar autenticación, contexto de empresa y filtros por recurso.
