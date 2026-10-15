@@ -22,31 +22,28 @@ function makeServer() {
   };
 }
 
+const EXPECTED_READ_TOOLS = [
+  'client_get',
+  'clients_list',
+  'credits_list',
+  'expenses_list',
+  'fines_list',
+  'income_list',
+  'partners_list',
+  'vehicle_get',
+  'vehicles_list',
+];
+
 describe('MCP read-only tool registry', () => {
-  it('registers only the approved read tools for a company admin', () => {
-    const server = makeServer();
-    registerReadOnlyTools(server, { requestInfo: makeRequest('admin') });
-
-    expect([...server.tools.keys()].sort()).toEqual([
-      'client_get',
-      'clients_list',
-      'credits_list',
-      'expenses_list',
-      'fines_list',
-      'income_list',
-      'partners_list',
-      'vehicle_get',
-      'vehicles_list',
-    ]);
-  });
-
-  it('denies broad company-wide reads to editor and viewer until granular permissions exist', () => {
-    for (const role of ['editor', 'viewer']) {
+  it.each(['admin', 'editor', 'viewer', 'super_admin'] as const) (
+    'registers the approved read tools for staff role %s',
+    (role) => {
       const server = makeServer();
       registerReadOnlyTools(server, { requestInfo: makeRequest(role) });
-      expect(server.tools.size).toBe(0);
-    }
-  });
+
+      expect([...server.tools.keys()].sort()).toEqual(EXPECTED_READ_TOOLS);
+    },
+  );
 
   it('does not register writes or generic table/SQL tools', () => {
     const server = makeServer();
@@ -69,7 +66,7 @@ describe('MCP read-only tool registry', () => {
   });
 
   it('does not register tenant tools for partner or client roles', () => {
-    for (const role of ['partner', 'client', 'super_admin']) {
+    for (const role of ['partner', 'client']) {
       const server = makeServer();
       registerReadOnlyTools(server, { requestInfo: makeRequest(role) });
       expect(server.tools.size).toBe(0);

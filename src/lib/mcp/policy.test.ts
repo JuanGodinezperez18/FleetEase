@@ -6,8 +6,8 @@ import {
 } from './policy';
 
 describe('MCP deny-by-default policy', () => {
-  it.each(['admin'] as const) (
-    'allows only registered read tools for role %s',
+  it.each(['admin', 'editor', 'viewer', 'super_admin'] as const) (
+    'allows only registered read tools for staff role %s',
     (role) => {
       for (const tool of MCP_READ_TOOLS) {
         expect(canUseMcpReadTool(role, tool)).toBe(true);
@@ -17,8 +17,8 @@ describe('MCP deny-by-default policy', () => {
     },
   );
 
-  it.each(['editor', 'viewer', 'partner', 'client', 'super_admin'] as const) (
-    'denies tenant tools for %s until explicit scope resolution exists',
+  it.each(['partner', 'client'] as const) (
+    'denies tenant tools for %s (non-staff)',
     (role: McpRole) => {
       expect(canUseMcpReadTool(role, 'vehicles_list')).toBe(false);
       expect(canUseMcpReadTool(role, 'dashboard_kpis')).toBe(false);
