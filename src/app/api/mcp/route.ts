@@ -75,6 +75,18 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     return new Response(null, { status: 204, headers });
   }
 
+  // The memory fallback is not safe for a public, multi-instance deployment.
+  // Fail closed until a shared Upstash limiter is configured.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)
+  ) {
+    return NextResponse.json(
+      { error: 'MCP is temporarily unavailable.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   if (request.method === 'POST') {
     const declaredLength = Number(request.headers.get('content-length') ?? 0);
     if (declaredLength > MAX_BODY_BYTES) {
