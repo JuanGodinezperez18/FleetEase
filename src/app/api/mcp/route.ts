@@ -77,9 +77,23 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     if (declaredLength > MAX_BODY_BYTES) {
       return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
     }
-    const body = await request.clone().text();
-    if (new TextEncoder().encode(body).byteLength > MAX_BODY_BYTES) {
-      return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
+    const stream = request.clone().body;
+    if (stream) {
+      const reader = stream.getReader();
+      let totalBytes = 0;
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          totalBytes += chunk.value.byteLength;
+          if (totalBytes > MAX_BODY_BYTES) {
+            await reader.cancel();
+            return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
     }
   }
 
