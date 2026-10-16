@@ -27,12 +27,15 @@ export async function POST() {
   try {
     const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) {
-      response = NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
-      return response;
+      const errorResponse = NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
+      response.cookies.getAll().forEach((cookie) => errorResponse.cookies.set(cookie));
+      return errorResponse;
     }
     return response;
   } catch (error) {
     console.error('[Auth] Error en logout:', error);
-    return NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
+    const errorResponse = NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
+    response.cookies.getAll().forEach((cookie) => errorResponse.cookies.set(cookie));
+    return errorResponse;
   }
 }
