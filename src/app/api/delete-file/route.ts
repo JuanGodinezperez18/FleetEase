@@ -170,6 +170,8 @@ export async function POST(request: NextRequest) {
       'company-logos',
       'inspection-images',
       'seguimientos',
+      'client-documents',
+      'clients',
     ]);
     if (!allowedBuckets.has(bucketName)) {
       return NextResponse.json({ error: 'Bucket no permitido.' }, { status: 400 });
