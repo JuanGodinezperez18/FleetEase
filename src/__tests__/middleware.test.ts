@@ -170,6 +170,16 @@ describe('middleware authentication and role authorization', () => {
     expect(dashboardResponse.url.pathname).toBe('/client');
   });
 
+  it('confines partner accounts to their portal instead of other protected routes', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockGetProfile.mockResolvedValue({ data: { role: 'partner', is_deleted: false }, error: null });
+
+    const response = await middleware(buildRequest('/settings') as any);
+
+    expect(response.type).toBe('redirect');
+    expect(response.url.pathname).toBe('/partner');
+  });
+
   it('redirects a client away from the partner portal', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'client', is_deleted: false }, error: null });
