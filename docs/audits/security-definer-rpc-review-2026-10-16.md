@@ -25,7 +25,7 @@ Todas las 15 funciones observadas fijan `search_path` explícitamente (en la may
 | `delete_financial_payment_atomic(uuid)` | Requiere sesión/empresa; limita la búsqueda del pago por empresa y tipo. | Verificar autorización por rol y pruebas de borrado lógico/reconciliación de saldos. |
 | `get_user_company_id()` | Helper que resuelve empresa desde el perfil autenticado; usado por `offboard_client_with_writeoff`. | Rastrear consumidores y revisar si el duplicado de `auth_user_company_id()` es necesario. |
 | `is_user_admin()` | Helper de rol administrativo derivado de `public.users`; usado por la baja de clientes. | Confirmar definición de administrador global vs. administrador de empresa y si exponerlo como RPC es necesario. |
-| `offboard_client_with_writeoff(uuid,text)` | Autoriza si la empresa del cliente coincide con la del usuario o si `is_user_admin()` devuelve true. | **Prioridad alta:** confirmar semántica de admin global; comprobar que un rol de empresa no pueda dar de baja clientes de otro tenant y probar la contabilización de incobrables. |
+| `offboard_client_with_writeoff(uuid,text)` | Autoriza si la empresa del cliente coincide con la del usuario o si `is_user_admin()` devuelve true. | **Hallazgo de prioridad alta confirmado por inspección estática:** `is_user_admin()` actualmente devuelve true para `admin` y `super_admin`, pero se usa como bypass de empresa en esta función y en políticas RLS. Como `admin` es un rol de personal con ámbito de empresa (el MCP aplica filtro `company_id`), esto puede permitir acceso/operaciones entre tenants. Se preparó la corrección en PR #60, aún sin aplicar a producción. Validar con dos empresas y pruebas RLS antes de aprobar. |
 | `process_credit_payment_atomic(...)` | Requiere usuario/empresa; valida empresa, crédito, cliente asociado, importe y asignación a calendarios de pago. | **Prioridad alta:** pruebas transaccionales de sobrepago, IDs cruzados, pagos concurrentes y recálculo de saldo. |
 | `update_financial_payment_atomic(...)` | Requiere usuario/empresa; limita pago y objetivos por empresa, valida importes y relaciones entre cliente, crédito, depósito y cuenta por pagar. | **Prioridad alta:** pruebas por cada tipo de pago y verificación de autorización por rol antes de editar o reasignar pagos. |
 | `update_financial_record_metadata(uuid,jsonb)` | Requiere usuario/empresa; limita el registro al tenant y bloquea cambios a campos financieros sensibles. | Verificar lista de campos editables, autorización por rol y validación estricta de tipos/URLs de evidencia. |
@@ -49,8 +49,8 @@ También se encontró una migración específica de seguridad para multas que vu
 1. Buscar en el repositorio todos los consumidores de las 15 RPCs y helpers; registrar rutas, módulos y roles que las invocan.
 2. Añadir pruebas de autorización por tenant y rol para cada RPC, con casos negativos de IDs de otra empresa.
 3. Separar helpers necesarios para RLS de RPCs de negocio. No cambiar permisos de los helpers hasta verificar todas las políticas dependientes.
-4. Para funciones que no deban ser invocables directamente, preparar una migración versionada con grants mínimos y pruebas de regresión; revisar el diff antes de aplicarla.
-5. Mantener intacta la producción hasta que la migración pase pruebas y sea aprobada explícitamente.
+4. Validar la migración propuesta en [PR #60](https://github.com/JuanGodinezperez18/FleetEase/pull/60), que limita el bypass global de `is_user_admin()` a `super_admin`; ejecutar pruebas de regresión RLS en un entorno aislado antes de aprobarla.\n5. Para funciones que no deban ser invocables directamente, preparar una migración versionada con grants mínimos y pruebas de regresión; revisar el diff antes de aplicarla.
+6. Mantener intacta la producción hasta que la migración pase pruebas y sea aprobada explícitamente.
 
 ## Hallazgo adicional del Security Advisor
 
