@@ -20,6 +20,7 @@ DECLARE
   bucket_name text;
   policy_name text;
   tenant_predicate text;
+  write_predicate text;
 BEGIN
   UPDATE storage.buckets SET public = false WHERE id = ANY(target_buckets);
 
@@ -51,22 +52,24 @@ BEGIN
       policy_name, bucket_name, tenant_predicate
     );
 
+    write_predicate := format('(public.auth_user_role() IN (''admin'', ''editor'', ''super_admin'') AND %s)', tenant_predicate);
+
     policy_name := 'FleetEase private insert ' || bucket_name;
     EXECUTE format(
       'CREATE POLICY %I ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = %L AND %s)',
-      policy_name, bucket_name, tenant_predicate
+      policy_name, bucket_name, write_predicate
     );
 
     policy_name := 'FleetEase private update ' || bucket_name;
     EXECUTE format(
       'CREATE POLICY %I ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = %L AND %s) WITH CHECK (bucket_id = %L AND %s)',
-      policy_name, bucket_name, tenant_predicate, bucket_name, tenant_predicate
+      policy_name, bucket_name, write_predicate, bucket_name, write_predicate
     );
 
     policy_name := 'FleetEase private delete ' || bucket_name;
     EXECUTE format(
       'CREATE POLICY %I ON storage.objects FOR DELETE TO authenticated USING (bucket_id = %L AND %s)',
-      policy_name, bucket_name, tenant_predicate
+      policy_name, bucket_name, write_predicate
     );
   END LOOP;
 END $$;
