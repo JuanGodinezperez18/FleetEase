@@ -3,9 +3,9 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/lib/supabase-browser";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 
 type AuthorizationDetails = {
   authorization_id?: string;
@@ -28,9 +28,10 @@ const ALLOWED_APP_ROLES = new Set([
   "client",
 ]);
 
+const easeOut = [0.22, 1, 0.36, 1] as const;
+
 /** Shell oscuro aislado: no depende de la clase .light/.dark del documento. */
 function ConsentShell({ children }: { children: React.ReactNode }) {
-  // Forzar tokens dark mientras esta pantalla está montada (misma idea que (auth)/layout).
   useEffect(() => {
     const root = document.documentElement;
     const hadLight = root.classList.contains("light");
@@ -58,13 +59,19 @@ function ConsentShell({ children }: { children: React.ReactNode }) {
       }}
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div
+        <motion.div
           className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full blur-[100px]"
-          style={{ backgroundColor: "rgba(215, 255, 63, 0.04)" }}
+          style={{ backgroundColor: "rgba(215, 255, 63, 0.05)" }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, ease: easeOut }}
         />
-        <div
+        <motion.div
           className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full blur-[80px]"
-          style={{ backgroundColor: "rgba(215, 255, 63, 0.03)" }}
+          style={{ backgroundColor: "rgba(215, 255, 63, 0.035)" }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.4, delay: 0.1, ease: easeOut }}
         />
       </div>
       <div className="relative z-10 w-full max-w-md">{children}</div>
@@ -76,6 +83,7 @@ function ConsentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const authorizationId = searchParams.get("authorization_id");
+  const reduceMotion = useReducedMotion();
   const [details, setDetails] = useState<AuthorizationDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<"approve" | "deny" | null>(null);
@@ -179,15 +187,32 @@ function ConsentContent() {
     [authorizationId, submitting]
   );
 
+  const enter = reduceMotion
+    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
+    : {
+        initial: { opacity: 0, y: 18 },
+        animate: { opacity: 1, y: 0 },
+      };
+
   if (loading) {
     return (
       <ConsentShell>
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#d7ff3f" }} />
+        <motion.div
+          className="flex flex-col items-center justify-center py-16"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35 }}
+        >
+          <motion.div
+            animate={reduceMotion ? undefined : { rotate: 360 }}
+            transition={reduceMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: "linear" }}
+          >
+            <Loader2 className="h-8 w-8" style={{ color: "#d7ff3f" }} />
+          </motion.div>
           <p className="mt-4 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
             Validando solicitud segura…
           </p>
-        </div>
+        </motion.div>
       </ConsentShell>
     );
   }
@@ -195,12 +220,14 @@ function ConsentContent() {
   if (error && !details) {
     return (
       <ConsentShell>
-        <section
+        <motion.section
           className="rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:p-8"
           style={{
             borderColor: "rgba(255,255,255,0.08)",
             backgroundColor: "rgba(255,255,255,0.03)",
           }}
+          {...enter}
+          transition={{ duration: 0.45, ease: easeOut }}
         >
           <div className="mb-5 flex items-center gap-3">
             <div
@@ -241,7 +268,7 @@ function ConsentContent() {
           >
             Volver a FleetEase
           </a>
-        </section>
+        </motion.section>
       </ConsentShell>
     );
   }
@@ -250,30 +277,45 @@ function ConsentContent() {
 
   return (
     <ConsentShell>
-      <div className="mb-6 text-center">
+      <motion.div
+        className="mb-6 text-center"
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: easeOut }}
+      >
         <div
           className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
           style={{ color: "rgba(255,255,255,0.55)" }}
         >
-          <span
+          <motion.span
             className="h-1.5 w-1.5 rounded-full"
             style={{ backgroundColor: "#d7ff3f", boxShadow: "0 0 12px #d7ff3f" }}
+            animate={reduceMotion ? undefined : { scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }}
+            transition={reduceMotion ? undefined : { duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           />
           Fleet OS
         </div>
         <h1 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl" style={{ color: "#ffffff" }}>
           FleetEase <span style={{ color: "#d7ff3f" }}>Manager</span>
         </h1>
-      </div>
+      </motion.div>
 
-      <section
+      <motion.section
         className="rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:p-8"
         style={{
           borderColor: "rgba(255,255,255,0.08)",
           backgroundColor: "rgba(255,255,255,0.03)",
         }}
+        initial={reduceMotion ? false : { opacity: 0, y: 22, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, delay: reduceMotion ? 0 : 0.08, ease: easeOut }}
       >
-        <div className="mb-6 flex items-center gap-3">
+        <motion.div
+          className="mb-6 flex items-center gap-3"
+          initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.16, ease: easeOut }}
+        >
           <div
             className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[10px] border"
             style={{
@@ -304,27 +346,39 @@ function ConsentContent() {
               Autorizar acceso de solo lectura
             </h2>
           </div>
-        </div>
+        </motion.div>
 
-        <p className="text-sm leading-6" style={{ color: "rgba(255,255,255,0.65)" }}>
+        <motion.p
+          className="text-sm leading-6"
+          style={{ color: "rgba(255,255,255,0.65)" }}
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.22 }}
+        >
           <strong className="font-medium" style={{ color: "#ffffff" }}>
             {details?.client_name || "Una aplicación externa"}
           </strong>{" "}
           solicita conectar con tu cuenta de FleetEase. Solo podrá consultar las herramientas de
           lectura habilitadas según tu rol; no podrá crear, modificar ni eliminar registros a través
           de MCP.
-        </p>
+        </motion.p>
 
-        <div
+        <motion.div
           className="mt-6 rounded-[14px] border p-4"
           style={{
             borderColor: "rgba(255,255,255,0.06)",
             backgroundColor: "rgba(255,255,255,0.03)",
           }}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.28, ease: easeOut }}
         >
-          <h3 className="text-sm font-semibold" style={{ color: "#ffffff" }}>
-            Datos que podrá consultar
-          </h3>
+          <div className="mb-2 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: "#d7ff3f" }} />
+            <h3 className="text-sm font-semibold" style={{ color: "#ffffff" }}>
+              Datos que podrá consultar
+            </h3>
+          </div>
           <ul
             className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6"
             style={{ color: "rgba(255,255,255,0.65)" }}
@@ -340,16 +394,22 @@ function ConsentContent() {
               Permisos de identidad solicitados: {scopes.join(", ")}
             </p>
           )}
-        </div>
+        </motion.div>
 
-        <p className="mt-4 text-xs leading-5" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <motion.p
+          className="mt-4 text-xs leading-5"
+          style={{ color: "rgba(255,255,255,0.5)" }}
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35, delay: reduceMotion ? 0 : 0.34 }}
+        >
           El acceso queda ligado a tu usuario y empresa. FleetEase aplica permisos de base de datos de
           solo lectura y filtra por tu alcance. Puedes rechazar la solicitud si no reconoces la
           aplicación.
-        </p>
+        </motion.p>
 
         {error && (
-          <p
+          <motion.p
             role="alert"
             className="mt-4 rounded-[10px] border px-3 py-2.5 text-sm"
             style={{
@@ -357,16 +417,26 @@ function ConsentContent() {
               backgroundColor: "rgba(248, 113, 113, 0.1)",
               color: "#fda4af",
             }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
           >
             {error}
-          </p>
+          </motion.p>
         )}
 
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button
+        <motion.div
+          className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.38, ease: easeOut }}
+        >
+          <motion.button
             type="button"
             disabled={submitting !== null}
             onClick={() => void decide("deny")}
+            whileHover={reduceMotion || submitting ? undefined : { scale: 1.015 }}
+            whileTap={reduceMotion || submitting ? undefined : { scale: 0.98 }}
             className="inline-flex h-11 w-full items-center justify-center rounded-xl border text-sm font-medium transition disabled:opacity-50 sm:w-auto sm:px-5"
             style={{
               borderColor: "rgba(255,255,255,0.12)",
@@ -382,15 +452,18 @@ function ConsentContent() {
             ) : (
               "Rechazar"
             )}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             disabled={submitting !== null}
             onClick={() => void decide("approve")}
+            whileHover={reduceMotion || submitting ? undefined : { scale: 1.02, brightness: 1.05 }}
+            whileTap={reduceMotion || submitting ? undefined : { scale: 0.98 }}
             className="inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold transition disabled:opacity-50 sm:w-auto sm:px-5"
             style={{
               backgroundColor: "#d7ff3f",
               color: "#080a0f",
+              boxShadow: submitting === "approve" ? undefined : "0 0 24px rgba(215, 255, 63, 0.18)",
             }}
           >
             {submitting === "approve" ? (
@@ -401,13 +474,19 @@ function ConsentContent() {
             ) : (
               "Autorizar solo lectura"
             )}
-          </button>
-        </div>
-      </section>
+          </motion.button>
+        </motion.div>
+      </motion.section>
 
-      <p className="mt-6 text-center text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+      <motion.p
+        className="mt-6 text-center text-[11px]"
+        style={{ color: "rgba(255,255,255,0.45)" }}
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.48 }}
+      >
         © {new Date().getFullYear()} FleetEase Manager
-      </p>
+      </motion.p>
     </ConsentShell>
   );
 }
