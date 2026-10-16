@@ -80,14 +80,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/public\/([^\/]+)\/(.+)/);
-    if (!match || match[1] !== 'documents') {
+    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
+    const allowedBuckets = new Set(['documents', 'vehicle-images', 'driver-documents', 'financial-receipts', 'general-documents', 'contract-templates', 'company-logos', 'inspection-images', 'seguimientos']);
+    if (!match || !allowedBuckets.has(match[1])) {
       return NextResponse.json(
         { error: 'URL de Supabase Storage no válida o no reconocida.' },
         { status: 400 },
       );
     }
 
+    const bucketName = match[1];
     const filePath = getSafeStoragePath(match[2]);
     if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no válida.' }, { status: 400 });
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await supabaseAdmin.storage
-      .from('documents')
+      .from(bucketName)
       .createSignedUrl(filePath, 15 * 60);
 
     if (error) {
