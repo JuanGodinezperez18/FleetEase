@@ -102,7 +102,19 @@ export async function signIn(params:SignInParams):Promise<AuthResponse>;
 export async function signIn(email:string,password:string):Promise<AuthResponse>;
 export async function signIn(paramsOrEmail:SignInParams|string,password?:string):Promise<AuthResponse>{try{const params=typeof paramsOrEmail==='string'?{email:paramsOrEmail,password:password??''}:paramsOrEmail;const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};if(getAuthPersistence()==='session')enforceSessionOnlyPersistence(authData.session);const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
-export async function signOut():Promise<void>{const {error}=await supabase.auth.signOut();if(error)throw error;clearAuthPersistence();}
+export async function signOut():Promise<void>{
+  // Clear the SSR cookie session first; client sign-out remains the fallback if the endpoint fails.
+  if (isBrowser()) {
+    try {
+      await fetch('/api/logout', { method: 'POST', cache: 'no-store', credentials: 'same-origin' });
+    } catch (error) {
+      console.warn('[Auth] No se pudo confirmar el cierre de sesión del servidor; limpiando la sesión local.', error);
+    }
+  }
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  clearAuthPersistence();
+  if (error) throw error;
+}
 export async function getCurrentUser():Promise<User|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session?.access_token)return null;return await fetchProfileFromApp(session.access_token);}catch{return null;}}
 export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){enforceSessionOnlyPersistence(session);callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}
 
