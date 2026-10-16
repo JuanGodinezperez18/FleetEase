@@ -24,7 +24,7 @@ DECLARE
 BEGIN
   INSERT INTO storage.buckets (id, name, public)
   SELECT bucket_id, bucket_id, false
-  FROM unnest(target_buckets) AS bucket_id
+  FROM unnest(target_buckets) AS b(bucket_id)
   ON CONFLICT (id) DO UPDATE SET public = false;
 
   -- Remove existing bucket-specific policies for these buckets before adding
