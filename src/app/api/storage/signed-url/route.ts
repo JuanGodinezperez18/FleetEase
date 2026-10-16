@@ -23,6 +23,8 @@ const ALLOWED_BUCKETS = new Set([
   'company-logos',
   'inspection-images',
   'seguimientos',
+  'client-documents',
+  'clients',
 ]);
 
 function getSupabaseAdmin() {
