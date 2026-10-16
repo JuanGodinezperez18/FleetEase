@@ -26,7 +26,17 @@ export async function handleOcrRequest(
 
   // Key by stable authenticated user ID, not access token, so refreshing a token
   // cannot reset the user's OCR allowance.
-  const limit = await ocrLimiter.check(data.user.id);
+  let limit;
+  try {
+    limit = await ocrLimiter.check(data.user.id);
+  } catch (rateLimitError) {
+    // Fail closed: never run paid OCR if the distributed limiter is unavailable.
+    console.error('[ocr] rate limiter unavailable:', rateLimitError instanceof Error ? rateLimitError.message : 'unknown');
+    return NextResponse.json(
+      { error: 'El servicio de control de consumo no está disponible. Intenta de nuevo en un momento.' },
+      { status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } },
+    );
+  }
   if (limit.limited) {
     const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
     return NextResponse.json(
