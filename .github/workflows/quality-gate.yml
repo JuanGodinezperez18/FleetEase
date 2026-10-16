@@ -33,6 +33,8 @@ jobs:
         # en el log del workflow sin bloquear el resto del quality gate.
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
+      - name: Pruebas de regresión del middleware
+        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts
       - run: npm run type-check
       - name: Build
         run: npm run build
