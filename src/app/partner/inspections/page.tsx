@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
 import { useData } from '@/hooks/use-data';
 import { supabase } from '@/lib/supabase';
+import { resolvePrivateStorageUrls } from '@/lib/storage/resolve-private-storage-url';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +69,23 @@ export default function PartnerInspectionsPage() {
 
         if (error) throw error;
         
-        setInspections((data || []) as Inspection[]);
+        const rows = (data || []) as Inspection[];
+        const photoRefs = rows.flatMap((inspection) =>
+          (['front', 'left', 'right', 'rear'] as const)
+            .map((key) => ({ id: inspection.id, key, url: inspection.photos?.[key] }))
+            .filter((item): item is { id: string; key: 'front' | 'left' | 'right' | 'rear'; url: string } => typeof item.url === 'string' && item.url.length > 0),
+        );
+        const resolvedUrls = await resolvePrivateStorageUrls(photoRefs.map((item) => item.url));
+        const resolvedByKey = new Map(photoRefs.map((item, index) => [`${item.id}:${item.key}`, resolvedUrls[index] || undefined]));
+        setInspections(rows.map((inspection) => ({
+          ...inspection,
+          photos: {
+            front: resolvedByKey.get(`${inspection.id}:front`) ?? inspection.photos?.front,
+            left: resolvedByKey.get(`${inspection.id}:left`) ?? inspection.photos?.left,
+            right: resolvedByKey.get(`${inspection.id}:right`) ?? inspection.photos?.right,
+            rear: resolvedByKey.get(`${inspection.id}:rear`) ?? inspection.photos?.rear,
+          },
+        })));
       } catch (error) {
         console.error('Error cargando inspecciones:', error);
       } finally {
