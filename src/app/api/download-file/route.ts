@@ -33,11 +33,9 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
       .single();
 
     if (error || !profile) return false;
-    if (profile.role === 'super_admin') return true;
+    if (profile.role === 'super_admin' || profile.role === 'superAdmin') return true;
 
     const segments = filePath.split('/');
-    if (segments.includes(userId)) return true;
-
     return Boolean(
       profile.company_id && segments[0] === 'companies' && segments[1] === profile.company_id,
     );
