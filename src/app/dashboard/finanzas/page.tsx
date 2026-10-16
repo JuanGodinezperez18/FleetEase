@@ -54,7 +54,7 @@ export default function FinancialAnalysisPage() {
   if (loadingData) return <GlobalLoader />;
 
   return (
-    <div className="fe-page-shell space-y-5 sm:space-y-6">
+    <div className="fe-page-shell min-w-0 w-full max-w-full space-y-5 overflow-x-hidden sm:space-y-6">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
