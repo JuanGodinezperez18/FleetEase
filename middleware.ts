@@ -10,6 +10,8 @@ const SECURITY_HEADERS = [
   ['Referrer-Policy', 'strict-origin-when-cross-origin'],
 ] as const;
 
+const STAFF_ROLES = new Set(['admin', 'editor', 'viewer', 'super_admin']);
+
 function applySecurityHeaders(response: NextResponse, contentSecurityPolicy: string) {
   for (const [key, value] of SECURITY_HEADERS) {
     response.headers.set(key, value);
@@ -57,7 +59,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Ocultar APKs / instaladores: nunca servir binarios de app por la web.
-  if (/\.(apk|xapk|aab|ipa)$/i.test(pathname)) {
+  if (/\\.(apk|xapk|aab|ipa)$/i.test(pathname)) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -73,19 +75,26 @@ export async function middleware(req: NextRequest) {
       contentSecurityPolicy
     );
 
-  // Security headers must also reach Next.js static assets such as
-  // /_next/static/media/*.woff2.
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.includes('.')
-  ) {
+  const redirectWithSecurityHeaders = (url: URL) =>
+    applySecurityHeaders(NextResponse.redirect(url), contentSecurityPolicy);
+
+  // Public static assets need security headers but must not create a
+  // pathname.includes('.') authentication bypass for protected app routes.
+  const isPublicStaticAsset =
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/assets/') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/icons/') ||
+    pathname.startsWith('/fonts/') ||
+    /^\/[^/]+\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf|json|webmanifest|txt|xml|pdf)$/i.test(pathname);
+
+  if (pathname.startsWith('/api/') || isPublicStaticAsset) {
     return createResponse();
   }
 
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/'];
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/'];
   const isPublicPath = publicPaths.some(
-    path => pathname === path || pathname.startsWith(path + '/')
+    path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );
 
   // Public pages must never wait for a Supabase network round-trip.
@@ -116,16 +125,70 @@ export async function middleware(req: NextRequest) {
 
   const {
     data: { user },
-    error,
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (error || !user) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return applySecurityHeaders(
-      NextResponse.redirect(loginUrl),
-      contentSecurityPolicy
-    );
+  const loginUrl = () => {
+    const url = new URL('/login', req.url);
+    url.searchParams.set('callbackUrl', pathname);
+    return url;
+  };
+
+  if (authError || !user) {
+    return redirectWithSecurityHeaders(loginUrl());
+  }
+
+  // Authentication alone is not sufficient: these layouts intentionally
+  // rely on middleware to authorize their role-specific route namespaces.
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('role,is_deleted')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileError || !profile || profile.is_deleted) {
+    return redirectWithSecurityHeaders(loginUrl());
+  }
+
+  const role = typeof profile.role === 'string' ? profile.role.toLowerCase() : '';
+  const isPartnerPath = pathname === '/partner' || pathname.startsWith('/partner/');
+  const isClientPath = pathname === '/client' || pathname.startsWith('/client/');
+  const isDashboardPath = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+
+  const homeForRole =
+    role === 'partner' ? '/partner' :
+    role === 'client' ? '/client' :
+    STAFF_ROLES.has(role) ? '/dashboard' :
+    '/login';
+
+  if (!homeForRole || homeForRole === '/login') {
+    return redirectWithSecurityHeaders(loginUrl());
+  }
+
+  // Authenticated partner/client users must still be able to approve the
+  // read-only MCP OAuth consent flow outside their portal namespace.
+  const isMcpConsentPath = pathname === '/oauth/consent' || pathname.startsWith('/oauth/consent/');
+
+  // Partner/client accounts are confined to their own portal namespace.
+  // This is deny-by-default for other protected page routes, not just /dashboard.
+  if (role === 'partner' && !isPartnerPath && !isMcpConsentPath) {
+    return redirectWithSecurityHeaders(new URL('/partner', req.url));
+  }
+
+  if (role === 'client' && !isClientPath && !isMcpConsentPath) {
+    return redirectWithSecurityHeaders(new URL('/client', req.url));
+  }
+
+  if (isPartnerPath && role !== 'partner') {
+    return redirectWithSecurityHeaders(new URL(homeForRole, req.url));
+  }
+
+  if (isClientPath && role !== 'client') {
+    return redirectWithSecurityHeaders(new URL(homeForRole, req.url));
+  }
+
+  if (isDashboardPath && !STAFF_ROLES.has(role)) {
+    return redirectWithSecurityHeaders(new URL(homeForRole, req.url));
   }
 
   return response;

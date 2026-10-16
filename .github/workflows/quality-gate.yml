@@ -10,7 +10,7 @@ on:
       - master
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -21,22 +21,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Ensure lockfile exists
+      - name: Require committed lockfile
         run: |
           if [ ! -f package-lock.json ]; then
-            npm install --package-lock-only --ignore-scripts --legacy-peer-deps
-          fi
-      - name: Commit generated lockfile
-        if: hashFiles('package-lock.json') != ''
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "package-lock.json already tracked or unchanged."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "chore(deps): generate package-lock.json"
-            git push
+            echo "::error::package-lock.json is required for reproducible CI installs."
+            exit 1
           fi
       - run: npm ci
       - name: Auditoría de dependencias (npm audit)
@@ -44,6 +33,8 @@ jobs:
         # en el log del workflow sin bloquear el resto del quality gate.
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
+      - name: Pruebas de regresión del middleware
+        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts
       - run: npm run type-check
       - name: Build
         run: npm run build
