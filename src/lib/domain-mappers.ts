@@ -84,8 +84,9 @@ function stableStorageReference(value: unknown): unknown {
 }
 
 function stableStorageRecord<T extends Record<string, unknown>>(record: T): T {
-  for (const key of Object.keys(record)) record[key] = stableStorageReference(record[key]);
-  return record;
+  const normalized: Record<string, unknown> = { ...record };
+  for (const key of Object.keys(normalized)) normalized[key] = stableStorageReference(normalized[key]);
+  return normalized as T;
 }
 
 // =====================================================
