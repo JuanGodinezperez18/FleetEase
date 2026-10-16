@@ -201,7 +201,8 @@ export async function POST(request: NextRequest) {
       return internalError('API Delete', deleteError);
     }
 
-    const cleanedRefs = await cleanSupabaseReferences(fileUrl, user.id);
+    const { data: stableReference } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath);
+    const cleanedRefs = await cleanSupabaseReferences(stableReference.publicUrl, user.id);
     const response: DeleteSuccessResponse = { success: true, deleted: true, path: filePath };
     if (cleanedRefs > 0) response.cleanedReferences = cleanedRefs;
     return NextResponse.json(response);
