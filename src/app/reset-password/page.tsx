@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { updatePassword, clearAuthPersistence } from '@/lib/auth';
+import { updatePassword, signOut as signOutUser, clearAuthPersistence } from '@/lib/auth';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -151,9 +151,13 @@ export default function ResetPasswordPage() {
 
       // Password recovery authenticates the browser as the account being reset.
       // End that temporary session so the next login always starts from a clean state.
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-      if (signOutError) throw signOutError;
-      clearAuthPersistence();
+      try {
+        await signOutUser();
+      } catch (signOutError) {
+        // The password is already changed; don't report a false password-update failure.
+        console.warn('[Password Recovery] No se pudo confirmar el cierre de sesión:', signOutError);
+        clearAuthPersistence();
+      }
 
       setSuccess(true);
       toast.success('Contraseña actualizada. Inicia sesión con tu nueva contraseña.');
