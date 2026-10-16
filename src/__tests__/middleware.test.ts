@@ -70,7 +70,7 @@ describe('middleware authentication and role authorization', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
 
-  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro'])(
+  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones'])(
     'does not make an auth network call for public path %s',
     async (path) => {
       const response = await middleware(buildRequest(path) as any);
@@ -179,6 +179,24 @@ describe('middleware authentication and role authorization', () => {
     const dashboardResponse = await middleware(buildRequest('/dashboard') as any);
     expect(dashboardResponse.type).toBe('redirect');
     expect(dashboardResponse.url.pathname).toBe('/client');
+  });
+
+  it('allows an authenticated partner to reach MCP OAuth consent', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockGetProfile.mockResolvedValue({ data: { role: 'partner', is_deleted: false }, error: null });
+
+    const response = await middleware(buildRequest('/oauth/consent') as any);
+
+    expect(response.type).toBe('next');
+  });
+
+  it('allows an authenticated client to reach MCP OAuth consent', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockGetProfile.mockResolvedValue({ data: { role: 'client', is_deleted: false }, error: null });
+
+    const response = await middleware(buildRequest('/oauth/consent') as any);
+
+    expect(response.type).toBe('next');
   });
 
   it('confines partner accounts to their portal instead of other protected routes', async () => {
