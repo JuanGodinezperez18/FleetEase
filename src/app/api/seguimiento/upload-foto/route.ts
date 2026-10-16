@@ -41,7 +41,7 @@ async function ensureBucket(): Promise<void> {
   if (buckets?.some((b) => b.name === BUCKET_NAME)) return;
 
   const { error } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
-    public: true,
+    public: false,
     fileSizeLimit: MAX_SIZE_BYTES,
     allowedMimeTypes: ALLOWED_MIME_TYPES,
   });
