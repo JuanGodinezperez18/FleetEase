@@ -78,13 +78,17 @@ export async function middleware(req: NextRequest) {
   const redirectWithSecurityHeaders = (url: URL) =>
     applySecurityHeaders(NextResponse.redirect(url), contentSecurityPolicy);
 
-  // Security headers must also reach Next.js static assets such as
-  // /_next/static/media/*.woff2.
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.includes('.')
-  ) {
+  // Public static assets need security headers but must not create a
+  // pathname.includes('.') authentication bypass for protected app routes.
+  const isPublicStaticAsset =
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/assets/') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/icons/') ||
+    pathname.startsWith('/fonts/') ||
+    /^\\/[^/]+\\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf)$/i.test(pathname);
+
+  if (pathname.startsWith('/api/') || isPublicStaticAsset) {
     return createResponse();
   }
 
