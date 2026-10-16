@@ -15,17 +15,13 @@ DECLARE
     'company-logos',
     'inspection-images',
     'seguimientos',
-    'client-documents',
-    'clients'
+    'client-documents'
   ];
   bucket_name text;
   policy_name text;
   tenant_predicate text;
 BEGIN
-  INSERT INTO storage.buckets (id, name, public)
-  SELECT bucket_id, bucket_id, false
-  FROM unnest(target_buckets) AS b(bucket_id)
-  ON CONFLICT (id) DO UPDATE SET public = false;
+  UPDATE storage.buckets SET public = false WHERE id = ANY(target_buckets);
 
   -- Remove existing bucket-specific policies for these buckets before adding
   -- the strict tenant-scoped policies below. Preserve global super-admin policy.
@@ -40,7 +36,7 @@ BEGIN
         '%documents%', '%vehicle-images%', '%driver-documents%',
         '%financial-receipts%', '%general-documents%', '%contract-templates%',
         '%company-logos%', '%inspection-images%', '%seguimientos%',
-        '%client-documents%', '%clients%'
+        '%client-documents%'
       ])
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', policy_row.policyname);
