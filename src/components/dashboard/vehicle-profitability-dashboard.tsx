@@ -138,9 +138,9 @@ export function VehicleProfitabilityDashboard({
   }, [profitabilityData]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 w-full max-w-full space-y-6 overflow-x-hidden">
       {/* Métricas Generales */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vehículos Rentables</CardTitle>
@@ -213,7 +213,7 @@ export function VehicleProfitabilityDashboard({
                 {index > 0 && <Separator />}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
                   {/* Información del Vehículo */}
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="flex items-center justify-center h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 font-semibold text-sm">
                       #{index + 1}
                     </div>
@@ -229,20 +229,20 @@ export function VehicleProfitabilityDashboard({
                   </div>
 
                   {/* Métricas */}
-                  <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="grid min-w-0 grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-6">
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Ingresos</p>
-                      <p className="font-medium text-green-600">
+                      <p className="break-words font-medium text-green-600">
                         ${data.totalIncome.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Gastos</p>
-                      <p className="font-medium text-red-600">
+                      <p className="break-words font-medium text-red-600">
                         ${data.totalExpenses.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
                       </p>
                     </div>
-                    <div className="text-right min-w-[100px]">
+                    <div className="min-w-0 text-right sm:min-w-[100px]">
                       <p className="text-xs text-muted-foreground">Utilidad</p>
                       <p className={`font-bold ${data.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         ${data.netProfit.toLocaleString('es-MX', { minimumFractionDigits: 0 })}
@@ -251,7 +251,7 @@ export function VehicleProfitabilityDashboard({
                         {data.profitMargin.toFixed(1)}%
                       </p>
                     </div>
-                    <div className="text-right min-w-[80px]">
+                    <div className="min-w-0 text-right sm:min-w-[80px]">
                       <p className="text-xs text-muted-foreground">Ocupación</p>
                       <p className="font-medium">{data.occupancyRate.toFixed(0)}%</p>
                     </div>
