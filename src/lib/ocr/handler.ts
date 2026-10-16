@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { ImageInput } from "./extract";
+import { ocrLimiter } from "@/lib/rate-limit";
 
 const MAX_BYTES = 4 * 1024 * 1024; // Vercel limita el body de funciones a ~4.5 MB
 const ALLOWED: ImageInput["mediaType"][] = ["image/jpeg", "image/png", "image/webp"];
@@ -22,6 +23,25 @@ export async function handleOcrRequest(
   );
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // Key by stable authenticated user ID, not access token, so refreshing a token
+  // cannot reset the user's OCR allowance.
+  const limit = await ocrLimiter.check(data.user.id);
+  if (limit.limited) {
+    const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
+    return NextResponse.json(
+      { error: "Límite de OCR alcanzado. Intenta de nuevo más tarde." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfter),
+          "X-RateLimit-Limit": String(limit.total),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": new Date(limit.resetAt).toISOString(),
+        },
+      }
+    );
+  }
 
   let form: FormData;
   try {
