@@ -73,7 +73,7 @@ async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<
 
   const mimeTypes = ALLOWED_MIME_TYPES[folder];
   const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
-    public: true,
+    public: false,
     fileSizeLimit: MAX_UPLOAD_BYTES,
     allowedMimeTypes: mimeTypes.length > 0 ? [...mimeTypes] : undefined,
   });
