@@ -97,8 +97,8 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/dashboard/vehicles') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/login');
-    expect(response.url.searchParams.get('callbackUrl')).toBe('/dashboard/vehicles');
+    expect(new URL(response.url).pathname).toBe('/login');
+    expect(new URL(response.url).searchParams.get('callbackUrl')).toBe('/dashboard/vehicles');
     expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
@@ -111,7 +111,7 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/dashboard') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/login');
+    expect(new URL(response.url).pathname).toBe('/login');
   });
 
   it('fails closed when the active user profile is missing or deleted', async () => {
@@ -121,7 +121,7 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/dashboard') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/login');
+    expect(new URL(response.url).pathname).toBe('/login');
   });
 
   it('does not bypass role checks for protected paths containing a dot', async () => {
@@ -131,7 +131,7 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/partner/vehicle.v1') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/dashboard');
+    expect(new URL(response.url).pathname).toBe('/dashboard');
     expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
@@ -153,7 +153,7 @@ describe('middleware authentication and role authorization', () => {
       const response = await middleware(buildRequest('/partner/vehicles') as any);
 
       expect(response.type).toBe('redirect');
-      expect(response.url.pathname).toBe('/dashboard');
+      expect(new URL(response.url).pathname).toBe('/dashboard');
     },
   );
 
@@ -166,7 +166,7 @@ describe('middleware authentication and role authorization', () => {
 
     const dashboardResponse = await middleware(buildRequest('/dashboard') as any);
     expect(dashboardResponse.type).toBe('redirect');
-    expect(dashboardResponse.url.pathname).toBe('/partner');
+    expect(new URL(dashboardResponse.url).pathname).toBe('/partner');
   });
 
   it('allows a client into the client portal and redirects them away from dashboard', async () => {
@@ -178,7 +178,7 @@ describe('middleware authentication and role authorization', () => {
 
     const dashboardResponse = await middleware(buildRequest('/dashboard') as any);
     expect(dashboardResponse.type).toBe('redirect');
-    expect(dashboardResponse.url.pathname).toBe('/client');
+    expect(new URL(dashboardResponse.url).pathname).toBe('/client');
   });
 
   it('allows an authenticated partner to reach MCP OAuth consent', async () => {
@@ -206,7 +206,7 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/settings') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/partner');
+    expect(new URL(response.url).pathname).toBe('/partner');
   });
 
   it('redirects a client away from the partner portal', async () => {
@@ -216,7 +216,7 @@ describe('middleware authentication and role authorization', () => {
     const response = await middleware(buildRequest('/partner') as any);
 
     expect(response.type).toBe('redirect');
-    expect(response.url.pathname).toBe('/client');
+    expect(new URL(response.url).pathname).toBe('/client');
   });
 
   it('applies the security headers to protected-page responses', async () => {
