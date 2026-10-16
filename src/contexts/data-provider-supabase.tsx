@@ -180,7 +180,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { data: allMessageTemplates = [] } = useQuery<DomainMessageTemplate[]>({ queryKey: ['message_templates', companyIdForFiltering], queryFn: async () => { let query = supabase.from('message_templates').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(1000); if (error) throw error; return (data || []).map(toDomainMessageTemplate); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsMessageTemplates, staleTime: 5 * 60 * 1000 });
   const { data: allCreditPaymentSchedules = [] } = useQuery<DomainCreditPaymentSchedule[]>({ queryKey: ['credit_payment_schedules', companyIdForFiltering], queryFn: async () => { let query = supabase.from('credit_payment_schedules').select('*'); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query; if (error) throw error; return (data || []).map(toDomainCreditPaymentSchedule); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsCreditSchedules, staleTime: 5 * 60 * 1000 });
   const { data: allMultas = [] } = useQuery<DomainMulta[]>({ queryKey: ['multas', companyIdForFiltering], queryFn: async () => { let query = supabase.from('multas').select('*').eq('is_deleted', false); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query.limit(1000); if (error) throw error; return (data || []).map(toDomainMulta); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && (isDashboardRoot || pathname.includes('/multas')), staleTime: 5 * 60 * 1000 });
-  const { data: allVehicleAssignmentLogs = [] } = useQuery<DomainVehicleAssignmentLog[]>({ queryKey: ['vehicle_assignment_logs', companyIdForFiltering], queryFn: async () => { let query = supabase.from('vehicle_assignment_logs').select('*'); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query; if (error) throw error; return (data || []).map(toDomainVehicleAssignmentLog); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsAssignmentLogs, staleTime: 5 * 60 * 1000 });
+  const { data: allVehicleAssignmentLogs = [] } = useQuery<DomainVehicleAssignmentLog[]>({ queryKey: ['vehicle_assignment_logs', companyIdForFiltering], queryFn: async () => { let query = supabase.from('vehicle_assignment_logs').select('*'); if (companyIdForFiltering) query = query.eq('company_id', companyIdForFiltering); const { data, error } = await query; if (error) throw error; const logs = (data || []).map(toDomainVehicleAssignmentLog);
+    const photoEntries = logs.flatMap((log, logIndex) => Object.entries(log.photos || {}).map(([key, url]) => ({ logIndex, key, url })));
+    const resolvedPhotos = await resolvePrivateStorageUrls(photoEntries.map((entry) => entry.url));
+    const photosByLog = new Map<number, Record<string, string>>();
+    photoEntries.forEach((entry, index) => {
+      const url = resolvedPhotos[index];
+      if (typeof url !== 'string') return;
+      const photos = photosByLog.get(entry.logIndex) || {};
+      photos[entry.key] = url;
+      photosByLog.set(entry.logIndex, photos);
+    });
+    return logs.map((log, index) => ({ ...log, photos: log.photos ? { ...log.photos, ...(photosByLog.get(index) || {}) } : null })); }, enabled: !!currentUser && (!isSuperAdmin || !!companyIdForFiltering) && needsAssignmentLogs, staleTime: 5 * 60 * 1000 });
 
   const vehicles = useMemo(() => {
     const companyIntervals = new Map(
