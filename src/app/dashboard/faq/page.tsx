@@ -68,7 +68,7 @@ const faqs = [
     category: 'clients',
     question: '¿Cómo se calcula el saldo de un cliente?',
     answer:
-      'El saldo se calcula automáticamente sumando todos los ingresos (rentas, cargos) y restando los pagos realizados. El sistema actualiza el balance en tiempo real con cada transacción registrada.',
+      'El saldo debe consultarse desde los registros financieros asociados al cliente. No se debe calcular únicamente con los datos básicos del cliente ni duplicar ingresos o pagos: los registros financieros son la fuente para reconstruir el saldo.',
   },
   {
     category: 'clients',
@@ -152,13 +152,13 @@ const faqs = [
     category: 'settings',
     question: '¿Qué límites tiene mi plan?',
     answer:
-      'Cada plan tiene límites de vehículos y usuarios: Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios), Enterprise (50 vehículos, 10 usuarios). Puedes ver tu uso actual en la página de Suscripción.',
+      'Los límites actuales son: Free de prueba (2 vehículos, 1 usuario), Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios) y Enterprise (vehículos y usuarios ilimitados). Consulta Suscripción para confirmar el plan activo.',
   },
   {
     category: 'settings',
     question: '¿Cómo subo la plantilla de contrato?',
     answer:
-      'Ve a "Configuración" > "Empresas", selecciona tu empresa y sube el archivo PDF del contrato. Esta plantilla se usará para generar contratos automáticamente para nuevos clientes.',
+      'Consulta Configuración de empresa y las opciones de contratos disponibles en tu cuenta. La disponibilidad de una plantilla y de la generación automática depende de las funciones habilitadas en la versión actual.',
   },
   {
     category: 'reports',
@@ -176,7 +176,7 @@ const faqs = [
     category: 'reports',
     question: '¿Puedo programar envío automático de reportes?',
     answer:
-      'Sí, en la sección de Reportes puedes configurar envío automático semanal o mensual por email. Esta función está disponible en planes Pro y Enterprise.',
+      'Puedes consultar y generar los reportes disponibles para tu plan. No se debe asumir que el envío automático semanal o mensual está habilitado; verifica las opciones visibles en la versión actual de Reportes.',
   },
   {
     category: 'alerts',
@@ -360,10 +360,10 @@ export default function FAQPage() {
               <p className="text-sm font-medium fe-text opacity-90">Soporte técnico</p>
               <p className="mt-1 text-xs fe-text-muted">Problemas técnicos o preguntas sobre funcionalidades</p>
               <a
-                href="mailto:soporte@fleetease.mx"
+                href="mailto:soporte@fleetease.com.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
               >
-                soporte@fleetease.mx
+                soporte@fleetease.com.mx
               </a>
             </div>
             <div className="rounded-xl border fe-border-subtle bg-[var(--fe-hover)] p-3.5">
