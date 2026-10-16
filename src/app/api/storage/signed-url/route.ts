@@ -10,7 +10,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const requestSchema = z.object({
-  fileUrl: z.string().url().max(4096),
+  fileUrls: z.array(z.string().url().max(4096)).min(1).max(500),
 });
 
 const ALLOWED_BUCKETS = new Set([
@@ -57,28 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Almacenamiento no configurado.' }, { status: 503 });
     }
 
-    const url = new URL(parsed.data.fileUrl);
-    if (url.protocol !== 'https:' || url.hostname !== new URL(supabaseUrl).hostname) {
-      return NextResponse.json({ error: 'Archivo no válido.' }, { status: 400 });
-    }
-
-    const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
-    if (!match) return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
-
-    const bucket = match[1];
-    const path = getSafeStoragePath(match[2]);
-    if (!ALLOWED_BUCKETS.has(bucket) || !path) {
-      return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
-    }
-
-    // All customer/company objects use companies/{companyId}/... paths.
-    // Refuse paths outside this namespace so this endpoint cannot sign arbitrary Storage objects.
-    const segments = path.split('/');
-    if (segments.length < 3 || segments[0] !== 'companies' || !segments[1]) {
-      return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
-    }
-    const fileCompanyId = segments[1];
-
+    const signedUrls: Record<string, string> = {};
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('users')
       .select('company_id, role')
@@ -89,21 +68,43 @@ export async function POST(request: NextRequest) {
     }
 
     const isSuperAdmin = profile.role === 'super_admin' || profile.role === 'superAdmin';
-    if (!isSuperAdmin && profile.company_id !== fileCompanyId) {
-      return NextResponse.json({ error: 'No tienes acceso a este archivo.' }, { status: 403 });
-    }
+    for (const fileUrl of parsed.data.fileUrls) {
+      const url = new URL(fileUrl);
+      if (url.protocol !== 'https:' || url.hostname !== new URL(supabaseUrl).hostname) {
+        return NextResponse.json({ error: 'Archivo no válido.' }, { status: 400 });
+      }
 
-    const { data, error } = await supabaseAdmin.storage
-      .from(bucket)
-      .createSignedUrl(path, 60 * 60);
-    if (error || !data?.signedUrl) {
-      return internalError('API private storage signed URL', error || new Error('Signed URL missing'), {
-        bucket,
-      });
+      const match = url.pathname.match(/\\/storage\\/v1\\/object\\/(?:public|sign|authenticated)\\/([^/]+)\\/(.+)/);
+      if (!match) return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
+
+      const bucket = match[1];
+      const path = getSafeStoragePath(match[2]);
+      if (!ALLOWED_BUCKETS.has(bucket) || !path) {
+        return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
+      }
+
+      const segments = path.split('/');
+      if (segments.length < 3 || segments[0] !== 'companies' || !segments[1]) {
+        return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
+      }
+      const fileCompanyId = segments[1];
+      if (!isSuperAdmin && profile.company_id !== fileCompanyId) {
+        return NextResponse.json({ error: 'No tienes acceso a uno de estos archivos.' }, { status: 403 });
+      }
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 60);
+      if (error || !data?.signedUrl) {
+        return internalError('API private storage signed URL', error || new Error('Signed URL missing'), {
+          bucket,
+        });
+      }
+      signedUrls[fileUrl] = data.signedUrl;
     }
 
     return NextResponse.json(
-      { signedUrl: data.signedUrl, expiresIn: 3600 },
+      { signedUrls, expiresIn: 3600 },
       { headers: { 'Cache-Control': 'private, no-store' } },
     );
   } catch (error) {
