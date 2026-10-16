@@ -370,10 +370,10 @@ export default function FAQPage() {
               <p className="text-sm font-medium fe-text opacity-90">Ventas</p>
               <p className="mt-1 text-xs fe-text-muted">Información sobre planes y precios</p>
               <a
-                href="mailto:ventas@fleetease.mx"
+                href="mailto:ventas@fleetease.com.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
               >
-                ventas@fleetease.mx
+                ventas@fleetease.com.mx
               </a>
             </div>
           </div>
