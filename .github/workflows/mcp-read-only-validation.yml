@@ -9,7 +9,7 @@ on:
       - master
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mcp-read-only-${{ github.ref }}
@@ -32,8 +32,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Regenerate lockfile
-        run: npm install --package-lock-only --ignore-scripts --legacy-peer-deps
+      - name: Require committed lockfile
+        run: test -f package-lock.json
 
       - name: Install locked dependencies
         run: npm ci
@@ -59,14 +59,3 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-
-      - name: Commit regenerated lockfile on audit branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/audit/mcp-multitenant-security-costs'
-        run: |
-          if ! git diff --quiet -- package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "build(mcp): lock MCP SDK dependency graph"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
