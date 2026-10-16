@@ -106,20 +106,23 @@ export function useStorage() {
       const token = session?.access_token;
       if (!token) throw new Error('No autenticado');
 
-      const response = await fetch('/api/get-signed-url', {
+      const response = await fetch('/api/storage/signed-url', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ fileUrl })
+        body: JSON.stringify({ fileUrls: [fileUrl] }),
+        cache: 'no-store',
       });
 
       if (!response.ok) {
         throw new Error('Error generando URL temporal');
       }
 
-      const { url } = await response.json();
+      const payload = await response.json() as { signedUrls?: Record<string, string> };
+      const url = payload.signedUrls?.[fileUrl];
+      if (!url) throw new Error('El archivo no está disponible para esta empresa.');
       return url;
     } catch (err: any) {
       console.error('Error en getShareableUrl:', err);
