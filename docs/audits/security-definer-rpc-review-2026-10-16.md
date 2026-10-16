@@ -49,8 +49,26 @@ También se encontró una migración específica de seguridad para multas que vu
 1. Buscar en el repositorio todos los consumidores de las 15 RPCs y helpers; registrar rutas, módulos y roles que las invocan.
 2. Añadir pruebas de autorización por tenant y rol para cada RPC, con casos negativos de IDs de otra empresa.
 3. Separar helpers necesarios para RLS de RPCs de negocio. No cambiar permisos de los helpers hasta verificar todas las políticas dependientes.
-4. Validar la migración propuesta en [PR #60](https://github.com/JuanGodinezperez18/FleetEase/pull/60), que limita el bypass global de `is_user_admin()` a `super_admin`; ejecutar pruebas de regresión RLS en un entorno aislado antes de aprobarla.\n5. Para funciones que no deban ser invocables directamente, preparar una migración versionada con grants mínimos y pruebas de regresión; revisar el diff antes de aplicarla.
+4. Validar la migración propuesta en [PR #60](https://github.com/JuanGodinezperez18/FleetEase/pull/60), que limita el bypass global de `is_user_admin()` a `super_admin`; ejecutar pruebas de regresión RLS en un entorno aislado antes de aprobarla.
+5. Para funciones que no deban ser invocables directamente, preparar una migración versionada con grants mínimos y pruebas de regresión; revisar el diff antes de aplicarla.
 6. Mantener intacta la producción hasta que la migración pase pruebas y sea aprobada explícitamente.
+
+## Validación posterior a la fusión de PR #58
+
+La PR #58 se fusionó el 2026-10-16. La versión de producción de Vercel está en estado `READY` y apunta al commit `76f7da44abf56992d64ac2590e262a83884ce1cc`, que corresponde a la fusión de esa PR. En GitHub Actions, el quality gate de `master` aprobó instalación reproducible, pruebas del middleware, type-check y build. Lighthouse sigue ejecutándose en la última consulta; el presupuesto de bundle ya aprobó.
+
+### Hallazgos de dependencias de producción
+
+El paso `npm audit --omit=dev --audit-level=high` sigue devolviendo **13 vulnerabilidades de runtime: 3 críticas, 7 altas y 3 moderadas**. El workflow está configurado con `continue-on-error: true`, así que el quality gate puede pasar mientras persistan estos hallazgos. Los paquetes destacados en el reporte son:
+
+- `jspdf` hasta 4.2.0: avisos críticos; el fix sugerido por npm requiere una actualización que npm clasifica como breaking.
+- `next` 16.0.0–16.3.7: avisos altos; npm sugiere Next 16.4.2 fuera del rango fijado actualmente.
+- `sharp` hasta 0.35.5-rc.1: avisos altos en dependencias nativas; el fix sugerido puede cambiar comportamiento/compatibilidad.
+- `seroval`: avisos críticos transitivos de `solid-js`; npm indica que hay una corrección no-forzada disponible.
+- `uuid` menor que 11.1.1: aviso moderado; la corrección sugerida por `--force` subiría a la versión 14, un salto mayor.
+- Dependencias transitivas asociadas a Tailwind 3, incluyendo `braces` y `postcss-selector-parser`, también aparecen en el reporte completo de auditoría.
+
+No se ejecutó `npm audit fix --force`: npm propone cambios incompatibles de Tailwind, jsPDF, Sharp y UUID que requieren actualizar y probar el código consumidor. La remediación de dependencias debe ir en una PR separada con lockfile reproducible, build, pruebas y revisión de exportaciones PDF, imágenes y módulos de Tailwind.
 
 ## Hallazgo adicional del Security Advisor
 
