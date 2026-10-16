@@ -92,7 +92,7 @@ export async function middleware(req: NextRequest) {
     return createResponse();
   }
 
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/'];
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/'];
   const isPublicPath = publicPaths.some(
     path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );
@@ -165,13 +165,17 @@ export async function middleware(req: NextRequest) {
     return redirectWithSecurityHeaders(loginUrl());
   }
 
+  // Authenticated partner/client users must still be able to approve the
+  // read-only MCP OAuth consent flow outside their portal namespace.
+  const isMcpConsentPath = pathname === '/oauth/consent' || pathname.startsWith('/oauth/consent/');
+
   // Partner/client accounts are confined to their own portal namespace.
   // This is deny-by-default for other protected page routes, not just /dashboard.
-  if (role === 'partner' && !isPartnerPath) {
+  if (role === 'partner' && !isPartnerPath && !isMcpConsentPath) {
     return redirectWithSecurityHeaders(new URL('/partner', req.url));
   }
 
-  if (role === 'client' && !isClientPath) {
+  if (role === 'client' && !isClientPath && !isMcpConsentPath) {
     return redirectWithSecurityHeaders(new URL('/client', req.url));
   }
 
