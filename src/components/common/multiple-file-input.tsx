@@ -9,6 +9,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useStorage, type StorageFolderPath } from '@/hooks/use-storage';
 import { toast } from 'sonner';
+import { resolvePrivateStorageUrls } from '@/lib/storage/resolve-private-storage-url';
 
 type FileValue = string | File;
 
@@ -59,6 +60,7 @@ export function MultipleFileInput({
   const { uploadFile, deleteFileByUrl, getShareableUrl, downloadFile } = useStorage();
   const [isComponentUploading, setIsComponentUploading] = useState(false);
   const [localPreviewUrls, setLocalPreviewUrls] = useState<Map<File, string>>(new Map());
+  const [privatePreviewUrls, setPrivatePreviewUrls] = useState<Map<string, string>>(new Map());
 
   const files = useMemo(() => {
     if (!initialValue) return [];
@@ -81,12 +83,33 @@ export function MultipleFileInput({
     };
   }, [files]);
   
+  useEffect(() => {
+    let cancelled = false;
+    const remoteUrls = [...new Set(files.filter((file): file is string => typeof file === 'string' && file.includes('/storage/v1/object/')))];
+    if (remoteUrls.length === 0) {
+      setPrivatePreviewUrls(new Map());
+      return;
+    }
+    void resolvePrivateStorageUrls(remoteUrls)
+      .then((resolved) => {
+        if (cancelled) return;
+        const next = new Map<string, string>();
+        remoteUrls.forEach((url, index) => {
+          const signedUrl = resolved[index];
+          if (typeof signedUrl === 'string') next.set(url, signedUrl);
+        });
+        setPrivatePreviewUrls(next);
+      })
+      .catch((error) => console.warn('No se pudieron cargar vistas previas privadas:', error));
+    return () => { cancelled = true; };
+  }, [files]);
+
   const getPreviewUrl = useCallback((file: FileValue): string => {
     if (file instanceof File) {
       return localPreviewUrls.get(file) || '';
     }
-    return file;
-  }, [localPreviewUrls]);
+    return privatePreviewUrls.get(file) || file;
+  }, [localPreviewUrls, privatePreviewUrls]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
