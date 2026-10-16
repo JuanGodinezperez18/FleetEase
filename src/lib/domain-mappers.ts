@@ -67,7 +67,7 @@ function stableStorageReference(value: unknown): unknown {
   if (typeof value === 'string') {
     try {
       const url = new URL(value);
-      const match = url.pathname.match(/\\/storage\\/v1\\/object\\/(?:public|sign|authenticated)\\/([^/]+)\\/(.+)/);
+      const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
       if (match) {
         url.pathname = `/storage/v1/object/public/${match[1]}/${match[2]}`;
         url.search = '';
