@@ -77,3 +77,27 @@ Sigue activo el aviso **Leaked Password Protection Disabled** en Supabase Auth. 
 ## Estado
 
 **Auditoría estática preliminar documentada; no se han cambiado privilegios ni datos de producción.** El siguiente paso es el rastreo de consumidores en el repositorio y las pruebas negativas de tenant/rol.
+
+## Seguimiento de consumidores y hallazgo adicional (2026-10-16)
+
+### Consumidores localizados en el repositorio
+
+La búsqueda del código fuente confirma llamadas activas desde la aplicación, por lo que no corresponde revocar EXECUTE de estas RPCs en bloque:
+
+- `create_credit_atomic`: `src/lib/credit-rpc.ts`.
+- `process_credit_payment_atomic`: `src/lib/credit-rpc.ts`, `src/contexts/data-provider-supabase.tsx` y `src/app/dashboard/finanzas/payments/components/payment-form.tsx`.
+- `create_financial_record` y `update_financial_record_metadata`: `src/lib/financial-rpc.ts`.
+
+Los tipos generados de Supabase también declaran estas RPCs en `src/lib/supabase.ts`. Esta búsqueda no constituye una lista exhaustiva de todos los consumidores; antes de cambiar grants se debe revisar el resto de las funciones y sus llamadas.
+
+### Hallazgo adicional confirmado en la base de datos de pruebas
+
+`public.auth_user_company_id()` y `public.auth_user_role()` obtenían empresa/rol por `auth.uid()`, pero no filtraban `is_deleted = false`. Si una cuenta de Auth conserva una sesión tras la baja lógica de su perfil, estos helpers podrían seguir devolviendo identidad de tenant/rol para ese perfil. Esto es distinto del bypass global corregido por PR #60.
+
+Se abrió la [PR #65](https://github.com/JuanGodinezperez18/FleetEase/pull/65) con una migración que añade `is_deleted = false` a ambos helpers, conserva `SECURITY DEFINER`, `STABLE`, `search_path` vacío y las ACL actuales. La migración está en una rama de GitHub y **no se ha aplicado a la base de datos**; queda pendiente validación y ejecución controlada.
+
+### Estado de validación de PR #60
+
+La migración de PR #60 sí se aplicó a la base de datos de pruebas conectada. Se ejecutó una prueba de aserción usando los perfiles de prueba disponibles: `admin` devolvió `false` para el bypass global y `super_admin` devolvió `true`. No se han creado datos ni se han alterado registros financieros.
+
+La prueba no sustituye la comprobación RLS entre dos empresas: el conjunto de prueba actual no permite demostrar el aislamiento cross-tenant con fixtures de dos tenants. El Security Advisor sigue mostrando 15 funciones `SECURITY DEFINER` ejecutables por `authenticated`; el aviso es de superficie de exposición y debe tratarse función por función, no como autorización para revocar permisos en bloque.
