@@ -86,7 +86,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/images/') ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/fonts/') ||
-    /^\\/[^/]+\\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf)$/i.test(pathname);
+    /^\/[^/]+\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf)$/i.test(pathname);
 
   if (pathname.startsWith('/api/') || isPublicStaticAsset) {
     return createResponse();
