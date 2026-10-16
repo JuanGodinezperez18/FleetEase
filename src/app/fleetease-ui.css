@@ -703,6 +703,7 @@ html[data-fe-boot-hidden="true"] #fe-boot { display: none !important; }
 /* Public landing stays dark even when the signed-in app preference is light.
    The landing uses a dark hero/surface palette; keep the global light-theme
    compatibility bridge from turning its white copy into near-black text. */
+.light .fe-landing [class*="text-white/"] { color: rgba(255, 255, 255, 0.72) !important; }
 .light .fe-landing [class~="text-white"] {
   color: #ffffff !important;
 }
