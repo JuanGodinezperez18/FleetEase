@@ -1,118 +1,153 @@
 import { middleware } from '../../middleware';
 
-const mockGetSession = jest.fn();
-const mockGetProfile = jest.fn();
+const mockGetUser = jest.fn();
+const mockCreateServerClient = jest.fn();
 
 jest.mock('next/server', () => {
-  const redirect = jest.fn((url: URL) => ({ type: 'redirect', url, cookies: { delete: jest.fn() } }));
-  const next = jest.fn(() => ({ type: 'next', cookies: { delete: jest.fn() } }));
+  const makeResponse = (type: string, url?: URL) => ({
+    type,
+    url,
+    headers: { set: jest.fn() },
+    cookies: { set: jest.fn() },
+  });
+
   return {
-    NextResponse: { redirect, next },
+    NextResponse: {
+      redirect: jest.fn((url: URL) => makeResponse('redirect', url)),
+      next: jest.fn(() => makeResponse('next')),
+    },
     NextRequest: class {},
   };
 });
 
-jest.mock('@/lib/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-}));
-
 jest.mock('@supabase/ssr', () => ({
-  createServerClient: jest.fn(() => ({
-    auth: { getSession: mockGetSession },
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn(() => Promise.resolve(mockGetProfile())),
-          })),
-        })),
-      })),
-    })),
-  })),
+  createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
 }));
 
-const buildRequest = (pathname: string, hasSession = false) => ({
-  nextUrl: { pathname, origin: 'http://localhost', searchParams: new URLSearchParams() },
-  url: `http://localhost${pathname}`,
-  cookies: {
-    get: (name: string) => (name === 'sb-access-token' && hasSession ? { value: 'token' } : undefined),
-  },
-});
+jest.mock('@/lib/security/cookies', () => ({
+  hardenAuthCookieOptions: (options: unknown) => options,
+}));
 
-const session = { user: { id: 'u1' } };
+function buildRequest(pathname: string) {
+  const url = new URL(pathname, 'https://fleetease.test');
+  const cookieValues: Array<{ name: string; value: string }> = [];
 
-describe('middleware (Supabase SSR)', () => {
+  return {
+    nextUrl: {
+      pathname: url.pathname,
+      origin: url.origin,
+      searchParams: url.searchParams,
+    },
+    url: url.toString(),
+    headers: new Headers(),
+    cookies: {
+      getAll: () => cookieValues,
+      set: (name: string, value: string) => {
+        const existing = cookieValues.find((cookie) => cookie.name === name);
+        if (existing) existing.value = value;
+        else cookieValues.push({ name, value });
+      },
+    },
+  };
+}
+
+describe('middleware authentication and security headers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetSession.mockReset();
-    mockGetProfile.mockReset();
+    mockGetUser.mockReset();
+    mockCreateServerClient.mockReset();
+    mockCreateServerClient.mockReturnValue({
+      auth: { getUser: mockGetUser },
+    });
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
 
-  it('permite paso a rutas API y estáticas', async () => {
-    const res = await middleware(buildRequest('/api/stripe/webhook') as any);
-    expect(res.type).toBe('next');
+  it.each(['/','/login','/register','/forgot-password','/reset-password'])(
+    'does not make an auth network call for public path %s',
+    async (path) => {
+      const response = await middleware(buildRequest(path) as any);
+      expect(response.type).toBe('next');
+      expect(mockCreateServerClient).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['/api/stripe/webhook','/_next/static/app.js','/images/logo.png'])(
+    'passes through API/static path %s without an auth lookup',
+    async (path) => {
+      const response = await middleware(buildRequest(path) as any);
+      expect(response.type).toBe('next');
+      expect(mockCreateServerClient).not.toHaveBeenCalled();
+    },
+  );
+
+  it('redirects unauthenticated users to login and preserves callbackUrl', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'No authenticated user' },
+    });
+
+    const response = await middleware(buildRequest('/dashboard/vehicles') as any);
+
+    expect(response.type).toBe('redirect');
+    expect(response.url.pathname).toBe('/login');
+    expect(response.url.searchParams.get('callbackUrl')).toBe('/dashboard/vehicles');
+    expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
-  it('trata "/" como ruta pública', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
-    const res = await middleware(buildRequest('/') as any);
-    expect(res.type).toBe('next');
+  it('redirects when Supabase cannot validate the user', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Auth service unavailable' },
+    });
+
+    const response = await middleware(buildRequest('/dashboard') as any);
+
+    expect(response.type).toBe('redirect');
+    expect(response.url.pathname).toBe('/login');
   });
 
-  it('regresión: /dashboard NO debe tratarse como pública', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
-    const res = await middleware(buildRequest('/dashboard') as any);
-    expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/login');
+  it('allows a validated user to continue to a protected page', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
+
+    const response = await middleware(buildRequest('/dashboard') as any);
+
+    expect(response.type).toBe('next');
+    expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
-  it('redirige a login sin sesión en /partner', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
-    const res = await middleware(buildRequest('/partner') as any);
-    expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/login');
+  it('applies the security headers to protected-page responses', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
+
+    const response = await middleware(buildRequest('/dashboard') as any);
+
+    expect(response.headers.set).toHaveBeenCalledWith(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(response.headers.set).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
+    expect(response.headers.set).toHaveBeenCalledWith('X-Frame-Options', 'SAMEORIGIN');
+    expect(response.headers.set).toHaveBeenCalledWith(
+      'Content-Security-Policy',
+      expect.stringContaining("default-src 'self'"),
+    );
   });
 
-  it('redirige de /login a /dashboard si ya hay sesión', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    const res = await middleware(buildRequest('/login', true) as any);
-    expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/dashboard');
-  });
+  it('does not claim to enforce application roles in middleware', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
 
-  it('bloquea acceso a /partner para rol admin', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    mockGetProfile.mockResolvedValue({ data: { role: 'admin', company_id: 'c1' }, error: null });
-    const res = await middleware(buildRequest('/partner', true) as any);
-    expect(res.type).toBe('redirect');
-  });
-
-  it('bloquea acceso a /client para rol partner', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    mockGetProfile.mockResolvedValue({ data: { role: 'partner', company_id: 'c1' }, error: null });
-    const res = await middleware(buildRequest('/client', true) as any);
-    expect(res.type).toBe('redirect');
-  });
-
-  it('permite acceso a /dashboard para rol admin', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    mockGetProfile.mockResolvedValue({ data: { role: 'admin', company_id: 'c1' }, error: null });
-    const res = await middleware(buildRequest('/dashboard', true) as any);
-    expect(res.type).toBe('next');
-  });
-
-  it('permite acceso a /client para rol client', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    mockGetProfile.mockResolvedValue({ data: { role: 'client', company_id: 'c1' }, error: null });
-    const res = await middleware(buildRequest('/client', true) as any);
-    expect(res.type).toBe('next');
-  });
-
-  it('redirige a login si el perfil del usuario no existe', async () => {
-    mockGetSession.mockResolvedValue({ data: { session }, error: null });
-    mockGetProfile.mockResolvedValue({ data: null, error: { message: 'not found' } });
-    const res = await middleware(buildRequest('/dashboard', true) as any);
-    expect(res.type).toBe('redirect');
-    expect((res as any).url.pathname).toBe('/login');
+    // Role authorization must be enforced by the relevant page/API and RLS.
+    // This test deliberately verifies authentication only, not role policy.
+    const response = await middleware(buildRequest('/partner') as any);
+    expect(response.type).toBe('next');
   });
 });
