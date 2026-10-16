@@ -47,10 +47,7 @@ BEGIN
   END LOOP;
 
   FOREACH bucket_name IN ARRAY target_buckets LOOP
-    tenant_predicate := format(
-      '(public.auth_user_role() = ''super_admin'' OR ((storage.foldername(name))[1] = ''companies'' AND (storage.foldername(name))[2] = (public.auth_user_company_id())::text))',
-      bucket_name
-    );
+    tenant_predicate := '(public.auth_user_role() = ''super_admin'' OR ((storage.foldername(name))[1] = ''companies'' AND (storage.foldername(name))[2] = (public.auth_user_company_id())::text))';
 
     policy_name := 'FleetEase private read ' || bucket_name;
     EXECUTE format(
