@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useData } from '@/hooks/use-data';
 import type { UserProfile, UserRole } from '@/types';
@@ -132,9 +132,42 @@ function UserMobileCard({
 }
 
 export default function UsersPage() {
-  const { users = [], companies = [], partners = [], loadingData, financialRecords = [] } = useData();
+  const { companies = [], partners = [], loadingData, financialRecords = [] } = useData();
   const { currentUser: authCurrentUser } = useAuth();
   const { toast } = useToast();
+
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const token = await getSessionToken();
+      if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
+      const response = await fetch('/api/admin/users/list', {
+        method: 'GET',
+        headers: { Authorization: \`Bearer \${token}\` },
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'No se pudo cargar la lista de usuarios.');
+      if (!Array.isArray(result.users)) throw new Error('La respuesta del servidor no contiene una lista de usuarios.');
+      setUsers(result.users as UserProfile[]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo cargar la lista de usuarios.';
+      console.error('[UsersPage] Error cargando usuarios:', error);
+      setUsersError(message);
+      setUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authCurrentUser?.uid) void loadUsers();
+  }, [authCurrentUser?.uid, loadUsers]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
@@ -268,6 +301,7 @@ export default function UsersPage() {
         });
       }
 
+      await loadUsers();
       handleCloseModal();
     } catch (error: unknown) {
       console.error('Error saving user:', error);
@@ -323,7 +357,9 @@ export default function UsersPage() {
         title: 'Usuario desactivado',
         description: `${userToDelete.name} ha sido marcado como eliminado y su acceso bloqueado.`,
       });
-      handleCloseDeleteDialog();
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+      await loadUsers();
       sonnerToast.dismiss(toastId);
     } catch (error: any) {
       console.error('Error deactivating user:', error);
@@ -430,7 +466,7 @@ export default function UsersPage() {
     [handleOpenModal, handleDeleteRequest]
   );
 
-  if (loadingData && !users.length) {
+  if ((loadingData || usersLoading) && !users.length) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center rounded-[18px] bg-[#080a0f] text-white/50">
         <Loader2 className="h-8 w-8 animate-spin text-[#d7ff3f]" strokeWidth={1.75} />
@@ -474,13 +510,22 @@ export default function UsersPage() {
           </div>
         </header>
 
+        {usersError && (
+          <div role="alert" className="flex flex-col gap-3 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-4 text-sm text-rose-200 sm:flex-row sm:items-center sm:justify-between">
+            <span>No se pudieron cargar los usuarios: {usersError}</span>
+            <Button variant="outline" onClick={() => void loadUsers()} className="h-10 shrink-0 border-rose-300/20 bg-transparent text-rose-100 hover:bg-rose-400/10">
+              Reintentar
+            </Button>
+          </div>
+        )}
+
         <UserAdminDashboard users={users} userMetrics={userMetrics} />
 
         <section className="overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] p-3 shadow-[0_18px_50px_rgba(0,0,0,.22)] sm:p-5">
           <ResponsiveTable
             columns={columns}
             data={filteredUsers}
-            loading={loadingData}
+            loading={loadingData || usersLoading}
             searchPlaceholder="Buscar por nombre, correo, rol..."
             noResultsText="No se encontraron usuarios."
             mobileCardRenderer={user => (
