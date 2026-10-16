@@ -148,7 +148,7 @@ export default function UsersPage() {
       if (!token) throw new Error('Sesión no válida. Vuelve a iniciar sesión.');
       const response = await fetch('/api/admin/users/list', {
         method: 'GET',
-        headers: { Authorization: \`Bearer \${token}\` },
+        headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store',
       });
       const result = await response.json();
