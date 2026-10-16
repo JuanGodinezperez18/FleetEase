@@ -47,7 +47,7 @@ function buildCsp(request: NextRequest) {
     upgrade-insecure-requests;
   `;
 
-  const contentSecurityPolicy = cspHeader.replace(/\\s{2,}/g, ' ').trim();
+  const contentSecurityPolicy = cspHeader.replace(/\s{2,}/g, ' ').trim();
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
