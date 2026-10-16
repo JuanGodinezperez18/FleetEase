@@ -25,9 +25,9 @@ Estados:
 
 | # | Hallazgo original | Estado y evidencia actual | Prioridad recomendada |
 |---|---|---|---|
-| 1 | Falta `src/middleware.ts` y no hay protección central | **Incorrecto en ubicación / parcial en comportamiento.** Existe `middleware.ts` en la raíz. Protege páginas no públicas con `supabase.auth.getUser()`, pero el test existente espera restricciones por rol que no se observan en ese middleware. Revisar autorización por rol en server components y APIs; no duplicar middleware a ciegas. | **P0 — seguridad** |
+| 1 | Falta `src/middleware.ts` y no hay protección central | **Incorrecto en ubicación / parcial en comportamiento.** Existe `middleware.ts` en la raíz y llama a `supabase.auth.getUser()` para rutas de página privadas. `src/__tests__/middleware.test.ts` está desalineado: simula `auth.getSession()`, espera redirección de `/login` a `/dashboard` y bloqueos por rol que no implementa el middleware actual. Antes de cambiar autorización, mapear controles reales en layouts/server components y APIs, y corregir/reescribir las pruebas para reflejar el contrato de seguridad esperado. | **P0 — seguridad** |
 | 2 | Contraseña mínima de 6 caracteres | **Confirmado.** `src/lib/auth.ts` valida únicamente longitud >= 6. | P1 |
-| 3 | Leaked password protection pendiente | **Pendiente externo confirmado por documentación del repo.** `docs/bloque-b-security-audit-2026-10-03.md` la deja como acción manual en Supabase Dashboard. El estado actual del dashboard no se pudo comprobar. | P0 — configuración de Auth |
+| 3 | Leaked password protection pendiente | **Confirmado en producción por Supabase Security Advisor el 15/16-oct-2026:** está deshabilitada. Activarla en Auth Dashboard y validar con una contraseña de prueba comprometida. No se cambió desde la auditoría. | **P0 — configuración de Auth** |
 | 4 | Falta manifest PWA dinámico | **Incorrecto.** Existe `public/manifest.json` y `layout.tsx` referencia `/manifest.json`. Verificar iconos y respuesta HTTP en producción, no crear otro manifest duplicado. | P2 |
 | 5 | Regex de email permisivo | **Confirmado parcialmente.** La regex de `validateEmail` es básica, aunque el proveedor también valida el email. No es por sí sola una vulnerabilidad crítica. | P2 |
 | 6 | Timeout de perfil de 7 segundos | **Confirmado.** `fetchProfileFromApp` aborta a los 7 s. Medir latencia antes de cambiar el timeout; considerar reintento limitado y mensajes diferenciados. | P2 |
@@ -143,3 +143,19 @@ La búsqueda de código confirma uso de `checkRateLimit` en registro, checkout/p
 5. **CI:** obtener resultados de los checks de la PR y resolver vulnerabilidades concretas antes de volver `npm audit` bloqueante.
 
 No se ejecutaron escrituras en tablas de negocio, migraciones, cambios de grants ni ajustes de producción.
+
+## Anexo final: comprobación de pruebas y comportamiento del rate limiter
+
+### Desalineación concreta de pruebas de middleware
+La lectura directa de `middleware.ts` y `src/__tests__/middleware.test.ts` confirma una desalineación más específica que una mera diferencia de cobertura:
+- La implementación llama a `supabase.auth.getUser()`; el mock del test expone `auth.getSession()`.
+- El middleware actual deja `/login` como ruta pública y no redirige al dashboard solo por existir sesión; una prueba espera ese comportamiento.
+- Los tests esperan bloqueos por rol para `/partner` y `/client`, pero esa comprobación no aparece en el middleware leído.
+- El matcher del middleware excluye las rutas `/api`; por tanto, la autorización de cada API debe comprobarse en sus propios handlers, no inferirse del middleware.
+Esto no prueba por sí solo que haya una ruta vulnerable, porque puede haber controles adicionales en layouts, componentes servidor, handlers y RLS. Sí prueba que el test actual no es una fuente fiable para demostrar esos controles. La remediación correcta es inventariar autorización real y después añadir pruebas negativas/positivas por rol y tenant.
+
+### Rate limiter: riesgo de disponibilidad cuando falla Redis
+`src/lib/rate-limit.ts` usa Upstash cuando encuentra las variables y lanza un error si falta una de las dos, la petición HTTP falla, vence el timeout o la respuesta de Redis no es válida. `checkRateLimit` no captura esa excepción. Esto evita permitir silenciosamente la operación cuando Redis falla, pero puede convertir una incidencia temporal de Redis en errores 500 en rutas protegidas por el limiter. Antes de cambiarlo, decidir explícitamente política fail-closed/fail-open por clase de endpoint: para autenticación, pagos, administración y cargas sensibles debe priorizarse la seguridad; cualquier fallback debe estar acotado, observado y probado. En Vercel existen las dos variables Upstash en Production y Preview, por lo que el modo de fallo es una cuestión de comportamiento, no de ausencia confirmada de configuración.
+
+### Alcance final de verificación
+Los 30 puntos quedaron clasificados y priorizados con evidencia del repositorio; los puntos que dependen de ejecución local/CI, tráfico real o revisión visual están identificados como pendientes, no declarados como aprobados. La PR es un artefacto de auditoría/documentación: no sustituye una suite de pruebas ni corrige por sí sola los hallazgos. Las correcciones de código y de configuración deben ir en PR/cambios operativos separados, con validación de regresión para autenticación, aislamiento multi-tenant y flujos financieros.
