@@ -457,7 +457,7 @@ function ConsentContent() {
             type="button"
             disabled={submitting !== null}
             onClick={() => void decide("approve")}
-            whileHover={reduceMotion || submitting ? undefined : { scale: 1.02, brightness: 1.05 }}
+            whileHover={reduceMotion || submitting ? undefined : { scale: 1.02, filter: "brightness(1.05)" }}
             whileTap={reduceMotion || submitting ? undefined : { scale: 0.98 }}
             className="inline-flex h-11 w-full items-center justify-center rounded-xl text-sm font-semibold transition disabled:opacity-50 sm:w-auto sm:px-5"
             style={{
