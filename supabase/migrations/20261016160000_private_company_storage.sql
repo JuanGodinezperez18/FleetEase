@@ -15,7 +15,8 @@ DECLARE
     'company-logos',
     'inspection-images',
     'seguimientos',
-    'client-documents'
+    'client-documents',
+    'clients'
   ];
   bucket_name text;
   policy_name text;
@@ -37,7 +38,7 @@ BEGIN
         '%documents%', '%vehicle-images%', '%driver-documents%',
         '%financial-receipts%', '%general-documents%', '%contract-templates%',
         '%company-logos%', '%inspection-images%', '%seguimientos%',
-        '%client-documents%'
+        '%client-documents%', '%clients%'
       ])
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', policy_row.policyname);
