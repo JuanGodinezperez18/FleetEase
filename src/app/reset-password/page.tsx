@@ -104,7 +104,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
 
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
-  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const passwordValid = getPasswordStrength(password).checks[0];
   const canSubmit = ready && passwordValid && passwordsMatch && !submitting;
 
