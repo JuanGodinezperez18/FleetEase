@@ -23,20 +23,19 @@ export async function GET(request: NextRequest) {
     const auth = await requireAdmin(request);
     if ('error' in auth) return auth.error;
 
-    let query = supabaseAdmin
-      .from('users')
-      .select('id,email,name,phone,street,city,state,zip_code,country,role,company_id,partner_access,notification_settings,is_deleted,created_at,updated_at,push_subscriptions')
-      .order('created_at', { ascending: false });
-
-    if (auth.profile.role !== 'super_admin') {
-      if (!auth.profile.company_id) {
-        return NextResponse.json({ success: true, users: [] });
-      }
-      query = query.eq('company_id', auth.profile.company_id);
+    if (auth.profile.role !== 'super_admin' && !auth.profile.company_id) {
+      return NextResponse.json({ success: true, users: [] });
     }
 
     const records: any[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
+      let query = supabaseAdmin
+        .from('users')
+        .select('id,email,name,phone,street,city,state,zip_code,country,role,company_id,partner_access,notification_settings,is_deleted,created_at,updated_at,push_subscriptions')
+        .order('created_at', { ascending: false });
+      if (auth.profile.role !== 'super_admin') {
+        query = query.eq('company_id', auth.profile.company_id!);
+      }
       const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
       if (error) return internalError('Admin Users List API', error);
       const page = data || [];
