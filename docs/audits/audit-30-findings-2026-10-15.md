@@ -105,3 +105,41 @@ Estados:
 - `docs/bloque-b-security-audit-2026-10-03.md` y `FleetEase-seguridad-performance.md`
 
 **Conclusión:** esta PR registra la verificación y la priorización, no declara los 30 hallazgos como bugs confirmados ni aplica cambios funcionales. La siguiente PR debe atender primero los hallazgos P0/P1 confirmados y pasar los checks de GitHub antes de considerar cualquier integración.
+
+
+## Anexo de comprobaciones directas de producción — 15/16 de octubre de 2026
+
+Estas comprobaciones se realizaron después de la revisión estática. Los resultados se usan para priorizar; no se ejecutaron cambios de configuración ni SQL DDL.
+
+### Supabase Auth: hallazgo P0 confirmado
+El asesor de seguridad de Supabase reporta **Leaked Password Protection Disabled** en el proyecto activo `qettktslcbjjuyejcpqy`. Esto confirma el hallazgo #3; no es solo un pendiente documental. Debe activarse desde la configuración de Auth del Dashboard y probarse con una contraseña comprometida de prueba. No se cambió el ajuste desde esta auditoría.
+
+### Supabase Database: funciones SECURITY DEFINER
+El asesor de seguridad devuelve 15 funciones SECURITY DEFINER con capacidad de ejecución para `authenticated`. La inspección de metadatos y definiciones confirma que esta alerta requiere análisis función por función, no una revocación masiva:
+- Las funciones helper `auth_user_company_id()` y `auth_user_role()` exponen datos del propio usuario autenticado.
+- `create_credit_atomic` valida el company_id derivado del usuario y la pertenencia del cliente/vehículo.
+- `cancel_credit_atomic` comprueba que `p_company_id` corresponda a la empresa autenticada.
+- `create_expense_atomic` comprueba rol, empresa y campos de la operación.
+Estas comprobaciones parciales no equivalen a una revisión completa de las 15 funciones. Antes de cambiar grants, hay que revisar todas las funciones y sus llamadores; quitar EXECUTE sin ello podría romper créditos, pagos, gastos, multas u operaciones legítimas. Referencia del asesor: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
+
+### Índices
+El asesor de rendimiento de Supabase confirma **54 avisos de índices sin uso** en las estadísticas disponibles. La consulta de `pg_stat_user_indexes` también muestra varios índices con `idx_scan = 0`. Esto confirma el aviso, pero **no justifica borrarlos todavía**: falta establecer la ventana de estadísticas, revisar constraints/índices únicos, consultas de baja frecuencia y planes de ejecución. Referencia: https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index
+
+### Vercel Production
+Se identificó el proyecto Vercel `fleetease` y sus variables por nombre/entorno, sin descifrar ni imprimir valores secretos:
+- `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` están configuradas para Production y Preview. Por tanto, no hay evidencia para afirmar que Production carezca de Upstash; queda comprobar el uso real del limitador y el comportamiento de error.
+- `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET` y otras variables sensibles están marcadas como secretas/encriptadas en Vercel.
+- Las variables públicas de Supabase/Stripe tienen prefijo público o se almacenan como variables de cliente cuando corresponde. El prefijo por sí solo no prueba exposición de un secreto.
+- La última deployment Production consultada está en estado READY, rama `master`, SHA `01d8a9d9006b43555e87e6b135355a321cba6ccf`. Esta consulta no prueba por sí sola la salud funcional de todas las rutas.
+
+### Rate limiting
+La búsqueda de código confirma uso de `checkRateLimit` en registro, checkout/portal de Stripe, uploads, descargas/borrado de archivos, notificaciones, health y helpers de admin. El limitador de autenticación `authLimiter` aparece definido, pero no se localizó un uso directo en los resultados revisados; hay que verificar si el login es manejado únicamente por Supabase Auth desde el cliente y qué protecciones de intentos fallidos tiene activadas el proveedor. No se debe añadir un segundo limitador sin confirmar el flujo actual.
+
+### Decisión de remediación
+1. **Acción operativa inmediata:** activar Leaked Password Protection en Supabase Dashboard (fuera de la PR).
+2. **PR técnica prioritaria:** revisar las 15 funciones SECURITY DEFINER con sus permisos y pruebas multi-tenant; no cambiar grants en bloque.
+3. **Siguiente:** probar el rate limiter en Production y definir comportamiento seguro si Redis falla.
+4. **Después:** evaluar índices con planes de consultas y ventana de actividad suficiente.
+5. **CI:** obtener resultados de los checks de la PR y resolver vulnerabilidades concretas antes de volver `npm audit` bloqueante.
+
+No se ejecutaron escrituras en tablas de negocio, migraciones, cambios de grants ni ajustes de producción.
