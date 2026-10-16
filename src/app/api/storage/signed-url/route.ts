@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Archivo no válido.' }, { status: 400 });
       }
 
-      const match = url.pathname.match(/\\/storage\\/v1\\/object\\/(?:public|sign|authenticated)\\/([^/]+)\\/(.+)/);
+      const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
       if (!match) return NextResponse.json({ error: 'Referencia de archivo no válida.' }, { status: 400 });
 
       const bucket = match[1];
