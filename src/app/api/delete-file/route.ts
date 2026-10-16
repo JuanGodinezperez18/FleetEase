@@ -85,11 +85,7 @@ async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise
       }
     }
 
-    await supabaseAdmin
-      .from('documents')
-      .delete()
-      .eq('company_id', profile.company_id)
-      .eq('file_url', fileUrl);
+    await supabaseAdmin.from('documents').delete().eq('file_url', fileUrl);
   } catch (error) {
     console.error('[API Delete] Error limpiando referencias:', error);
   }
