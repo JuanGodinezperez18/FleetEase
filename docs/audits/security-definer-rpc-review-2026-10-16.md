@@ -38,6 +38,12 @@ Todas las 15 funciones observadas fijan `search_path` explícitamente (en la may
 4. **Superadministración:** las ramas especiales de `super_admin` y el permiso administrativo de `offboard_client_with_writeoff` requieren validar el modelo de roles esperado, especialmente el acceso entre empresas.
 5. **Pruebas:** esta revisión no ejecutó escrituras de prueba en producción ni pruebas de explotación. Los casos de autorización deben validarse en entorno aislado antes de cualquier cambio de permisos.
 
+## Comprobación adicional del historial de migraciones
+
+Se localizó `supabase/migrations/20260927140500_security_definer_execute_hardening.sql`. Esa migración ya documenta que las RPC financieras permanecen ejecutables por `authenticated` porque la aplicación las usa, y revoca ejecución a `anon` y `public`. También retira acceso autenticado a `get_superadmin_dashboard_summary()` y `link_financial_records(...)`. Esto confirma que parte del aviso actual corresponde a una decisión explícita de diseño: RPC de negocio autenticadas, no funciones anónimas.
+
+También se encontró una migración específica de seguridad para multas que vuelve a conceder `EXECUTE` a `authenticated` para `create_multa_atomic` y `cancel_multa_atomic` después de revocar `public` y `anon`. Por tanto, no se debe interpretar el aviso del Advisor como evidencia de que esas concesiones fueron accidentales. La revisión pendiente es comprobar que los guards internos y la autorización por rol sean suficientes, además de verificar que el estado real de producción coincide con el historial de migraciones.
+
 ## Plan seguro de remediación
 
 1. Buscar en el repositorio todos los consumidores de las 15 RPCs y helpers; registrar rutas, módulos y roles que las invocan.
