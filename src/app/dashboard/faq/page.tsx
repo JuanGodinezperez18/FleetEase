@@ -96,6 +96,18 @@ const faqs = [
   },
   {
     category: 'financial',
+    question: '¿Cómo consulto las compras a proveedores y las cuentas por pagar?',
+    answer:
+      'Consulta Compras a proveedores para revisar las compras registradas y Cuentas por pagar para identificar obligaciones pendientes y sus pagos. Revisa la referencia, proveedor, fecha e importe antes de registrar un pago para evitar duplicidades.',
+  },
+  {
+    category: 'financial',
+    question: '¿Dónde reviso las garantías de las compras?',
+    answer:
+      'En Historial de compras y garantías puedes buscar por refacción, número de parte, proveedor o vehículo. Una compra aparecerá si tiene capturados los datos de refacción, proveedor y garantía en su línea de gasto.',
+  },
+  {
+    category: 'financial',
     question: '¿Qué es un pago pendiente?',
     answer:
       'Un pago pendiente es un ingreso que ha sido registrado pero aún no se ha cobrado. Es útil para llevar control de rentas que se pagarán posteriormente o pagos parciales acordados con el cliente.',
