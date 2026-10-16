@@ -132,7 +132,7 @@ function UserMobileCard({
 }
 
 export default function UsersPage() {
-  const { users, companies, partners, loadingData, financialRecords } = useData();
+  const { users = [], companies = [], partners = [], loadingData, financialRecords = [] } = useData();
   const { currentUser: authCurrentUser } = useAuth();
   const { toast } = useToast();
 
@@ -439,7 +439,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="relative min-h-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
+    <div className="relative min-h-full min-w-0 w-full max-w-full space-y-5 overflow-hidden rounded-[18px] bg-[#080a0f] p-4 pb-24 text-white sm:space-y-6 sm:p-6 sm:pb-8 lg:p-7">
       <div className="pointer-events-none absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
 
       <div className="relative z-10 space-y-5 sm:space-y-6">
