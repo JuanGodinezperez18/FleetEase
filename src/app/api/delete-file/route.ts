@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     if (
       parsedUrl.protocol !== 'https:' ||
       parsedUrl.hostname !== configuredSupabaseHost ||
-      !parsedUrl.pathname.includes('/storage/v1/object/public/')
+      !parsedUrl.pathname.includes('/storage/v1/object/')
     ) {
       return NextResponse.json({
         success: true,
@@ -157,10 +157,26 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/public\/[^\/]+\/(.+)/);
+    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
     if (!match) return NextResponse.json({ error: 'Formato de URL no válido' }, { status: 400 });
 
-    const filePath = getSafeStoragePath(match[1]);
+    const bucketName = match[1];
+    const allowedBuckets = new Set([
+      'documents',
+      'vehicle-images',
+      'driver-documents',
+      'financial-receipts',
+      'general-documents',
+      'contract-templates',
+      'company-logos',
+      'inspection-images',
+      'seguimientos',
+    ]);
+    if (!allowedBuckets.has(bucketName)) {
+      return NextResponse.json({ error: 'Bucket no permitido.' }, { status: 400 });
+    }
+
+    const filePath = getSafeStoragePath(match[2]);
     if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no válida.' }, { status: 400 });
     }
@@ -172,7 +188,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: deleteError } = await supabaseAdmin.storage.from('documents').remove([filePath]);
+    const { error: deleteError } = await supabaseAdmin.storage.from(bucketName).remove([filePath]);
 
     if (deleteError) {
       console.error('[API Delete] Error eliminando de Storage:', deleteError);
