@@ -279,12 +279,12 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <Building2 className="h-4 w-4 text-white/35" strokeWidth={1.75} />
-                          <span className="font-semibold text-white/90">{p.partyName}</span>
+                          <span className="min-w-0 break-words [overflow-wrap:anywhere] font-semibold text-white/90">{p.partyName}</span>
                           <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">
                             Proveedor
                           </span>
                         </div>
-                        <p className="mt-1.5 text-sm text-white/45">
+                        <p className="mt-1.5 break-words text-sm text-white/45">
                           Original {formatCurrency(p.original)} · Pagado {formatCurrency(p.applied)}
                         </p>
                         {p.dueDate && (
@@ -295,9 +295,9 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                         )}
                       </div>
                       <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap sm:gap-3">
-                        <div className="text-right">
+                        <div className="min-w-0 text-left sm:text-right">
                           <p className="text-[11px] text-white/35">Pendiente</p>
-                          <p className="font-heading text-lg font-semibold tabular-nums text-rose-300">
+                          <p className="whitespace-nowrap font-heading text-lg font-semibold tabular-nums text-rose-300">
                             {formatCurrency(remaining)}
                           </p>
                         </div>
@@ -344,10 +344,10 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                 {purchases.map(p => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between border-b border-white/[0.06] py-3 last:border-0"
+                    className="flex min-w-0 flex-col gap-3 border-b border-white/[0.06] py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-white/90">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-medium text-white/90 [overflow-wrap:anywhere]">
                         {p.supplierName}
                         {p.reference ? ` · ${p.reference}` : ""}
                       </p>
@@ -355,16 +355,16 @@ const supplierPending = supplierPayables.reduce((s, p) => s + Math.max(0, p.orig
                         {new Date(p.purchase_date).toLocaleDateString("es-MX")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:justify-end">
+                      <span className="max-w-full break-words rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">
                         {payableStatusLabels[p.status] || "Pendiente"}
                       </span>
-                      <span className="font-semibold tabular-nums text-white">{formatCurrency(p.total)}</span>
+                      <span className="whitespace-nowrap font-semibold tabular-nums text-white">{formatCurrency(p.total)}</span>
                       <Button
                         asChild
                         size="icon"
                         variant="ghost"
-                        className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white"
+                        className="h-11 w-11 shrink-0 text-white/40 hover:bg-white/[0.06] hover:text-white"
                       >
                         <NextLink href={`/dashboard/finanzas/supplier-purchases/${p.id}`} aria-label="Ver compra">
                           <ExternalLink className="h-4 w-4" strokeWidth={1.75} />

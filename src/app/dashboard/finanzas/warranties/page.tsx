@@ -122,22 +122,22 @@ export default function WarrantiesPage() {
                 const expiry = parseDate(row.warrantyExpiresAt);
                 const active = !!expiry && expiry >= today;
                 return (
-                  <div key={row.id} className="rounded-xl border p-4 space-y-3">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold">{row.concept}</p>
+                  <div key={row.id} className="min-w-0 rounded-xl border p-4 space-y-3">
+                    <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start gap-2">
+                          <p className="min-w-0 break-words font-semibold [overflow-wrap:anywhere]">{row.concept}</p>
                           <Badge variant={active ? 'default' : 'secondary'}>{active ? 'Garantía vigente' : 'Garantía vencida'}</Badge>
                         </div>
                         {row.partNumber && <p className="text-sm text-muted-foreground">No. de parte: {row.partNumber}</p>}
                       </div>
-                      <p className="font-semibold">${row.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                      <p className="shrink-0 whitespace-nowrap font-semibold">${row.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                      <div className="flex gap-2"><Store className="h-4 w-4 mt-0.5 text-muted-foreground" /><span><span className="text-muted-foreground">Proveedor:</span> {row.supplierName || 'No registrado'}</span></div>
-                      <div className="flex gap-2"><Truck className="h-4 w-4 mt-0.5 text-muted-foreground" /><span><span className="text-muted-foreground">Vehículo:</span> {row.vehicleLabel}</span></div>
-                      <div className="flex gap-2"><CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" /><span><span className="text-muted-foreground">Compra:</span> {row.date || '—'}</span></div>
-                      <div className="flex gap-2"><ShieldCheck className="h-4 w-4 mt-0.5 text-muted-foreground" /><span><span className="text-muted-foreground">Vence:</span> {expiry ? expiry.toLocaleDateString('es-MX') : 'Sin fecha'}</span></div>
+                      <div className="flex min-w-0 items-start gap-2"><Store className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="text-muted-foreground">Proveedor:</span> {row.supplierName || 'No registrado'}</span></div>
+                      <div className="flex min-w-0 items-start gap-2"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="text-muted-foreground">Vehículo:</span> {row.vehicleLabel}</span></div>
+                      <div className="flex min-w-0 items-start gap-2"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="text-muted-foreground">Compra:</span> {row.date || '—'}</span></div>
+                      <div className="flex min-w-0 items-start gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="text-muted-foreground">Vence:</span> {expiry ? expiry.toLocaleDateString('es-MX') : 'Sin fecha'}</span></div>
                     </div>
                   </div>
                 );

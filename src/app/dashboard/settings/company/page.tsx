@@ -22,10 +22,19 @@ import { useStorage } from '@/hooks/use-storage';
 import { MultipleFileInput } from '@/components/common/multiple-file-input';
 import { toast } from 'sonner';
 import { Loader2, Settings, AlertTriangle, Building2, Bell, ImageIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const MEXICAN_STATES = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas',
+  'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima', 'Durango', 'Estado de México',
+  'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'Michoacán', 'Morelos', 'Nayarit',
+  'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí',
+  'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas',
+] as const;
 
 const companySettingsSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
-  email: z.string().email('Correo inválido.').optional().or(z.literal('')),
+  email: z.union([z.string().trim().email('Ingresa un correo válido.'), z.literal('')]).optional(),
   phone: z.string().optional().or(z.literal('')),
   street: z.string().optional().or(z.literal('')),
   city: z.string().optional().or(z.literal('')),
@@ -68,6 +77,8 @@ export default function CompanySettingsPage() {
 
   const form = useForm<CompanySettingsFormValues>({
     resolver: zodResolver(companySettingsSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       name: '',
       email: '',
@@ -314,7 +325,16 @@ export default function CompanySettingsPage() {
                     <FormItem>
                       <FormLabel className={labelClass}>Estado</FormLabel>
                       <FormControl>
-                        <Input className={inputClass} {...field} />
+                        <Select value={field.value || ''} onValueChange={field.onChange}>
+                          <SelectTrigger className={inputClass} aria-label="Estado de México">
+                            <SelectValue placeholder="Selecciona un estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MEXICAN_STATES.map(state => (
+                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

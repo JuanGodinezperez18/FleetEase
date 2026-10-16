@@ -148,7 +148,7 @@ const Section = ({
 }) => (
   <motion.section
     variants={staggerItem}
-    className={`overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] ${className ?? ""}`}
+    className={`min-w-0 w-full max-w-full overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0e1117] shadow-[0_18px_50px_rgba(0,0,0,.22)] ${className ?? ""}`}
   >
     <div className="border-b border-white/[0.06] px-4 py-3.5 sm:px-5 sm:py-4">
       <h2 className="font-heading text-sm font-semibold text-white sm:text-base">{title}</h2>
@@ -593,7 +593,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
 
   return (
     <motion.div
-      className="space-y-5 sm:space-y-6"
+      className="min-w-0 w-full max-w-full space-y-5 overflow-x-hidden sm:space-y-6"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
@@ -602,7 +602,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
 
       <motion.div
         variants={fadeInUp}
-        className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
       >
         <MetricCard
           title="Ingresos"
@@ -662,7 +662,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
       <Reconciliation analytics={analytics} />
       <TrendChart analytics={analytics} />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-2">
         <ExpenseCategoriesChart analytics={analytics} />
         <IncomeCategoriesBarChart analytics={analytics} />
       </div>
