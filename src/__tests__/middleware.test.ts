@@ -79,7 +79,7 @@ describe('middleware authentication and role authorization', () => {
     },
   );
 
-  it.each(['/api/stripe/webhook','/_next/static/app.js','/images/logo.png'])(
+  it.each(['/api/stripe/webhook','/_next/static/app.js','/images/logo.png','/manifest.json','/robots.txt'])(
     'passes through API/static path %s without an auth lookup',
     async (path) => {
       const response = await middleware(buildRequest(path) as any);
