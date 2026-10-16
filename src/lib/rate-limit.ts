@@ -181,6 +181,13 @@ export const uploadLimiter = new RateLimiter({
   prefix: 'upload',
 });
 
+/** Rate limiting para OCR: límite por usuario autenticado para contener costes de IA. */
+export const ocrLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  prefix: 'ocr',
+});
+
 /** Rate limiting para operaciones administrativas autenticadas. */
 export const adminLimiter = new RateLimiter({
   windowMs: 60 * 1000,
