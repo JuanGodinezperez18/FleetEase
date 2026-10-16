@@ -161,6 +161,16 @@ export async function middleware(req: NextRequest) {
     return redirectWithSecurityHeaders(loginUrl());
   }
 
+  // Partner/client accounts are confined to their own portal namespace.
+  // This is deny-by-default for other protected page routes, not just /dashboard.
+  if (role === 'partner' && !isPartnerPath) {
+    return redirectWithSecurityHeaders(new URL('/partner', req.url));
+  }
+
+  if (role === 'client' && !isClientPath) {
+    return redirectWithSecurityHeaders(new URL('/client', req.url));
+  }
+
   if (isPartnerPath && role !== 'partner') {
     return redirectWithSecurityHeaders(new URL(homeForRole, req.url));
   }
