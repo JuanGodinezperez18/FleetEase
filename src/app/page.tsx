@@ -54,7 +54,7 @@ const features = [
 export default function LandingPage() {
   return (
     <LandingAuthRedirect>
-      <div className="min-h-screen overflow-x-hidden bg-[var(--fe-ink)] text-white selection:bg-[var(--fe-lime)] selection:text-[var(--fe-ink)]">
+      <div className="fe-landing min-h-screen overflow-x-hidden bg-[var(--fe-ink)] text-white selection:bg-[var(--fe-lime)] selection:text-[var(--fe-ink)]">
         <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
         <div className="pointer-events-none absolute left-1/2 top-[-260px] h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[var(--fe-lime)]/[0.08] blur-[130px]" />
 
