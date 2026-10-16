@@ -124,6 +124,17 @@ describe('middleware authentication and role authorization', () => {
     expect(response.url.pathname).toBe('/login');
   });
 
+  it('does not bypass role checks for protected paths containing a dot', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockGetProfile.mockResolvedValue({ data: { role: 'admin', is_deleted: false }, error: null });
+
+    const response = await middleware(buildRequest('/partner/vehicle.v1') as any);
+
+    expect(response.type).toBe('redirect');
+    expect(response.url.pathname).toBe('/dashboard');
+    expect(mockGetUser).toHaveBeenCalledTimes(1);
+  });
+
   it('allows a staff role to continue to dashboard', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
 
