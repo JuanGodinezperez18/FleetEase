@@ -2,6 +2,7 @@
  * @fileoverview Servicio de autenticación con Supabase Auth
  */
 import { supabase } from '@/lib/supabase';
+import { supabase as cookieSupabase } from '@/lib/supabase-browser';
 import type { User, UserRole } from '@/types/supabase';
 import { userService } from '@/lib/supabase-services';
 
@@ -14,6 +15,7 @@ export interface AuthResponse { user:User|null; error:Error|null; }
 const AUTH_PERSISTENCE_KEY = 'fleetease.auth.persistence.v1';
 const SESSION_STORAGE_KEY = 'fleetease.auth.session.v1';
 const SUPABASE_AUTH_STORAGE_KEY = 'sb-qettktslcbjjuyejcpqy-auth-token';
+const AUTH_PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
 
 type AuthPersistence = 'persistent' | 'session';
 
@@ -79,6 +81,7 @@ export function clearAuthPersistence(): void {
     window.localStorage.removeItem(SESSION_STORAGE_KEY);
     window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
     window.localStorage.removeItem(AUTH_PERSISTENCE_KEY);
+    window.localStorage.removeItem(AUTH_PROFILE_CACHE_KEY);
     clearSupabasePersistentSession();
   } catch {}
 }
@@ -103,17 +106,44 @@ export async function signIn(email:string,password:string):Promise<AuthResponse>
 export async function signIn(paramsOrEmail:SignInParams|string,password?:string):Promise<AuthResponse>{try{const params=typeof paramsOrEmail==='string'?{email:paramsOrEmail,password:password??''}:paramsOrEmail;const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};if(getAuthPersistence()==='session')enforceSessionOnlyPersistence(authData.session);const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
 
 export async function signOut():Promise<void>{
-  // Clear the SSR cookie session first; client sign-out remains the fallback if the endpoint fails.
+  // FleetEase has used both supabase-js localStorage and @supabase/ssr cookie
+  // storage. Sign out both stores so neither can restore a previous account.
+  let serverLogoutFailed = false;
   if (isBrowser()) {
     try {
-      await fetch('/api/logout', { method: 'POST', cache: 'no-store', credentials: 'same-origin' });
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      serverLogoutFailed = !response.ok;
     } catch (error) {
-      console.warn('[Auth] No se pudo confirmar el cierre de sesión del servidor; limpiando la sesión local.', error);
+      serverLogoutFailed = true;
+      console.warn('[Auth] No se pudo confirmar el cierre de sesión SSR.', error);
     }
   }
-  const { error } = await supabase.auth.signOut({ scope: 'local' });
+
+  const [localResult, cookieResult] = await Promise.allSettled([
+    supabase.auth.signOut({ scope: 'local' }),
+    cookieSupabase.auth.signOut({ scope: 'local' }),
+  ]);
+
+  // Always remove app-owned caches, even if one of the SDK sign-outs fails.
   clearAuthPersistence();
-  if (error) throw error;
+
+  const localError = localResult.status === 'rejected'
+    ? localResult.reason
+    : localResult.value.error;
+  const cookieError = cookieResult.status === 'rejected'
+    ? cookieResult.reason
+    : cookieResult.value.error;
+
+  if (localError && cookieError) {
+    throw new Error('No se pudieron limpiar las sesiones del navegador. Recarga la página e inténtalo de nuevo.');
+  }
+  if (serverLogoutFailed) {
+    console.warn('[Auth] El endpoint SSR no confirmó el cierre; las sesiones de ambos clientes fueron limpiadas localmente.');
+  }
 }
 export async function getCurrentUser():Promise<User|null>{try{const {data:{session},error}=await supabase.auth.getSession();if(error||!session?.access_token)return null;return await fetchProfileFromApp(session.access_token);}catch{return null;}}
 export function onAuthStateChange(callback:(user:User|null)=>void):{subscription:{unsubscribe:()=>void}}{getCurrentUser().then(callback);const {data:{subscription}}=supabase.auth.onAuthStateChange(async(_event,session)=>{if(session?.access_token){enforceSessionOnlyPersistence(session);callback(await fetchProfileFromApp(session.access_token));}else callback(null);});return{subscription};}

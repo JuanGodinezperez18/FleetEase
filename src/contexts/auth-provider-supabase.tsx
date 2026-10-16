@@ -156,8 +156,11 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         logger.error('[Supabase Auth] Error obteniendo sesión inicial', error as Error);
         if (mounted) {
-          const cachedProfile = readCachedProfile();
-          if (cachedProfile) setCurrentUser(cachedProfile);
+          // Fail closed: cached UI profile is not proof of an authenticated session.
+          // Never restore a previous admin/superadmin profile when session validation fails.
+          clearCachedProfile();
+          setCurrentUser(null);
+          setMfaProfile(null);
           initialSessionResolved = true;
           setLoading(false);
         }
