@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
 import { useData } from '@/hooks/use-data';
 import { supabase } from '@/lib/supabase';
+import { resolvePrivateStorageUrls } from '@/lib/storage/resolve-private-storage-url';
 import { Button } from '@/components/ui/button';
 import { Search as SearchBar } from '@/components/ui/search';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -101,7 +102,8 @@ export default function SeguimientosPage() {
           company_id: row.company_id || companyId,
         };
       });
-      setSeguimientos(mapped);
+      const photoUrls = await resolvePrivateStorageUrls(mapped.map((item) => item.photo_url));
+      setSeguimientos(mapped.map((item, index) => ({ ...item, photo_url: photoUrls[index] || '' })));
     } catch (error) {
       console.error('Error cargando seguimientos:', error);
       toast.error('Error al cargar seguimientos');

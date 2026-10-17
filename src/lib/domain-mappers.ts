@@ -58,6 +58,37 @@ function mapKeys<T>(obj: Record<string, unknown>, mapper: (k: string) => string)
   return out as T;
 }
 
+/**
+ * A signed Storage URL is only a temporary presentation URL. If a form saves
+ * an unchanged value, normalize it back to a stable object reference so the
+ * database never receives an expiring token.
+ */
+function stableStorageReference(value: unknown): unknown {
+  if (typeof value === 'string') {
+    try {
+      const url = new URL(value);
+      const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
+      if (match) {
+        url.pathname = `/storage/v1/object/public/${match[1]}/${match[2]}`;
+        url.search = '';
+        url.hash = '';
+        return url.toString();
+      }
+    } catch {
+      return value;
+    }
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(stableStorageReference);
+  return value;
+}
+
+function stableStorageRecord<T extends Record<string, unknown>>(record: T): T {
+  const normalized: Record<string, unknown> = { ...record };
+  for (const key of Object.keys(normalized)) normalized[key] = stableStorageReference(normalized[key]);
+  return normalized as T;
+}
+
 // =====================================================
 // PERSISTENCIA → DOMINIO
 // =====================================================
@@ -90,8 +121,8 @@ export const toDomainMulta = (row: SbMulta): Multa => mapKeys<Multa>(row as unkn
 // DOMINIO → PERSISTENCIA
 // =====================================================
 
-export const toSbClient = (data: Partial<Client>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbVehicle = (data: Partial<Vehicle>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+export const toSbClient = (data: Partial<Client>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
+export const toSbVehicle = (data: Partial<Vehicle>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
 
 /**
  * partners.name es NOT NULL en PostgreSQL, pero el formulario trabaja con
@@ -113,7 +144,7 @@ export const toSbPartner = (data: Partial<Partner>): Record<string, unknown> => 
 };
 
 export const toSbCredit = (data: Partial<Credit>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+export const toSbFinancialRecord = (data: Partial<FinancialRecord>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
 
 /**
  * mileage_logs no tiene columnas client_id ni last_mileage.
@@ -136,8 +167,8 @@ export const toSbMileageLog = (
 };
 
 export const toSbNotification = (data: Partial<Notification>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbVehicleAssignmentLog = (data: Partial<VehicleAssignmentLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
-export const toSbCompany = (data: Partial<Company>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
+export const toSbVehicleAssignmentLog = (data: Partial<VehicleAssignmentLog>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
+export const toSbCompany = (data: Partial<Company>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
 export const toSbFinancialCategory = (data: Partial<FinancialCategory>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbMessageTemplate = (data: Partial<MessageTemplate>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);
 export const toSbMessageLog = (data: Partial<MessageLog>): Record<string, unknown> => mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey);

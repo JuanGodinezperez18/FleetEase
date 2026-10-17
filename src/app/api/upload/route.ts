@@ -30,6 +30,7 @@ type AllowedFolder = z.infer<typeof uploadFolderSchema>;
 
 const ALLOWED_MIME_TYPES: Record<AllowedFolder, readonly string[]> = {
   vehicle_images: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'],
+  vehicle_documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'],
   driver_documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   financial_receipts: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   general_documents: [
@@ -49,6 +50,8 @@ function getBucketName(folder: AllowedFolder): string {
   switch (folder) {
     case 'vehicle_images':
       return 'vehicle-images';
+    case 'vehicle_documents':
+      return 'vehicle-documents';
     case 'driver_documents':
       return 'driver-documents';
     case 'financial_receipts':
@@ -73,7 +76,7 @@ async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<
 
   const mimeTypes = ALLOWED_MIME_TYPES[folder];
   const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
-    public: true,
+    public: false,
     fileSizeLimit: MAX_UPLOAD_BYTES,
     allowedMimeTypes: mimeTypes.length > 0 ? [...mimeTypes] : undefined,
   });
@@ -159,7 +162,7 @@ export async function POST(request: NextRequest) {
           { status: 403 },
         );
       }
-    } else if (isSuperAdmin(userProfile.role) && entityId && entityId !== 'unassigned') {
+    } else if (entityId && entityId !== 'unassigned') {
       if (folder === 'driver_documents') {
         const { data: client, error: clientError } = await supabaseAdmin
           .from('clients')
@@ -172,8 +175,11 @@ export async function POST(request: NextRequest) {
             { status: 400 },
           );
         }
+        if (!isSuperAdmin(userProfile.role) && userProfile.company_id !== client.company_id) {
+          return NextResponse.json({ error: 'No puedes subir archivos de otra empresa.' }, { status: 403 });
+        }
         companyId = client.company_id;
-      } else if (folder === 'vehicle_images') {
+      } else if (folder === 'vehicle_images' || folder === 'vehicle_documents') {
         const { data: vehicle, error: vehicleError } = await supabaseAdmin
           .from('vehicles')
           .select('company_id')
@@ -184,6 +190,9 @@ export async function POST(request: NextRequest) {
             { error: 'No se pudo determinar la empresa del vehículo para la subida.' },
             { status: 400 },
           );
+        }
+        if (!isSuperAdmin(userProfile.role) && userProfile.company_id !== vehicle.company_id) {
+          return NextResponse.json({ error: 'No puedes subir archivos de otra empresa.' }, { status: 403 });
         }
         companyId = vehicle.company_id;
       }
@@ -210,6 +219,9 @@ export async function POST(request: NextRequest) {
     switch (folder) {
       case 'vehicle_images':
         pathPrefix = `companies/${companyId}/vehicles/${entityId}/images`;
+        break;
+      case 'vehicle_documents':
+        pathPrefix = `companies/${companyId}/vehicles/${entityId}/documents`;
         break;
       case 'driver_documents':
         pathPrefix = `companies/${companyId}/clients/${entityId}/documents`;

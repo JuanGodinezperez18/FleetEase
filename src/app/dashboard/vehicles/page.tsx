@@ -121,14 +121,18 @@ export default function VehiclesPage() {
             }
         }
 
-        const handleFileUpload = async (fileOrUrl: string | File | undefined | null, currentUrl?: string): Promise<string | null> => {
+        const handleFileUpload = async (
+            fileOrUrl: string | File | undefined | null,
+            currentUrl: string | undefined,
+            uploadFolder: 'vehicle_images' | 'vehicle_documents',
+        ): Promise<string | null> => {
             if (fileOrUrl === null || fileOrUrl === undefined) {
                 if (currentUrl) await deleteFileByUrl(currentUrl).catch(console.warn);
                 return null;
             }
             if (typeof fileOrUrl === 'string') return fileOrUrl;
             if (fileOrUrl instanceof File) {
-                const newUrl = await uploadFile(fileOrUrl, 'vehicle_images', true, editingVehicle?.id);
+                const newUrl = await uploadFile(fileOrUrl, uploadFolder, true, editingVehicle?.id);
                 if (currentUrl) await deleteFileByUrl(currentUrl).catch(console.warn);
                 return newUrl;
             }
@@ -136,9 +140,9 @@ export default function VehiclesPage() {
         };
 
         const [imageUrl, circulationCardUrl, insurancePolicyDocumentUrl] = await Promise.all([
-            handleFileUpload(data.imageUrl?.[0], editingVehicle?.imageUrl as string | undefined),
-            handleFileUpload(data.circulationCardUrl?.[0], editingVehicle?.circulationCardUrl as string | undefined),
-            handleFileUpload(data.insurancePolicyDocumentUrl?.[0], editingVehicle?.insurancePolicyDocumentUrl as string | undefined)
+            handleFileUpload(data.imageUrl?.[0], editingVehicle?.imageUrl as string | undefined, 'vehicle_images'),
+            handleFileUpload(data.circulationCardUrl?.[0], editingVehicle?.circulationCardUrl as string | undefined, 'vehicle_documents'),
+            handleFileUpload(data.insurancePolicyDocumentUrl?.[0], editingVehicle?.insurancePolicyDocumentUrl as string | undefined, 'vehicle_documents')
         ]);
 
         const { imageUrl: img, circulationCardUrl: ccu, insurancePolicyDocumentUrl: ipdu, ...restOfData } = data;

@@ -125,7 +125,7 @@ export default function VehicleDocumentsPage() {
     setUploadingState((prev) => ({ ...prev, [fieldKey]: true }));
     try {
       const oldFileUrl = vehicle[fieldKey] as string | undefined;
-      const newFileUrl = await uploadFile(file, "driver_documents", true, vehicle.id);
+      const newFileUrl = await uploadFile(file, "vehicle_documents", true, vehicle.id);
       await updateVehicle(vehicle.id, { [fieldKey]: newFileUrl });
       if (oldFileUrl) {
         await deleteFileByUrl(oldFileUrl).catch((e) => console.warn(e));

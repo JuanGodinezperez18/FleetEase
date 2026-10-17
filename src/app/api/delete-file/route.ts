@@ -30,55 +30,58 @@ interface DeleteSuccessResponse {
 async function cleanSupabaseReferences(fileUrl: string, userId: string): Promise<number> {
   const supabaseAdmin = getSupabaseAdmin();
   let cleanedCount = 0;
-  try {
-    const { data: vehicles, error: vehiclesError } = await supabaseAdmin
-      .from('vehicles')
-      .select('id,image_url,circulation_card_url,insurance_policy_document_url')
-      .or(
-        `image_url.eq.${fileUrl},circulation_card_url.eq.${fileUrl},insurance_policy_document_url.eq.${fileUrl}`,
-      )
-      .eq(
-        'company_id',
-        (
-          await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()
-        ).data?.company_id || '',
-      );
 
-    if (!vehiclesError && vehicles) {
-      for (const vehicle of vehicles) {
-        const updateData: Record<string, null> = {};
-        if (vehicle.image_url === fileUrl) updateData.image_url = null;
-        if (vehicle.circulation_card_url === fileUrl) updateData.circulation_card_url = null;
-        if (vehicle.insurance_policy_document_url === fileUrl)
-          updateData.insurance_policy_document_url = null;
-        if (Object.keys(updateData).length > 0) {
-          await supabaseAdmin.from('vehicles').update(updateData).eq('id', vehicle.id);
-          cleanedCount++;
-        }
+  try {
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('company_id')
+      .eq('id', userId)
+      .single();
+    if (profileError || !profile?.company_id) return 0;
+
+    // Never interpolate user-controlled URLs into PostgREST .or() syntax.
+    // Exact equality filters keep commas/parentheses in a URL from changing the query.
+    const vehicleFields = [
+      'image_url',
+      'circulation_card_url',
+      'insurance_policy_document_url',
+    ] as const;
+    for (const field of vehicleFields) {
+      const { data: rows, error } = await supabaseAdmin
+        .from('vehicles')
+        .select('id')
+        .eq('company_id', profile.company_id)
+        .eq(field, fileUrl);
+      if (error || !rows?.length) continue;
+
+      for (const row of rows) {
+        const { error: updateError } = await supabaseAdmin
+          .from('vehicles')
+          .update({ [field]: null })
+          .eq('id', row.id)
+          .eq('company_id', profile.company_id)
+          .eq(field, fileUrl);
+        if (!updateError) cleanedCount++;
       }
     }
 
-    const { data: clients, error: clientsError } = await supabaseAdmin
-      .from('clients')
-      .select('id,photo_url,ine_url,license_image_url')
-      .or(`photo_url.eq.${fileUrl},ine_url.eq.${fileUrl},license_image_url.eq.${fileUrl}`)
-      .eq(
-        'company_id',
-        (
-          await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()
-        ).data?.company_id || '',
-      );
+    const clientFields = ['photo_url', 'ine_url', 'license_image_url'] as const;
+    for (const field of clientFields) {
+      const { data: rows, error } = await supabaseAdmin
+        .from('clients')
+        .select('id')
+        .eq('company_id', profile.company_id)
+        .eq(field, fileUrl);
+      if (error || !rows?.length) continue;
 
-    if (!clientsError && clients) {
-      for (const client of clients) {
-        const updateData: Record<string, null> = {};
-        if (client.photo_url === fileUrl) updateData.photo_url = null;
-        if (client.ine_url === fileUrl) updateData.ine_url = null;
-        if (client.license_image_url === fileUrl) updateData.license_image_url = null;
-        if (Object.keys(updateData).length > 0) {
-          await supabaseAdmin.from('clients').update(updateData).eq('id', client.id);
-          cleanedCount++;
-        }
+      for (const row of rows) {
+        const { error: updateError } = await supabaseAdmin
+          .from('clients')
+          .update({ [field]: null })
+          .eq('id', row.id)
+          .eq('company_id', profile.company_id)
+          .eq(field, fileUrl);
+        if (!updateError) cleanedCount++;
       }
     }
 
@@ -99,12 +102,11 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
       .single();
 
     if (error || !profile) return false;
-    if (profile.role === 'super_admin') return true;
+    if (profile.role === 'super_admin' || profile.role === 'superAdmin') return true;
 
     const segments = filePath.split('/');
-    return (
-      segments.includes(userId) ||
-      Boolean(profile.company_id && segments.includes(profile.company_id))
+    return Boolean(
+      profile.company_id && segments[0] === 'companies' && segments[1] === profile.company_id,
     );
   } catch (error) {
     console.error('[API Delete] Error verificando propiedad:', error);
@@ -145,7 +147,7 @@ export async function POST(request: NextRequest) {
     if (
       parsedUrl.protocol !== 'https:' ||
       parsedUrl.hostname !== configuredSupabaseHost ||
-      !parsedUrl.pathname.includes('/storage/v1/object/public/')
+      !parsedUrl.pathname.includes('/storage/v1/object/')
     ) {
       return NextResponse.json({
         success: true,
@@ -154,10 +156,29 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/public\/[^\/]+\/(.+)/);
+    const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
     if (!match) return NextResponse.json({ error: 'Formato de URL no válido' }, { status: 400 });
 
-    const filePath = getSafeStoragePath(match[1]);
+    const bucketName = match[1];
+    const allowedBuckets = new Set([
+      'documents',
+      'vehicle-images',
+      'vehicle-documents',
+      'driver-documents',
+      'financial-receipts',
+      'general-documents',
+      'contract-templates',
+      'company-logos',
+      'inspection-images',
+      'seguimientos',
+      'client-documents',
+      'clients',
+    ]);
+    if (!allowedBuckets.has(bucketName)) {
+      return NextResponse.json({ error: 'Bucket no permitido.' }, { status: 400 });
+    }
+
+    const filePath = getSafeStoragePath(match[2]);
     if (!filePath || filePath.includes('../') || filePath.includes('..\\')) {
       return NextResponse.json({ error: 'Ruta de archivo no válida.' }, { status: 400 });
     }
@@ -169,7 +190,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: deleteError } = await supabaseAdmin.storage.from('documents').remove([filePath]);
+    const { error: deleteError } = await supabaseAdmin.storage.from(bucketName).remove([filePath]);
 
     if (deleteError) {
       console.error('[API Delete] Error eliminando de Storage:', deleteError);
@@ -183,7 +204,8 @@ export async function POST(request: NextRequest) {
       return internalError('API Delete', deleteError);
     }
 
-    const cleanedRefs = await cleanSupabaseReferences(fileUrl, user.id);
+    const { data: stableReference } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath);
+    const cleanedRefs = await cleanSupabaseReferences(stableReference.publicUrl, user.id);
     const response: DeleteSuccessResponse = { success: true, deleted: true, path: filePath };
     if (cleanedRefs > 0) response.cleanedReferences = cleanedRefs;
     return NextResponse.json(response);

@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { openSafeUrl } from '@/lib/security/safe-url';
+import { resolvePrivateStorageUrls } from '@/lib/storage/resolve-private-storage-url';
 
 interface Inspection {
   id: string;
@@ -58,7 +59,23 @@ export default function InspectionsPage() {
 
         if (error) throw error;
         
-        setInspections((data || []) as Inspection[]);
+        const rows = (data || []) as Inspection[];
+        const photoRefs = rows.flatMap((inspection) =>
+          (['front', 'left', 'right', 'rear'] as const)
+            .map((key) => ({ id: inspection.id, key, url: inspection.photos?.[key] }))
+            .filter((item): item is { id: string; key: 'front' | 'left' | 'right' | 'rear'; url: string } => typeof item.url === 'string' && item.url.length > 0),
+        );
+        const resolvedUrls = await resolvePrivateStorageUrls(photoRefs.map((item) => item.url));
+        const resolvedByKey = new Map(photoRefs.map((item, index) => [`${item.id}:${item.key}`, resolvedUrls[index] || undefined]));
+        setInspections(rows.map((inspection) => ({
+          ...inspection,
+          photos: {
+            front: resolvedByKey.get(`${inspection.id}:front`) ?? inspection.photos?.front,
+            left: resolvedByKey.get(`${inspection.id}:left`) ?? inspection.photos?.left,
+            right: resolvedByKey.get(`${inspection.id}:right`) ?? inspection.photos?.right,
+            rear: resolvedByKey.get(`${inspection.id}:rear`) ?? inspection.photos?.rear,
+          },
+        })));
       } catch (error) {
         console.error('Error cargando inspecciones:', error);
       } finally {
