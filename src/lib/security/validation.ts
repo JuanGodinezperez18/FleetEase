@@ -125,6 +125,7 @@ export const vehicleUploadFieldsSchema = z.object({
 
 export const uploadFolderSchema = z.enum([
   'vehicle_images',
+  'vehicle_documents',
   'driver_documents',
   'financial_receipts',
   'general_documents',
