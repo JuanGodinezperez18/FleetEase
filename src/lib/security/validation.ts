@@ -191,12 +191,27 @@ function resolveEffectiveMime(file: File): string {
   return reportedType || inferredType || 'application/octet-stream';
 }
 
+async function readFileBytes(file: File): Promise<ArrayBuffer> {
+  if (typeof file.arrayBuffer === 'function') {
+    try {
+      return await file.arrayBuffer();
+    } catch {
+      // File virtual de proveedor cloud o entorno sin soporte completo
+    }
+  }
+  // Fallback: Blob / Response (compatible con Jest y browsers antiguos)
+  if (typeof Blob !== 'undefined') {
+    return await new Blob([file]).arrayBuffer();
+  }
+  throw new Error('READ_FAILED');
+}
+
 /**
  * Materializa un File de proveedor cloud (Google Drive, etc.) en memoria.
  *
  * Chrome/Android a menudo entregan un File "virtual" cuyo stream falla al
  * enviarlo en FormData (ERR_UPLOAD_FILE_CHANGED / Failed to fetch) sin que
- * la petición llegue al servidor. Leer arrayBuffer y crear un File nuevo
+ * la petición llegue al servidor. Leer los bytes y crear un File nuevo
  * es el workaround documentado.
  *
  * También normaliza MIME genérico por extensión.
@@ -204,10 +219,7 @@ function resolveEffectiveMime(file: File): string {
 export async function materializeProviderFile(file: File): Promise<File> {
   const effectiveType = resolveEffectiveMime(file);
   try {
-    const buffer = await file.arrayBuffer();
-    if (buffer.byteLength === 0 && file.size > 0) {
-      throw new Error('EMPTY_BUFFER');
-    }
+    const buffer = await readFileBytes(file);
     return new File([buffer], file.name, {
       type: effectiveType,
       lastModified: file.lastModified || Date.now(),
