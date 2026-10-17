@@ -30,6 +30,7 @@ type AllowedFolder = z.infer<typeof uploadFolderSchema>;
 
 const ALLOWED_MIME_TYPES: Record<AllowedFolder, readonly string[]> = {
   vehicle_images: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'],
+  vehicle_documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/jpg'],
   driver_documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   financial_receipts: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   general_documents: [
@@ -49,6 +50,8 @@ function getBucketName(folder: AllowedFolder): string {
   switch (folder) {
     case 'vehicle_images':
       return 'vehicle-images';
+    case 'vehicle_documents':
+      return 'vehicle-documents';
     case 'driver_documents':
       return 'driver-documents';
     case 'financial_receipts':
@@ -173,7 +176,7 @@ export async function POST(request: NextRequest) {
           );
         }
         companyId = client.company_id;
-      } else if (folder === 'vehicle_images') {
+      } else if (folder === 'vehicle_images' || folder === 'vehicle_documents') {
         const { data: vehicle, error: vehicleError } = await supabaseAdmin
           .from('vehicles')
           .select('company_id')
@@ -210,6 +213,9 @@ export async function POST(request: NextRequest) {
     switch (folder) {
       case 'vehicle_images':
         pathPrefix = `companies/${companyId}/vehicles/${entityId}/images`;
+        break;
+      case 'vehicle_documents':
+        pathPrefix = `companies/${companyId}/vehicles/${entityId}/documents`;
         break;
       case 'driver_documents':
         pathPrefix = `companies/${companyId}/clients/${entityId}/documents`;
