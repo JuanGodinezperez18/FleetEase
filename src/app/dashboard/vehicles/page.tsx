@@ -128,7 +128,8 @@ export default function VehiclesPage() {
             }
             if (typeof fileOrUrl === 'string') return fileOrUrl;
             if (fileOrUrl instanceof File) {
-                const newUrl = await uploadFile(fileOrUrl, 'vehicle_images', true, editingVehicle?.id);
+                const uploadFolder = fieldKey === 'imageUrl' ? 'vehicle_images' : 'vehicle_documents';
+                const newUrl = await uploadFile(fileOrUrl, uploadFolder, true, editingVehicle?.id);
                 if (currentUrl) await deleteFileByUrl(currentUrl).catch(console.warn);
                 return newUrl;
             }
