@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { compressImageIfNeeded } from '@/lib/image-compression';
+import { materializeProviderFile } from '@/lib/security/validation';
 
 export type StorageFolderPath =
   | "vehicle_images"
@@ -15,6 +16,18 @@ export type StorageFolderPath =
   | "contract_templates"
   | "company_logos";
 
+function isNetworkFetchError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('load failed') ||
+    msg.includes('err_upload_file_changed')
+  );
+}
+
 export function useStorage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,14 +36,27 @@ export function useStorage() {
     setLoading(true);
     setError(null);
     const isDev = process.env.NODE_ENV === 'development';
-    if (isDev) console.log(`[useStorage] Iniciando subida para: ${file.name}, a carpeta: ${folder}, entityId: ${entityId}`);
+    if (isDev) {
+      console.log(
+        `[useStorage] Iniciando subida: name=${file.name} type=${file.type || '(vacío)'} size=${file.size} folder=${folder}`,
+      );
+    }
 
     try {
-      let fileToUpload = file;
-      if (compress && file.type.startsWith('image/')) {
+      // Chrome + Google Drive: el File es virtual y FormData falla con
+      // Failed to fetch / ERR_UPLOAD_FILE_CHANGED sin llegar al servidor.
+      // Materializar a memoria soluciona el problema.
+      let fileToUpload = await materializeProviderFile(file);
+      if (isDev) {
+        console.log(
+          `[useStorage] Archivo materializado: type=${fileToUpload.type} size=${fileToUpload.size}`,
+        );
+      }
+
+      if (compress && fileToUpload.type.startsWith('image/')) {
         if (isDev) console.log(`[useStorage] Comprimiendo imagen...`);
-        fileToUpload = (await compressImageIfNeeded(file)) ?? file;
-        if (isDev) console.log(`[useStorage] Compresión finalizada.`);
+        fileToUpload = (await compressImageIfNeeded(fileToUpload)) ?? fileToUpload;
+        if (isDev) console.log(`[useStorage] Compresión finalizada size=${fileToUpload.size}`);
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -49,28 +75,41 @@ export function useStorage() {
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error en el servidor: ${response.statusText}`);
+        let serverMessage = `Error en el servidor: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) serverMessage = errorData.error;
+        } catch {
+          // body no JSON
+        }
+        throw new Error(serverMessage);
       }
 
       const { downloadUrl } = await response.json();
       if (!downloadUrl) {
-        throw new Error("La API no devolvió una URL de descarga.");
+        throw new Error('La API no devolvió una URL de descarga.');
       }
 
-      if(isDev) console.log('[useStorage] Subida exitosa. URL de descarga:', downloadUrl);
+      if (isDev) console.log('[useStorage] Subida exitosa. URL de descarga:', downloadUrl);
       return downloadUrl as string;
-    } catch (err: any) {
-      const errorMsg = err.message || 'Error desconocido al subir el archivo.';
+    } catch (err: unknown) {
+      let errorMsg = err instanceof Error ? err.message : 'Error desconocido al subir el archivo.';
+
+      if (isNetworkFetchError(err)) {
+        errorMsg =
+          'No se pudo enviar el archivo (posible limitación de Google Drive/Chrome). ' +
+          'Descárgalo al dispositivo e inténtalo de nuevo. Si el problema continúa, recarga la página.';
+      }
+
       setError(errorMsg);
-      console.error("[useStorage] Error detallado en uploadFile:", err);
-      throw err;
+      console.error('[useStorage] Error detallado en uploadFile:', err);
+      throw new Error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -86,18 +125,19 @@ export function useStorage() {
       const response = await fetch('/api/delete-file', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ fileUrl })
+        body: JSON.stringify({ fileUrl }),
       });
 
       if (!response.ok) {
         const errorData = await response.text().catch(() => response.statusText);
         console.warn(`No se pudo eliminar el archivo del storage: ${errorData}`);
       }
-    } catch (err: any) {
-      console.warn(`Error al intentar eliminar archivo: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`Error al intentar eliminar archivo: ${message}`);
     }
   };
 
@@ -110,8 +150,8 @@ export function useStorage() {
       const response = await fetch('/api/storage/signed-url', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ fileUrls: [fileUrl] }),
         cache: 'no-store',
@@ -121,11 +161,11 @@ export function useStorage() {
         throw new Error('Error generando URL temporal');
       }
 
-      const payload = await response.json() as { signedUrls?: Record<string, string> };
+      const payload = (await response.json()) as { signedUrls?: Record<string, string> };
       const url = payload.signedUrls?.[fileUrl];
       if (!url) throw new Error('El archivo no está disponible para esta empresa.');
       return url;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en getShareableUrl:', err);
       throw err;
     }
@@ -153,7 +193,7 @@ export function useStorage() {
       document.body.removeChild(a);
 
       toast.success('Archivo descargado');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en downloadFile:', err);
       toast.error('Error al descargar archivo');
       throw err;
@@ -173,14 +213,14 @@ export function useStorage() {
     }
   };
 
-  return { 
-    uploadFile, 
-    deleteFileByUrl, 
-    getShareableUrl, 
-    downloadFile, 
+  return {
+    uploadFile,
+    deleteFileByUrl,
+    getShareableUrl,
+    downloadFile,
     getPreviewUrl,
-    loading, 
-    error 
+    loading,
+    error,
   };
 }
 

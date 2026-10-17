@@ -5,9 +5,11 @@ on:
     branches:
       - security/performance-hardening
       - master
+      - 'fix/**'
   pull_request:
     branches:
       - master
+      - 'fix/**'
 
 permissions:
   contents: read
@@ -35,6 +37,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Pruebas de regresión del middleware
         run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts
+      - name: Pruebas de validación de upload (proveedores externos)
+        run: npm run test:ci -- --runInBand src/__tests__/lib/upload-validation.test.ts
       - run: npm run type-check
       - name: Build
         run: npm run build

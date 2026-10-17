@@ -154,7 +154,104 @@ export const IMAGE_MIME_TYPES = [
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/** Valida File de FormData (tipo + tamaño). */
+/**
+ * Algunos selectores de Android/iOS y proveedores como Google Drive entregan
+ * archivos válidos con MIME vacío o genérico (por ejemplo application/octet-stream).
+ * Solo en esos casos usamos una extensión conocida como fallback; los MIME
+ * específicos que no coinciden con la allowlist siguen rechazándose.
+ */
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
+const GENERIC_MIME_TYPES = new Set([
+  '',
+  'application/octet-stream',
+  'binary/octet-stream',
+  'application/x-download',
+  'application/force-download',
+  'application/download',
+  'application/x-msdownload',
+]);
+
+function resolveEffectiveMime(file: File): string {
+  const reportedType = (file.type || '').trim().toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  if (GENERIC_MIME_TYPES.has(reportedType) && inferredType) {
+    return inferredType;
+  }
+  return reportedType || inferredType || 'application/octet-stream';
+}
+
+async function readFileBytes(file: File): Promise<ArrayBuffer> {
+  if (typeof file.arrayBuffer === 'function') {
+    try {
+      return await file.arrayBuffer();
+    } catch {
+      // File virtual de proveedor cloud o entorno sin soporte completo
+    }
+  }
+  // Fallback: Blob / Response (compatible con Jest y browsers antiguos)
+  if (typeof Blob !== 'undefined') {
+    return await new Blob([file]).arrayBuffer();
+  }
+  throw new Error('READ_FAILED');
+}
+
+/**
+ * Materializa un File de proveedor cloud (Google Drive, etc.) en memoria.
+ *
+ * Chrome/Android a menudo entregan un File "virtual" cuyo stream falla al
+ * enviarlo en FormData (ERR_UPLOAD_FILE_CHANGED / Failed to fetch) sin que
+ * la petición llegue al servidor. Leer los bytes y crear un File nuevo
+ * es el workaround documentado.
+ *
+ * También normaliza MIME genérico por extensión.
+ */
+export async function materializeProviderFile(file: File): Promise<File> {
+  const effectiveType = resolveEffectiveMime(file);
+  try {
+    const buffer = await readFileBytes(file);
+    return new File([buffer], file.name, {
+      type: effectiveType,
+      lastModified: file.lastModified || Date.now(),
+    });
+  } catch {
+    throw new Error(
+      'No se pudo leer el archivo del proveedor (Google Drive u otro). ' +
+        'Descárgalo al almacenamiento del dispositivo e inténtalo de nuevo.',
+    );
+  }
+}
+
+/**
+ * Normaliza el MIME de un File cuando el proveedor entrega un tipo genérico.
+ * Versión síncrona: no materializa bytes (puede seguir fallando en Drive).
+ * Preferir materializeProviderFile antes de subir.
+ */
+export function normalizeProviderFileMime(file: File): File {
+  const reportedType = (file.type || '').trim().toLowerCase();
+  if (!GENERIC_MIME_TYPES.has(reportedType)) return file;
+
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  if (!inferredType || file.type === inferredType) return file;
+
+  return new File([file], file.name, {
+    type: inferredType,
+    lastModified: file.lastModified,
+  });
+}
+
+/** Valida File de FormData (tipo + tamaño), normalizando MIME genérico por extensión. */
 export function validateUploadFile(
   file: FormDataEntryValue | null,
   allowedMimes: readonly string[] = IMAGE_MIME_TYPES,
@@ -166,8 +263,15 @@ export function validateUploadFile(
   if (file.size > maxBytes) {
     return { ok: false, response: validationError('Archivo demasiado grande. Límite: 10MB') };
   }
-  const type = file.type || guessMimeFromName(file.name);
-  if (!allowedMimes.includes(type) && !allowedMimes.includes(file.type)) {
+
+  const reportedType = file.type.trim().toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  const useExtensionFallback = GENERIC_MIME_TYPES.has(reportedType);
+
+  // Never let a generic provider MIME bypass the folder's existing allowlist.
+  const effectiveType = useExtensionFallback ? inferredType : reportedType;
+  if (!effectiveType || !allowedMimes.includes(effectiveType)) {
     return {
       ok: false,
       response: validationError(
@@ -175,14 +279,15 @@ export function validateUploadFile(
       ),
     };
   }
-  return { ok: true, data: file };
-}
 
-function guessMimeFromName(name: string): string {
-  if (/\.jpe?g$/i.test(name)) return 'image/jpeg';
-  if (/\.png$/i.test(name)) return 'image/png';
-  if (/\.webp$/i.test(name)) return 'image/webp';
-  if (/\.heic$/i.test(name)) return 'image/heic';
-  if (/\.pdf$/i.test(name)) return 'application/pdf';
-  return '';
+  // Ensure downstream Storage receives the normalized MIME, not octet-stream.
+  if (useExtensionFallback && file.type !== effectiveType) {
+    const normalizedFile = new File([file], file.name, {
+      type: effectiveType,
+      lastModified: file.lastModified,
+    });
+    return { ok: true, data: normalizedFile };
+  }
+
+  return { ok: true, data: file };
 }
