@@ -26,21 +26,37 @@ interface MultipleFileInputProps {
   entityId?: string;
 }
 
-/** Convierte "image/jpeg,image/png" o "image/*" al formato Accept de react-dropzone */
+/** Convierte el accept HTML al formato de react-dropzone y contempla proveedores
+ * móviles que reportan application/octet-stream aunque el archivo tenga extensión conocida.
+ * La validación definitiva de tipo/tamaño sigue realizándose en /api/upload.
+ */
 function parseAccept(accept?: string): Accept | undefined {
   if (!accept || !accept.trim()) return undefined;
-  const parts = accept.split(',').map(s => s.trim()).filter(Boolean);
+  const parts = accept.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   if (parts.length === 0) return undefined;
   const result: Accept = {};
+  const genericExtensions = new Set<string>();
+
   for (const part of parts) {
-    // Extensiones tipo .pdf
     if (part.startsWith('.')) {
-      const key = part.toLowerCase();
-      if (!result['application/octet-stream']) result['application/octet-stream'] = [];
-      (result['application/octet-stream'] as string[]).push(key);
+      genericExtensions.add(part);
       continue;
     }
     result[part] = [];
+    if (part === 'image/*') {
+      ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.gif', '.avif'].forEach(ext => genericExtensions.add(ext));
+    } else if (part === 'application/pdf') {
+      genericExtensions.add('.pdf');
+    } else if (part === 'application/msword') {
+      genericExtensions.add('.doc');
+    } else if (part === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      genericExtensions.add('.docx');
+    }
+  }
+
+  // React-dropzone verifica extensiones cuando el proveedor no entrega un MIME útil.
+  if (genericExtensions.size > 0) {
+    result['application/octet-stream'] = [...genericExtensions];
   }
   return result;
 }
