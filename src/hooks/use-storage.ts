@@ -8,6 +8,7 @@ import { compressImageIfNeeded } from '@/lib/image-compression';
 
 export type StorageFolderPath =
   | "vehicle_images"
+  | "vehicle_documents"
   | "driver_documents"
   | "financial_receipts"
   | "general_documents"
