@@ -177,7 +177,28 @@ const GENERIC_MIME_TYPES = new Set([
   'binary/octet-stream',
   'application/x-download',
   'application/force-download',
+  'application/download',
+  'application/x-msdownload',
 ]);
+
+/**
+ * Normaliza el MIME de un File cuando el proveedor (Google Drive, Android, etc.)
+ * entrega un tipo genérico vacío. No aplica allowlist; solo corrige el type.
+ * Útil en el cliente antes de comprimir o enviar a la API.
+ */
+export function normalizeProviderFileMime(file: File): File {
+  const reportedType = (file.type || '').trim().toLowerCase();
+  if (!GENERIC_MIME_TYPES.has(reportedType)) return file;
+
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  if (!inferredType || file.type === inferredType) return file;
+
+  return new File([file], file.name, {
+    type: inferredType,
+    lastModified: file.lastModified,
+  });
+}
 
 /** Valida File de FormData (tipo + tamaño), normalizando MIME genérico por extensión. */
 export function validateUploadFile(

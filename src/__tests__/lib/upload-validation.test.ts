@@ -1,4 +1,4 @@
-import { validateUploadFile } from '@/lib/security/validation';
+import { normalizeProviderFileMime, validateUploadFile } from '@/lib/security/validation';
 
 describe('validateUploadFile: MIME genérico de proveedores externos', () => {
   it('normaliza un PDF de Google Drive/Android cuando el navegador informa octet-stream', () => {
@@ -22,6 +22,13 @@ describe('validateUploadFile: MIME genérico de proveedores externos', () => {
     if (result.ok) expect(result.data.type).toBe('image/jpeg');
   });
 
+  it('normaliza application/download y application/x-msdownload por extensión', () => {
+    const file = new File(['pdf'], 'contrato.pdf', { type: 'application/download' });
+    const result = validateUploadFile(file, ['application/pdf']);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.type).toBe('application/pdf');
+  });
+
   it('no permite extensiones desconocidas aunque el proveedor informe MIME genérico', () => {
     const file = new File(['binary-content'], 'payload.exe', { type: 'application/octet-stream' });
 
@@ -32,5 +39,24 @@ describe('validateUploadFile: MIME genérico de proveedores externos', () => {
     const file = new File(['html-content'], 'poliza.pdf', { type: 'text/html' });
 
     expect(validateUploadFile(file, ['application/pdf']).ok).toBe(false);
+  });
+
+  it('rechaza archivo vacío', () => {
+    const file = new File([], 'vacio.pdf', { type: 'application/pdf' });
+    expect(validateUploadFile(file, ['application/pdf']).ok).toBe(false);
+  });
+});
+
+describe('normalizeProviderFileMime (cliente)', () => {
+  it('deja intacto un MIME ya correcto', () => {
+    const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+    expect(normalizeProviderFileMime(file)).toBe(file);
+  });
+
+  it('infiere image/jpeg desde octet-stream + .jpg', () => {
+    const file = new File(['img'], 'foto.jpg', { type: 'application/octet-stream' });
+    const normalized = normalizeProviderFileMime(file);
+    expect(normalized.type).toBe('image/jpeg');
+    expect(normalized.name).toBe('foto.jpg');
   });
 });

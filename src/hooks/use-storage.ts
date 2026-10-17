@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { compressImageIfNeeded } from '@/lib/image-compression';
+import { normalizeProviderFileMime } from '@/lib/security/validation';
 
 export type StorageFolderPath =
   | "vehicle_images"
@@ -14,6 +15,17 @@ export type StorageFolderPath =
   | "general_documents"
   | "contract_templates"
   | "company_logos";
+
+function isNetworkFetchError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('load failed')
+  );
+}
 
 export function useStorage() {
   const [loading, setLoading] = useState(false);
@@ -26,10 +38,13 @@ export function useStorage() {
     if (isDev) console.log(`[useStorage] Iniciando subida para: ${file.name}, a carpeta: ${folder}, entityId: ${entityId}`);
 
     try {
-      let fileToUpload = file;
-      if (compress && file.type.startsWith('image/')) {
+      // Google Drive / Android a menudo entregan application/octet-stream.
+      // Normalizamos antes de comprimir para que las imágenes se detecten bien.
+      let fileToUpload = normalizeProviderFileMime(file);
+
+      if (compress && fileToUpload.type.startsWith('image/')) {
         if (isDev) console.log(`[useStorage] Comprimiendo imagen...`);
-        fileToUpload = (await compressImageIfNeeded(file)) ?? file;
+        fileToUpload = (await compressImageIfNeeded(fileToUpload)) ?? fileToUpload;
         if (isDev) console.log(`[useStorage] Compresión finalizada.`);
       }
 
@@ -55,8 +70,14 @@ export function useStorage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error en el servidor: ${response.statusText}`);
+        let serverMessage = `Error en el servidor: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) serverMessage = errorData.error;
+        } catch {
+          // body no JSON
+        }
+        throw new Error(serverMessage);
       }
 
       const { downloadUrl } = await response.json();
@@ -66,11 +87,18 @@ export function useStorage() {
 
       if(isDev) console.log('[useStorage] Subida exitosa. URL de descarga:', downloadUrl);
       return downloadUrl as string;
-    } catch (err: any) {
-      const errorMsg = err.message || 'Error desconocido al subir el archivo.';
+    } catch (err: unknown) {
+      let errorMsg = err instanceof Error ? err.message : 'Error desconocido al subir el archivo.';
+
+      if (isNetworkFetchError(err)) {
+        errorMsg =
+          'No se pudo conectar con el servidor al subir el archivo. ' +
+          'Si viene de Google Drive u otro proveedor, pruébalo de nuevo o descárgalo primero al dispositivo.';
+      }
+
       setError(errorMsg);
       console.error("[useStorage] Error detallado en uploadFile:", err);
-      throw err;
+      throw new Error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -96,8 +124,9 @@ export function useStorage() {
         const errorData = await response.text().catch(() => response.statusText);
         console.warn(`No se pudo eliminar el archivo del storage: ${errorData}`);
       }
-    } catch (err: any) {
-      console.warn(`Error al intentar eliminar archivo: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`Error al intentar eliminar archivo: ${message}`);
     }
   };
 
@@ -125,7 +154,7 @@ export function useStorage() {
       const url = payload.signedUrls?.[fileUrl];
       if (!url) throw new Error('El archivo no está disponible para esta empresa.');
       return url;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en getShareableUrl:', err);
       throw err;
     }
@@ -153,7 +182,7 @@ export function useStorage() {
       document.body.removeChild(a);
 
       toast.success('Archivo descargado');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en downloadFile:', err);
       toast.error('Error al descargar archivo');
       throw err;
