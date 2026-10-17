@@ -90,13 +90,13 @@ export const optionalNameSchema = z.string().trim().max(120).optional();
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\\+?[0-9\\s\\-().]{7,20}$/, 'Teléfono inválido.')
+  .regex(/^\+?[0-9\s\-().]{7,20}$/, 'Teléfono inválido.')
   .optional();
 export const roleSchema = z.enum(['super_admin', 'admin', 'manager', 'user', 'driver', 'viewer']);
 export const isoDateSchema = z
   .string()
   .trim()
-  .regex(/^\\d{4}-\\d{2}-\\d{2}$/, 'Fecha inválida (formato YYYY-MM-DD).');
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (formato YYYY-MM-DD).');
 export const urlSchema = z.string().trim().url('URL inválida.').max(2048);
 export const uuidOrEmptySchema = z.union([idSchema, z.literal('')]);
 
