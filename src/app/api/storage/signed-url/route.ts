@@ -16,6 +16,8 @@ const requestSchema = z.object({
 const ALLOWED_BUCKETS = new Set([
   'documents',
   'vehicle-images',
+  'vehicle-documents',
+  'driver-documents',
   'driver-documents',
   'financial-receipts',
   'general-documents',
