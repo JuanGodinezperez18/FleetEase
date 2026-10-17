@@ -90,13 +90,13 @@ export const optionalNameSchema = z.string().trim().max(120).optional();
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\+?[0-9\s\-().]{7,20}$/, 'Teléfono inválido.')
+  .regex(/^\\+?[0-9\\s\\-().]{7,20}$/, 'Teléfono inválido.')
   .optional();
 export const roleSchema = z.enum(['super_admin', 'admin', 'manager', 'user', 'driver', 'viewer']);
 export const isoDateSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (formato YYYY-MM-DD).');
+  .regex(/^\\d{4}-\\d{2}-\\d{2}$/, 'Fecha inválida (formato YYYY-MM-DD).');
 export const urlSchema = z.string().trim().url('URL inválida.').max(2048);
 export const uuidOrEmptySchema = z.union([idSchema, z.literal('')]);
 
@@ -154,7 +154,32 @@ export const IMAGE_MIME_TYPES = [
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/** Valida File de FormData (tipo + tamaño). */
+/**
+ * Algunos selectores de Android/iOS y proveedores como Google Drive entregan
+ * archivos válidos con MIME vacío o genérico (por ejemplo application/octet-stream).
+ * Solo en esos casos usamos una extensión conocida como fallback; los MIME
+ * específicos que no coinciden con la allowlist siguen rechazándose.
+ */
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
+const GENERIC_MIME_TYPES = new Set([
+  '',
+  'application/octet-stream',
+  'binary/octet-stream',
+  'application/x-download',
+  'application/force-download',
+]);
+
+/** Valida File de FormData (tipo + tamaño), normalizando MIME genérico por extensión. */
 export function validateUploadFile(
   file: FormDataEntryValue | null,
   allowedMimes: readonly string[] = IMAGE_MIME_TYPES,
@@ -166,8 +191,15 @@ export function validateUploadFile(
   if (file.size > maxBytes) {
     return { ok: false, response: validationError('Archivo demasiado grande. Límite: 10MB') };
   }
-  const type = file.type || guessMimeFromName(file.name);
-  if (!allowedMimes.includes(type) && !allowedMimes.includes(file.type)) {
+
+  const reportedType = file.type.trim().toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  const useExtensionFallback = GENERIC_MIME_TYPES.has(reportedType);
+
+  // Never let a generic provider MIME bypass the folder's existing allowlist.
+  const effectiveType = useExtensionFallback ? inferredType : reportedType;
+  if (!effectiveType || !allowedMimes.includes(effectiveType)) {
     return {
       ok: false,
       response: validationError(
@@ -175,14 +207,15 @@ export function validateUploadFile(
       ),
     };
   }
-  return { ok: true, data: file };
-}
 
-function guessMimeFromName(name: string): string {
-  if (/\.jpe?g$/i.test(name)) return 'image/jpeg';
-  if (/\.png$/i.test(name)) return 'image/png';
-  if (/\.webp$/i.test(name)) return 'image/webp';
-  if (/\.heic$/i.test(name)) return 'image/heic';
-  if (/\.pdf$/i.test(name)) return 'application/pdf';
-  return '';
+  // Ensure downstream Storage receives the normalized MIME, not octet-stream.
+  if (useExtensionFallback && file.type !== effectiveType) {
+    const normalizedFile = new File([file], file.name, {
+      type: effectiveType,
+      lastModified: file.lastModified,
+    });
+    return { ok: true, data: normalizedFile };
+  }
+
+  return { ok: true, data: file };
 }
