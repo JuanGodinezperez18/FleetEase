@@ -1,19 +1,20 @@
-/**
- * validation.ts importa api-error → next/server, que en Node/Jest requiere
- * el global Request (Web Fetch API). Polyfill mínimo antes del import.
- */
-if (typeof globalThis.Request === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).Request = class Request {
-    constructor(public input?: unknown, public init?: unknown) {}
-  };
-}
-if (typeof globalThis.Response === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).Response = class Response {
-    constructor(public body?: unknown, public init?: unknown) {}
-  };
-}
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: (body: unknown, init?: { status?: number }) => ({
+      status: init?.status ?? 200,
+      json: async () => body,
+    }),
+  },
+}));
+
+jest.mock('@/lib/security/api-error', () => ({
+  validationError: (message: unknown) => ({
+    status: 400,
+    json: async () => ({
+      error: typeof message === 'string' ? message : 'validation error',
+    }),
+  }),
+}));
 
 import { normalizeProviderFileMime, validateUploadFile } from '@/lib/security/validation';
 
