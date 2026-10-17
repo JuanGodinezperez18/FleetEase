@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const match = parsedUrl.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)/);
-    const allowedBuckets = new Set(['documents', 'vehicle-images', 'driver-documents', 'financial-receipts', 'general-documents', 'contract-templates', 'company-logos', 'inspection-images', 'seguimientos', 'client-documents', 'clients']);
+    const allowedBuckets = new Set(['documents', 'vehicle-images', 'vehicle-documents', 'driver-documents', 'financial-receipts', 'general-documents', 'contract-templates', 'company-logos', 'inspection-images', 'seguimientos', 'client-documents', 'clients']);
     if (!match || !allowedBuckets.has(match[1])) {
       return NextResponse.json(
         { error: 'URL de Supabase Storage no válida o no reconocida.' },
