@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
     const allowedBuckets = new Set([
       'documents',
       'vehicle-images',
+      'vehicle-documents',
       'driver-documents',
       'financial-receipts',
       'general-documents',
