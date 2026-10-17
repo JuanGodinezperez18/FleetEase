@@ -16,7 +16,11 @@ jest.mock('@/lib/security/api-error', () => ({
   }),
 }));
 
-import { normalizeProviderFileMime, validateUploadFile } from '@/lib/security/validation';
+import {
+  materializeProviderFile,
+  normalizeProviderFileMime,
+  validateUploadFile,
+} from '@/lib/security/validation';
 
 describe('validateUploadFile: MIME genérico de proveedores externos', () => {
   it('normaliza un PDF de Google Drive/Android cuando el navegador informa octet-stream', () => {
@@ -76,5 +80,22 @@ describe('normalizeProviderFileMime (cliente)', () => {
     const normalized = normalizeProviderFileMime(file);
     expect(normalized.type).toBe('image/jpeg');
     expect(normalized.name).toBe('foto.jpg');
+  });
+});
+
+describe('materializeProviderFile', () => {
+  it('lee bytes y normaliza MIME genérico', async () => {
+    const file = new File(['contenido-pdf'], 'poliza.pdf', { type: 'application/octet-stream' });
+    const materialized = await materializeProviderFile(file);
+    expect(materialized.type).toBe('application/pdf');
+    expect(materialized.name).toBe('poliza.pdf');
+    expect(materialized.size).toBe(file.size);
+  });
+
+  it('conserva MIME ya correcto', async () => {
+    const file = new File(['img'], 'foto.jpg', { type: 'image/jpeg' });
+    const materialized = await materializeProviderFile(file);
+    expect(materialized.type).toBe('image/jpeg');
+    expect(materialized.size).toBe(file.size);
   });
 });

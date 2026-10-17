@@ -181,10 +181,49 @@ const GENERIC_MIME_TYPES = new Set([
   'application/x-msdownload',
 ]);
 
+function resolveEffectiveMime(file: File): string {
+  const reportedType = (file.type || '').trim().toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+  const inferredType = MIME_BY_EXTENSION[extension];
+  if (GENERIC_MIME_TYPES.has(reportedType) && inferredType) {
+    return inferredType;
+  }
+  return reportedType || inferredType || 'application/octet-stream';
+}
+
 /**
- * Normaliza el MIME de un File cuando el proveedor (Google Drive, Android, etc.)
- * entrega un tipo genérico vacío. No aplica allowlist; solo corrige el type.
- * Útil en el cliente antes de comprimir o enviar a la API.
+ * Materializa un File de proveedor cloud (Google Drive, etc.) en memoria.
+ *
+ * Chrome/Android a menudo entregan un File "virtual" cuyo stream falla al
+ * enviarlo en FormData (ERR_UPLOAD_FILE_CHANGED / Failed to fetch) sin que
+ * la petición llegue al servidor. Leer arrayBuffer y crear un File nuevo
+ * es el workaround documentado.
+ *
+ * También normaliza MIME genérico por extensión.
+ */
+export async function materializeProviderFile(file: File): Promise<File> {
+  const effectiveType = resolveEffectiveMime(file);
+  try {
+    const buffer = await file.arrayBuffer();
+    if (buffer.byteLength === 0 && file.size > 0) {
+      throw new Error('EMPTY_BUFFER');
+    }
+    return new File([buffer], file.name, {
+      type: effectiveType,
+      lastModified: file.lastModified || Date.now(),
+    });
+  } catch {
+    throw new Error(
+      'No se pudo leer el archivo del proveedor (Google Drive u otro). ' +
+        'Descárgalo al almacenamiento del dispositivo e inténtalo de nuevo.',
+    );
+  }
+}
+
+/**
+ * Normaliza el MIME de un File cuando el proveedor entrega un tipo genérico.
+ * Versión síncrona: no materializa bytes (puede seguir fallando en Drive).
+ * Preferir materializeProviderFile antes de subir.
  */
 export function normalizeProviderFileMime(file: File): File {
   const reportedType = (file.type || '').trim().toLowerCase();
