@@ -338,7 +338,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ...data,
         };
 
-        validateVehicleMutation(mergedForValidation, Number(existing.current_mileage ?? 0), true);
+        // Partial updates from the Documents screen must not be blocked by
+        // required fields belonging to the general vehicle form. Enforce the
+        // insurance metadata requirements only when the policy number or expiry
+        // date itself is being edited.
+        const requiresInsuranceValidation =
+          data.insurancePolicyNumber !== undefined || data.insuranceExpiryDate !== undefined;
+        validateVehicleMutation(
+          mergedForValidation,
+          Number(existing.current_mileage ?? 0),
+          requiresInsuranceValidation,
+        );
         const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id);
         if (error) throw error;
       } catch (error) {
