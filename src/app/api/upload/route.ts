@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
           { status: 403 },
         );
       }
-    } else if (isSuperAdmin(userProfile.role) && entityId && entityId !== 'unassigned') {
+    } else if (entityId && entityId !== 'unassigned') {
       if (folder === 'driver_documents') {
         const { data: client, error: clientError } = await supabaseAdmin
           .from('clients')
@@ -174,6 +174,9 @@ export async function POST(request: NextRequest) {
             { error: 'No se pudo determinar la empresa del cliente para la subida.' },
             { status: 400 },
           );
+        }
+        if (!isSuperAdmin(userProfile.role) && userProfile.company_id !== client.company_id) {
+          return NextResponse.json({ error: 'No puedes subir archivos de otra empresa.' }, { status: 403 });
         }
         companyId = client.company_id;
       } else if (folder === 'vehicle_images' || folder === 'vehicle_documents') {
@@ -187,6 +190,9 @@ export async function POST(request: NextRequest) {
             { error: 'No se pudo determinar la empresa del vehículo para la subida.' },
             { status: 400 },
           );
+        }
+        if (!isSuperAdmin(userProfile.role) && userProfile.company_id !== vehicle.company_id) {
+          return NextResponse.json({ error: 'No puedes subir archivos de otra empresa.' }, { status: 403 });
         }
         companyId = vehicle.company_id;
       }
