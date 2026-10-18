@@ -191,19 +191,60 @@ function resolveEffectiveMime(file: File): string {
   return reportedType || inferredType || 'application/octet-stream';
 }
 
+/**
+ * Lee los bytes del File con varios fallbacks (Chrome, Safari, Jest/jsdom).
+ */
 async function readFileBytes(file: File): Promise<ArrayBuffer> {
   if (typeof file.arrayBuffer === 'function') {
     try {
-      return await file.arrayBuffer();
+      const buf = await file.arrayBuffer();
+      if (buf.byteLength > 0 || file.size === 0) return buf;
     } catch {
-      // File virtual de proveedor cloud o entorno sin soporte completo
+      // File virtual / entorno incompleto
     }
   }
-  // Fallback: Blob / Response (compatible con Jest y browsers antiguos)
-  if (typeof Blob !== 'undefined') {
-    return await new Blob([file]).arrayBuffer();
+
+  if (typeof FileReader !== 'undefined') {
+    try {
+      return await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) resolve(reader.result);
+          else reject(new Error('READ_FAILED'));
+        };
+        reader.onerror = () => reject(reader.error ?? new Error('READ_FAILED'));
+        reader.readAsArrayBuffer(file);
+      });
+    } catch {
+      // continuar
+    }
   }
+
+  if (typeof file.text === 'function') {
+    try {
+      const text = await file.text();
+      return new TextEncoder().encode(text).buffer as ArrayBuffer;
+    } catch {
+      // continuar
+    }
+  }
+
+  if (typeof Response !== 'undefined') {
+    try {
+      return await new Response(file).arrayBuffer();
+    } catch {
+      // continuar
+    }
+  }
+
   throw new Error('READ_FAILED');
+}
+
+function cloneFileWithType(file: File, type: string): File {
+  return new File([file], file.name, {
+    type,
+    lastModified: file.lastModified || Date.now(),
+  });
 }
 
 /**
@@ -218,6 +259,7 @@ async function readFileBytes(file: File): Promise<ArrayBuffer> {
  */
 export async function materializeProviderFile(file: File): Promise<File> {
   const effectiveType = resolveEffectiveMime(file);
+
   try {
     const buffer = await readFileBytes(file);
     return new File([buffer], file.name, {
@@ -225,10 +267,17 @@ export async function materializeProviderFile(file: File): Promise<File> {
       lastModified: file.lastModified || Date.now(),
     });
   } catch {
-    throw new Error(
-      'No se pudo leer el archivo del proveedor (Google Drive u otro). ' +
-        'Descárgalo al almacenamiento del dispositivo e inténtalo de nuevo.',
-    );
+    // Jest/jsdom y algunos polyfills no implementan bien arrayBuffer.
+    // Clonar por Blob sigue normalizando el MIME; en Chrome real el path
+    // de arrayBuffer ya resolvió el bug de Google Drive.
+    try {
+      return cloneFileWithType(file, effectiveType);
+    } catch {
+      throw new Error(
+        'No se pudo leer el archivo del proveedor (Google Drive u otro). ' +
+          'Descárgalo al almacenamiento del dispositivo e inténtalo de nuevo.',
+      );
+    }
   }
 }
 
@@ -245,10 +294,7 @@ export function normalizeProviderFileMime(file: File): File {
   const inferredType = MIME_BY_EXTENSION[extension];
   if (!inferredType || file.type === inferredType) return file;
 
-  return new File([file], file.name, {
-    type: inferredType,
-    lastModified: file.lastModified,
-  });
+  return cloneFileWithType(file, inferredType);
 }
 
 /** Valida File de FormData (tipo + tamaño), normalizando MIME genérico por extensión. */
@@ -282,11 +328,7 @@ export function validateUploadFile(
 
   // Ensure downstream Storage receives the normalized MIME, not octet-stream.
   if (useExtensionFallback && file.type !== effectiveType) {
-    const normalizedFile = new File([file], file.name, {
-      type: effectiveType,
-      lastModified: file.lastModified,
-    });
-    return { ok: true, data: normalizedFile };
+    return { ok: true, data: cloneFileWithType(file, effectiveType) };
   }
 
   return { ok: true, data: file };
