@@ -129,6 +129,22 @@ La precedencia visual de estado debe ser: Revocado → Vencido → Utilizado →
 5. Añadir pruebas unitarias y de integración de autorización multiempresa, expiración, revocación, token inválido, consumo único concurrente y fallos de Storage.
 6. Validar en preview antes de cualquier merge o despliegue a producción.
 
+
+## Controles de seguridad obligatorios
+
+Estos controles son criterios de aceptación de la implementación, no recomendaciones opcionales:
+
+- **Consultas parametrizadas:** toda consulta SQL debe usar parámetros enlazados o el cliente Supabase con filtros tipados; queda prohibida la concatenación de entradas del usuario en SQL. Las funciones RPC, si fueran necesarias, validarán tipos y alcance, fijarán `search_path` cuando aplique y no expondrán privilegios innecesarios.
+- **Validación estricta:** validar en servidor el formato y longitud del token, el identificador del enlace, la fecha de expiración, la política de uso, el nombre de descarga y cualquier referencia recibida. Rechazar campos desconocidos, tipos incorrectos, rutas arbitrarias, URLs suministradas por el cliente y valores fuera de allowlists.
+- **Permisos mínimos:** el token público solo habilita lectura de un único objeto concreto. No concede sesión, acceso a tablas, operaciones CRUD, listado de archivos ni acceso a endpoints autenticados. Las operaciones de crear, listar y revocar exigen autenticación y autorización por empresa en cada petición.
+- **Aislamiento multiempresa:** resolver empresa, bucket y ruta desde metadatos confiables del servidor; comprobar la relación documento–empresa antes de emitir el enlace y volver a validar la referencia al descargar. No confiar en `company_id`, `bucket`, `path` ni permisos enviados por el navegador.
+- **Límites de solicitudes:** aplicar límites por IP y por token para la página pública, validaciones y descargas; añadir límites por usuario/empresa a creación y revocación. Responder con `429` y una política de reintento cuando corresponda, sin incluir el token en los registros. La solución de rate limiting debe funcionar en el entorno desplegado y no depender de memoria local de una sola instancia.
+- **Errores públicos neutrales:** los tokens inválidos, inexistentes, vencidos, revocados, consumidos o asociados a un archivo no disponible deben producir mensajes públicos genéricos. No enviar al cliente mensajes de SQL, stack traces, nombres de tablas, rutas internas, detalles de Storage ni credenciales. Los detalles técnicos se registran únicamente en logs internos saneados.
+- **Solo uso de lectura desde el enlace:** la ruta pública no debe llamar mutaciones de negocio ni aceptar métodos distintos a los estrictamente necesarios. El consumo de un enlace de un solo uso es una transición interna y atómica de su estado, no una autorización para modificar otros datos.
+- **No garantizar control del archivo descargado:** “Un solo uso” limita las descargas autorizadas posteriores desde FleetEase; no puede impedir que el destinatario copie, guarde, fotografíe o redistribuya el archivo después de recibirlo. El control depende de que toda visualización/descarga pase por el servidor y no se exponga una URL de Storage reutilizable.
+- **Consumo fiable:** no consumir el enlace al cargar la página ni por solicitudes HEAD, previsualizaciones o rastreadores de mensajería. Reservar el uso de forma atómica ante una solicitud explícita de descarga y confirmar el consumo solo cuando la entrega se haya completado según la estrategia de streaming elegida. Si la conexión se interrumpe, documentar y probar el comportamiento para no afirmar una garantía que el mecanismo de entrega no pueda cumplir.
+- **Pruebas negativas obligatorias:** incluir intentos de inyección SQL, tokens malformados, manipulación de referencias, acceso cruzado entre empresas, enumeración de tokens, abuso de tasa, métodos HTTP no permitidos, errores de Storage y solicitudes concurrentes de enlaces de un solo uso.
+
 ## Fuera de alcance por ahora
 
 - Analítica avanzada de clics, ubicación o seguimiento de destinatarios.
