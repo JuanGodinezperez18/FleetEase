@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, sharedLinkLimiter, sharedLinkTokenLimiter } from '@/lib/rate-limit';
 import { internalError } from '@/lib/security/api-error';
+import { getSafeStoragePath } from '@/lib/security/safe-storage-path';
 import {
   getLinkState, getSupabaseAdmin, hashShareToken, isValidShareToken, safeFileName, sharedLinkSecurityHeaders,
 } from '@/lib/shared-links';
@@ -44,7 +45,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     if (error) return internalError('Shared link download lookup', error);
     if (!link || getLinkState(link) !== 'active') return unavailable();
 
-    const segments = String(link.object_path).split('/');
+    const safePath = getSafeStoragePath(link.object_path);
+    if (!safePath || safePath !== link.object_path) return unavailable();
+    const segments = safePath.split('/');
     if (
       !['vehicle-documents', 'vehicle-images'].includes(link.bucket_name) ||
       segments[0] !== 'companies' ||
@@ -52,6 +55,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       segments[2] !== 'vehicles' ||
       segments[3] !== link.vehicle_id ||
       !['documents', 'images'].includes(segments[4]) ||
+      (link.bucket_name === 'vehicle-documents' && segments[4] !== 'documents') ||
+      (link.bucket_name === 'vehicle-images' && segments[4] !== 'images') ||
       segments.length !== 6
     ) return unavailable();
 
