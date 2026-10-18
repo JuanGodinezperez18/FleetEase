@@ -20,13 +20,13 @@ export function LandingHeader() {
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.07] bg-[var(--fe-ink)]/80 backdrop-blur-2xl">
       <div className="mx-auto flex h-[64px] sm:h-[72px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
         <Link href="/" className="flex items-center gap-3" aria-label="FleetEase inicio">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] bg-white">
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px]">
             <Image
               src="/logo.png"
               alt="FleetEase - Software de gestión de flotillas"
-              width={28}
-              height={28}
-              className="h-7 w-7 object-contain"
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
               priority
             />
           </div>
