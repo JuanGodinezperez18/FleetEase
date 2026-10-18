@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, Link2Off, RefreshCw, ShieldCheck, Clock3, Loader2, FileText } from "lucide-react";
+import { Link2Off, RefreshCw, ShieldCheck, Clock3, Loader2, FileText } from "lucide-react";
 import { getSessionToken } from "@/lib/auth";
 import { toast } from "sonner";
 
