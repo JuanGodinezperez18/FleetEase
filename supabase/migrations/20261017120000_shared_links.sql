@@ -45,18 +45,18 @@ as $function$
 declare
   v_consumed boolean := false;
 begin
-  update public.shared_links
-     set use_count = use_count + 1,
-         used_at = case when single_use then p_now else used_at end
-   where id = p_link_id
-     and single_use = p_single_use
-     and revoked_at is null
-     and expires_at > p_now
-     and (not single_use or used_at is null)
+  update public.shared_links as sl
+     set use_count = sl.use_count + 1,
+         used_at = case when sl.single_use then p_now else sl.used_at end
+   where sl.id = p_link_id
+     and sl.single_use = p_single_use
+     and sl.revoked_at is null
+     and sl.expires_at > p_now
+     and (not sl.single_use or sl.used_at is null)
      and exists (
        select 1 from public.vehicles v
-        where v.id = public.shared_links.vehicle_id
-          and v.company_id = public.shared_links.company_id
+        where v.id = sl.vehicle_id
+          and v.company_id = sl.company_id
           and coalesce(v.is_deleted, false) = false
      )
   returning true into v_consumed;
