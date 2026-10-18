@@ -5,7 +5,7 @@ import { internalError } from '@/lib/security/api-error';
 import { parseJsonBody } from '@/lib/security/validation';
 import {
   canCreateSharedLink, canManageSharedLinks, generateShareToken, getAuthenticatedProfile,
-  getLinkState, getShortLink, getSupabaseAdmin, hashShareToken, parseVehicleStorageReference,
+  getLinkState, getShortLink, hashShareToken, parseVehicleStorageReference,
   sanitizeDocumentLabel, sharedLinkSecurityHeaders, isSuperAdmin,
 } from '@/lib/shared-links';
 
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = generateShareToken();
+    const shortUrl = getShortLink(token);
     const expiresAt = new Date(Date.now() + parsed.data.expiresInHours * 60 * 60 * 1000).toISOString();
     const plate = typeof vehicle.plate === 'string' ? vehicle.plate.replace(/\s/g, '') : '';
     const maskedPlate = plate ? `***-${plate.slice(-3)}` : 'Placas no disponibles';
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (error || !row) return internalError('Shared link create', error || new Error('Missing link row'));
 
     return NextResponse.json(
-      { success: true, id: row.id, shortUrl: getShortLink(token), expiresAt: row.expires_at, singleUse: row.single_use },
+      { success: true, id: row.id, shortUrl, expiresAt: row.expires_at, singleUse: row.single_use },
       { status: 201, headers: sharedLinkSecurityHeaders() },
     );
   } catch (error) {
