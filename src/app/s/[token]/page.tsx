@@ -120,9 +120,20 @@ export default function SharedLinkPage() {
                   <p className="mt-1 break-words text-sm text-white/50">{info?.vehicleLabel || "Vehículo"}</p>
                 </div>
               </div>
+              <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-black/20">
+                <img
+                  src={`/api/shared-links/${encodeURIComponent(token)}/preview`}
+                  alt={info?.documentLabel || "Archivo compartido"}
+                  className="max-h-[55vh] w-full object-contain"
+                  loading="eager"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
               <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 text-xs text-white/50">
                 <div className="flex items-center gap-2"><Clock3 className="h-4 w-4" /> Vence: {formatDate(info?.expiresAt)}</div>
-                <p className="mt-2">{info?.singleUse ? "El enlace permite una sola descarga desde FleetEase." : "El enlace permite descargas hasta su vencimiento o revocación."}</p>
+                <p className="mt-2">{info?.singleUse ? "La vista previa no consume el enlace. La descarga se permite una sola vez." : "Puedes ver y descargar el archivo hasta su vencimiento o revocación."}</p>
               </div>
               <button onClick={handleDownload} disabled={downloading} className="flex h-12 w-full items-center justify-center rounded-xl bg-[#d7ff3f] px-4 text-sm font-semibold text-black transition hover:bg-[#c8f02e] disabled:cursor-not-allowed disabled:opacity-60">
                 {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
