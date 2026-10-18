@@ -55,7 +55,7 @@ export default function SharedLinksAdminPage() {
     try {
       const token = await getSessionToken();
       if (!token) throw new Error("Inicia sesión para continuar.");
-      const response = await fetch(`/api/shared-links/${link.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`/api/shared-links/manage/${link.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.message || "No se pudo revocar el enlace.");
       toast.success("Enlace revocado");
