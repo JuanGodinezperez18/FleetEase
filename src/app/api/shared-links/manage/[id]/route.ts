@@ -11,7 +11,7 @@ const idSchema = z.string().uuid();
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    if (process.env.NODE_ENV === 'production' && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
+    if ((process.env.VERCEL_ENV === 'production' || (!process.env.VERCEL_ENV && process.env.NODE_ENV === 'production')) && (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)) {
       return NextResponse.json({ success: false, message: 'Servicio temporalmente no disponible.' }, { status: 503, headers: sharedLinkSecurityHeaders() });
     }
     const limited = await checkRateLimit(request, adminLimiter);
