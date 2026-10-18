@@ -70,7 +70,7 @@ describe('middleware authentication and role authorization', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
 
-  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones'])(
+  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example'])(
     'does not make an auth network call for public path %s',
     async (path) => {
       const response = await middleware(buildRequest(path) as any);

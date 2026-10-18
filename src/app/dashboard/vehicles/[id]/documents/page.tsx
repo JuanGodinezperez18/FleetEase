@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabase";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DocumentField {
   key: keyof Vehicle;
@@ -96,6 +97,11 @@ export default function VehicleDocumentsPage() {
   const [downloadingState, setDownloadingState] = useState<Record<string, boolean>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; fieldKey?: keyof Vehicle }>({ open: false });
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; url?: string; title?: string }>({ open: false });
+  const [shareTarget, setShareTarget] = useState<{ url: string; title: string } | null>(null);
+  const [shareExpiryHours, setShareExpiryHours] = useState<1 | 24 | 168>(24);
+  const [shareSingleUse, setShareSingleUse] = useState(false);
+  const [shareCreating, setShareCreating] = useState(false);
+  const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null);
 
   const vehicle = useMemo(
     () => (vehicles || []).find((v) => v.id === vehicleId && !v.isDeleted),
@@ -197,17 +203,38 @@ export default function VehicleDocumentsPage() {
     }
   }, []);
 
-  const handleShare = async (url: string, title: string) => {
-    if (!navigator.share) {
-      toast.info("No soportado en este navegador");
-      return;
-    }
+  const handleShare = (url: string, title: string) => {
+    setCreatedShareUrl(null);
+    setShareExpiryHours(24);
+    setShareSingleUse(false);
+    setShareTarget({ url, title });
+  };
+
+  const createSharedLink = async () => {
+    if (!shareTarget || !vehicle) return;
+    setShareCreating(true);
     try {
-      await navigator.share({ title, url, text: `Documento: ${title}` });
-      toast.success("Compartido");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Inicia sesión para crear un enlace.");
+      const response = await fetch("/api/shared-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ fileUrl: shareTarget.url, vehicleId: vehicle.id, documentLabel: shareTarget.title, expiresInHours: shareExpiryHours, singleUse: shareSingleUse }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.shortUrl) throw new Error(payload?.message || "No se pudo crear el enlace.");
+      setCreatedShareUrl(payload.shortUrl);
+      toast.success("Enlace seguro creado");
+      if (navigator.share) {
+        try { await navigator.share({ title: shareTarget.title, url: payload.shortUrl, text: `Documento: ${shareTarget.title}` }); }
+        catch (shareError) { if (!(shareError instanceof DOMException && shareError.name === "AbortError")) { /* El enlace queda visible para copiar manualmente. */ } }
+      } else {
+        try { await navigator.clipboard.writeText(payload.shortUrl); } catch { /* Se muestra el enlace para copiarlo. */ }
+      }
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      toast.error("Error al compartir");
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el enlace.");
+    } finally {
+      setShareCreating(false);
     }
   };
 
@@ -487,6 +514,39 @@ export default function VehicleDocumentsPage() {
           )}
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={!!shareTarget} onOpenChange={(open) => { if (!open && !shareCreating) setShareTarget(null); }}>
+        <DialogContent className="border-white/10 bg-[#0e1117] text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Compartir documento</DialogTitle>
+            <DialogDescription className="text-white/50">{shareTarget?.title} · {vehicle.make} {vehicle.model}</DialogDescription>
+          </DialogHeader>
+          {!createdShareUrl ? (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="shared-link-expiry" className="text-xs font-medium text-white/70">Caducidad</label>
+                <select id="shared-link-expiry" value={shareExpiryHours} onChange={(event) => setShareExpiryHours(Number(event.target.value) as 1 | 24 | 168)} className="h-11 w-full rounded-xl border border-white/10 bg-[#080a0f] px-3 text-sm text-white">
+                  <option value={1}>1 hora</option><option value={24}>24 horas</option><option value={168}>7 días</option>
+                </select>
+              </div>
+              <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <input type="checkbox" checked={shareSingleUse} onChange={(event) => setShareSingleUse(event.target.checked)} className="mt-1 accent-[#d7ff3f]" />
+                <span><span className="block text-sm font-medium">Un solo uso</span><span className="mt-1 block text-xs leading-relaxed text-white/45">Limita a una descarga desde FleetEase. No impide que el destinatario conserve o redistribuya el archivo descargado.</span></span>
+              </label>
+              <p className="text-xs leading-relaxed text-white/40">El enlace solo permite acceder a este documento y puedes revocarlo desde Enlaces compartidos.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-emerald-300">Enlace creado. Cópialo ahora; por seguridad no almacenamos el token en texto recuperable.</p>
+              <div className="break-all rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/80">{createdShareUrl}</div>
+              <Button type="button" className="h-11 w-full bg-[#d7ff3f] font-semibold text-black hover:bg-[#c8f02e]" onClick={async () => { try { await navigator.clipboard.writeText(createdShareUrl); toast.success("Enlace copiado"); } catch { toast.error("No se pudo copiar; selecciona y copia el enlace manualmente."); } }}>Copiar enlace</Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" className="border-white/10 bg-white/[0.03] text-white/70" onClick={() => setShareTarget(null)} disabled={shareCreating}>Cerrar</Button>
+            {!createdShareUrl && <Button type="button" onClick={createSharedLink} disabled={shareCreating} className="bg-[#d7ff3f] font-semibold text-black hover:bg-[#c8f02e]">{shareCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}{shareCreating ? "Creando enlace…" : "Crear enlace"}</Button>}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

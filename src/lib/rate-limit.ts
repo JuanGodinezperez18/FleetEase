@@ -293,3 +293,25 @@ export async function checkRateLimit(
 }
 
 export { RateLimiter };
+
+
+/** Límite por IP para consultas y descargas públicas de enlaces compartidos. */
+export const sharedLinkLimiter = new RateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  prefix: 'shared-link-ip',
+});
+
+/** Límite por token para impedir abuso repetido de un enlace individual. */
+export const sharedLinkTokenLimiter = new RateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  prefix: 'shared-link-token',
+});
+
+/** Límite de creación por usuario autenticado. */
+export const sharedLinkCreateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  prefix: 'shared-link-create',
+});

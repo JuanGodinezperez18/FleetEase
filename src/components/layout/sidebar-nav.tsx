@@ -27,6 +27,7 @@ import {
   Mail,
   Package,
   HandCoins,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -72,6 +73,7 @@ const navGroupByLabel: Record<string, string> = {
   "Mensajería": "Comunicación",
   "Notificaciones": "Comunicación",
   "Administración": "Administración",
+  "Enlaces compartidos": "Administración",
 };
 
 function NavGroupLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
@@ -259,6 +261,7 @@ export const navItemsBase: NavItem[] = [
       { href: "/dashboard/settings/categories", label: "Categorías", icon: Tags, roles: ["superAdmin", "admin"] },
       { href: "/dashboard/settings/catalogs", label: "Catálogos", icon: Package, roles: ["superAdmin", "admin"] },
       { href: "/dashboard/settings/company", label: "Configuración de Empresa", icon: SettingsIcon, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/shared-links", label: "Enlaces compartidos", icon: Link2, roles: ["superAdmin", "admin"] },
       { href: "/dashboard/settings/subscription", label: "Suscripción y Planes", icon: DollarSignIcon },
       { href: "/dashboard/faq", label: "Preguntas Frecuentes", icon: MessageSquare },
       { href: "/dashboard/settings", label: "Mi Configuración", icon: SettingsIcon },
