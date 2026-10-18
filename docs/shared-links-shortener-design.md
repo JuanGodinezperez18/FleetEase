@@ -85,7 +85,7 @@ No se debe confiar en un `fileUrl`, bucket, path o `company_id` enviado por el n
 - Acceso público: el token autoriza exclusivamente un documento específico, nunca una sesión de Supabase, una consulta SQL ni acceso a tablas.
 - No exponer credenciales ni usar `SUPABASE_SERVICE_ROLE_KEY` en cliente.
 - No devolver listas de enlaces, IDs internos ni otros documentos desde el endpoint público.
-- Limitar tasa de consultas/descargas y registrar eventos mínimos de auditoría sin guardar tokens en logs.
+- Limitar tasa de consultas/descargas y registrar eventos mínimos de auditoría sin incluir tokens en logs de aplicación. La URL lleva el token en la ruta; antes de producción se debe confirmar si los access logs/observabilidad de Vercel guardan rutas completas y aplicar redacción o retención mínima cuando esté disponible.
 - Usar respuestas neutrales para tokens inválidos y no revelar información de existencia.
 
 ### Caducidad y revocación
@@ -115,7 +115,7 @@ La precedencia visual de estado debe ser: Revocado → Vencido → Utilizado →
 4. Un enlace vencido o revocado deja de permitir nuevas descargas.
 5. Un enlace de un solo uso no puede descargarse dos veces, incluso con solicitudes concurrentes.
 6. Una vista previa automática de WhatsApp/Messenger no debe consumir el enlace; el consumo ocurre al solicitar la descarga de forma explícita.
-7. El contenido privado no se almacena en cachés públicas y los tokens no aparecen en logs.
+7. El contenido privado no se almacena en cachés públicas; los logs de aplicación no incluyen tokens y la retención de rutas completas en logs de plataforma se verifica antes de producción.
 8. Los errores de red o de almacenamiento no se presentan como éxito ni consumen un enlace de un solo uso.
 9. La tabla funciona en móvil y permite buscar, filtrar, copiar y revocar.
 10. La solución no cambia la lógica de subida de documentos ya existente.
