@@ -240,8 +240,8 @@ export default function LandingPage() {
           <div className="mx-auto flex max-w-[1240px] flex-col gap-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
               <Link href="/" className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white">
-                  <Image src="/logo.png" alt="FleetEase" width={24} height={24} className="h-6 w-6 object-contain" />
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
+                  <Image src="/logo.png" alt="FleetEase" width={32} height={32} className="h-8 w-8 object-contain" />
                 </div>
                 <span className="text-sm font-semibold">FleetEase</span>
               </Link>
