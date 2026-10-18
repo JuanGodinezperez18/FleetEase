@@ -41,6 +41,15 @@ export function isValidShareToken(token: unknown): token is string {
 }
 
 export function getShortLink(token: string): string {
+  // Preview links must stay on their own deployment instead of pointing at production.
+  if (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL) {
+    const previewHost = process.env.VERCEL_URL;
+    if (!/^[a-z0-9.-]+\.vercel\.app$/i.test(previewHost)) {
+      throw new Error('Invalid preview URL configuration');
+    }
+    return `https://${previewHost}/s/${token}`;
+  }
+
   const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://fleetease.com.mx').replace(/\/$/, '');
   const configured = new URL(base);
   if (configured.protocol !== 'https:' || !['fleetease.com.mx', 'www.fleetease.com.mx'].includes(configured.hostname)) {
