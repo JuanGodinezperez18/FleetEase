@@ -72,6 +72,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       .download(link.object_path);
     if (storageError || !blob) return unavailable();
 
+    if (blob.size <= 0 || blob.size > 10 * 1024 * 1024) return unavailable();
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const extension = link.object_path.match(/\.([a-zA-Z0-9]{1,8})$/)?.[1]?.toLowerCase() || 'bin';
     const fileName = safeFileName(`${link.document_label}.${extension}`);
