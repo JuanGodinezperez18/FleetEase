@@ -54,6 +54,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
       if (vehicleError || !vehicle || vehicle.company_id !== link.company_id || vehicle.is_deleted) return unavailable();
     }
 
+    if (status !== 'active') {
+      return NextResponse.json({ success: true, status }, { headers: sharedLinkSecurityHeaders() });
+    }
     return NextResponse.json({
       success: true,
       status,
