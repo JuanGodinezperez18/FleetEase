@@ -121,7 +121,7 @@ export function getLinkState(link: {
   return 'active';
 }
 
-export function sharedLinkSecurityHeaders(): HeadersInit {
+export function sharedLinkSecurityHeaders(): Record<string, string> {
   return {
     'Cache-Control': 'private, no-store, max-age=0',
     'X-Content-Type-Options': 'nosniff',
