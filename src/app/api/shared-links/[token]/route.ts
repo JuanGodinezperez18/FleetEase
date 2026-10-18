@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
     const admin = getSupabaseAdmin();
     const { data: link, error } = await admin
       .from('shared_links')
-      .select('id, document_label, vehicle_label, expires_at, revoked_at, single_use, used_at')
+      .select('id, vehicle_id, company_id, document_label, vehicle_label, expires_at, revoked_at, single_use, used_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
     if (error) return internalError('Shared link metadata lookup', error);
@@ -49,11 +49,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
       const { data: vehicle, error: vehicleError } = await admin
         .from('vehicles')
         .select('id, company_id, is_deleted')
-        .eq('id', (await admin.from('shared_links').select('vehicle_id, company_id').eq('id', link.id).single()).data?.vehicle_id || '')
+        .eq('id', link.vehicle_id)
         .maybeSingle();
-      if (vehicleError || !vehicle) return unavailable();
-      const { data: relation } = await admin.from('shared_links').select('company_id, vehicle_id').eq('id', link.id).single();
-      if (!relation || relation.company_id !== vehicle.company_id || vehicle.is_deleted) return unavailable();
+      if (vehicleError || !vehicle || vehicle.company_id !== link.company_id || vehicle.is_deleted) return unavailable();
     }
 
     return NextResponse.json({
