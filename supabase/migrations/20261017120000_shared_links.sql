@@ -7,7 +7,7 @@ create table if not exists public.shared_links (
   vehicle_id uuid not null references public.vehicles(id) on delete cascade,
   created_by uuid references public.users(id) on delete set null,
   bucket_name text not null check (bucket_name in ('vehicle-documents', 'vehicle-images')),
-  object_path text not null check (object_path !~ '(^/|\\\\|(^|/)\\.\\.?(/|$))'),
+  object_path text not null check (object_path not like '/%' and position('..' in object_path) = 0 and position(chr(92) in object_path) = 0),
   document_label text not null check (char_length(document_label) between 1 and 80),
   vehicle_label text not null check (char_length(vehicle_label) between 1 and 120),
   created_at timestamptz not null default now(),
