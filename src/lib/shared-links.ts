@@ -13,6 +13,7 @@ export type SharedLinkProfile = {
   id: string;
   company_id: string | null;
   role: string;
+  is_deleted?: boolean | null;
 };
 
 export function getSupabaseAdmin() {
@@ -84,10 +85,10 @@ export async function getAuthenticatedProfile(request: Request): Promise<{
   if (authError || !auth.user) return null;
   const { data: profile, error } = await admin
     .from('users')
-    .select('id, company_id, role')
+    .select('id, company_id, role, is_deleted')
     .eq('id', auth.user.id)
     .maybeSingle();
-  if (error || !profile) return null;
+  if (error || !profile || profile.is_deleted) return null;
   return { admin, user: { id: auth.user.id }, profile: profile as SharedLinkProfile };
 }
 
@@ -95,7 +96,7 @@ export function parseVehicleStorageReference(fileUrl: unknown): { bucket: string
   if (typeof fileUrl !== 'string' || fileUrl.length > 4096) return null;
   let parsed: URL;
   try { parsed = new URL(fileUrl); } catch { return null; }
-  if (parsed.protocol !== 'https:' || parsed.hostname !== getSupabaseHost() || parsed.username || parsed.password) return null;
+  if (parsed.protocol !== 'https:' || parsed.hostname !== getSupabaseHost() || parsed.port || parsed.username || parsed.password) return null;
   const match = parsed.pathname.match(/^\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/);
   if (!match || !SHARED_LINK_BUCKETS.has(match[1])) return null;
   const path = getSafeStoragePath(match[2]);
