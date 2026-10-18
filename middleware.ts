@@ -92,7 +92,7 @@ export async function middleware(req: NextRequest) {
     return createResponse();
   }
 
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/'];
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/s', '/'];
   const isPublicPath = publicPaths.some(
     path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );
