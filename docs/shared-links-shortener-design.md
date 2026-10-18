@@ -4,7 +4,7 @@
 
 Sustituir los enlaces largos de almacenamiento que hoy se copian al compartir documentos por enlaces cortos bajo el dominio propio `https://fleetease.com.mx/s/<token>`. El enlace debe explicar qué documento se comparte, funcionar desde móvil y poder expirar, usarse una sola vez o revocarse sin exponer el almacenamiento ni la base de datos.
 
-Este documento define el diseño funcional y de seguridad. No modifica el esquema de base de datos ni la aplicación.
+Este documento define el diseño funcional, los controles de seguridad y el alcance de la implementación inicial. La rama contiene endpoints, pantallas y una migración SQL versionada; la migración no se ha aplicado a Supabase y la rama no se ha fusionado ni desplegado.
 
 ## Experiencia de usuario
 
@@ -14,7 +14,7 @@ En el control de compartir del documento, abrir un diálogo titulado **Compartir
 
 - **Documento:** nombre legible del documento (por ejemplo, “Tarjeta de circulación”).
 - **Vehículo:** marca/modelo y placas enmascaradas según la política de privacidad (por ejemplo, “Nissan Versa · ***-123-A”); no incluir datos del cliente ni datos financieros.
-- **Caducidad:** 1 hora, 24 horas, 7 días o fecha/hora personalizada.
+- **Caducidad inicial implementada:** 1 hora, 24 horas o 7 días. La fecha/hora personalizada queda para una iteración posterior.
 - **Accesos:** “Se puede abrir varias veces” o “Un solo uso”.
 - **Aviso visible:** cualquiera que tenga el enlace podrá acceder al documento hasta que venza o se revoque.
 - Acción primaria **Crear enlace** y acción secundaria **Cancelar**.
@@ -51,7 +51,7 @@ Columnas:
 - Estado (Activo, Vencido, Utilizado, Revocado)
 - Acciones
 
-Filtros: estado, tipo de acceso, vehículo y rango de fechas. Búsqueda por nombre del documento, vehículo o creador. Acciones por fila: **Copiar**, **Ver detalles** y **Revocar**. Revocar debe pedir confirmación e invalidar el enlace inmediatamente. En móvil, cada registro debe presentarse como tarjeta o fila desplazable sin empalmar texto.
+Filtros: estado, tipo de acceso, vehículo y rango de fechas. Búsqueda por nombre del documento, vehículo o creador. Acciones iniciales por registro: **Revocar**, con confirmación e invalidación inmediata. La interfaz muestra tarjetas adaptables a móvil. La búsqueda, los filtros y la vista de detalles quedan pendientes. El token no se puede recuperar desde la tabla porque solo se conserva su hash; para volver a compartir debe crearse otro enlace.
 
 Los usuarios sin permiso de administración no deben ver la tabla global de la empresa; si se habilita creación para otros roles, solo deben administrar los enlaces que crearon, salvo permiso explícito superior.
 
@@ -90,7 +90,7 @@ No se debe confiar en un `fileUrl`, bucket, path o `company_id` enviado por el n
 
 ### Caducidad y revocación
 
-- Valores predeterminados sugeridos: 24 horas y acceso reutilizable; quien crea el enlace puede elegir 1 hora, 24 horas, 7 días, fecha personalizada o un solo uso.
+- Valores predeterminados: 24 horas y acceso reutilizable. La primera versión permite elegir 1 hora, 24 horas o 7 días, además de activar el modo de un solo uso.
 - La expiración se verifica en servidor en cada acceso, no mediante una tarea de limpieza.
 - Revocar cambia el estado del enlace y bloquea nuevas descargas inmediatamente.
 - Eliminar metadatos antiguos puede hacerse posteriormente con una tarea de limpieza; no es requisito para que expire un enlace.
@@ -125,9 +125,9 @@ La precedencia visual de estado debe ser: Revocado → Vencido → Utilizado →
 1. Revisar las relaciones reales entre documentos, vehículos, empresas y permisos para definir la referencia de objeto sin asumir nombres de tablas.
 2. Implementar migración SQL versionada para `shared_links`, restricciones e índices; no aplicar cambios directamente a la base de datos desde esta etapa de diseño.
 3. Implementar endpoints autenticados de creación/listado/revocación y endpoint público de metadatos/descarga.
-4. Implementar diálogo de creación y tabla administrativa.
-5. Añadir pruebas unitarias y de integración de autorización multiempresa, expiración, revocación, token inválido, consumo único concurrente y fallos de Storage.
-6. Validar en preview antes de cualquier merge o despliegue a producción.
+4. Implementados en la rama: diálogo de creación desde documentos del vehículo, página pública, listado administrativo y revocación. Pendiente: búsqueda/filtros y detalles administrativos.
+5. Añadidas pruebas unitarias iniciales de token y estados; pendientes las pruebas de integración para autorización multiempresa, expiración, revocación, token inválido, consumo único concurrente y fallos de Storage.
+6. Esperar a que terminen CI y Preview, corregir cualquier fallo y probar los casos de seguridad antes de solicitar revisión final. No aplicar la migración en Supabase hasta autorización explícita.
 
 
 ## Controles de seguridad obligatorios
