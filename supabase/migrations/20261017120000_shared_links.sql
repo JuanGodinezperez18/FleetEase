@@ -53,6 +53,12 @@ begin
      and revoked_at is null
      and expires_at > p_now
      and (not single_use or used_at is null)
+     and exists (
+       select 1 from public.vehicles v
+        where v.id = public.shared_links.vehicle_id
+          and v.company_id = public.shared_links.company_id
+          and coalesce(v.is_deleted, false) = false
+     )
   returning true into v_consumed;
 
   return coalesce(v_consumed, false);
