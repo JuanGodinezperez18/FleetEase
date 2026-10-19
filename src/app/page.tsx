@@ -63,7 +63,7 @@ export default function LandingPage() {
           Saltar al contenido principal
         </a>
 
-        <main id="contenido" className="relative z-10 pt-[64px] sm:pt-[72px]">
+        <main id="contenido" className="relative z-10 pt-[68px] sm:pt-[76px]">
           <section className="mx-auto grid min-h-[560px] max-w-[1240px] items-center gap-10 px-5 py-12 sm:min-h-[640px] sm:gap-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-8 lg:py-20">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
@@ -240,10 +240,20 @@ export default function LandingPage() {
           <div className="mx-auto flex max-w-[1240px] flex-col gap-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
               <Link href="/" className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg">
-                  <Image src="/logo.png" alt="FleetEase" width={32} height={32} className="h-8 w-8 object-contain" />
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden">
+                  <Image src="/logo.png" alt="FleetEase" width={36} height={36} className="h-9 w-9 object-contain" />
                 </div>
-                <span className="text-sm font-semibold">FleetEase</span>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[15px] font-semibold tracking-[-0.03em]">
+                    <span className="text-white">Fleet</span>
+                    <span className="text-[var(--fe-lime)]">Ease</span>
+                  </span>
+                  <span className="mt-1 flex items-center gap-1">
+                    <span className="h-px w-4 bg-[var(--fe-lime)]" />
+                    <span className="h-1 w-1 rounded-full bg-[var(--fe-lime)]" />
+                    <span className="h-px w-4 bg-[var(--fe-lime)]" />
+                  </span>
+                </div>
               </Link>
               <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-xs text-white/45 sm:grid-cols-3" aria-label="Enlaces del pie">
                 <Link href="/software-para-flotillas" className="hover:text-white">Software para flotillas</Link>
