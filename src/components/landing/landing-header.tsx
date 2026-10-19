@@ -18,29 +18,22 @@ export function LandingHeader() {
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.07] bg-[var(--fe-ink)]/80 backdrop-blur-2xl">
-      <div className="mx-auto flex h-[68px] sm:h-[76px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
+      <div className="mx-auto flex h-[72px] sm:h-[80px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
         <Link href="/" className="flex items-center gap-3.5" aria-label="FleetEase inicio">
-          <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center overflow-hidden">
+          <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden">
             <Image
               src="/logo.png"
               alt="FleetEase - Software de gestión de flotillas"
-              width={48}
-              height={48}
-              className="h-11 w-11 sm:h-12 sm:w-12 object-contain"
+              width={56}
+              height={56}
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
               priority
             />
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-[20px] sm:text-[22px] font-semibold tracking-[-0.03em]">
-              <span className="text-white">Fleet</span>
-              <span className="text-[var(--fe-lime)]">Ease</span>
-            </span>
-            <span className="mt-1 flex items-center gap-1.5">
-              <span className="h-px w-5 bg-[var(--fe-lime)]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)]" />
-              <span className="h-px w-5 bg-[var(--fe-lime)]" />
-            </span>
-          </div>
+          <span className="text-[22px] sm:text-[26px] font-semibold tracking-[-0.03em] leading-none">
+            <span className="text-white">Fleet</span>
+            <span className="text-[var(--fe-lime)]">Ease</span>
+          </span>
         </Link>
         <nav className="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
           {nav.map(([label, href]) => (
