@@ -12,6 +12,7 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardDateProvider } from '@/contexts/dashboard-date-context';
 import { PlanAccessGuard } from '@/components/subscription/plan-access-guard';
+import { FreePlanAds } from '@/components/subscription/free-plan-ads';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
@@ -33,7 +34,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <ClientsProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
           <FinancesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
             <SidebarLayout>
-              <PlanAccessGuard>{children}</PlanAccessGuard>
+              <PlanAccessGuard>
+                <FreePlanAds />
+                {children}
+              </PlanAccessGuard>
             </SidebarLayout>
           </FinancesProvider>
         </ClientsProvider>

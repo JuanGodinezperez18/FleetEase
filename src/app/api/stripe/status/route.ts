@@ -50,15 +50,25 @@ export async function GET() {
       }
     }
 
+    // Free permanente: siempre activo, sin caducidad de trial.
     if (plan === 'free') {
       subscriptionDetails = {
-        status: companyRecord.trial_ends_at && new Date(companyRecord.trial_ends_at).getTime() > Date.now() ? 'trialing' : 'expired',
-        currentPeriodEnd: companyRecord.trial_ends_at,
+        status: 'active',
+        currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
       };
     }
 
-    return NextResponse.json({ success: true, plan, maxVehicles, maxUsers, vehicleCount: currentVehicleCount, trialEndsAt: companyRecord.trial_ends_at, subscription: subscriptionDetails });
+    return NextResponse.json({
+      success: true,
+      plan,
+      maxVehicles,
+      maxUsers,
+      vehicleCount: currentVehicleCount,
+      trialEndsAt: plan === 'free' ? null : companyRecord.trial_ends_at,
+      showsAds: plans[plan]?.showsAds === true,
+      subscription: subscriptionDetails,
+    });
   } catch (error) {
     console.error('Subscription status error:', error);
     if (error instanceof Stripe.errors.StripeError) console.error('Stripe API error:', { type: error.type, code: error.code, requestId: error.requestId });
