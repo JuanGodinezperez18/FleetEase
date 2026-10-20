@@ -95,13 +95,13 @@ export default function LandingPage() {
               </div>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-white/50">
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> 14 días gratis
+                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Gratis para siempre
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Sin tarjeta
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Hasta 2 vehículos
+                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Hasta 3 vehículos
                 </span>
               </div>
             </div>
@@ -224,13 +224,13 @@ export default function LandingPage() {
                 Empieza a controlar tu flotilla hoy.
               </h2>
               <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--fe-ink)]/70">
-                14 días de prueba gratis. Sin tarjeta. Configura tu operación en minutos.
+                Plan Free permanente. Sin tarjeta. Configura tu operación en minutos.
               </p>
               <Link
                 href="/registro"
                 className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--fe-ink)] px-6 py-4 text-sm font-bold text-white transition hover:bg-white hover:text-[var(--fe-ink)]"
               >
-                Comenzar prueba gratis <ArrowRight className="h-4 w-4" />
+                Comenzar gratis <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </section>
