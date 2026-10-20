@@ -9,8 +9,8 @@ const faqs: [string, string][] = [
     "Para empresas y operadores que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores y necesitan controlar operación y rentabilidad. Ideal para software de gestión de flotillas y renta de vehículos en México.",
   ],
   [
-    "¿Puedo probar FleetEase antes de pagar?",
-    "Sí. El plan Free te permite usar FleetEase durante 14 días con 1 usuario y hasta 2 vehículos, sin ingresar tarjeta ni información de pago.",
+    "¿Puedo empezar sin pagar?",
+    "Sí. El plan Free es permanente: hasta 3 vehículos y 1 usuario, con todas las funciones Pro y sin tarjeta. Incluye anuncios para mantenerlo gratis.",
   ],
   [
     "¿Los planes dependen del número de vehículos?",
@@ -60,7 +60,6 @@ export function LandingFaq() {
                     className={`h-4 w-4 shrink-0 text-white/40 transition ${isOpen ? "rotate-180" : ""}`}
                   />
                 </button>
-                {/* Answer always in the HTML for crawlers; collapsed with CSS when closed */}
                 <div
                   aria-hidden={!isOpen}
                   className={`overflow-hidden transition-all ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}

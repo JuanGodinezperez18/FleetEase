@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 const nav = [
   ["Producto", "#producto"],
-  ["Cómo funciona", "#como-funciona"],
+  ["Cómo funciona", "#producto"],
   ["Precios", "#pricing"],
   ["FAQ", "#faq"],
 ] as const;
@@ -19,22 +19,7 @@ export function LandingHeader() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.07] bg-[var(--fe-ink)]/80 backdrop-blur-2xl">
       <div className="mx-auto flex h-[72px] sm:h-[80px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
-        <Link href="/" className="flex items-center gap-3.5" aria-label="FleetEase inicio">
-          <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center overflow-hidden">
-            <Image
-              src="/logo.png"
-              alt="FleetEase - Software de gestión de flotillas"
-              width={56}
-              height={56}
-              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-              priority
-            />
-          </div>
-          <span className="text-[22px] sm:text-[26px] font-semibold tracking-[-0.03em] leading-none">
-            <span className="text-white">Fleet</span>
-            <span className="text-[var(--fe-lime)]">Ease</span>
-          </span>
-        </Link>
+        <BrandLogo size={56} priority className="gap-3.5" />
         <nav className="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
           {nav.map(([label, href]) => (
             <Link

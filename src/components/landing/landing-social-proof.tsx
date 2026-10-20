@@ -2,8 +2,8 @@ import { Check, Clock, ShieldCheck, Truck } from "lucide-react";
 
 const stats = [
   {
-    value: "14 días",
-    label: "Prueba gratis sin tarjeta",
+    value: "Gratis",
+    label: "Plan Free permanente sin tarjeta",
     icon: Clock,
   },
   {
