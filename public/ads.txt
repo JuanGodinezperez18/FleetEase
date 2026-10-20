@@ -1,7 +1,2 @@
-# Google AdSense — reemplaza PUBLISHER_ID con tu ca-pub sin el prefijo si AdSense lo pide,
-# o deja la línea completa como indica el panel de AdSense.
-# Formato oficial:
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
-#
-# Ejemplo (usa el número de tu cuenta, el de la captura es ca-pub-470933871294827):
-google.com, pub-470933871294827, DIRECT, f08c47fec0942fa0
+# ads.txt — Google AdSense (FleetEase)
+google.com, pub-4709333871294827, DIRECT, f08c47fec0942fa0
