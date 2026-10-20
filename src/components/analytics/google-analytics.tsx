@@ -26,7 +26,7 @@ const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "";
 
 declare global {
   interface Window {
-    dataLayer?: unknown[];
+    dataLayer?: IArguments[];
     gtag?: (...args: unknown[]) => void;
   }
 }
@@ -35,8 +35,10 @@ function ensureGtag(): void {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
   if (typeof window.gtag !== "function") {
-    window.gtag = function gtag(...args: unknown[]) {
-      window.dataLayer!.push(args);
+    // Formato oficial de Google: dataLayer.push(arguments), no un array.
+    window.gtag = function gtag() {
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer!.push(arguments);
     };
   }
 }
