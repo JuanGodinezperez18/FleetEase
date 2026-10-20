@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/brand/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -100,8 +100,8 @@ export default function RegisterPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] shadow-[0_0_12px_#d7ff3f]" />
             Fleet OS
           </div>
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-xl">
-            <Image src="/logo.png" alt="FleetEase Logo" width={48} height={48} priority className="h-12 w-12 object-contain" />
+          <div className="mx-auto mb-3 flex justify-center">
+            <BrandLogo size={56} showWordmark={false} priority className="justify-center" />
           </div>
           <h1 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">
             FleetEase <span className="text-[#d7ff3f]">Manager</span>
@@ -143,8 +143,7 @@ export default function RegisterPage() {
                         return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative min-w-0 w-full cursor-pointer rounded-2xl border p-3 sm:p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
                           {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Gratis para siempre</div>}
                           {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más popular</div>}
-                          <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3">
-                            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="text-sm leading-5 text-white/40 sm:truncate">{plan.description}</p></div></div>
+                          <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="text-sm leading-5 text-white/40 sm:truncate">{plan.description}</p></div></div>
                             <div className="shrink-0 text-left sm:ml-auto sm:text-right"><p className="text-base font-bold text-white sm:text-lg">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? 'siempre' : `/ ${plan.period}`}</p></div>
                           </div>
                           <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] sm:text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="font-semibold text-[#d7ff3f]">No requiere tarjeta</span></>}</div>
