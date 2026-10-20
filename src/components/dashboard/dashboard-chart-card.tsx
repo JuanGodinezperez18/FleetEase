@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Activity, BarChart3, Car, CreditCard, ShieldAlert, Users } from 'lucide-react';
 import {
   Bar,
@@ -22,6 +22,8 @@ interface DashboardChartCardProps {
   widget: DashboardWidget;
   allKPIs: Record<string, MetricKPIData>;
   onClick?: () => void;
+  /** Clic en un segmento del pie (nombre legible: Disponibles, Rentados, …) */
+  onSegmentClick?: (segmentName: string) => void;
 }
 
 const money = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 });
@@ -34,7 +36,6 @@ function valueOf(allKPIs: Record<string, MetricKPIData>, id: string) {
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-/** Active sector expands + soft outer ring */
 function renderActiveShape(props: any) {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
 
@@ -64,7 +65,45 @@ function renderActiveShape(props: any) {
   );
 }
 
-export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartCardProps) {
+/** Tooltip con contraste correcto en tema claro y oscuro (evita texto negro sobre fondo oscuro). */
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  isMoney,
+}: {
+  active?: boolean;
+  payload?: Array<{ value?: number; name?: string; color?: string }>;
+  label?: string;
+  isMoney: boolean;
+}) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  const value = Number(item?.value ?? 0);
+  const name = item?.name || label || '';
+
+  return (
+    <div
+      className={cn(
+        'rounded-xl border px-3 py-2 text-xs shadow-lg',
+        'border-black/10 bg-white text-[#0a0c12]',
+        'dark:border-white/15 dark:bg-[#12151c] dark:text-white'
+      )}
+    >
+      <p className="font-semibold tracking-tight">{name}</p>
+      <p className="mt-0.5 tabular-nums text-black/60 dark:text-white/70">
+        {isMoney ? moneyText(value) : `${value} unidad${value === 1 ? '' : 'es'}`}
+      </p>
+    </div>
+  );
+}
+
+export function DashboardChartCard({
+  widget,
+  allKPIs,
+  onClick,
+  onSegmentClick,
+}: DashboardChartCardProps) {
   const income = valueOf(allKPIs, 'income-month');
   const expenses = valueOf(allKPIs, 'expenses-month');
   const net = valueOf(allKPIs, 'net-income');
@@ -170,9 +209,13 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
     setActiveIndex(undefined);
   }, []);
 
-  const onLegendToggle = useCallback((index: number) => {
-    setActiveIndex(prev => (prev === index ? undefined : index));
-  }, []);
+  const onLegendToggle = useCallback(
+    (index: number, name: string) => {
+      setActiveIndex(prev => (prev === index ? undefined : index));
+      onSegmentClick?.(name);
+    },
+    [onSegmentClick]
+  );
 
   if (!chart) return null;
 
@@ -184,7 +227,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
 
   const pieLabels =
     widget.dataKey === 'fleet-status-chart'
-      ? ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8'] // Rentados, Disponibles, Mantenimiento, Inactivos
+      ? ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8']
       : widget.dataKey === 'credit-portfolio-chart'
         ? ['#d7ff3f', '#f59e0b']
         : ['#d7ff3f', '#f59e0b', '#ef4444'];
@@ -197,8 +240,8 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
   const centerLabel = activeItem
     ? activeItem.name
     : isMoney
-      ? 'capital'
-      : 'elementos';
+      ? 'total'
+      : 'total';
 
   return (
     <article
@@ -232,6 +275,11 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
           </h3>
           <p className="mt-1 max-w-[42rem] text-xs leading-5 text-black/45 dark:text-white/40">
             {chart.description}
+            {widget.dataKey === 'fleet-status-chart' && (
+              <span className="mt-0.5 block text-[11px] text-black/35 dark:text-white/30">
+                Toca un segmento o la leyenda para ver el detalle.
+              </span>
+            )}
           </p>
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] transition-all duration-200 group-hover:border-[#d7ff3f]/35 group-hover:bg-[#d7ff3f]/[0.1] group-hover:scale-105 dark:border-white/[0.07] dark:bg-white/[0.025] dark:group-hover:border-[#d7ff3f]/25 dark:group-hover:bg-[#d7ff3f]/[0.08]">
@@ -260,31 +308,17 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
             >
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'rgba(8,10,15,.45)', fontSize: 11 }}
+                tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.45 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: 'rgba(8,10,15,.3)', fontSize: 10 }}
+                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.3 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={value => (isMoney ? moneyText(Number(value)) : String(value))}
               />
-              <Tooltip
-                cursor={{ fill: 'rgba(215,255,63,0.12)', radius: 6 }}
-                contentStyle={{
-                  background: 'var(--fe-surface, #fff)',
-                  border: '1px solid rgba(8,10,15,.1)',
-                  borderRadius: 10,
-                  boxShadow: '0 12px 30px rgba(0,0,0,.12)',
-                  color: 'var(--fe-text, #0a0c12)',
-                }}
-                formatter={value => [
-                  isMoney ? moneyText(Number(value ?? 0)) : Number(value ?? 0),
-                  isMoney ? 'Monto' : 'Cantidad',
-                ]}
-                labelStyle={{ color: 'inherit' }}
-              />
+              <Tooltip content={<ChartTooltip isMoney={isMoney} />} cursor={{ fill: 'rgba(215,255,63,0.12)', radius: 6 }} />
               <Bar
                 dataKey="value"
                 radius={[6, 6, 2, 2]}
@@ -324,9 +358,11 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                   activeShape={renderActiveShape}
                   onMouseEnter={onPieEnter}
                   onMouseLeave={onPieLeave}
-                  onClick={(_: unknown, index: number) => {
-                    // Stop card onClick when interacting with the pie
-                    setActiveIndex(prev => (prev === index ? undefined : index));
+                  onClick={(data: any, index: number, event: any) => {
+                    event?.stopPropagation?.();
+                    const name = data?.name ?? chart.data[index]?.name;
+                    setActiveIndex(index);
+                    if (name) onSegmentClick?.(name);
                   }}
                 >
                   {chart.data.map((item, index) => (
@@ -334,7 +370,7 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                       key={item.name}
                       fill={pieLabels[index % pieLabels.length]}
                       style={{
-                        cursor: 'pointer',
+                        cursor: onSegmentClick || chart.kind === 'pie' ? 'pointer' : 'default',
                         outline: 'none',
                         opacity:
                           activeIndex === undefined || activeIndex === index ? 1 : 0.45,
@@ -343,26 +379,15 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                     />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--fe-surface, #fff)',
-                    border: '1px solid rgba(8,10,15,.1)',
-                    borderRadius: 10,
-                    boxShadow: '0 12px 30px rgba(0,0,0,.12)',
-                    color: 'var(--fe-text, #0a0c12)',
-                  }}
-                  formatter={value => [
-                    isMoney ? `$${money.format(Number(value ?? 0))}` : Number(value ?? 0),
-                    isMoney ? 'Monto' : 'Cantidad',
-                  ]}
-                />
+                <Tooltip content={<ChartTooltip isMoney={isMoney} />} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="max-w-[85%] break-words text-center font-heading text-[clamp(0.875rem,5vw,25px)] font-semibold tabular-nums tracking-tight text-[#0a0c12] transition-all duration-200 dark:text-white">
+            {/* Centro: solo número + etiqueta corta, sin solaparse con el tooltip */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6">
+              <span className="font-heading text-[clamp(1.25rem,5vw,1.75rem)] font-semibold tabular-nums tracking-tight text-[#0a0c12] dark:text-white">
                 {isMoney ? moneyText(centerValue) : centerValue}
               </span>
-              <span className="mt-0.5 max-w-[90px] truncate text-[9px] font-medium uppercase tracking-[0.14em] text-black/35 dark:text-white/25">
+              <span className="mt-0.5 max-w-[100px] truncate text-center text-[10px] font-medium uppercase tracking-[0.12em] text-black/40 dark:text-white/45">
                 {centerLabel}
               </span>
             </div>
@@ -381,11 +406,12 @@ export function DashboardChartCard({ widget, allKPIs, onClick }: DashboardChartC
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
-                  if (chart.kind === 'pie') onLegendToggle(index);
+                  if (chart.kind === 'pie') onLegendToggle(index, item.name);
                 }}
                 className={cn(
                   'flex min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all duration-150',
-                  chart.kind === 'pie' && 'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
+                  chart.kind === 'pie' &&
+                    'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
                   isActive && 'bg-black/[0.06] dark:bg-white/[0.1]',
                   isDimmed && 'opacity-40'
                 )}
