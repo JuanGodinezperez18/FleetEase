@@ -25,16 +25,13 @@ const SidebarHeaderContent = () => {
         collapsed ? "justify-center" : "justify-start"
       )}
     >
-      <div className="relative shrink-0">
-        <div className="absolute inset-0 rounded-xl bg-[color-mix(in_srgb,var(--fe-lime)_18%,transparent)] blur-xl" />
-        {/* Fondo oscuro interno del logo: el asset es lima transparente y se pierde en tema claro */}
-        <FleetEaseLogo
-          className={cn(
-            "relative transition-all duration-300",
-            collapsed ? "h-10 w-10" : "h-9 w-9"
-          )}
-        />
-      </div>
+      {/* Badge oscuro propio del logo: el asset es lima transparente y se pierde en sidebar claro */}
+      <FleetEaseLogo
+        className={cn(
+          "transition-all duration-300",
+          collapsed ? "h-10 w-10" : "h-9 w-9"
+        )}
+      />
       {state === "expanded" && (
         <div className="min-w-0">
           <span className="font-heading text-base font-semibold tracking-[-0.03em] fe-text">
