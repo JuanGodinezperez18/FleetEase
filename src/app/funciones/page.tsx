@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export const metadata: Metadata = {
   title: "Funciones | FleetEase",
@@ -11,15 +12,21 @@ export default function FuncionesPage() {
   return (
     <div className="min-h-screen bg-[#080a0f] text-white">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Fleet<span className="text-[#d7ff3f]">Ease</span>
+        <BrandLogo size={36} />
+        <Link
+          href="/registro"
+          className="rounded-full bg-[#d7ff3f] px-5 py-2.5 text-sm font-bold text-[#080a0f]"
+        >
+          Empezar gratis
         </Link>
-        <Link href="/registro" className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Empezar gratis</Link>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-16">
-        <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">Funciones pensadas para operar flotillas</h1>
+        <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
+          Funciones pensadas para operar flotillas
+        </h1>
         <p className="mt-4 max-w-2xl text-white/55">
-          Controla vehículos, clientes, finanzas, mantenimiento y rentabilidad desde un solo sistema.
+          Controla vehículos, clientes, finanzas, mantenimiento y rentabilidad
+          desde un solo sistema.
         </p>
         <ul className="mt-10 grid gap-4 md:grid-cols-2">
           {[
@@ -30,12 +37,18 @@ export default function FuncionesPage() {
             "Rentabilidad por unidad y reportes",
             "Plan Free permanente con funciones Pro",
           ].map((item) => (
-            <li key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/80">
+            <li
+              key={item}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/80"
+            >
               {item}
             </li>
           ))}
         </ul>
-        <Link href="/registro" className="mt-10 inline-flex rounded-full bg-[#d7ff3f] px-6 py-3 text-sm font-bold text-[#080a0f]">
+        <Link
+          href="/registro"
+          className="mt-10 inline-flex rounded-full bg-[#d7ff3f] px-6 py-3 text-sm font-bold text-[#080a0f]"
+        >
           Crear cuenta gratis
         </Link>
       </main>
