@@ -22,13 +22,13 @@ export function LandingHeader() {
         <BrandLogo size={56} priority className="gap-3.5" />
         <nav className="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
           {nav.map(([label, href]) => (
-            <Link
+            <a
               key={label}
               href={href}
               className="rounded-sm text-[13px] font-medium text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]"
             >
               {label}
-            </Link>
+            </a>
           ))}
         </nav>
         <div className="hidden items-center gap-5 md:flex">
@@ -65,14 +65,14 @@ export function LandingHeader() {
           >
             <div className="flex flex-col gap-5 px-5 py-6">
               {nav.map(([label, href]) => (
-                <Link
+                <a
                   key={label}
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   className="rounded-sm text-base text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)]"
                 >
                   {label}
-                </Link>
+                </a>
               ))}
               <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-sm text-base text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)]">
                 Iniciar sesión
