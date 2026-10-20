@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Inter, Manrope } from 'next/font/google';
 import "./globals.css";
 import "./fleetease-ui.css";
@@ -10,6 +11,7 @@ import { Providers } from "@/components/common/providers";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -161,6 +163,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <PwaInstallButton />
             <Toaster />
             <CookieBanner />
+            {/* GA4: Suspense por useSearchParams (App Router). Solo mide si analytics=true. */}
+            <Suspense fallback={null}>
+              <GoogleAnalytics />
+            </Suspense>
             <Analytics />
           </Providers>
         </GlobalErrorBoundary>
