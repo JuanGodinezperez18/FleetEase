@@ -64,8 +64,8 @@ export default function RegisterPage() {
       }
 
       if (result.requiresPaymentMethod === false || data.selectedPlan === 'free') {
-        toast.success('¡Tu prueba gratuita de 14 días está activa!');
-        toast.info('Sin tarjeta. Puedes comenzar con hasta 2 vehículos y 1 usuario.');
+        toast.success('¡Tu plan Free está activo!');
+        toast.info('Sin tarjeta. Hasta 3 vehículos y 1 usuario, con todas las funciones Pro. Incluye anuncios.');
       } else {
         toast.success('¡Cuenta creada exitosamente!');
       }
@@ -141,11 +141,11 @@ export default function RegisterPage() {
                         const isFree = plan.id === 'free';
                         const selected = data.selectedPlan === plan.id;
                         return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative min-w-0 w-full cursor-pointer rounded-2xl border p-3 sm:p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
-                          {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Prueba gratis</div>}
+                          {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Gratis para siempre</div>}
                           {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más popular</div>}
                           <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3">
                             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="text-sm leading-5 text-white/40 sm:truncate">{plan.description}</p></div></div>
-                            <div className="shrink-0 text-left sm:ml-auto sm:text-right"><p className="text-base font-bold text-white sm:text-lg">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? '14 días' : `/ ${plan.period}`}</p></div>
+                            <div className="shrink-0 text-left sm:ml-auto sm:text-right"><p className="text-base font-bold text-white sm:text-lg">{plan.price === 0 ? 'Gratis' : `$${plan.price}`}</p><p className="text-xs text-white/30">{plan.price === 0 ? 'siempre' : `/ ${plan.period}`}</p></div>
                           </div>
                           <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] sm:text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="font-semibold text-[#d7ff3f]">No requiere tarjeta</span></>}</div>
                           {selected && <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3"><CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-[#d7ff3f]" /></div>}
@@ -184,7 +184,7 @@ export default function RegisterPage() {
                       <p className="text-sm text-amber-200">El registro requiere configurar reCAPTCHA en el entorno de la aplicación.</p>
                     )}
                   </div>
-                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={isSubmitting || !captchaToken}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Activar prueba gratis' : 'Crear cuenta'}</Button></div>
+                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5" disabled={isSubmitting}><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleSubmit} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={isSubmitting || !captchaToken}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando cuenta...</> : data.selectedPlan === 'free' ? 'Crear cuenta gratis' : 'Crear cuenta'}</Button></div>
                 </div>}
               </motion.div>
             </div>
