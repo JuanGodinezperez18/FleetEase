@@ -21,13 +21,13 @@ export default function PrivacidadPage() {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Aviso de Privacidad
         </h1>
-        <p className="mt-2 text-sm text-white/45">Última actualización: 25 de septiembre de 2026</p>
+        <p className="mt-2 text-sm text-white/45">Última actualización: 20 de octubre de 2026</p>
 
         <div className="prose prose-invert mt-10 max-w-none space-y-8 text-[15px] leading-7 text-white/75">
           <section>
             <h2 className="text-lg font-semibold text-white">Responsable del tratamiento</h2>
             <p>
-              FleetEase (en adelante el &quot;Responsable&quot;), con domicilio en México, es responsable
+              FleetEase (en adelante el "Responsable"), con domicilio en México, es responsable
               del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos
               Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento.
             </p>
@@ -79,6 +79,30 @@ export default function PrivacidadPage() {
             <p className="mt-2">
               No realizamos transferencias internacionales que requieran su consentimiento adicional, salvo las
               necesarias para el funcionamiento técnico del servicio.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-white">Publicidad y cookies de terceros</h2>
+            <p>
+              En el plan Free de FleetEase podemos mostrar anuncios de Google AdSense dentro de la
+              aplicación (dashboard), no en páginas de marketing públicas. Google y sus socios pueden
+              utilizar cookies u identificadores similares para personalizar anuncios y medir su
+              rendimiento, conforme a las{' '}
+              <a
+                href="https://policies.google.com/technologies/ads"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#d7ff3f] hover:underline"
+              >
+                políticas de publicidad de Google
+              </a>
+              .
+            </p>
+            <p className="mt-2">
+              Puede gestionar preferencias de cookies en su navegador o, cuando esté disponible, a
+              través de las opciones de privacidad de Google. Los planes de pago de FleetEase no
+              muestran anuncios de AdSense.
             </p>
           </section>
 
