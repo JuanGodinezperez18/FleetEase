@@ -16,13 +16,24 @@ interface KpiGridProps {
   onOpenConfig?: () => void;
 }
 
+/** Clic en la tarjeta completa (fallback). */
 const chartActionMap: Record<string, string> = {
   'finance-summary-chart': 'income-month',
-  'fleet-status-chart': 'vehicles-rented',
+  'fleet-status-chart': 'vehicles-available',
   'credit-portfolio-chart': 'active-credits',
   'maintenance-chart': 'maintenance-overdue',
   'fines-chart': 'multas-pendientes',
   'client-risk-chart': 'clients-with-debt',
+};
+
+/**
+ * Clic en un segmento concreto del pie "Estado de la Flota".
+ * Disponibles = sin cliente asignado (clientId null).
+ */
+const fleetSegmentActionMap: Record<string, string> = {
+  Rentados: 'vehicles-rented',
+  Disponibles: 'vehicles-available',
+  Mantenimiento: 'maintenance-overdue',
 };
 
 export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenConfig }: KpiGridProps) {
@@ -51,13 +62,35 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
             }
             if (widget.type === 'chart') {
               const actionId = chartActionMap[widget.id];
-              const chartAction = actionId ? ({ ...widget, id: actionId } as DashboardWidget) : undefined;
+              const chartAction = actionId
+                ? ({ ...widget, id: actionId } as DashboardWidget)
+                : undefined;
+
+              const handleSegmentClick =
+                widget.id === 'fleet-status-chart' || widget.dataKey === 'fleet-status-chart'
+                  ? (segmentName: string) => {
+                      const kpiId = fleetSegmentActionMap[segmentName];
+                      if (!kpiId) return;
+                      onKpiClick({ ...widget, id: kpiId } as DashboardWidget);
+                    }
+                  : widget.id === 'maintenance-chart' || widget.dataKey === 'maintenance-chart'
+                    ? (segmentName: string) => {
+                        const map: Record<string, string> = {
+                          Vencido: 'maintenance-overdue',
+                          Próximo: 'maintenance-soon',
+                        };
+                        const kpiId = map[segmentName];
+                        if (kpiId) onKpiClick({ ...widget, id: kpiId } as DashboardWidget);
+                      }
+                    : undefined;
+
               return (
                 <div key={widget.id} className="min-w-0 md:col-span-2 xl:col-span-4">
                   <DashboardChartCard
                     widget={widget}
                     allKPIs={allKPIs as Record<string, MetricKPIData>}
                     onClick={chartAction ? () => onKpiClick(chartAction) : undefined}
+                    onSegmentClick={handleSegmentClick}
                   />
                 </div>
               );
