@@ -9,6 +9,8 @@ export interface PlanConfig {
   maxVehicles: number; maxUsers: number; trialDays?: number;
   requiresPaymentMethod?: boolean; description: string; features: string[];
   comingSoon?: string[]; popular?: boolean;
+  /** Si true, se muestran anuncios en el producto (monetización del plan Free). */
+  showsAds?: boolean;
 }
 
 const starterFeatures = [
@@ -31,27 +33,89 @@ const proFeatures = [
 
 export const plans: Record<PlanType, PlanConfig> = {
   free: {
-    id:'free', name:'Free', price:0, currency:'MXN', period:'14 días', maxVehicles:2, maxUsers:1, trialDays:14, requiresPaymentMethod:false,
-    description:'Prueba FleetEase durante 14 días sin tarjeta',
-    // Free es una prueba de Starter: no incluye ninguna capacidad Pro/Enterprise.
-    features:['14 días gratis','Hasta 2 vehículos','1 usuario','Acceso de prueba a las funciones de Starter','Sin tarjeta de crédito'],
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    currency: 'MXN',
+    period: 'siempre',
+    maxVehicles: 3,
+    maxUsers: 1,
+    requiresPaymentMethod: false,
+    showsAds: true,
+    description: 'Gratis para siempre. Todas las funciones Pro, con anuncios. Hasta 3 vehículos y 1 usuario.',
+    features: [
+      'Gratis para siempre',
+      'Todas las funciones Pro (rentabilidad, analytics, reportes Excel, etc.)',
+      'Hasta 3 vehículos',
+      '1 usuario (empresa)',
+      'Sin tarjeta de crédito',
+      'Con anuncios (así se mantiene el plan gratis)',
+      ...starterFeatures,
+      'Dashboard avanzado y configurable',
+      'Rentabilidad por vehículo',
+      'Análisis financiero y tendencias',
+      'Client Score',
+      'Reportes PDF y Excel',
+      'Auditoría y operaciones masivas',
+    ],
   },
   starter: {
-    id:'starter', name:'Starter', price:299, currency:'MXN', period:'mes', maxVehicles:5, maxUsers:1, requiresPaymentMethod:true,
-    description:'Control operativo y financiero para flotillas pequeñas', features:starterFeatures,
-    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp'],
+    id: 'starter',
+    name: 'Starter',
+    price: 299,
+    currency: 'MXN',
+    period: 'mes',
+    maxVehicles: 5,
+    maxUsers: 1,
+    requiresPaymentMethod: true,
+    showsAds: false,
+    description: 'Control operativo y financiero para flotillas pequeñas, sin anuncios',
+    features: starterFeatures,
+    comingSoon: ['WhatsApp Intelligence', 'Fleet Intelligence vía WhatsApp'],
   },
   pro: {
-    id:'pro', name:'Pro', price:699, currency:'MXN', period:'mes', maxVehicles:15, maxUsers:3, requiresPaymentMethod:true,
-    description:'Rentabilidad, análisis y control avanzado para operaciones en crecimiento', features:proFeatures,
-    comingSoon:['WhatsApp Intelligence','Fleet Intelligence vía WhatsApp para administradores, socios y clientes','Automatizaciones operativas avanzadas'], popular:true,
+    id: 'pro',
+    name: 'Pro',
+    price: 699,
+    currency: 'MXN',
+    period: 'mes',
+    maxVehicles: 15,
+    maxUsers: 3,
+    requiresPaymentMethod: true,
+    showsAds: false,
+    description: 'Rentabilidad, análisis y control avanzado para operaciones en crecimiento',
+    features: proFeatures,
+    comingSoon: [
+      'WhatsApp Intelligence',
+      'Fleet Intelligence vía WhatsApp para administradores, socios y clientes',
+      'Automatizaciones operativas avanzadas',
+    ],
+    popular: true,
   },
   enterprise: {
-    id:'enterprise', name:'Enterprise', price:2499, currency:'MXN', period:'mes', maxVehicles:-1, maxUsers:-1, requiresPaymentMethod:true,
-    description:'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
-    features:['Todo lo incluido en Pro','Vehículos ilimitados','Usuarios ilimitados','Soporte y acompañamiento empresarial'],
-    // No se anuncian como disponibles hasta que exista implementación real.
-    comingSoon:['API de integración y webhooks','Multiempresa','Personalización de marca (white-label)','Reportes personalizados','Integraciones GPS multi-proveedor'],
+    id: 'enterprise',
+    name: 'Enterprise',
+    price: 2499,
+    currency: 'MXN',
+    period: 'mes',
+    maxVehicles: -1,
+    maxUsers: -1,
+    requiresPaymentMethod: true,
+    showsAds: false,
+    description: 'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
+    features: [
+      'Todo lo incluido en Pro',
+      'Vehículos ilimitados',
+      'Usuarios ilimitados',
+      'Soporte y acompañamiento empresarial',
+    ],
+    comingSoon: [
+      'API de integración y webhooks',
+      'Multiempresa',
+      'Personalización de marca (white-label)',
+      'Reportes personalizados',
+      'Integraciones GPS multi-proveedor',
+    ],
   },
 };
 
@@ -65,12 +129,41 @@ export function isPermanentEnterpriseCompany(companyId: string | null | undefine
   return (PERMANENT_ENTERPRISE_COMPANY_IDS as readonly string[]).includes(companyId);
 }
 
-export function getPlanConfig(planId: PlanType): PlanConfig { return plans[planId]; }
-export function hasVehicleLimit(planId: PlanType): boolean { return plans[planId].maxVehicles !== -1; }
-export function hasUserLimit(planId: PlanType): boolean { return plans[planId].maxUsers !== -1; }
-export function getVehicleLimit(planId: PlanType): number { const limit=plans[planId].maxVehicles; return limit===-1?Infinity:limit; }
-export function getUserLimit(planId: PlanType): number { const limit=plans[planId].maxUsers; return limit===-1?Infinity:limit; }
-export function canAddVehicle(planId: PlanType,currentCount:number):boolean{return currentCount<getVehicleLimit(planId);}
-export function canAddUser(planId: PlanType,currentCount:number):boolean{return currentCount<getUserLimit(planId);}
-export function getVehicleLimitMessage(planId: PlanType,currentCount:number):string{const plan=plans[planId];if(plan.maxVehicles===-1)return '';return `Has alcanzado el límite de ${plan.maxVehicles} vehículos de tu plan ${plan.name}. Contacta para upgrade.`;}
-export function getUserLimitMessage(planId: PlanType,currentCount:number):string{const plan=plans[planId];if(plan.maxUsers===-1)return '';return `Has alcanzado el límite de ${plan.maxUsers} usuarios de tu plan ${plan.name}. Contacta para upgrade.`;}
+export function getPlanConfig(planId: PlanType): PlanConfig {
+  return plans[planId];
+}
+export function hasVehicleLimit(planId: PlanType): boolean {
+  return plans[planId].maxVehicles !== -1;
+}
+export function hasUserLimit(planId: PlanType): boolean {
+  return plans[planId].maxUsers !== -1;
+}
+export function getVehicleLimit(planId: PlanType): number {
+  const limit = plans[planId].maxVehicles;
+  return limit === -1 ? Infinity : limit;
+}
+export function getUserLimit(planId: PlanType): number {
+  const limit = plans[planId].maxUsers;
+  return limit === -1 ? Infinity : limit;
+}
+export function canAddVehicle(planId: PlanType, currentCount: number): boolean {
+  return currentCount < getVehicleLimit(planId);
+}
+export function canAddUser(planId: PlanType, currentCount: number): boolean {
+  return currentCount < getUserLimit(planId);
+}
+export function getVehicleLimitMessage(planId: PlanType, currentCount: number): string {
+  const plan = plans[planId];
+  if (plan.maxVehicles === -1) return '';
+  return `Has alcanzado el límite de ${plan.maxVehicles} vehículos de tu plan ${plan.name}. Contacta para upgrade.`;
+}
+export function getUserLimitMessage(planId: PlanType, currentCount: number): string {
+  const plan = plans[planId];
+  if (plan.maxUsers === -1) return '';
+  return `Has alcanzado el límite de ${plan.maxUsers} usuarios de tu plan ${plan.name}. Contacta para upgrade.`;
+}
+
+/** True si el plan muestra anuncios (monetización del Free). */
+export function planShowsAds(planId: PlanType): boolean {
+  return plans[planId]?.showsAds === true;
+}

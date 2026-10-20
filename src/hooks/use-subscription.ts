@@ -32,7 +32,8 @@ export function useSubscription() {
     } catch (error: any) {
       console.error('Error fetching subscription status:', error);
       // Fail closed: nunca conceder Starter/Pro por un error de consulta.
-      setSubscription({ plan: 'free', maxVehicles: 2, maxUsers: 1, vehicleCount: 0, subscription: null });
+      // Free permanente: 3 vehículos, 1 usuario.
+      setSubscription({ plan: 'free', maxVehicles: 3, maxUsers: 1, vehicleCount: 0, subscription: null });
     } finally {
       setLoading(false);
     }

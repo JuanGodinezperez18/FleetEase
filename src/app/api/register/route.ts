@@ -79,12 +79,9 @@ export async function POST(request: NextRequest) {
     }
 
     // La cuenta se crea siempre con Free hasta que Stripe confirme el pago.
-    // Así abandonar/cancelar Checkout nunca concede capacidades de un plan pagado.
+    // Free es permanente (sin trial): acceso inmediato a todas las funciones Starter.
     const initialPlan: PlanType = 'free';
     const initialPlanConfig = plans.free;
-    const trialEndsAt = initialPlanConfig.trialDays
-      ? new Date(Date.now() + initialPlanConfig.trialDays * 24 * 60 * 60 * 1000).toISOString()
-      : null;
 
     // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -105,8 +102,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'No se pudo crear el usuario' }, { status: 500 });
     }
 
-    // 2. Crear compañía inicialmente como Free.
-    // El plan seleccionado se conserva únicamente en Stripe metadata hasta confirmar el pago.
+    // 2. Crear compañía como Free permanente (activo, sin trial_ends_at).
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
@@ -116,8 +112,8 @@ export async function POST(request: NextRequest) {
         is_deleted: false,
         max_vehicles: initialPlanConfig.maxVehicles === -1 ? null : initialPlanConfig.maxVehicles,
         max_users: initialPlanConfig.maxUsers === -1 ? null : initialPlanConfig.maxUsers,
-        subscription_status: 'trialing',
-        trial_ends_at: trialEndsAt,
+        subscription_status: 'active',
+        trial_ends_at: null,
       })
       .select()
       .single();
@@ -175,11 +171,11 @@ export async function POST(request: NextRequest) {
     if (selectedPlan === 'free') {
       return NextResponse.json({
         success: true,
-        message: 'Cuenta creada. Tu prueba gratuita de 14 días ha comenzado.',
+        message: 'Cuenta creada. Tu plan Free está activo para siempre con todas las funciones operativas (hasta 3 vehículos).',
         userId: authData.user.id,
         companyId: company.id,
         plan: initialPlan,
-        trialEndsAt,
+        trialEndsAt: null,
         requiresPaymentMethod: false,
       });
     }
@@ -236,7 +232,7 @@ export async function POST(request: NextRequest) {
       companyId: company.id,
       plan: initialPlan,
       selectedPlan,
-      trialEndsAt,
+      trialEndsAt: null,
       requiresPaymentMethod: true,
       checkoutUrl: session.url,
     });
