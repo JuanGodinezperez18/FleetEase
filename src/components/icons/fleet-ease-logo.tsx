@@ -14,7 +14,7 @@ type FleetEaseLogoProps = {
 /**
  * Icono de FleetEase para el shell autenticado.
  * El asset es verde lima sobre fondo transparente: sin un fondo oscuro
- * se pierde en tema claro.
+ * se pierde en tema claro (sidebar claro / cream).
  */
 export function FleetEaseLogo({
   className,
@@ -22,30 +22,44 @@ export function FleetEaseLogo({
 }: FleetEaseLogoProps) {
   const image = (
     <Image
-      src="/web-app-manifest-512x512.png"
-      alt="FleetEase Logo"
-      width={512}
-      height={512}
-      className={cn(
-        "h-full w-full object-contain",
-        !withBackground && className
-      )}
+      src="/logo.png"
+      alt="FleetEase"
+      width={96}
+      height={96}
+      className="h-full w-full object-contain p-[12%]"
       priority
+      sizes="40px"
     />
   );
 
   if (!withBackground) {
-    return image;
+    return (
+      <span className={cn("relative inline-flex shrink-0", className)}>
+        <Image
+          src="/logo.png"
+          alt="FleetEase"
+          width={96}
+          height={96}
+          className="h-full w-full object-contain"
+          priority
+          sizes="40px"
+        />
+      </span>
+    );
   }
 
   return (
     <span
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl",
-        "bg-[#080a0f] shadow-sm ring-1 ring-black/10 dark:ring-white/10",
         className
       )}
-      aria-hidden={false}
+      // Fondo de marca fijo (no depende de tokens del tema) para que el lima
+      // siempre contraste, tanto en sidebar light como dark.
+      style={{
+        backgroundColor: "#080a0f",
+        boxShadow: "0 0 0 1px rgba(0,0,0,0.12)",
+      }}
     >
       {image}
     </span>
