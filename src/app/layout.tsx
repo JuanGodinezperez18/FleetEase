@@ -15,13 +15,16 @@ import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
 
+/** Publisher ID de AdSense (verificación del sitio + unidades de anuncio). */
+const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.fleetease.com.mx"),
   title: {
     default: "FleetEase | Software de Gestión de Flotillas en México",
     template: "%s | FleetEase",
   },
-  description: "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Prueba gratis 14 días, sin tarjeta.",
+  description: "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Plan Free permanente con todas las funciones.",
   applicationName: "FleetEase",
   appleWebApp: {
     capable: true,
@@ -45,7 +48,7 @@ export const metadata: Metadata = {
     url: "https://www.fleetease.com.mx/",
     siteName: "FleetEase",
     title: "FleetEase | Software de Gestión de Flotillas en México",
-    description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Prueba gratis 14 días, sin tarjeta.",
+    description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Plan Free permanente con todas las funciones.",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "FleetEase Manager" }],
   },
   twitter: {
@@ -133,6 +136,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             });
           `}
         </Script>
+        {/* Código de verificación / carga de AdSense (fragmento oficial). */}
+        {adsenseClientId ? (
+          <Script
+            id="adsense-init"
+            async
+            strategy="afterInteractive"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+            crossOrigin="anonymous"
+          />
+        ) : null}
       </head>
       <body className={`${inter.variable} ${manrope.variable} font-sans fe-shell-bg antialiased`}>
         <div id="fe-boot" aria-hidden="true">
