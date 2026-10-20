@@ -10,7 +10,6 @@ export type FeatureKey =
   | 'whatsapp_notifications' | 'whatsapp_intelligence' | 'fleet_intelligence' | 'advanced_automations' | 'api_access' | 'white_label'
   | 'multi_company' | 'custom_reports' | 'gps_integrations';
 
-// Free permanente = mismas capacidades operativas que Starter (sin Pro/Enterprise).
 const starter: Record<FeatureKey, boolean> = {
   vehicles: true, clients: true, partners: true, financial_records: true, vehicle_assignments: true, mileage: true, maintenance: true, credits: true,
   payments: true, fines: true, security_deposits: true, supplier_purchases: true, accounts_payable: true, inspections: true, tracking: true, documents: true, ocr: true,
@@ -26,11 +25,17 @@ const pro: Record<FeatureKey, boolean> = {
   reports_excel: true, report_history: true, multi_user: true, priority_support: true, audit_logs: true, advanced_analytics: true, bulk_operations: true,
 };
 
-// Enterprise incluye hoy todo Pro. Sus capacidades exclusivas futuras permanecen en comingSoon y no se habilitan hasta implementarse.
+// Enterprise incluye hoy todo Pro. Capacidades exclusivas futuras en comingSoon.
 const enterprise: Record<FeatureKey, boolean> = { ...pro };
 
+/**
+ * Free permanente = mismas funciones de producto que Pro
+ * (rentabilidad, analytics, reportes, etc.).
+ * Los límites de cupo (1 usuario / 3 vehículos) se aplican aparte en plans.ts y DB.
+ * multi_user queda habilitado en UI, pero maxUsers=1 impide agregar más usuarios.
+ */
 export const featureFlags: Record<PlanType, Record<FeatureKey, boolean>> = {
-  free: { ...starter },
+  free: { ...pro },
   starter: { ...starter },
   pro,
   enterprise,
@@ -69,8 +74,7 @@ export function checkFeature(plan: PlanType, feature: FeatureKey): { enabled: bo
   return { enabled, message: enabled ? `${messages[feature]} disponible` : `${messages[feature]} no disponible en tu plan` };
 }
 
-// Solo se bloquean aquí módulos completos que son realmente exclusivos de Pro.
-// Free y Starter tienen el mismo acceso operativo permanente.
+// Rutas exclusivas de capacidades Pro: Free ya las tiene habilitadas.
 export const routeFeatureMap: Record<string, FeatureKey> = {
   '/dashboard/profitability': 'profitability',
   '/dashboard/users': 'multi_user',
