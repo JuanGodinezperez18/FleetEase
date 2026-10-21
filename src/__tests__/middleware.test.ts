@@ -1,4 +1,4 @@
-import { middleware } from '../../middleware';
+import { proxy } from '../proxy';
 
 const mockGetUser = jest.fn();
 const mockGetProfile = jest.fn();
@@ -73,7 +73,7 @@ describe('middleware authentication and role authorization', () => {
   it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example'])(
     'does not make an auth network call for public path %s',
     async (path) => {
-      const response = await middleware(buildRequest(path) as any);
+      const response = await proxy(buildRequest(path) as any);
       expect(response.type).toBe('next');
       expect(mockCreateServerClient).not.toHaveBeenCalled();
     },
@@ -82,7 +82,7 @@ describe('middleware authentication and role authorization', () => {
   it.each(['/api/stripe/webhook','/_next/static/app.js','/images/logo.png','/manifest.json','/robots.txt'])(
     'passes through API/static path %s without an auth lookup',
     async (path) => {
-      const response = await middleware(buildRequest(path) as any);
+      const response = await proxy(buildRequest(path) as any);
       expect(response.type).toBe('next');
       expect(mockCreateServerClient).not.toHaveBeenCalled();
     },
@@ -94,7 +94,7 @@ describe('middleware authentication and role authorization', () => {
       error: { message: 'No authenticated user' },
     });
 
-    const response = await middleware(buildRequest('/dashboard/vehicles') as any);
+    const response = await proxy(buildRequest('/dashboard/vehicles') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/login');
@@ -108,7 +108,7 @@ describe('middleware authentication and role authorization', () => {
       error: { message: 'Auth service unavailable' },
     });
 
-    const response = await middleware(buildRequest('/dashboard') as any);
+    const response = await proxy(buildRequest('/dashboard') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/login');
@@ -118,7 +118,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: null, error: null });
 
-    const response = await middleware(buildRequest('/dashboard') as any);
+    const response = await proxy(buildRequest('/dashboard') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/login');
@@ -128,7 +128,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'admin', is_deleted: false }, error: null });
 
-    const response = await middleware(buildRequest('/partner/vehicle.v1') as any);
+    const response = await proxy(buildRequest('/partner/vehicle.v1') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/dashboard');
@@ -138,7 +138,7 @@ describe('middleware authentication and role authorization', () => {
   it('allows a staff role to continue to dashboard', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
 
-    const response = await middleware(buildRequest('/dashboard') as any);
+    const response = await proxy(buildRequest('/dashboard') as any);
 
     expect(response.type).toBe('next');
     expect(mockGetProfile).toHaveBeenCalledTimes(1);
@@ -150,7 +150,7 @@ describe('middleware authentication and role authorization', () => {
       mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
       mockGetProfile.mockResolvedValue({ data: { role, is_deleted: false }, error: null });
 
-      const response = await middleware(buildRequest('/partner/vehicles') as any);
+      const response = await proxy(buildRequest('/partner/vehicles') as any);
 
       expect(response.type).toBe('redirect');
       expect(new URL(response.url).pathname).toBe('/dashboard');
@@ -161,10 +161,10 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'partner', is_deleted: false }, error: null });
 
-    const partnerResponse = await middleware(buildRequest('/partner') as any);
+    const partnerResponse = await proxy(buildRequest('/partner') as any);
     expect(partnerResponse.type).toBe('next');
 
-    const dashboardResponse = await middleware(buildRequest('/dashboard') as any);
+    const dashboardResponse = await proxy(buildRequest('/dashboard') as any);
     expect(dashboardResponse.type).toBe('redirect');
     expect(new URL(dashboardResponse.url).pathname).toBe('/partner');
   });
@@ -173,10 +173,10 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'client', is_deleted: false }, error: null });
 
-    const clientResponse = await middleware(buildRequest('/client/payments') as any);
+    const clientResponse = await proxy(buildRequest('/client/payments') as any);
     expect(clientResponse.type).toBe('next');
 
-    const dashboardResponse = await middleware(buildRequest('/dashboard') as any);
+    const dashboardResponse = await proxy(buildRequest('/dashboard') as any);
     expect(dashboardResponse.type).toBe('redirect');
     expect(new URL(dashboardResponse.url).pathname).toBe('/client');
   });
@@ -185,7 +185,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'partner', is_deleted: false }, error: null });
 
-    const response = await middleware(buildRequest('/oauth/consent') as any);
+    const response = await proxy(buildRequest('/oauth/consent') as any);
 
     expect(response.type).toBe('next');
   });
@@ -194,7 +194,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'client', is_deleted: false }, error: null });
 
-    const response = await middleware(buildRequest('/oauth/consent') as any);
+    const response = await proxy(buildRequest('/oauth/consent') as any);
 
     expect(response.type).toBe('next');
   });
@@ -203,7 +203,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'partner', is_deleted: false }, error: null });
 
-    const response = await middleware(buildRequest('/settings') as any);
+    const response = await proxy(buildRequest('/settings') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/partner');
@@ -213,7 +213,7 @@ describe('middleware authentication and role authorization', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     mockGetProfile.mockResolvedValue({ data: { role: 'client', is_deleted: false }, error: null });
 
-    const response = await middleware(buildRequest('/partner') as any);
+    const response = await proxy(buildRequest('/partner') as any);
 
     expect(response.type).toBe('redirect');
     expect(new URL(response.url).pathname).toBe('/client');
@@ -222,7 +222,7 @@ describe('middleware authentication and role authorization', () => {
   it('applies the security headers to protected-page responses', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
 
-    const response = await middleware(buildRequest('/dashboard') as any);
+    const response = await proxy(buildRequest('/dashboard') as any);
 
     expect(response.headers.set).toHaveBeenCalledWith(
       'Strict-Transport-Security',

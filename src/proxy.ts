@@ -55,7 +55,7 @@ function buildCsp(request: NextRequest) {
   return { requestHeaders, contentSecurityPolicy };
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Ocultar APKs / instaladores: nunca servir binarios de app por la web.
