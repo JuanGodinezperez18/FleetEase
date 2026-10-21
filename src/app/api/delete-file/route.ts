@@ -102,11 +102,11 @@ async function verifyFileOwnership(filePath: string, userId: string): Promise<bo
   try {
     const { data: profile, error } = await supabaseAdmin
       .from('users')
-      .select('company_id, role')
+      .select('company_id, role, is_deleted')
       .eq('id', userId)
       .single();
 
-    if (error || !profile) return false;
+    if (error || !profile || profile.is_deleted) return false;
     if (profile.role === 'super_admin' || profile.role === 'superAdmin') return true;
 
     const segments = filePath.split('/');
