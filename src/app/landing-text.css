@@ -1,51 +1,102 @@
-/* Landing text safety — always readable on dark surface */
+/* Landing text safety — always readable on dark surface.
+   The global light-theme bridge uses .light [class*="text-white/"]:not(...):not(...)
+   which reaches specificity (0,4,0). Our overrides must match or exceed that. */
+
 .fe-landing,
 .light .fe-landing {
   background-color: #080a0f !important;
   color: #ffffff !important;
   color-scheme: dark;
 }
-.fe-landing .text-white,
-.fe-landing [class~="text-white"],
-.light .fe-landing .text-white,
-.light .fe-landing [class~="text-white"] {
+
+/* Exact text-white */
+.fe-landing .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.fe-landing [class~="text-white"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class~="text-white"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
   color: #ffffff !important;
 }
-.fe-landing [class*="text-white/"],
-.light .fe-landing [class*="text-white/"] { color: rgba(255,255,255,0.72) !important; }
-.fe-landing [class*="text-white/60"],
-.light .fe-landing [class*="text-white/60"] { color: rgba(255,255,255,0.60) !important; }
-.fe-landing [class*="text-white/55"],
-.light .fe-landing [class*="text-white/55"] { color: rgba(255,255,255,0.55) !important; }
-.fe-landing [class*="text-white/50"],
-.light .fe-landing [class*="text-white/50"] { color: rgba(255,255,255,0.50) !important; }
-.fe-landing [class*="text-white/45"],
-.light .fe-landing [class*="text-white/45"] { color: rgba(255,255,255,0.45) !important; }
-.fe-landing [class*="text-white/40"],
-.light .fe-landing [class*="text-white/40"] { color: rgba(255,255,255,0.40) !important; }
-.fe-landing [class*="text-white/35"],
-.light .fe-landing [class*="text-white/35"] { color: rgba(255,255,255,0.35) !important; }
-.fe-landing [class*="text-white/30"],
-.light .fe-landing [class*="text-white/30"] { color: rgba(255,255,255,0.30) !important; }
-.fe-landing [class*="text-white/25"],
-.light .fe-landing [class*="text-white/25"] { color: rgba(255,255,255,0.25) !important; }
+
+/* Opacity variants — each with matching :not() specificity */
+.fe-landing [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+.fe-landing [class*="text-white/90"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/90"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.90) !important;
+}
+.fe-landing [class*="text-white/80"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/80"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.80) !important;
+}
+.fe-landing [class*="text-white/70"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/70"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+.fe-landing [class*="text-white/65"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/65"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+.fe-landing [class*="text-white/60"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/60"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.60) !important;
+}
+.fe-landing [class*="text-white/55"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/55"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+.fe-landing [class*="text-white/50"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/50"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.50) !important;
+}
+.fe-landing [class*="text-white/45"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/45"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+.fe-landing [class*="text-white/40"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/40"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.40) !important;
+}
+.fe-landing [class*="text-white/35"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/35"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+.fe-landing [class*="text-white/30"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/30"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.30) !important;
+}
+.fe-landing [class*="text-white/25"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
+.light .fe-landing [class*="text-white/25"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
+  color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Headings + brand wordmark */
+.fe-landing h1,
+.fe-landing h2,
+.fe-landing h3,
+.light .fe-landing h1,
+.light .fe-landing h2,
+.light .fe-landing h3,
+.fe-landing .fe-brand-fleet,
+.light .fe-landing .fe-brand-fleet {
+  color: #ffffff !important;
+}
+.fe-landing .fe-brand-ease,
+.light .fe-landing .fe-brand-ease,
 .fe-landing [class*="text-[var(--fe-lime"],
 .fe-landing [class*="text-[#d7ff3f"],
 .light .fe-landing [class*="text-[var(--fe-lime"],
-.light .fe-landing [class*="text-[#d7ff3f"],
-.fe-landing .fe-brand-ease,
-.light .fe-landing .fe-brand-ease { color: #d7ff3f !important; }
-.fe-landing .fe-brand-fleet,
-.light .fe-landing .fe-brand-fleet { color: #ffffff !important; }
-.fe-landing h1, .fe-landing h2, .fe-landing h3,
-.light .fe-landing h1, .light .fe-landing h2, .light .fe-landing h3 {
-  color: #ffffff !important;
+.light .fe-landing [class*="text-[#d7ff3f"] {
+  color: #d7ff3f !important;
 }
+
+/* Ink on lime CTAs */
 .fe-landing a[class*="bg-[var(--fe-lime)"],
 .fe-landing button[class*="bg-[var(--fe-lime)"],
-.fe-landing [class*="text-[var(--fe-ink)"],
 .light .fe-landing a[class*="bg-[var(--fe-lime)"],
 .light .fe-landing button[class*="bg-[var(--fe-lime)"],
+.fe-landing [class*="text-[var(--fe-ink)"],
 .light .fe-landing [class*="text-[var(--fe-ink)"] {
   color: #080a0f !important;
 }
