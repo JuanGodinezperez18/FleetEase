@@ -43,10 +43,13 @@ export async function POST(request: NextRequest) {
 
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('company_id, role')
+      .select('company_id, role, is_deleted')
       .eq('id', user.id)
       .single();
     if (profileError || !userProfile) {
+    if (userProfile.is_deleted) {
+      return NextResponse.json({ error: 'Usuario desactivado.' }, { status: 403 });
+    }
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
