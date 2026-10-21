@@ -105,21 +105,18 @@ const legacySwCleanupScript = `
 })();
 `;
 
-/** Failsafe: never leave the static #fe-boot overlay up if React/auth hangs. */
+/**
+ * Failsafe: never leave the static #fe-boot overlay up if React/auth hangs.
+ * Only toggle data-fe-boot-hidden — CSS hides the overlay.
+ * Do NOT removeChild: #fe-boot is owned by React in the layout tree;
+ * removing it causes NotFoundError on hydration/navigation.
+ */
 const bootFailsafeScript = `
 (function() {
   try {
     function hideBoot() {
       document.documentElement.dataset.feBootHidden = 'true';
-      var el = document.getElementById('fe-boot');
-      if (el && el.parentNode) {
-        // Remove after transition so it doesn't linger in the DOM
-        setTimeout(function() {
-          if (el.parentNode) el.parentNode.removeChild(el);
-        }, 400);
-      }
     }
-    // Primary: hide as soon as the page is interactive enough
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       setTimeout(hideBoot, 300);
     } else {
@@ -127,7 +124,6 @@ const bootFailsafeScript = `
         setTimeout(hideBoot, 300);
       });
     }
-    // Absolute fallback
     setTimeout(hideBoot, 2500);
   } catch (e) {}
 })();
