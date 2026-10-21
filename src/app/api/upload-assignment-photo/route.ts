@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
     if (profileError || !userProfile) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
     if (userProfile.is_deleted) {
       return NextResponse.json({ error: 'Usuario desactivado.' }, { status: 403 });
-    }
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
     const formData = await request.formData();
