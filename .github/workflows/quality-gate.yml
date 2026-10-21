@@ -34,7 +34,7 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
       - name: Pruebas de regresión del middleware
-        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts src/lib/shared-links.test.ts
+        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts src/lib/shared-links.test.ts src/lib/security/notification-scope.test.ts
       - run: npm run type-check
       - name: Build
         run: npm run build
