@@ -20,20 +20,19 @@ function applySecurityHeaders(response: NextResponse, contentSecurityPolicy: str
   return response;
 }
 
-function buildCsp(_request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+function buildCsp(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
 
-  // Important: do NOT use 'strict-dynamic' here.
-  // Static/prerendered HTML is served from CDN with a CSP nonce generated per
-  // request in this proxy. strict-dynamic ignores host allowlists ('self'), so
-  // Next.js chunks without a matching nonce never execute and the app stays on
-  // the static #fe-boot splash forever.
+  // NOTE: Nonces are intentionally NOT used here.
+  // The marketing/landing HTML is statically prerendered and CDN-cached.
+  // A per-request nonce in the CSP header cannot match script tags baked into
+  // that HTML, so React never hydrates and #fe-boot never hides.
+  // 'self' + explicit third-party hosts + 'unsafe-inline' for Next/theme boot scripts.
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'nonce-" + nonce + "' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live" + (isDev ? " 'unsafe-eval'" : ""),
+    "script-src 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com" + (isDev ? " 'unsafe-eval'" : ""),
     "script-src-attr 'none'",
-    "script-src-elem 'self' 'nonce-" + nonce + "' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com",
+    "script-src-elem 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com",
     "style-src 'self' 'unsafe-inline'",
     "style-src-attr 'unsafe-inline'",
     "style-src-elem 'self' 'unsafe-inline'",
@@ -53,8 +52,7 @@ function buildCsp(_request: NextRequest) {
   ].join('; ');
 
   const contentSecurityPolicy = cspHeader;
-  const requestHeaders = new Headers(_request.headers);
-  requestHeaders.set('x-nonce', nonce);
+  const requestHeaders = new Headers(request.headers);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   return { requestHeaders, contentSecurityPolicy };
