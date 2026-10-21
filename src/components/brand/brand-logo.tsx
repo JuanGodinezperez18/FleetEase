@@ -2,23 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 type BrandLogoProps = {
-  /** Tamaño del icono en px (default 40) */
   size?: number;
-  /** Mostrar wordmark FleetEase */
   showWordmark?: boolean;
-  /** Clases extra del contenedor del link */
   className?: string;
-  /** Prioridad de carga (header principal) */
   priority?: boolean;
   href?: string;
 };
 
-/**
- * Logo unificado para header, footer y páginas públicas.
- * object-contain + fondo transparente para que no se recorte en dark/light.
- * Colores del wordmark van por estilo inline / clase propia para que el
- * light-theme bridge (que reescribe .text-white) no los apague en la landing.
- */
 export function BrandLogo({
   size = 40,
   showWordmark = true,
