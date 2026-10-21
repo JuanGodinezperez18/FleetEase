@@ -16,6 +16,8 @@ type BrandLogoProps = {
 /**
  * Logo unificado para header, footer y páginas públicas.
  * object-contain + fondo transparente para que no se recorte en dark/light.
+ * Colores del wordmark van por estilo inline / clase propia para que el
+ * light-theme bridge (que reescribe .text-white) no los apague en la landing.
  */
 export function BrandLogo({
   size = 40,
@@ -49,8 +51,12 @@ export function BrandLogo({
           className="font-semibold tracking-[-0.03em] leading-none"
           style={{ fontSize: Math.max(15, Math.round(size * 0.42)) }}
         >
-          <span className="text-white">Fleet</span>
-          <span className="text-[var(--fe-lime,#d7ff3f)]">Ease</span>
+          <span className="fe-brand-fleet" style={{ color: "#ffffff" }}>
+            Fleet
+          </span>
+          <span className="fe-brand-ease" style={{ color: "#d7ff3f" }}>
+            Ease
+          </span>
         </span>
       ) : null}
     </Link>
