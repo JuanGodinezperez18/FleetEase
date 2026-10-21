@@ -119,6 +119,18 @@ const legacySwCleanupScript = `
   }).catch(function() {});
 })();
 `;
+
+/** Failsafe: never leave the static #fe-boot overlay up if React/auth hangs. */
+const bootFailsafeScript = `
+(function() {
+  try {
+    setTimeout(function() {
+      document.documentElement.dataset.feBootHidden = 'true';
+    }, 2500);
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
@@ -128,6 +140,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Script>
         <Script id="fleetease-legacy-sw-cleanup" strategy="beforeInteractive">
           {legacySwCleanupScript}
+        </Script>
+        <Script id="fleetease-boot-failsafe" strategy="beforeInteractive">
+          {bootFailsafeScript}
         </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`

@@ -24,11 +24,16 @@ function buildCsp(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const isDev = process.env.NODE_ENV === 'development';
 
+  // Important: do NOT use 'strict-dynamic' here.
+  // Static/prerendered HTML is served from CDN with a CSP nonce generated per
+  // request in this proxy. strict-dynamic ignores host allowlists ('self'), so
+  // Next.js chunks without a matching nonce never execute and the app stays on
+  // the static #fe-boot splash forever.
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'nonce-${nonce}' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live${isDev ? " 'unsafe-eval'" : ''};
     script-src-attr 'none';
-    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com;
+    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com;
     style-src 'self' 'unsafe-inline';
     style-src-attr 'unsafe-inline';
     style-src-elem 'self' 'unsafe-inline';
@@ -36,8 +41,8 @@ function buildCsp(request: NextRequest) {
     media-src 'self' blob:;
     manifest-src 'self';
     font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com;
-    frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://ws-us3.pusher.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://pagead2.googlesyndication.com;
+    frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com https://vercel.live;
     child-src 'self';
     worker-src 'self' blob:;
     object-src 'none';
@@ -86,7 +91,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/images/') ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/fonts/') ||
-    /^\/[^/]+\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf|json|webmanifest|txt|xml|pdf)$/i.test(pathname);
+    /^\\/[^/]+\\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf|json|webmanifest|txt|xml|pdf)$/i.test(pathname);
 
   if (pathname.startsWith('/api/') || isPublicStaticAsset) {
     return createResponse();

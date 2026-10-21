@@ -1,8 +1,14 @@
 "use client";
 
+import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function GlobalLoader() {
+  useEffect(() => {
+    // Hide the static HTML boot splash as soon as any React tree mounts.
+    document.documentElement.dataset.feBootHidden = 'true';
+  }, []);
+
   return (
     <div
       className="fe-app-shell fe-shell-bg min-h-screen w-full px-4 pb-12 pt-6 sm:px-6 lg:px-8"
