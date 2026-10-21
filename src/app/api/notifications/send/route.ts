@@ -82,6 +82,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No puedes notificar a otra empresa.' }, { status: 403 });
     }
 
+    const { data: recipient, error: recipientError } = await supabaseAdmin
+      .from('users')
+      .select('id, company_id, is_deleted')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (recipientError) {
+      return internalError('notifications/send recipient lookup', recipientError, { userId });
+    }
+    if (!recipient || recipient.is_deleted || !recipient.company_id) {
+      return NextResponse.json({ error: 'Destinatario no disponible.' }, { status: 404 });
+    }
+    if (userProfile.role !== 'super_admin' && recipient.company_id !== userProfile.company_id) {
+      return NextResponse.json({ error: 'No puedes notificar a usuarios de otra empresa.' }, { status: 403 });
+    }
+    if (companyId && companyId !== recipient.company_id) {
+      return NextResponse.json({ error: 'La empresa no corresponde al destinatario.' }, { status: 403 });
+    }
+
     const timestamp = new Date().toISOString();
 
     const { data: notification, error: notifError } = await supabaseAdmin
@@ -92,7 +111,7 @@ export async function POST(request: NextRequest) {
         message: title ? `${title}: ${messageBody}` : messageBody,
         date: timestamp,
         is_read: false,
-        company_id: companyId || userProfile.company_id || null,
+        company_id: recipient.company_id,
       })
       .select()
       .single();
