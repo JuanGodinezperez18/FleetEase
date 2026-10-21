@@ -109,9 +109,26 @@ const legacySwCleanupScript = `
 const bootFailsafeScript = `
 (function() {
   try {
-    setTimeout(function() {
+    function hideBoot() {
       document.documentElement.dataset.feBootHidden = 'true';
-    }, 2500);
+      var el = document.getElementById('fe-boot');
+      if (el && el.parentNode) {
+        // Remove after transition so it doesn't linger in the DOM
+        setTimeout(function() {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 400);
+      }
+    }
+    // Primary: hide as soon as the page is interactive enough
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(hideBoot, 300);
+    } else {
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(hideBoot, 300);
+      });
+    }
+    // Absolute fallback
+    setTimeout(hideBoot, 2500);
   } catch (e) {}
 })();
 `;
