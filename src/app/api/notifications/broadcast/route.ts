@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { checkRateLimit, notificationLimiter } from '@/lib/rate-limit';
 import { idSchema, parseJsonBody, shortTextSchema } from '@/lib/security/validation';
+import { hasCompanyScopedRecipients } from '@/lib/security/notification-scope';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,6 +132,31 @@ export async function POST(request: NextRequest) {
       case 'specific':
         recipientUserIds = selectedUsers || [];
         break;
+    }
+
+    // Resolve every recipient against the target company before writing with
+    // the service-role client. In particular, caller-supplied selectedUsers IDs
+    // must not cross tenant boundaries.
+    recipientUserIds = [...new Set(recipientUserIds)];
+    if (recipientUserIds.length > 0) {
+      const { data: scopedUsers, error: scopedUsersError } = await supabaseAdmin
+        .from('users')
+        .select('id, company_id, is_deleted')
+        .in('id', recipientUserIds)
+        .eq('company_id', companyId)
+        .eq('is_deleted', false);
+
+      if (scopedUsersError) {
+        console.error('[Notification Broadcast] Recipient scope lookup failed:', scopedUsersError);
+        return NextResponse.json({ error: 'No se pudieron validar los destinatarios.' }, { status: 500 });
+      }
+
+      if (!hasCompanyScopedRecipients(recipientUserIds, scopedUsers || [], companyId)) {
+        return NextResponse.json(
+          { error: 'Uno o más destinatarios no pertenecen a la empresa seleccionada.' },
+          { status: 403 },
+        );
+      }
     }
 
     const timestamp = new Date().toISOString();
