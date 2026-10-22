@@ -16,12 +16,19 @@ export async function POST(request: NextRequest) {
 
     const { data: target } = await supabaseAdmin
       .from('users')
-      .select('id, company_id, email')
+      .select('id, company_id, email, is_deleted')
       .eq('email', email)
       .maybeSingle();
 
+    if (!target || target.is_deleted) {
+      return NextResponse.json(
+        { success: false, message: 'Usuario no encontrado o inactivo.' },
+        { status: 404 },
+      );
+    }
+
     const auth = await requireAdmin(request, {
-      targetCompanyId: target?.company_id ?? null,
+      targetCompanyId: target.company_id,
     });
     if ('error' in auth) return auth.error;
 
