@@ -16,11 +16,11 @@ export async function POST(request: NextRequest) {
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
-      .select('id, company_id')
+      .select('id, company_id, is_deleted')
       .eq('id', uid)
       .single();
 
-    if (targetError || !target) {
+    if (targetError || !target || target.is_deleted) {
       return NextResponse.json(
         { success: false, message: 'Usuario no encontrado' },
         { status: 404 },
