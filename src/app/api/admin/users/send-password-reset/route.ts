@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.fleetease.com.mx'}/dashboard/reset-password`,
+        redirectTo: `${(process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.fleetease.com.mx').replace(/\/+$/, '')}/dashboard/reset-password`,
       },
     });
 
