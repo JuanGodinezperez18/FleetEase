@@ -83,7 +83,7 @@ export function FloatingActionButton({
       </AnimatePresence>
 
       <div
-        className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 ${className}`}
+        className={`fixed z-50 flex flex-col items-end gap-3 bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] ${className}`}
         data-fab-root
       >
         <AnimatePresence>
