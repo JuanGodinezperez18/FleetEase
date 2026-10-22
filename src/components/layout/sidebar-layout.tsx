@@ -65,7 +65,8 @@ function SidebarLayoutContent({ children }: SidebarLayoutProps) {
         }
       `}</style>
 
-      <div className="fe-app-shell fe-shell-bg flex h-screen overflow-hidden">
+      {/* h-dvh tracks the dynamic viewport (mobile browser chrome). Fallback to h-screen for older browsers. */}
+      <div className="fe-app-shell fe-shell-bg flex h-screen h-dvh overflow-hidden">
         <div className="fe-shell-bg hidden w-64 shrink-0 border-r fe-border-subtle shadow-[10px_0_40px_rgba(0,0,0,.12)] dark:shadow-[10px_0_40px_rgba(0,0,0,.35)] xl:block">
           <Sidebar />
         </div>
@@ -108,7 +109,8 @@ function SidebarLayoutContent({ children }: SidebarLayoutProps) {
           </header>
 
           <main className="fe-main-bg flex-1 overflow-auto">
-            <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 sm:p-6 xl:p-8">{children}</div>
+            {/* Extra bottom padding so the fixed FAB never covers the last cards on mobile */}
+            <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 pb-24 sm:p-6 sm:pb-24 xl:p-8 xl:pb-8">{children}</div>
           </main>
         </div>
       </div>
