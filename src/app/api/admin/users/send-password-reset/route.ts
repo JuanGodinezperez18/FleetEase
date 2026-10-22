@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { internalError } from '@/lib/security/api-error';
+import { sendEmail } from '@/lib/resend';
 import { emailSchema, parseJsonBody } from '@/lib/security/validation';
 
 const sendPasswordResetSchema = z.object({
@@ -32,16 +33,32 @@ export async function POST(request: NextRequest) {
     });
     if ('error' in auth) return auth.error;
 
-    const { error } = await supabaseAdmin.auth.admin.generateLink({
+    const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/reset-password`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.fleetease.com.mx'}/dashboard/reset-password`,
       },
     });
 
     if (error) {
       return internalError('Send Password Reset API', error);
+    }
+
+    const actionLink = linkData.properties?.action_link;
+    if (!actionLink) {
+      return NextResponse.json({ success: false, message: 'No se pudo generar el enlace.' }, { status: 500 });
+    }
+
+    const safeLink = actionLink.replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const emailResult = await sendEmail({
+      to: email,
+      subject: 'Restablece tu contraseña de FleetEase',
+      text: `Para restablecer tu contraseña de FleetEase, abre este enlace: ${actionLink}`,
+      html: `<p>Recibimos una solicitud para restablecer la contraseña de tu cuenta FleetEase.</p><p><a href="${safeLink}">Restablecer contraseña</a></p><p>Si no solicitaste este cambio, puedes ignorar este correo.</p>`,
+    });
+    if (!emailResult?.id) {
+      return NextResponse.json({ success: false, message: 'No se pudo confirmar el envío del correo.' }, { status: 502 });
     }
 
     return NextResponse.json({
