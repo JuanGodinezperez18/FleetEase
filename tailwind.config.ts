@@ -13,7 +13,11 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      // Padding responsivo: menos en móvil para no robar espacio útil
+      padding: {
+        DEFAULT: "1.25rem",
+        md: "2rem",
+      },
       screens: {
         "2xl": "1400px",
       },
@@ -21,7 +25,7 @@ const config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
+        mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "ui-monospace", "monospace"],
         heading: ["var(--font-manrope)", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
@@ -74,9 +78,13 @@ const config = {
         }
       },
       borderRadius: {
+        // Alineado con --fe-radius-* (10 / 14 / 18px)
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "fe-sm": "var(--fe-radius-sm)",
+        "fe-md": "var(--fe-radius-md)",
+        "fe-lg": "var(--fe-radius-lg)",
       },
       keyframes: {
         "accordion-down": {
@@ -112,8 +120,9 @@ const config = {
           '50%': { transform: 'translateY(-10px)' },
         },
         "pulse-glow": {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' },
-          '50%': { boxShadow: '0 0 40px rgba(59, 130, 246, 0.6)' },
+          // Lima de marca (#d7ff3f) en lugar de azul genérico
+          '0%, 100%': { boxShadow: '0 0 20px rgba(215, 255, 63, 0.3)' },
+          '50%': { boxShadow: '0 0 40px rgba(215, 255, 63, 0.55)' },
         },
         "shimmer": {
           '0%': { backgroundPosition: '-200% 0' },
@@ -153,9 +162,10 @@ const config = {
         'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
-        'glow-lg': '0 0 40px rgba(59, 130, 246, 0.4)',
-        'glow-accent': '0 0 20px rgba(34, 197, 94, 0.3)',
+        // Glow alineado a lima de marca
+        'glow': '0 0 20px rgba(215, 255, 63, 0.3)',
+        'glow-lg': '0 0 40px rgba(215, 255, 63, 0.4)',
+        'glow-accent': '0 0 20px rgba(215, 255, 63, 0.3)',
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
         'elevated': '0 20px 40px -15px rgba(0, 0, 0, 0.15)',
         'elevated-dark': '0 20px 40px -15px rgba(0, 0, 0, 0.4)',
@@ -163,7 +173,7 @@ const config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'aurora': 'linear-gradient(-45deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1), rgba(236, 72, 153, 0.1), rgba(59, 130, 246, 0.1))',
+        'aurora': 'linear-gradient(-45deg, rgba(215, 255, 63, 0.08), rgba(147, 51, 234, 0.08), rgba(215, 255, 63, 0.06), rgba(215, 255, 63, 0.08))',
       },
       backdropBlur: {
         'xs': '2px',

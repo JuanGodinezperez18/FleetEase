@@ -2,7 +2,7 @@
 
 > **Control de Rentabilidad para Flotas de Vehículos en México**
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.10-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.6-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.2.1-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](./LICENSE)
@@ -50,10 +50,10 @@ Es la plataforma que te dice **exactamente qué vehículo gana dinero y cuál pi
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
-- **Next.js 16** (App Router, Turbopack)
+- **Next.js 16** (App Router; build con Webpack)
 - **React 19** con Server Components
 - **TypeScript** (strict mode)
-- **Tailwind CSS** + Shadcn/ui
+- **Tailwind CSS** + Shadcn/ui + sistema de tokens `--fe-*`
 - **TanStack Query** + **TanStack Table**
 - **React Hook Form** + **Zod**
 - **Recharts**, **Framer Motion**, **@dnd-kit**
@@ -123,7 +123,7 @@ FleetEase/
 
 ```bash
 npm run dev              # Servidor de desarrollo
-npm run build            # Build de producción
+npm run build            # Build de producción (Webpack)
 npm run start            # Servidor de producción
 npm run lint             # ESLint
 npm run type-check       # Verificar tipos de TypeScript
@@ -133,6 +133,8 @@ npm run test:coverage    # Tests con coverage
 npm run analyze:bundle   # Análisis de bundle size
 npm run lighthouse       # Lighthouse audit local
 ```
+
+> **Nota:** Los scripts de migración Firebase → Supabase (`migrate:*`) se eliminaron del `package.json` una vez estabilizada la migración. Los archivos siguen en `scripts/` por si se necesitan de forma excepcional.
 
 ---
 
@@ -170,7 +172,7 @@ Deploy automático en cada push a `master`.
 - [🔒 Seguridad — Quick Start](./SECURITY_QUICK_START.md)
 - [🔑 Rotación de Credenciales](./SECURITY_CREDENTIAL_ROTATION.md)
 - [📖 Referencia Firebase vs Supabase](./SUPABASE_REFERENCE.md)
-- [🗄️ Políticas RLS de Supabase Storage](./SUPABASE_STORAGE_RLS.md)
+- [🧱 Políticas RLS de Supabase Storage](./SUPABASE_STORAGE_RLS.md)
 - [💳 Configuración de Stripe](./STRIPE_CONFIG.md)
 - [🗺️ Configuración de Google Maps](./GOOGLE_MAPS_SETUP.md)
 - [🔐 Configuración SSL](./SSL_CONFIG.md)
@@ -217,4 +219,4 @@ Este proyecto está bajo la Licencia MIT.
 
 ---
 
-**Última actualización**: Agosto 2026
+**Última actualización**: Octubre 2026
