@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
  * Floating WhatsApp CTA.
  * IMPORTANT: Replace PHONE_NUMBER with your real WhatsApp Business number
  * (country code + number, no + or spaces). Example for Mexico: 5215512345678
+ *
+ * On mobile, sits above the sticky CTA bar (bottom-20) to avoid overlap.
  */
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") ?? "";
 const PREFILL_MESSAGE = encodeURIComponent(
@@ -29,7 +31,7 @@ export function WhatsAppWidget() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Contactar a FleetEase por WhatsApp"
-      className={`fixed bottom-20 right-5 z-40 flex items-center gap-2.5 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg transition-all duration-300 hover:bg-[#1DA851] hover:shadow-xl md:bottom-6 md:right-6 ${
+      className={`fixed bottom-20 right-5 z-40 flex items-center gap-2.5 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg transition-all duration-300 hover:bg-[#1DA851] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)] md:bottom-6 md:right-6 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >
