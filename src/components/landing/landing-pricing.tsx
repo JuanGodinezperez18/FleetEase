@@ -37,6 +37,9 @@ const HIGHLIGHTS: Record<PlanType, string[]> = {
   ],
 };
 
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]";
+
 function formatPrice(planId: PlanType): string {
   const p = plans[planId];
   if (p.price === 0) return "Gratis";
@@ -48,7 +51,7 @@ export function LandingPricing() {
     <section
       id="pricing"
       aria-labelledby="pricing-title"
-      className="border-t border-white/[0.07] scroll-mt-24"
+      className="border-t border-white/[0.07] scroll-mt-[var(--header-h)]"
     >
       <div className="mx-auto max-w-[1240px] px-5 py-16 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-2xl text-center">
@@ -74,8 +77,8 @@ export function LandingPricing() {
               <article
                 key={id}
                 className={[
-                  "group relative flex flex-col rounded-[22px] border p-6 transition-all duration-300 ease-out",
-                  "hover:-translate-y-2 hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)]",
+                  "group relative flex flex-col rounded-[22px] border p-6 transition-all duration-300 ease-out motion-safe:hover:-translate-y-2",
+                  "hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)]",
                   popular
                     ? "border-[var(--fe-lime)]/45 bg-[var(--fe-lime)]/[0.06] hover:border-[var(--fe-lime)]/70 hover:bg-[var(--fe-lime)]/[0.1]"
                     : "border-white/[0.08] bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.055]",
@@ -88,7 +91,7 @@ export function LandingPricing() {
                 ) : null}
 
                 <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                <p className="mt-2 min-h-[40px] text-sm leading-5 text-white/50">
+                <p className="mt-2 min-h-[40px] text-sm leading-5 text-white/55">
                   {plan.description}
                 </p>
 
@@ -97,11 +100,11 @@ export function LandingPricing() {
                     {formatPrice(id)}
                   </span>
                   {plan.price > 0 ? (
-                    <span className="text-sm text-white/45">
+                    <span className="text-sm text-white/50">
                       {plan.currency || "MXN"}/{plan.period}
                     </span>
                   ) : (
-                    <span className="text-sm text-white/45">para siempre</span>
+                    <span className="text-sm text-white/50">para siempre</span>
                   )}
                 </div>
 
@@ -121,10 +124,11 @@ export function LandingPricing() {
                     popular
                       ? "bg-[var(--fe-lime)] text-[var(--fe-ink)] hover:bg-white"
                       : "border border-white/15 bg-white/[0.04] text-white hover:border-white/30 hover:bg-white/10",
+                    focusRing,
                   ].join(" ")}
                 >
                   {plan.price === 0 ? "Empezar gratis" : "Elegir plan"}
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  <ArrowRight className="h-4 w-4 transition motion-safe:group-hover:translate-x-0.5" />
                 </Link>
               </article>
             );

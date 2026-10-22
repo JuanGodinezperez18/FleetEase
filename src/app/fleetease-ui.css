@@ -1,6 +1,7 @@
 /* FleetEase application visual system */
 :root {
   --fe-lime: #d7ff3f;
+  --fe-lime-rgb: 215, 255, 63;
   --fe-ink: #080a0f;
   --fe-ink-rgb: 8, 10, 15;
   --fe-dark-surface: #0e1117;
@@ -59,6 +60,14 @@
   --fe-motion-fast: 160ms;
   --fe-motion-base: 240ms;
   --fe-motion-slow: 360ms;
+  /* Landing header height — use for pt / scroll-mt */
+  --header-h: 72px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --header-h: 80px;
+  }
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
@@ -251,4 +260,15 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Reduced motion: respect prefers-reduced-motion for landing animations */
+@media (prefers-reduced-motion: reduce) {
+  .fe-landing *,
+  .fe-landing *::before,
+  .fe-landing *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
