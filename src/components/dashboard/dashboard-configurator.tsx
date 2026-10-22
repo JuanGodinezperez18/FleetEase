@@ -153,7 +153,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex min-h-0 items-center justify-center bg-black/75 p-2.5 backdrop-blur-md sm:p-4"
+          className="fixed inset-0 z-[60] flex min-h-0 items-end justify-center bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -165,11 +165,11 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
             role="dialog"
             aria-modal="true"
             aria-labelledby="dashboard-config-title"
-            className="relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[20px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px]"
+            className="relative flex h-[min(100dvh,100%)] max-h-[100dvh] min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-t-[20px] border border-white/[0.09] bg-[#0e1117] text-white shadow-[0_32px_100px_rgba(0,0,0,.55)] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px]"
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
-            <div className="relative flex items-center justify-between border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
+            <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07]">
                   <Settings className="h-5 w-5 text-[#d7ff3f]" />
@@ -184,7 +184,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </button>
             </div>
 
-            <div className="relative border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
+            <div className="relative shrink-0 border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
               <div className="mb-2.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                   <Filter className="h-3.5 w-3.5 text-[#d7ff3f]" />
@@ -275,7 +275,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
               </div>
             </div>
 
-            <div className="relative flex flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+            <div className="relative flex shrink-0 flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
               <div className="text-[10px] text-white/30">
                 <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> elementos visibles
               </div>
