@@ -296,14 +296,20 @@ export default function DashboardPage() {
 
       <LiveRegion message={announcementMessage} politeness="polite" clearAfter={5000} />
 
+      {/*
+        relative + overflow-x-hidden + min-w-0: the decorative glow blob
+        (-right-48 w-[520px]) must not expand the scrollable width on mobile.
+        Without this, the page gains horizontal scroll and content sits on the
+        left with empty black space on the right (FAB appears stranded).
+      */}
       <div
         id="main-content"
-        className="fe-page-shell space-y-5 sm:space-y-6"
+        className="fe-page-shell relative min-w-0 w-full overflow-x-hidden space-y-5 sm:space-y-6"
       >
         <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
         <div className="pointer-events-none absolute -right-48 top-[-220px] h-[520px] w-[520px] rounded-full bg-[var(--fe-lime)]/[0.055] blur-[120px]" />
 
-        <div className="relative z-10 space-y-5 sm:space-y-6">
+        <div className="relative z-10 min-w-0 space-y-5 sm:space-y-6">
           <DashboardHeader
             userName={currentUser.name}
             isConfigOpen={isConfigOpen}
@@ -313,7 +319,7 @@ export default function DashboardPage() {
             isExportingPdf={isExportingPdf}
           />
 
-          <section aria-label="Indicadores principales" className="space-y-3">
+          <section aria-label="Indicadores principales" className="min-w-0 space-y-3">
             <div className="flex items-end justify-between gap-4 px-1">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-text-faint)]">
@@ -342,7 +348,7 @@ export default function DashboardPage() {
 
           <section
             aria-label="Acciones rápidas"
-            className="border-t border-[color:var(--fe-border)] pt-6 sm:pt-7"
+            className="min-w-0 border-t border-[color:var(--fe-border)] pt-6 sm:pt-7"
           >
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
