@@ -108,9 +108,9 @@ function SidebarLayoutContent({ children }: SidebarLayoutProps) {
             </div>
           </header>
 
-          <main className="fe-main-bg flex-1 overflow-auto">
+          <main className="fe-main-bg min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
             {/* Extra bottom padding so the fixed FAB never covers the last cards on mobile */}
-            <div className="mx-auto min-h-full w-full max-w-[1440px] p-4 pb-24 sm:p-6 sm:pb-24 xl:p-8 xl:pb-8">{children}</div>
+            <div className="mx-auto min-h-full min-w-0 w-full max-w-[1440px] overflow-x-hidden p-4 pb-24 sm:p-6 sm:pb-24 xl:p-8 xl:pb-8">{children}</div>
           </main>
         </div>
       </div>
