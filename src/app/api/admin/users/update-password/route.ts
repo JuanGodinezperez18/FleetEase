@@ -25,11 +25,11 @@ export async function POST(request: NextRequest) {
     if (auth.profile.id !== userId) {
       const { data: target } = await supabaseAdmin
         .from('users')
-        .select('id, company_id, role')
+        .select('id, company_id, role, is_deleted')
         .eq('id', userId)
         .single();
 
-      if (!target) {
+      if (!target || target.is_deleted) {
         return NextResponse.json(
           { success: false, message: 'Usuario no encontrado.' },
           { status: 404 },
