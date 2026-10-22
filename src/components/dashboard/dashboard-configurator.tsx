@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Eye, EyeOff, GripVertical, Save, X, Filter, AreaChart, Loader2, BarChart3, PieChart, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,8 +54,18 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
   const [isSaving, setIsSaving] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => { setWidgets(normalizeDashboardWidgets(currentWidgets)); }, [currentWidgets]);
+
+  // Lock body scroll while the sheet is open (mobile).
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
 
   const categories = ['all', 'CLIENTES', 'FLOTA', 'FINANZAS', 'CREDITOS', 'SOCIOS', 'KILOMETRAJE', 'MULTAS'];
   const categoryTranslations: Record<string, string> = {
@@ -142,18 +153,18 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     } finally { setIsSaving(false); }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
   const enabledCount = widgets.filter(w => w.enabled).length;
   const enabledOrder = widgets.filter(entry => entry.enabled).sort((a, b) => a.order - b.order);
 
-  return (
+  const overlay = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex min-h-0 items-end justify-center bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
+          className="fixed inset-0 z-[100] flex min-h-0 items-end justify-center bg-black/75 p-0 backdrop-blur-md sm:items-center sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -169,7 +180,8 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
-            <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
+            {/* pt accounts for notch / status bar when sheet is full-height on mobile */}
+            <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.07] px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4 sm:pt-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07]">
                   <Settings className="h-5 w-5 text-[#d7ff3f]" />
@@ -293,4 +305,8 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
       )}
     </AnimatePresence>
   );
+
+  // Portal to body so the sheet sits above the sticky app header (z-30)
+  // and is not trapped by overflow/stacking contexts in the shell.
+  return createPortal(overlay, document.body);
 }
