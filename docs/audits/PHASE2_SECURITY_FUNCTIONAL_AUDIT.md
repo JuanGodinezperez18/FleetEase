@@ -58,3 +58,9 @@ Una tercera ejecución aislada aplica `npm audit fix` sin `--force` después de 
 
 ## Criterio de salida
 No cerrar la fase hasta que cada cambio tenga evidencia de prueba, los workflows requeridos estén realmente ejecutados y en verde, y no queden riesgos altos/críticos sin resolver o con excepción documentada. Los cambios de infraestructura o de plan de Supabase se registrarán aparte; no se aplicarán sin autorización.
+
+
+### Actualización de remediación aislada — 2026-10-23
+La ejecución aislada `39894350704` terminó en fallo durante `npm audit fix`  (sin `--force`). El log detallado indica que, tras actualizar los paquetes directos y aplicar fixes compatibles, los avisos que impidieron terminar la auditoría completa son de dependencias de desarrollo: `basic-ftp` / `extract-zip` por la cadena de Puppeteer, `braces` por Tailwind/Jest y `postcss-selector-parser`. El comando `npm audit --omit=dev --audit-level=high` nunca se ejecutó en ese candidato, por lo que no se debe inferir que la puerta de producción pasa, aunque los avisos finales visibles sean de desarrollo.
+
+El candidato descargado contiene `jspdf@4.2.1`, `next@16.4.2`, `sharp@0.35.5`, `uuid@11.1.1`, `dompurify@3.4.17` y `seroval@1.6.12`. No se incorporó su `package.json` ni su `package-lock.json` a la rama. La validación de compatibilidad de jsPDF, pruebas, type-check y build con ese árbol sigue pendiente. El workflow temporal de validación se retiró y no debe quedar como solución permanente.
