@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { canAccessTargetCompany } from '@/lib/security/admin-target-scope';
 import { internalError } from '@/lib/security/api-error';
 import { sendEmail } from '@/lib/resend';
 import { emailSchema, parseJsonBody } from '@/lib/security/validation';
@@ -15,23 +16,32 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) return parsed.response;
     const { email } = parsed.data;
 
-    const { data: target } = await supabaseAdmin
+    // Authenticate before looking up the target to prevent unauthenticated
+    // callers from enumerating registered email addresses.
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return auth.error;
+
+    const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
       .select('id, company_id, email, is_deleted')
       .eq('email', email)
       .maybeSingle();
 
+    if (targetError) {
+      return internalError('Send Password Reset target lookup', targetError);
+    }
     if (!target || target.is_deleted) {
       return NextResponse.json(
         { success: false, message: 'Usuario no encontrado o inactivo.' },
         { status: 404 },
       );
     }
-
-    const auth = await requireAdmin(request, {
-      targetCompanyId: target.company_id,
-    });
-    if ('error' in auth) return auth.error;
+    if (!canAccessTargetCompany(auth.profile, target.company_id, true)) {
+      return NextResponse.json(
+        { success: false, message: 'No puedes operar sobre otra empresa.' },
+        { status: 403 },
+      );
+    }
 
     const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
