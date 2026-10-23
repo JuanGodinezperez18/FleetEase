@@ -13,6 +13,22 @@ permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    name: Dependency security gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require committed lockfile
+        run: test -f package-lock.json
+      - run: npm ci
+      - name: Fail on high or critical production advisories
+        run: npm audit --omit=dev --audit-level=high
+
+jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
