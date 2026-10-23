@@ -28,6 +28,31 @@ jobs:
       - name: Fail on high or critical production advisories
         run: npm audit --omit=dev --audit-level=high
 
+
+  dependency-remediation-preview:
+    name: Non-forced dependency fix preview (temporary)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply non-forced npm audit fixes in isolated runner
+        run: npm audit fix || true
+      - name: Capture resulting production audit
+        run: npm audit --omit=dev --json > audit-after.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-remediation-preview
+          path: |
+            package.json
+            package-lock.json
+            audit-after.json
+          if-no-files-found: error
+          retention-days: 3
+
   quality:
     runs-on: ubuntu-latest
     steps:
