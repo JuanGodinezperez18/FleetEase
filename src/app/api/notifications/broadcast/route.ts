@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) return parsed.response;
     const { title, message, recipientType, selectedUsers, sendPush, companyId } = parsed.data;
 
+    if (recipientType === 'specific' && (!selectedUsers || selectedUsers.length === 0)) {
+      return NextResponse.json(
+        { error: 'Selecciona al menos un destinatario.' },
+        { status: 400 },
+      );
+    }
+
     // Non-super_admin may only broadcast to their own company.
     if (userProfile.role !== 'super_admin' && companyId !== userProfile.company_id) {
       return NextResponse.json({ error: 'No puedes enviar broadcasts a otra empresa.' }, { status: 403 });
@@ -205,9 +212,11 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(batchPromises);
 
-    let pushSentCount = 0;
+    // Push delivery is not implemented yet. Never report queued recipients as
+    // successfully pushed; the in-app broadcast above is saved separately.
+    const pushSentCount = 0;
     if (sendPush && recipientUserIds.length > 0) {
-      pushSentCount = recipientUserIds.length;
+      console.info('[Notification Broadcast] Push requested but provider delivery is not implemented.');
     }
 
     return NextResponse.json({
