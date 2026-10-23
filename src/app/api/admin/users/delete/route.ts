@@ -42,21 +42,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: profileError } = await supabaseAdmin
+    let deactivateQuery = supabaseAdmin
       .from('users')
       .update({ is_deleted: true })
       .eq('id', uid)
-      .eq('company_id', target.company_id)
       .eq('is_deleted', false);
+    deactivateQuery = target.company_id === null
+      ? deactivateQuery.is('company_id', null)
+      : deactivateQuery.eq('company_id', target.company_id);
+
+    const { data: deactivated, error: profileError } = await deactivateQuery
+      .select('id')
+      .maybeSingle();
 
     if (profileError) {
       // No exponer el mensaje interno de Postgres/Supabase al cliente.
       return internalError('Delete User API', profileError, { uid });
     }
+    if (!deactivated) {
+      return NextResponse.json(
+        { success: false, message: 'El usuario cambió de estado; vuelve a cargar e inténtalo de nuevo.' },
+        { status: 409 },
+      );
+    }
 
-    await supabaseAdmin.auth.admin.updateUserById(uid, {
+    const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(uid, {
       user_metadata: { deleted: true },
     });
+    if (authUpdateError) {
+      console.error('[Delete User API] Profile deactivated but Auth metadata update failed:', authUpdateError);
+      return NextResponse.json(
+        { success: false, message: 'El usuario se desactivó, pero no se pudo sincronizar su estado de autenticación.' },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
