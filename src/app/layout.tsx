@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import { Inter, Manrope } from 'next/font/google';
+import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
 import "./fleetease-ui.css";
+import "./landing-text.css";
 import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieBanner } from "@/components/cookie-consent/cookie-banner";
@@ -16,6 +17,10 @@ import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+});
 
 /** Publisher ID de AdSense (verificación del sitio + unidades de anuncio). */
 const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
@@ -59,12 +64,11 @@ export const metadata: Metadata = {
     description: "Controla rentabilidad, mantenimiento y operación de tu flotilla.",
     images: ["/og-image.png"],
   },
-  manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/logo.png",
+    icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png" }],
   },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
@@ -74,51 +78,61 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 const themeInitScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('theme');
-    var theme = stored || 'dark';
-    if (theme === 'system') {
-      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    var root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme === 'light' ? 'light' : 'dark');
-    root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+    var stored = localStorage.getItem('fleetease-theme');
+    var theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    document.documentElement.style.colorScheme = theme;
   } catch (e) {
     document.documentElement.classList.add('dark');
-    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 `;
 
-/**
- * Recupera fallos de carga en PWA (chunks viejos / SW).
- * Si se agotan los reintentos, desregistra el SW y borra caches.
- */
 const legacySwCleanupScript = `
 (function() {
-  // FleetEase no longer registers a Service Worker. Remove legacy workers/caches
-  // once, without forcing a reload or interfering with App Router navigation.
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    return Promise.all(registrations.map(function(registration) {
-      try {
-        if (registration.active) registration.active.postMessage('CLEAR_CACHES');
-      } catch (e) {}
-      return registration.unregister();
-    }));
-  }).then(function() {
-    if (!('caches' in window)) return;
-    return caches.keys().then(function(names) {
-      return Promise.all(names.map(function(name) { return caches.delete(name); }));
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) {
+      if (r.scope && r.scope.indexOf(location.origin) === 0) {
+        /* keep active SW */
+      }
     });
   }).catch(function() {});
 })();
 `;
+
+/**
+ * Failsafe: never leave the static #fe-boot overlay up if React/auth hangs.
+ * Only toggle data-fe-boot-hidden — CSS hides the overlay.
+ * Do NOT removeChild: #fe-boot is owned by React in the layout tree;
+ * removing it causes NotFoundError on hydration/navigation.
+ */
+const bootFailsafeScript = `
+(function() {
+  try {
+    function hideBoot() {
+      document.documentElement.dataset.feBootHidden = 'true';
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(hideBoot, 300);
+    } else {
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(hideBoot, 300);
+      });
+    }
+    setTimeout(hideBoot, 2500);
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
@@ -129,6 +143,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Script id="fleetease-legacy-sw-cleanup" strategy="beforeInteractive">
           {legacySwCleanupScript}
         </Script>
+        <Script id="fleetease-boot-failsafe" strategy="beforeInteractive">
+          {bootFailsafeScript}
+        </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`
             window.addEventListener('beforeinstallprompt', function(event) {
@@ -138,7 +155,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             });
           `}
         </Script>
-        {/* Código de verificación / carga de AdSense (fragmento oficial). */}
         {adsenseClientId ? (
           <Script
             id="adsense-init"
@@ -149,7 +165,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           />
         ) : null}
       </head>
-      <body className={`${inter.variable} ${manrope.variable} font-sans fe-shell-bg antialiased`}>
+      <body className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans fe-shell-bg antialiased`}>
         <div id="fe-boot" aria-hidden="true">
           <div className="fe-boot-kicker">Fleet OS</div>
           <h1>FleetEase <span>Manager</span></h1>
@@ -163,7 +179,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <PwaInstallButton />
             <Toaster />
             <CookieBanner />
-            {/* GA4: Suspense por useSearchParams (App Router). Solo mide si analytics=true. */}
             <Suspense fallback={null}>
               <GoogleAnalytics />
             </Suspense>

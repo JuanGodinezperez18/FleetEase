@@ -34,7 +34,7 @@ export function LandingFaq() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="border-t border-white/[0.07] bg-white/[0.018]">
+    <section id="faq" className="border-t border-white/[0.07] bg-white/[0.018] scroll-mt-[var(--header-h)]">
       <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:gap-10 sm:py-16 lg:grid-cols-[.65fr_1.35fr] lg:gap-14 lg:px-8 lg:py-24">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-lime)]">FAQ</div>
@@ -52,17 +52,21 @@ export function LandingFaq() {
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] sm:py-5"
+                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)] sm:py-5"
                   aria-expanded={isOpen}
                 >
                   <span>{q}</span>
                   <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-white/40 transition ${isOpen ? "rotate-180" : ""}`}
+                    className={`h-4 w-4 shrink-0 text-white/50 transition motion-safe:duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
                 <div
                   aria-hidden={!isOpen}
-                  className={`overflow-hidden transition-all ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
+                  className={`overflow-hidden transition-all motion-safe:duration-200 ${
+                    isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  }`}
                 >
                   <p className="pb-5 pr-7 text-sm leading-6 text-white/55 sm:pr-8">{a}</p>
                 </div>

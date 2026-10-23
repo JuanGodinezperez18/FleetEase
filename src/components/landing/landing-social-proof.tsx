@@ -34,7 +34,7 @@ export function LandingSocialProof() {
       className="border-y border-white/[0.07] bg-[var(--fe-main)]"
     >
       <div className="mx-auto max-w-[1240px] px-5 py-12 lg:px-8 lg:py-16">
-        <p className="mb-8 text-center text-[12px] font-medium uppercase tracking-[0.14em] text-white/40">
+        <p className="mb-8 text-center text-[12px] font-medium uppercase tracking-[0.14em] text-white/50">
           Pensado para operadores de renta en México
         </p>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
@@ -49,7 +49,7 @@ export function LandingSocialProof() {
               <div className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
                 {value}
               </div>
-              <div className="mt-1.5 text-[11px] leading-4 text-white/50 sm:text-xs">
+              <div className="mt-1.5 text-[11px] leading-4 text-white/55 sm:text-xs">
                 {label}
               </div>
             </div>

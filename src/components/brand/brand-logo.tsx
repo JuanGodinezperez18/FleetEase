@@ -2,21 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 type BrandLogoProps = {
-  /** Tamaño del icono en px (default 40) */
   size?: number;
-  /** Mostrar wordmark FleetEase */
   showWordmark?: boolean;
-  /** Clases extra del contenedor del link */
   className?: string;
-  /** Prioridad de carga (header principal) */
   priority?: boolean;
   href?: string;
 };
 
-/**
- * Logo unificado para header, footer y páginas públicas.
- * object-contain + fondo transparente para que no se recorte en dark/light.
- */
 export function BrandLogo({
   size = 40,
   showWordmark = true,
@@ -49,8 +41,12 @@ export function BrandLogo({
           className="font-semibold tracking-[-0.03em] leading-none"
           style={{ fontSize: Math.max(15, Math.round(size * 0.42)) }}
         >
-          <span className="text-white">Fleet</span>
-          <span className="text-[var(--fe-lime,#d7ff3f)]">Ease</span>
+          <span className="fe-brand-fleet" style={{ color: "#ffffff" }}>
+            Fleet
+          </span>
+          <span className="fe-brand-ease" style={{ color: "#d7ff3f" }}>
+            Ease
+          </span>
         </span>
       ) : null}
     </Link>

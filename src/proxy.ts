@@ -21,35 +21,38 @@ function applySecurityHeaders(response: NextResponse, contentSecurityPolicy: str
 }
 
 function buildCsp(request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const isDev = process.env.NODE_ENV === 'development';
 
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com${isDev ? " 'unsafe-eval'" : ''};
-    script-src-attr 'none';
-    script-src-elem 'self' 'nonce-${nonce}' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com;
-    style-src 'self' 'unsafe-inline';
-    style-src-attr 'unsafe-inline';
-    style-src-elem 'self' 'unsafe-inline';
-    img-src 'self' data: blob: https://*.supabase.co https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.googleapis.com https://*.gstatic.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
-    media-src 'self' blob:;
-    manifest-src 'self';
-    font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com;
-    frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com;
-    child-src 'self';
-    worker-src 'self' blob:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'self';
-    upgrade-insecure-requests;
-  `;
+  // NOTE: Nonces are intentionally NOT used here.
+  // The marketing/landing HTML is statically prerendered and CDN-cached.
+  // A per-request nonce in the CSP header cannot match script tags baked into
+  // that HTML, so React never hydrates and #fe-boot never hides.
+  // 'self' + explicit third-party hosts + 'unsafe-inline' for Next/theme boot scripts.
+  const cspHeader = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com" + (isDev ? " 'unsafe-eval'" : ""),
+    "script-src-attr 'none'",
+    "script-src-elem 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com",
+    "style-src 'self' 'unsafe-inline'",
+    "style-src-attr 'unsafe-inline'",
+    "style-src-elem 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co https://firebasestorage.googleapis.com https://storage.googleapis.com https://*.googleapis.com https://*.gstatic.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
+    "media-src 'self' blob:",
+    "manifest-src 'self'",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://ws-us3.pusher.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://pagead2.googlesyndication.com",
+    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com https://vercel.live",
+    "child-src 'self'",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+    "upgrade-insecure-requests",
+  ].join('; ');
 
-  const contentSecurityPolicy = cspHeader.replace(/\s{2,}/g, ' ').trim();
+  const contentSecurityPolicy = cspHeader;
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   return { requestHeaders, contentSecurityPolicy };
@@ -59,7 +62,7 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Ocultar APKs / instaladores: nunca servir binarios de app por la web.
-  if (/\\.(apk|xapk|aab|ipa)$/i.test(pathname)) {
+  if (/\.(apk|xapk|aab|ipa)$/i.test(pathname)) {
     return new Response('Not found', { status: 404 });
   }
 

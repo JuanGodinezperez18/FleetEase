@@ -12,6 +12,7 @@ import { signIn, signOut, resetPassword, formatAuthError, setAuthPersistence, re
 import { logger } from '@/lib/logger';
 
 const PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
+const AUTH_BOOT_TIMEOUT_MS = 8000;
 
 function adaptNotificationSettings(value: Json | null | undefined): UserProfile['notificationSettings'] {
   if (!isJsonObject(value)) return undefined;
@@ -67,6 +68,11 @@ function clearCachedProfile() {
   try { window.localStorage.removeItem(PROFILE_CACHE_KEY); } catch {}
 }
 
+function hideStaticBoot() {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.feBootHidden = 'true';
+}
+
 async function fetchProfileThroughApp(authUserId: string): Promise<SupabaseProfile | null> {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
@@ -105,8 +111,19 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const [mfaProfile, setMfaProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
+    hideStaticBoot();
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     let initialSessionResolved = false;
+
+    const finishLoading = () => {
+      if (!mounted) return;
+      initialSessionResolved = true;
+      setLoading(false);
+      hideStaticBoot();
+    };
 
     const loadProfile = async (authUserId: string, preserveCurrentUser = false) => {
       try {
@@ -137,21 +154,18 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
           if (cachedProfile && cachedProfile.uid === data.session.user.id && !cachedProfile.isDeleted) {
             if (mounted) {
               setCurrentUser(cachedProfile);
-              setLoading(false);
-              initialSessionResolved = true;
+              finishLoading();
             }
             void loadProfile(data.session.user.id, true);
             return;
           }
 
-          initialSessionResolved = true;
-          if (mounted) setLoading(false);
+          if (mounted) finishLoading();
           void loadProfile(data.session.user.id, false);
         } else if (mounted) {
           clearCachedProfile();
           setCurrentUser(null);
-          initialSessionResolved = true;
-          setLoading(false);
+          finishLoading();
         }
       } catch (error) {
         logger.error('[Supabase Auth] Error obteniendo sesión inicial', error as Error);
@@ -161,13 +175,22 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
           clearCachedProfile();
           setCurrentUser(null);
           setMfaProfile(null);
-          initialSessionResolved = true;
-          setLoading(false);
+          finishLoading();
         }
       }
     };
 
     void initializeSession();
+
+    // Hard cap so a hung getSession never leaves the static boot splash forever.
+    const bootTimeout = window.setTimeout(() => {
+      if (!initialSessionResolved && mounted) {
+        logger.error('[Supabase Auth] Timeout inicial de sesión; liberando UI');
+        clearCachedProfile();
+        setCurrentUser(null);
+        finishLoading();
+      }
+    }, AUTH_BOOT_TIMEOUT_MS);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted || !initialSessionResolved) return;
@@ -185,6 +208,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       mounted = false;
+      window.clearTimeout(bootTimeout);
       subscription.unsubscribe();
     };
   }, []);
