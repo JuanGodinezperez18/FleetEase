@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { internalError } from '@/lib/security/api-error';
 import { idSchema, parseJsonBody } from '@/lib/security/validation';
+import { canAdministerTargetUser } from '@/lib/security/admin-target-scope';
 
 const deleteUserSchema = z.object({
   uid: idSchema,
@@ -13,6 +14,11 @@ export async function POST(request: NextRequest) {
     const parsed = await parseJsonBody(request, deleteUserSchema);
     if (!parsed.ok) return parsed.response;
     const { uid } = parsed.data;
+
+    // Authenticate and authorize the actor before looking up the target.
+    // This prevents unauthenticated callers from probing whether user IDs exist.
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return auth.error;
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
@@ -27,30 +33,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const auth = await requireAdmin(request, {
-      targetCompanyId: target.company_id,
-    });
-    if ('error' in auth) return auth.error;
-
-    // Only super_admin may delete another super_admin
-    if (target.role === 'super_admin' && auth.profile.role !== 'super_admin') {
+    // Reuse the shared fail-closed policy for tenant boundaries, privileged
+    // accounts and self-targeting after the actor has been authenticated.
+    if (!canAdministerTargetUser(auth.profile, target)) {
       return NextResponse.json(
-        { success: false, message: 'No puedes desactivar un super_admin.' },
+        { success: false, message: 'No puedes desactivar este usuario.' },
         { status: 403 },
-      );
-    }
-
-    if (uid === auth.profile.id) {
-      return NextResponse.json(
-        { success: false, message: 'No puedes desactivar tu propia cuenta.' },
-        { status: 400 },
       );
     }
 
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .update({ is_deleted: true })
-      .eq('id', uid);
+      .eq('id', uid)
+      .eq('company_id', target.company_id)
+      .eq('is_deleted', false);
 
     if (profileError) {
       // No exponer el mensaje interno de Postgres/Supabase al cliente.
