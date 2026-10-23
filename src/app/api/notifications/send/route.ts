@@ -134,11 +134,11 @@ export async function POST(request: NextRequest) {
     let tokensSucceeded = 0;
     const tokensFailed = 0;
 
-    if (!tokensError && tokens && tokens.length > 0) {
-      tokensAttempted = tokens.length;
-      // TODO: envío push real
-      pushSent = true;
-      tokensSucceeded = tokens.length;
+    // Push delivery is not implemented yet. Do not report tokens as attempted
+    // or successful until a real provider request has been made and confirmed.
+    // The in-app notification above is saved independently of push delivery.
+    if (tokensError) {
+      console.error('[notifications/send] Could not load push tokens:', tokensError);
     }
 
     return NextResponse.json({
