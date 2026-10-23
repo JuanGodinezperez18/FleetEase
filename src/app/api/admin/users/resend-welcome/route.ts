@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
+import { canAccessTargetCompany } from '@/lib/security/admin-target-scope';
 import { internalError } from '@/lib/security/api-error';
 import { sendEmail } from '@/lib/resend';
 import { idSchema, parseJsonBody } from '@/lib/security/validation';
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) return parsed.response;
     const { uid } = parsed.data;
 
+    // Authenticate before looking up the target to prevent unauthenticated
+    // callers from enumerating user IDs.
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return auth.error;
+
     const { data: target, error: targetError } = await supabaseAdmin
       .from('users')
       .select('id, company_id, is_deleted')
@@ -27,11 +33,12 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
     }
-
-    const auth = await requireAdmin(request, {
-      targetCompanyId: target.company_id,
-    });
-    if ('error' in auth) return auth.error;
+    if (!canAccessTargetCompany(auth.profile, target.company_id, true)) {
+      return NextResponse.json(
+        { success: false, message: 'No puedes operar sobre otra empresa.' },
+        { status: 403 },
+      );
+    }
 
     const { data: user, error: userError } = await supabaseAdmin.auth.admin.getUserById(uid);
 
