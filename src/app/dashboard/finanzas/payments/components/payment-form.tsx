@@ -13,6 +13,7 @@ import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2,
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { PaymentHistoryView } from "../history/components/payment-history-view";
+import { entityExistedOnDate, recordDateOnOrBefore } from "./payment-date-filters";
 
 const PAYMENT_KINDS = [
   { value: "client_payment", label: "Pago de Cliente", short: "Clientes", affects: "client_balance", icon: UserRound },
@@ -101,10 +102,10 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       const recordsById = new Map(financialRecords.map(r => [r.id, r]));
       const applied = new Map<string, number>();
       for (const link of paymentLinks) { const payment = recordsById.get(link.source_financial_record_id); if (!payment || payment.isDeleted) continue; applied.set(link.target_financial_record_id, (applied.get(link.target_financial_record_id) || 0) + Number(link.amount_applied ?? payment.amount ?? 0)); }
-      if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009));
+      if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009 && recordDateOnOrBefore(r.purchaseDate, date)));
     })();
     return () => { cancelled = true; };
-  }, [companyId, kind, entityId, financialRecords]);
+  }, [companyId, kind, entityId, financialRecords, date]);
 
   const paymentCategory = useMemo(() => {
     const aliases: Record<PaymentKind, string[]> = {
@@ -134,10 +135,10 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       return { ...c, name: clientName };
     }), [credits, clientsById, companyId]);
 
-  const entities = kind === "client_payment" || kind === "multa_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted)
-    : kind === "partner_payment" ? partners.filter(p => !p.isDeleted)
+  const entities = kind === "client_payment" || kind === "multa_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted && entityExistedOnDate(c.createdAt, date))
+    : kind === "partner_payment" ? partners.filter(p => !p.isDeleted && entityExistedOnDate((p as { createdAt?: string }).createdAt, date))
     : kind === "supplier_payment" ? suppliers
-    : creditEntities;
+    : creditEntities.filter(c => entityExistedOnDate(c.startDate || c.createdAt, date));
 
   const appliedByTarget = useMemo(() => {
     const map = new Map<string, number>();
@@ -176,16 +177,18 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
 
   const targets = useMemo(() => {
     if (!entityId) return [];
-    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY && r.sourceRecordType !== "multa")
+    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY && r.sourceRecordType !== "multa" && recordDateOnOrBefore(r.date, date))
       .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
       .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    if (kind === "multa_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.sourceRecordType === "multa" && r.category === "Multa")
+    if (kind === "multa_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.sourceRecordType === "multa" && r.category === "Multa" && recordDateOnOrBefore(r.date, date))
       .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
       .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return [];
-  }, [financialRecords, entityId, kind, appliedByTarget]);
+  }, [financialRecords, entityId, kind, appliedByTarget, date]);
 
-  const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
+  useEffect(() => { setTargetId(""); }, [date]);
+
+    const selectedCredit = useMemo(() => kind === "credit_payment" ? credits.find(c => c.id === entityId && c.status === "active" && !c.isDeleted) : null, [credits, entityId, kind]);
   const pendingSchedule = useMemo(() => selectedCredit ? creditPaymentSchedules
     .filter(s => s.creditId === selectedCredit.id && (s.status === "pending" || s.status === "overdue"))
     .sort((a, b) => a.paymentNumber - b.paymentNumber) : [], [selectedCredit, creditPaymentSchedules]);
@@ -353,6 +356,16 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                 </div>
 
                 <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-white/50">Fecha del pago <span className="text-white/30">(filtra facturas y entidades)</span></Label>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={e => setDate(e.target.value)}
+                      className="border-white/10 bg-white/[0.03] text-white"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-white/50">
                       {kind === "client_payment" || kind === "security_deposit_refund"
@@ -526,15 +539,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                       className="border-white/10 bg-white/[0.03] text-white"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-white/50">Fecha</Label>
-                    <Input
-                      type="date"
-                      value={date}
-                      onChange={e => setDate(e.target.value)}
-                      className="border-white/10 bg-white/[0.03] text-white"
-                    />
-                  </div>
+                  
                   <div className="space-y-2">
                     <Label className="text-white/50">Método de pago</Label>
                     <Select value={method} onValueChange={setMethod}>

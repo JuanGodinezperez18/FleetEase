@@ -27,6 +27,8 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
+import { createFinancialRecord } from '@/lib/financial-rpc';
+import { toSbFinancialRecord } from '@/lib/domain-mappers';
 
 const formSchema = z.object({
   companyId: z.string().min(1, 'Selecciona una compañía'),
@@ -188,8 +190,67 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
 
       // Usar la función addIncome del contexto que maneja la lógica completa
       await Promise.all(recordsToCreate.map(record => addIncome(record as Omit<FinancialRecord, 'id'>)));
-      
-      sonnerToast.success(`✓ ${applicableVehicles.length} registro(s) creado(s) exitosamente`, { id: toastId });
+
+      // Gasto por administración: solo vehículos con adminCommission > 0.
+      // El trigger de BD crea el ingreso pareado para la empresa cuando el
+      // vehículo pertenece a un socio (categoría Administración de Vehículo).
+      const adminCat =
+        financialCategories?.find(
+          c => c.type === 'expense' && c.name?.toLowerCase().trim() === 'administración de vehículo'
+        ) ||
+        financialCategories?.find(
+          c => c.type === 'expense' && /administraci[oó]n/.test((c.name || '').toLowerCase())
+        );
+
+      const adminFees = applicableVehicles.flatMap(rentData => {
+        const vehicle = allVehicles.find(v => v.id === rentData.vehicleId);
+        const adminFee = Number(vehicle?.adminCommission);
+        return vehicle && Number.isFinite(adminFee) && adminFee > 0
+          ? [{ rentData, vehicle, adminFee }]
+          : [];
+      });
+      let adminCreated = 0;
+      let adminFailed = adminCat?.id ? 0 : adminFees.length;
+      if (adminCat?.id) {
+        for (const { rentData, vehicle, adminFee } of adminFees) {
+          try {
+            await createFinancialRecord(
+              toSbFinancialRecord({
+                companyId: values.companyId || vehicle.companyId,
+                type: 'expense',
+                categoryId: adminCat.id,
+                category: adminCat.name || 'Administración de Vehículo',
+                amount: adminFee,
+                date: values.date,
+                description: `Administración del vehículo ${vehicle.alias || vehicle.plate || rentData.vehicleName} (renta semanal)`.trim(),
+                vehicleId: rentData.vehicleId,
+                partnerId: vehicle.partnerId || undefined,
+                clientId: rentData.clientId || undefined,
+                isDeleted: false,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser.uid,
+                sourceRecordType: 'vehicle_admin_fee_from_rent',
+              } as any) as any
+            );
+            adminCreated += 1;
+          } catch (adminErr) {
+            console.error('[MassIncomeForm] Error al crear gasto de administración:', adminErr);
+            adminFailed += 1;
+          }
+        }
+      }
+
+      const adminMsg = adminCreated > 0
+        ? ` y ${adminCreated} gasto(s) de administración`
+        : '';
+      if (adminFailed > 0) {
+        sonnerToast.error(
+          `${applicableVehicles.length} ingreso(s) creado(s), pero ${adminFailed} gasto(s) de administración no se guardaron. Regístralos manualmente; no repitas el ingreso masivo.`,
+          { id: toastId }
+        );
+      } else {
+        sonnerToast.success(`✓ ${applicableVehicles.length} registro(s) creado(s) exitosamente${adminMsg}`, { id: toastId });
+      }
       form.reset();
       setVehicleRentData([]);
       onSuccess?.();
@@ -374,7 +435,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Se registrará un ingreso para cada uno de los <strong>{vehicleRentData.length} vehículos</strong> de clientes activos de renta ordinaria. Los clientes con crédito activo o registrados después de la fecha seleccionada no se muestran.
+                Se registrará un ingreso para cada uno de los <strong>{vehicleRentData.length} vehículos</strong> de clientes activos de renta ordinaria. Los clientes con crédito activo o registrados después de la fecha seleccionada no se muestran. Si el vehículo tiene costo de administración, también se genera el gasto (y el ingreso de empresa asociado).
               </AlertDescription>
             </Alert>
 
