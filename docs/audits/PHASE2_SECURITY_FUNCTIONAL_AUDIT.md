@@ -45,7 +45,9 @@ El workflow `.github/workflows/quality-gate.yml` ejecuta un job independiente `D
 
 Evidencia actual de dependencia (GitHub Actions run `39893868322`, commit temporal de diagnóstico `eeb3cb26e16ca0a4c80b36a5939cc9c72dbcaeb8`): en un runner aislado se ejecutó `npm audit fix` **sin `--force`**, y se subió un artefacto de vista previa, sin aplicar cambios al árbol de trabajo del PR. El snapshot resultante bajó de 7 a 4 vulnerabilidades de producción: 2 críticas (`jspdf`, `next`), 1 alta (`sharp`) y 1 moderada (`uuid`). `dompurify` quedó en `3.4.17` y `seroval` en `1.6.12`, sin aparecer en el reporte posterior. El preview no se ha incorporado a la rama; las actualizaciones de dependencias mayores y la regeneración final del lockfile siguen pendientes. La puerta de seguridad continúa siendo bloqueante hasta que el lockfile comprometido pase `npm audit --omit=dev --audit-level=high`.
 
-La rama se limpió del job temporal de diagnóstico en el commit `4ba265cb7c32ab8c35fbcc70827469c6e49af67b`; ese job no forma parte de la solución final.
+Una segunda prueba aislada en el run `39894254487` probó las actualizaciones directas `jspdf@^4.2.1`, `next@16.4.2`, `sharp@^0.35.5` y `uuid@^11.1.1`. `npm install` terminó correctamente y regeneró un lockfile en el runner, pero el audit aún falló por tres vulnerabilidades críticas de `dompurify` y `seroval`; por ello las pruebas, type-check y build se omitieron en esa ejecución. El artefacto confirma que no basta con actualizar sólo los cuatro paquetes directos.
+
+Una tercera ejecución aislada aplica `npm audit fix` sin `--force` después de las actualizaciones directas y ejecutará audit, regresiones, type-check y build si el audit pasa. Al registrar esta nota, esa ejecución todavía no ha terminado y no se ha incorporado ningún lockfile candidato a la rama. Los jobs temporales se retiran del workflow en commits posteriores para que no queden como parte permanente de la solución.
 
 ## Alcance inicial
 - [ ] Triar y corregir las vulnerabilidades de producción, empezando por las críticas.
