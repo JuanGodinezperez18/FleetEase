@@ -64,11 +64,14 @@ export async function POST(request: NextRequest) {
     const signedUrls: Record<string, string> = {};
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('company_id, role')
+      .select('company_id, role, is_deleted')
       .eq('id', auth.user.id)
       .single();
     if (profileError || !profile) {
       return NextResponse.json({ error: 'Perfil no encontrado.' }, { status: 403 });
+    }
+    if (profile.is_deleted) {
+      return NextResponse.json({ error: 'Usuario desactivado.' }, { status: 403 });
     }
 
     const isSuperAdmin = profile.role === 'super_admin' || profile.role === 'superAdmin';

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { checkRateLimit, notificationLimiter } from '@/lib/rate-limit';
 import { idSchema, parseJsonBody, shortTextSchema } from '@/lib/security/validation';
+import { hasCompanyScopedRecipients } from '@/lib/security/notification-scope';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,12 +54,15 @@ export async function POST(request: NextRequest) {
 
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('role, company_id')
+      .select('role, company_id, is_deleted')
       .eq('id', user.id)
       .single();
 
     if (profileError || !userProfile) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+    if (userProfile.is_deleted) {
+      return NextResponse.json({ error: 'Usuario desactivado.' }, { status: 403 });
     }
 
     if (!['admin', 'super_admin'].includes(userProfile.role)) {
@@ -68,6 +72,13 @@ export async function POST(request: NextRequest) {
     const parsed = await parseJsonBody(request, broadcastSchema);
     if (!parsed.ok) return parsed.response;
     const { title, message, recipientType, selectedUsers, sendPush, companyId } = parsed.data;
+
+    if (recipientType === 'specific' && (!selectedUsers || selectedUsers.length === 0)) {
+      return NextResponse.json(
+        { error: 'Selecciona al menos un destinatario.' },
+        { status: 400 },
+      );
+    }
 
     // Non-super_admin may only broadcast to their own company.
     if (userProfile.role !== 'super_admin' && companyId !== userProfile.company_id) {
@@ -81,8 +92,13 @@ export async function POST(request: NextRequest) {
         const { data: allUsers, error: allUsersError } = await supabaseAdmin
           .from('users')
           .select('id')
-          .eq('company_id', companyId);
-        if (!allUsersError && allUsers) recipientUserIds = allUsers.map(u => u.id);
+          .eq('company_id', companyId)
+          .eq('is_deleted', false);
+        if (allUsersError) {
+          console.error('[Notification Broadcast] Failed to load all recipients:', allUsersError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (allUsers) recipientUserIds = allUsers.map(u => u.id);
         break;
       }
 
@@ -91,8 +107,13 @@ export async function POST(request: NextRequest) {
           .from('users')
           .select('id')
           .eq('company_id', companyId)
-          .in('role', ['admin', 'super_admin']);
-        if (!adminsError && admins) recipientUserIds = admins.map(u => u.id);
+          .in('role', ['admin', 'super_admin'])
+          .eq('is_deleted', false);
+        if (adminsError) {
+          console.error('[Notification Broadcast] Failed to load admin recipients:', adminsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (admins) recipientUserIds = admins.map(u => u.id);
         break;
       }
 
@@ -101,8 +122,13 @@ export async function POST(request: NextRequest) {
           .from('users')
           .select('id')
           .eq('company_id', companyId)
-          .eq('role', 'editor');
-        if (!editorsError && editors) recipientUserIds = editors.map(u => u.id);
+          .eq('role', 'editor')
+          .eq('is_deleted', false);
+        if (editorsError) {
+          console.error('[Notification Broadcast] Failed to load editor recipients:', editorsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (editors) recipientUserIds = editors.map(u => u.id);
         break;
       }
 
@@ -111,7 +137,11 @@ export async function POST(request: NextRequest) {
           .from('partners')
           .select('user_id')
           .eq('company_id', companyId);
-        if (!partnersError && partners) {
+        if (partnersError) {
+          console.error('[Notification Broadcast] Failed to load partner recipients:', partnersError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (partners) {
           recipientUserIds = partners.map(p => p.user_id).filter((id): id is string => Boolean(id));
         }
         break;
@@ -122,7 +152,11 @@ export async function POST(request: NextRequest) {
           .from('clients')
           .select('user_id')
           .eq('company_id', companyId);
-        if (!clientsError && clients) {
+        if (clientsError) {
+          console.error('[Notification Broadcast] Failed to load client recipients:', clientsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (clients) {
           recipientUserIds = clients.map(c => c.user_id).filter((id): id is string => Boolean(id));
         }
         break;
@@ -131,6 +165,31 @@ export async function POST(request: NextRequest) {
       case 'specific':
         recipientUserIds = selectedUsers || [];
         break;
+    }
+
+    // Resolve every recipient against the target company before writing with
+    // the service-role client. In particular, caller-supplied selectedUsers IDs
+    // must not cross tenant boundaries.
+    recipientUserIds = [...new Set(recipientUserIds)];
+    if (recipientUserIds.length > 0) {
+      const { data: scopedUsers, error: scopedUsersError } = await supabaseAdmin
+        .from('users')
+        .select('id, company_id, is_deleted')
+        .in('id', recipientUserIds)
+        .eq('company_id', companyId)
+        .eq('is_deleted', false);
+
+      if (scopedUsersError) {
+        console.error('[Notification Broadcast] Recipient scope lookup failed:', scopedUsersError);
+        return NextResponse.json({ error: 'No se pudieron validar los destinatarios.' }, { status: 500 });
+      }
+
+      if (!hasCompanyScopedRecipients(recipientUserIds, scopedUsers || [], companyId)) {
+        return NextResponse.json(
+          { error: 'Uno o más destinatarios no pertenecen a la empresa seleccionada.' },
+          { status: 403 },
+        );
+      }
     }
 
     const timestamp = new Date().toISOString();
@@ -153,9 +212,11 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(batchPromises);
 
-    let pushSentCount = 0;
+    // Push delivery is not implemented yet. Never report queued recipients as
+    // successfully pushed; the in-app broadcast above is saved separately.
+    const pushSentCount = 0;
     if (sendPush && recipientUserIds.length > 0) {
-      pushSentCount = recipientUserIds.length;
+      console.info('[Notification Broadcast] Push requested but provider delivery is not implemented.');
     }
 
     return NextResponse.json({

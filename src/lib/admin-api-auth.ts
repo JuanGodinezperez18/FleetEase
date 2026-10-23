@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase';
 import { adminLimiter, checkRateLimit } from '@/lib/rate-limit';
+import { canAccessTargetCompany } from '@/lib/security/admin-target-scope';
 
 type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 let supabaseAdminClient: SupabaseAdminClient | null = null;
@@ -100,12 +101,14 @@ export async function requireAdmin(
     };
   }
 
-  // Tenant isolation: company admin cannot act on another company
+  // If a route supplies a target company (including explicit null), fail closed
+  // for company admins unless the target belongs to their own non-null tenant.
   if (
-    profile.role !== 'super_admin' &&
-    options?.targetCompanyId &&
-    profile.company_id &&
-    options.targetCompanyId !== profile.company_id
+    !canAccessTargetCompany(
+      profile,
+      options?.targetCompanyId ?? null,
+      options !== undefined && Object.prototype.hasOwnProperty.call(options, 'targetCompanyId'),
+    )
   ) {
     return {
       error: NextResponse.json(
