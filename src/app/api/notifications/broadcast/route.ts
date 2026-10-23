@@ -85,8 +85,13 @@ export async function POST(request: NextRequest) {
         const { data: allUsers, error: allUsersError } = await supabaseAdmin
           .from('users')
           .select('id')
-          .eq('company_id', companyId);
-        if (!allUsersError && allUsers) recipientUserIds = allUsers.map(u => u.id);
+          .eq('company_id', companyId)
+          .eq('is_deleted', false);
+        if (allUsersError) {
+          console.error('[Notification Broadcast] Failed to load all recipients:', allUsersError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (allUsers) recipientUserIds = allUsers.map(u => u.id);
         break;
       }
 
@@ -95,8 +100,13 @@ export async function POST(request: NextRequest) {
           .from('users')
           .select('id')
           .eq('company_id', companyId)
-          .in('role', ['admin', 'super_admin']);
-        if (!adminsError && admins) recipientUserIds = admins.map(u => u.id);
+          .in('role', ['admin', 'super_admin'])
+          .eq('is_deleted', false);
+        if (adminsError) {
+          console.error('[Notification Broadcast] Failed to load admin recipients:', adminsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (admins) recipientUserIds = admins.map(u => u.id);
         break;
       }
 
@@ -105,8 +115,13 @@ export async function POST(request: NextRequest) {
           .from('users')
           .select('id')
           .eq('company_id', companyId)
-          .eq('role', 'editor');
-        if (!editorsError && editors) recipientUserIds = editors.map(u => u.id);
+          .eq('role', 'editor')
+          .eq('is_deleted', false);
+        if (editorsError) {
+          console.error('[Notification Broadcast] Failed to load editor recipients:', editorsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (editors) recipientUserIds = editors.map(u => u.id);
         break;
       }
 
@@ -115,7 +130,11 @@ export async function POST(request: NextRequest) {
           .from('partners')
           .select('user_id')
           .eq('company_id', companyId);
-        if (!partnersError && partners) {
+        if (partnersError) {
+          console.error('[Notification Broadcast] Failed to load partner recipients:', partnersError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (partners) {
           recipientUserIds = partners.map(p => p.user_id).filter((id): id is string => Boolean(id));
         }
         break;
@@ -126,7 +145,11 @@ export async function POST(request: NextRequest) {
           .from('clients')
           .select('user_id')
           .eq('company_id', companyId);
-        if (!clientsError && clients) {
+        if (clientsError) {
+          console.error('[Notification Broadcast] Failed to load client recipients:', clientsError);
+          return NextResponse.json({ error: 'No se pudieron cargar los destinatarios.' }, { status: 500 });
+        }
+        if (clients) {
           recipientUserIds = clients.map(c => c.user_id).filter((id): id is string => Boolean(id));
         }
         break;
