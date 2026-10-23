@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
 import { authErrorMessage, internalError } from '@/lib/security/api-error';
 import { idSchema, parseJsonBody, passwordSchema } from '@/lib/security/validation';
+import { canAdministerTargetUser } from '@/lib/security/admin-target-scope';
 
 const updatePasswordSchema = z.object({
   userId: idSchema,
@@ -24,31 +25,20 @@ export async function POST(request: NextRequest) {
     if (auth.profile.id !== userId) {
       const { data: target } = await supabaseAdmin
         .from('users')
-        .select('id, company_id, role')
+        .select('id, company_id, role, is_deleted')
         .eq('id', userId)
         .single();
 
-      if (!target) {
+      if (!target || target.is_deleted) {
         return NextResponse.json(
           { success: false, message: 'Usuario no encontrado.' },
           { status: 404 },
         );
       }
 
-      if (!['admin', 'super_admin'].includes(auth.profile.role)) {
+      if (!canAdministerTargetUser(auth.profile, target)) {
         return NextResponse.json(
-          { success: false, message: 'No puedes cambiar la contraseña de otro usuario.' },
-          { status: 403 },
-        );
-      }
-
-      if (
-        auth.profile.role !== 'super_admin' &&
-        target.company_id &&
-        target.company_id !== auth.profile.company_id
-      ) {
-        return NextResponse.json(
-          { success: false, message: 'No puedes operar sobre otra empresa.' },
+          { success: false, message: 'No puedes cambiar la contraseña de este usuario.' },
           { status: 403 },
         );
       }

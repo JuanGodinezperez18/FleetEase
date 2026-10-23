@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import { Inter, Manrope } from 'next/font/google';
+import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
 import "./fleetease-ui.css";
 import "./landing-text.css";
@@ -17,6 +17,10 @@ import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+});
 
 /** Publisher ID de AdSense (verificación del sitio + unidades de anuncio). */
 const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
@@ -161,7 +165,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           />
         ) : null}
       </head>
-      <body className={`${inter.variable} ${manrope.variable} font-sans fe-shell-bg antialiased`}>
+      <body className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans fe-shell-bg antialiased`}>
         <div id="fe-boot" aria-hidden="true">
           <div className="fe-boot-kicker">Fleet OS</div>
           <h1>FleetEase <span>Manager</span></h1>

@@ -56,12 +56,15 @@ export async function POST(request: NextRequest) {
 
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('role, company_id')
+      .select('role, company_id, is_deleted')
       .eq('id', user.id)
       .single();
 
     if (profileError || !userProfile) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+    if (userProfile.is_deleted) {
+      return NextResponse.json({ error: 'Usuario desactivado.' }, { status: 403 });
     }
 
     if (!['admin', 'editor', 'super_admin'].includes(userProfile.role)) {
@@ -82,6 +85,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No puedes notificar a otra empresa.' }, { status: 403 });
     }
 
+    const { data: recipient, error: recipientError } = await supabaseAdmin
+      .from('users')
+      .select('id, company_id, is_deleted')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (recipientError) {
+      return internalError('notifications/send recipient lookup', recipientError, { userId });
+    }
+    if (!recipient || recipient.is_deleted || !recipient.company_id) {
+      return NextResponse.json({ error: 'Destinatario no disponible.' }, { status: 404 });
+    }
+    if (userProfile.role !== 'super_admin' && recipient.company_id !== userProfile.company_id) {
+      return NextResponse.json({ error: 'No puedes notificar a usuarios de otra empresa.' }, { status: 403 });
+    }
+    if (companyId && companyId !== recipient.company_id) {
+      return NextResponse.json({ error: 'La empresa no corresponde al destinatario.' }, { status: 403 });
+    }
+
     const timestamp = new Date().toISOString();
 
     const { data: notification, error: notifError } = await supabaseAdmin
@@ -92,7 +114,7 @@ export async function POST(request: NextRequest) {
         message: title ? `${title}: ${messageBody}` : messageBody,
         date: timestamp,
         is_read: false,
-        company_id: companyId || userProfile.company_id || null,
+        company_id: recipient.company_id,
       })
       .select()
       .single();
@@ -112,11 +134,11 @@ export async function POST(request: NextRequest) {
     let tokensSucceeded = 0;
     const tokensFailed = 0;
 
-    if (!tokensError && tokens && tokens.length > 0) {
-      tokensAttempted = tokens.length;
-      // TODO: envío push real
-      pushSent = true;
-      tokensSucceeded = tokens.length;
+    // Push delivery is not implemented yet. Do not report tokens as attempted
+    // or successful until a real provider request has been made and confirmed.
+    // The in-app notification above is saved independently of push delivery.
+    if (tokensError) {
+      console.error('[notifications/send] Could not load push tokens:', tokensError);
     }
 
     return NextResponse.json({

@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'No autenticado. Token inválido.' }, { status: 401 });
 
-    const { data: userProfile, error: profileError } = await supabaseAdmin.from('users').select('role, company_id').eq('id', user.id).single();
-    if (profileError || !userProfile || !['admin', 'super_admin'].includes(userProfile.role)) return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
+    const { data: userProfile, error: profileError } = await supabaseAdmin.from('users').select('role, company_id, is_deleted').eq('id', user.id).single();
+    if (profileError || !userProfile || userProfile.is_deleted || !['admin', 'super_admin'].includes(userProfile.role)) return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
 
     const parsed = await parseJsonBody(request, checkoutSchema);
     if (!parsed.ok) return parsed.response;
