@@ -102,7 +102,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       const recordsById = new Map(financialRecords.map(r => [r.id, r]));
       const applied = new Map<string, number>();
       for (const link of paymentLinks) { const payment = recordsById.get(link.source_financial_record_id); if (!payment || payment.isDeleted) continue; applied.set(link.target_financial_record_id, (applied.get(link.target_financial_record_id) || 0) + Number(link.amount_applied ?? payment.amount ?? 0)); }
-      if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009 && recordDateOnOrBefore(r.purchaseDate, date));
+      if (!cancelled) setSupplierPayables(rows.map(r => { const p = r.supplier_purchases; const total = Number(r.original_amount || p?.total || 0); return { id:r.id, purchaseId:r.supplier_purchase_id || null, sourceFinancialRecordId:r.source_financial_record_id || null, purchaseDate:p?.purchase_date || null, reference:p?.reference || null, total, dueDate:r.due_date || null, status:r.status, outstanding:Math.max(0,total-(applied.get(r.source_financial_record_id) || 0)) }; }).filter(r => r.outstanding > 0.009 && recordDateOnOrBefore(r.purchaseDate, date)));
     })();
     return () => { cancelled = true; };
   }, [companyId, kind, entityId, financialRecords, date]);
@@ -138,7 +138,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const entities = kind === "client_payment" || kind === "multa_payment" || kind === "security_deposit_refund" ? clients.filter(c => c.status === "active" && !c.isDeleted && entityExistedOnDate(c.createdAt, date))
     : kind === "partner_payment" ? partners.filter(p => !p.isDeleted && entityExistedOnDate((p as { createdAt?: string }).createdAt, date))
     : kind === "supplier_payment" ? suppliers
-    : creditEntities.filter(c => entityExistedOnDate(c.createdAt, date) || entityExistedOnDate((c as { startDate?: string }).startDate, date));
+    : creditEntities.filter(c => entityExistedOnDate(c.startDate || c.createdAt, date));
 
   const appliedByTarget = useMemo(() => {
     const map = new Map<string, number>();

@@ -10,7 +10,7 @@ export function paymentDateKey(date: string | null | undefined): string {
 export function entityExistedOnDate(createdAt: string | null | undefined, date: string): boolean {
   const key = paymentDateKey(date);
   if (!key) return true;
-  if (!createdAt) return true;
+  if (!createdAt) return false;
   return String(createdAt).slice(0, 10) <= key;
 }
 

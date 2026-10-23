@@ -202,12 +202,17 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
           c => c.type === 'expense' && /administraci[oó]n/.test((c.name || '').toLowerCase())
         );
 
+      const adminFees = applicableVehicles.flatMap(rentData => {
+        const vehicle = allVehicles.find(v => v.id === rentData.vehicleId);
+        const adminFee = Number(vehicle?.adminCommission);
+        return vehicle && Number.isFinite(adminFee) && adminFee > 0
+          ? [{ rentData, vehicle, adminFee }]
+          : [];
+      });
       let adminCreated = 0;
+      let adminFailed = adminCat?.id ? 0 : adminFees.length;
       if (adminCat?.id) {
-        for (const rentData of applicableVehicles) {
-          const vehicle = allVehicles.find(v => v.id === rentData.vehicleId);
-          const adminFee = Number(vehicle?.adminCommission);
-          if (!vehicle || !Number.isFinite(adminFee) || adminFee <= 0) continue;
+        for (const { rentData, vehicle, adminFee } of adminFees) {
           try {
             await createFinancialRecord(
               toSbFinancialRecord({
@@ -230,6 +235,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
             adminCreated += 1;
           } catch (adminErr) {
             console.error('[MassIncomeForm] Error al crear gasto de administración:', adminErr);
+            adminFailed += 1;
           }
         }
       }
@@ -237,7 +243,14 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
       const adminMsg = adminCreated > 0
         ? ` y ${adminCreated} gasto(s) de administración`
         : '';
-      sonnerToast.success(`✓ ${applicableVehicles.length} registro(s) creado(s) exitosamente${adminMsg}`, { id: toastId });
+      if (adminFailed > 0) {
+        sonnerToast.error(
+          `${applicableVehicles.length} ingreso(s) creado(s), pero ${adminFailed} gasto(s) de administración no se guardaron. Regístralos manualmente; no repitas el ingreso masivo.`,
+          { id: toastId }
+        );
+      } else {
+        sonnerToast.success(`✓ ${applicableVehicles.length} registro(s) creado(s) exitosamente${adminMsg}`, { id: toastId });
+      }
       form.reset();
       setVehicleRentData([]);
       onSuccess?.();
