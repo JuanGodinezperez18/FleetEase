@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
       );
     }
     if (!canAccessTargetCompany(auth.profile, target.company_id, true)) {
+      // Match the missing/inactive-target response to avoid cross-tenant enumeration.
       return NextResponse.json(
-        { success: false, message: 'No puedes operar sobre otra empresa.' },
-        { status: 403 },
+        { success: false, message: 'Usuario no encontrado' },
+        { status: 404 },
       );
     }
 
