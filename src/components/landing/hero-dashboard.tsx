@@ -10,7 +10,7 @@ export function HeroDashboard() {
     <div className="relative" aria-hidden="true">
       {/* Halo limitado al producto para separarlo del fondo sin decorar toda la página. */}
       <div
-        className="pointer-events-none absolute -inset-6 rounded-[40px] sm:-inset-10 sm:bg-[var(--fe-lime)]/[0.07] sm:blur-3xl"
+        className="pointer-events-none absolute -inset-6 rounded-[40px] sm:-inset-10 sm:bg-[var(--fe-lime)]/[0.07]"
         style={{
           background:
             "radial-gradient(circle at 50% 40%, rgba(var(--fe-lime-rgb), 0.10), transparent 70%)",
