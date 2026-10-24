@@ -11,7 +11,7 @@ const schema = z.object({
   fleetSize: z.enum(["1", "2-5", "6-15", "16-30", "31-50", "51+"]),
   interest: z.string().trim().min(2).max(100),
   message: z.string().trim().min(10).max(3000),
-  website: z.string().max(0).optional().default(""),
+  website: z.string().max(200).optional().default(""),
 });
 
 function escapeHtml(value: string) {
