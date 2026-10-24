@@ -51,7 +51,7 @@ export function LandingHeader() {
         </div>
         <button
           type="button"
-          className={`rounded-lg p-2 text-white/80 ${focusRing} md:hidden`}
+          className={`flex h-11 w-11 items-center justify-center rounded-lg text-white/80 ${focusRing} md:hidden`}
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuOpen}
