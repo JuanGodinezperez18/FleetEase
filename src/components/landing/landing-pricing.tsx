@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { plans, type PlanType } from "@/config/plans";
 
-const ORDER: PlanType[] = ["free", "starter", "pro", "enterprise"];
+// Publica solo planes cuya oferta está validada. Enterprise se mantiene fuera de marketing hasta confirmar su alcance.
+const ORDER: PlanType[] = ["free", "starter", "pro"];
 
 /** Highlights cortos por plan para la landing (no listar 20 features). */
 const HIGHLIGHTS: Record<PlanType, string[]> = {
@@ -69,7 +70,7 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {ORDER.map((id) => {
             const plan = plans[id];
             const popular = Boolean(plan.popular);
