@@ -102,7 +102,7 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/s', '/'];
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/contacto-ventas', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/s', '/'];
   const isPublicPath = publicPaths.some(
     path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );

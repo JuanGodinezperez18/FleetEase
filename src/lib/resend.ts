@@ -13,16 +13,12 @@ export interface SendEmailInput {
 
 /**
  * FleetEase solo envía correos transaccionales desde el dominio oficial.
- * También corrige configuraciones antiguas que todavía usen @fleetease.mx.
+ * Rechaza remitentes que no utilicen el dominio oficial.
  */
 function getFleetEaseFromEmail(from?: string): string {
   const configured = from || process.env.RESEND_FROM_EMAIL;
 
   if (!configured) return DEFAULT_FROM_EMAIL;
-
-  if (/@fleetease\.mx\b/i.test(configured)) {
-    return configured.replace(/@fleetease\.mx\b/gi, `@${FLEETEASE_EMAIL_DOMAIN}`);
-  }
 
   if (!/@fleetease\.com\.mx\b/i.test(configured)) {
     return DEFAULT_FROM_EMAIL;

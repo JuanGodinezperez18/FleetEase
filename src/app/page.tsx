@@ -58,11 +58,6 @@ const WHATSAPP_NUMBER =
   typeof process.env.NEXT_PUBLIC_WHATSAPP_NUMBER === "string"
     ? process.env.NEXT_PUBLIC_WHATSAPP_NUMBER.replace(/\D/g, "")
     : "";
-const salesHref = WHATSAPP_NUMBER
-  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      "Hola, quiero hablar con ventas sobre FleetEase para mi flotilla."
-    )}`
-  : "#pricing";
 const administrationHref = WHATSAPP_NUMBER
   ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
       "Hola, me interesa el servicio de administración de vehículos de renta en Monterrey, Nuevo León."
@@ -123,14 +118,12 @@ export default function LandingPage() {
                   Comenzar gratis{" "}
                   <ArrowRight className="h-4 w-4 transition motion-safe:group-hover:translate-x-1" />
                 </Link>
-                <a
-                  href={salesHref}
-                  target={WHATSAPP_NUMBER ? "_blank" : undefined}
-                  rel={WHATSAPP_NUMBER ? "noopener noreferrer" : undefined}
+                <Link
+                  href="/contacto-ventas"
                   className={`flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-7 py-4 text-[14px] font-semibold text-white/80 transition hover:border-white/25 hover:text-white ${focusRing}`}
                 >
                   Hablar con ventas
-                </a>
+                </Link>
               </div>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-white/55">
                 <span className="flex items-center gap-1.5">
@@ -140,7 +133,7 @@ export default function LandingPage() {
                   <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Sin tarjeta
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> Hasta 3 vehículos
+                  <Check className="h-3.5 w-3.5 text-[var(--fe-lime)]" /> 1 vehículo
                 </span>
               </div>
             </div>
@@ -272,14 +265,12 @@ export default function LandingPage() {
                 >
                   Comenzar gratis <ArrowRight className="h-4 w-4" />
                 </Link>
-                <a
-                  href={salesHref}
-                  target={WHATSAPP_NUMBER ? "_blank" : undefined}
-                  rel={WHATSAPP_NUMBER ? "noopener noreferrer" : undefined}
+                <Link
+                  href="/contacto-ventas"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--fe-ink)]/20 bg-transparent px-6 py-4 text-sm font-semibold text-[var(--fe-ink)] transition hover:bg-[var(--fe-ink)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-lime)]"
                 >
                   Hablar con ventas
-                </a>
+                </Link>
               </div>
             </div>
           </section>

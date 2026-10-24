@@ -315,3 +315,11 @@ export const sharedLinkCreateLimiter = new RateLimiter({
   max: 20,
   prefix: 'shared-link-create',
 });
+
+
+/** Límite para formularios públicos de contacto comercial. */
+export const salesContactLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  prefix: 'sales-contact',
+});
