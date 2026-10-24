@@ -30,7 +30,7 @@ const sendNotificationSchema = z.object({
   type: z.string().trim().max(64).optional().default('general'),
   priority: z.enum(['low', 'normal', 'high']).optional().default('normal'),
   url: urlSchema.nullable().optional(),
-  data: z.record(z.string().max(500)).optional(),
+  data: z.record(z.string(), z.string().max(500)).optional(),
   companyId: idSchema.optional().nullable(),
 });
 
