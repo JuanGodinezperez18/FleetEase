@@ -90,14 +90,11 @@ REVOKE ALL ON FUNCTION public.enforce_company_plan_limits() FROM anon;
 REVOKE ALL ON FUNCTION public.enforce_company_plan_limits() FROM authenticated;
 
 -- Align Free tenant metadata without deleting or modifying existing vehicles.
+-- Update only plan limits. Preserve subscription status and trial timestamps.
+-- Existing vehicle and user records are not deleted or rewritten.
 UPDATE public.companies
 SET max_vehicles = 1,
     max_users = 1,
-    subscription_status = CASE
-      WHEN subscription_status IN ('trialing', 'expired') THEN 'active'
-      ELSE subscription_status
-    END,
-    trial_ends_at = NULL,
     updated_at = now()
 WHERE plan = 'free'::public.subscription_plan
   AND COALESCE(is_deleted, false) = false;
