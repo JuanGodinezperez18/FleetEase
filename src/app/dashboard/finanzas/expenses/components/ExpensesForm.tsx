@@ -30,7 +30,7 @@ const NONE_SELECT_VALUE = "@none";
 
 const lineSchema = z.object({
   concept: z.string().trim().min(1, "El concepto es obligatorio."),
-  amount: z.coerce.number({ invalid_type_error: "El importe debe ser un número." }).positive("El importe debe ser mayor que cero."),
+  amount: z.coerce.number({ error: "El importe debe ser un número." }).positive("El importe debe ser mayor que cero."),
   catalogItemId: z.string().nullable().optional(),
   quantity: z.coerce.number().positive().default(1),
   unitAmount: z.coerce.number().nonnegative().optional(),
