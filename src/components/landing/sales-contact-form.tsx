@@ -6,10 +6,12 @@ import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
 
 const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-[var(--fe-lime)]";
 
-export function SalesContactForm() {
+type SalesRequestType = "sales" | "vehicle_management";
+
+export function SalesContactForm({ requestType = "sales" }: { requestType?: SalesRequestType }) {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", company: "", fleetSize: "", interest: "Asesoría para empresa", message: "", website: "" });
+  const [form, setForm] = useState({ requestType, name: "", email: "", company: "", fleetSize: "", interest: "Asesoría para empresa", message: "", website: "" });
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
