@@ -6,11 +6,11 @@ import { ChevronDown } from "lucide-react";
 const faqs: [string, string][] = [
   [
     "¿Para quién es FleetEase?",
-    "Para empresas y operadores que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores y necesitan controlar operación y rentabilidad. Ideal para software de gestión de flotillas y renta de vehículos en México.",
+    "Para conductores independientes con un vehículo y para empresas que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores. Controla gastos, mantenimiento, ingresos y rentabilidad en un solo lugar.",
   ],
   [
     "¿Puedo empezar sin pagar?",
-    "Sí. El plan Free es permanente: hasta 3 vehículos y 1 usuario, con todas las funciones Pro y sin tarjeta. Incluye anuncios para mantenerlo gratis.",
+    "Sí. El plan Free es permanente: 1 vehículo y 1 usuario, con las funciones Pro disponibles y sin tarjeta. Incluye anuncios para mantenerlo gratis.",
   ],
   [
     "¿Los planes dependen del número de vehículos?",

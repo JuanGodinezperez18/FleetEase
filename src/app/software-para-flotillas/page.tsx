@@ -5,7 +5,7 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 export const metadata: Metadata = {
   title: "Software para flotillas en México | FleetEase",
   description:
-    "Software de gestión de flotillas y renta de vehículos en México. Plan Free permanente con hasta 3 vehículos.",
+    "Software de gestión de flotillas y renta de vehículos en México. Plan Free permanente para conductores y empresas, con 1 vehículo y 1 usuario.",
 };
 
 export default function SoftwareParaFlotillasPage() {
@@ -54,7 +54,7 @@ export default function SoftwareParaFlotillasPage() {
             Una sola vista para tomar mejores decisiones.
           </h2>
           <p className="mt-4 max-w-2xl text-white/45">
-            Empieza gratis con hasta 3 vehículos y 1 usuario. Escala a un plan
+            Empieza gratis con 1 vehículo y 1 usuario. Escala a un plan
             de pago cuando necesites más capacidad y sin anuncios.
           </p>
           <Link

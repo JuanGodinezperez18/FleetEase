@@ -12,7 +12,7 @@ const HIGHLIGHTS: Partial<Record<PlanType, string[]>> = {
   free: [
     "Gratis para siempre",
     "Todas las funciones Pro",
-    "Hasta 3 vehículos · 1 usuario",
+    "1 vehículo · 1 usuario",
     "Sin tarjeta de crédito",
     "Con anuncios",
   ],
@@ -60,7 +60,7 @@ export function LandingPricing() {
             Planes claros. Sin sorpresas.
           </h2>
           <p className="mt-5 text-[16px] leading-7 text-white/55">
-            Empieza gratis con hasta 3 vehículos. Escala cuando tu flotilla crezca.
+            Empieza gratis con un vehículo. Ideal para conductores independientes y empresas que están comenzando.
           </p>
         </div>
 

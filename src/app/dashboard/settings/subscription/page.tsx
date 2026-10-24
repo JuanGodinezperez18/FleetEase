@@ -365,10 +365,10 @@ export default function SubscriptionPage() {
                 Problemas técnicos, funcionalidades o reportes de errores
               </p>
               <a
-                href="mailto:soporte@fleetease.mx"
+                href="mailto:soporte@fleetease.com.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
               >
-                soporte@fleetease.mx
+                soporte@fleetease.com.mx
               </a>
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5">
@@ -377,10 +377,10 @@ export default function SubscriptionPage() {
                 Planes personalizados y cuentas enterprise
               </p>
               <a
-                href="mailto:ventas@fleetease.mx"
+                href="mailto:ventas@fleetease.com.mx"
                 className="mt-2 inline-block text-xs font-medium text-[#d7ff3f] hover:underline"
               >
-                ventas@fleetease.mx
+                ventas@fleetease.com.mx
               </a>
             </div>
           </div>
