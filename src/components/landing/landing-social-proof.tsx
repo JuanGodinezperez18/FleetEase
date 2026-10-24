@@ -12,13 +12,13 @@ const stats = [
     icon: Truck,
   },
   {
-    value: "Antes",
-    label: "Alertas de mantenimiento a tiempo",
+    value: "Control",
+    label: "Seguimiento de mantenimiento",
     icon: ShieldCheck,
   },
   {
-    value: "Minutos",
-    label: "Para configurar tu cuenta",
+    value: "Guiado",
+    label: "Un punto de partida claro para tu operación",
     icon: Check,
   },
 ] as const;
