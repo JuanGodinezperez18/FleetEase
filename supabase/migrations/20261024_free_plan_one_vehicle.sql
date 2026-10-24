@@ -29,9 +29,6 @@ BEGIN
 
   IF tg_table_name = 'vehicles' THEN
     IF c.plan = 'free'::public.subscription_plan THEN
-      IF c.trial_ends_at IS NOT NULL AND c.trial_ends_at <= now() THEN
-        RAISE EXCEPTION 'FREE_TRIAL_EXPIRED' USING errcode = 'check_violation';
-      END IF;
       SELECT count(*) INTO vehicle_count
       FROM public.vehicles
       WHERE company_id = new.company_id
@@ -56,9 +53,6 @@ BEGIN
     END IF;
 
     IF c.plan = 'free'::public.subscription_plan THEN
-      IF c.trial_ends_at IS NOT NULL AND c.trial_ends_at <= now() THEN
-        RAISE EXCEPTION 'FREE_TRIAL_EXPIRED' USING errcode = 'check_violation';
-      END IF;
       SELECT count(*) INTO user_count
       FROM public.users
       WHERE company_id = new.company_id
@@ -89,8 +83,8 @@ REVOKE ALL ON FUNCTION public.enforce_company_plan_limits() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.enforce_company_plan_limits() FROM anon;
 REVOKE ALL ON FUNCTION public.enforce_company_plan_limits() FROM authenticated;
 
--- Align Free tenant metadata without deleting or modifying existing vehicles.
--- Update only plan limits. Preserve subscription status and trial timestamps.
+-- Free is permanent: do not block tenants based on legacy trial timestamps.
+-- Preserve existing subscription status and trial metadata for auditability.
 -- Existing vehicle and user records are not deleted or rewritten.
 UPDATE public.companies
 SET max_vehicles = 1,
