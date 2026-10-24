@@ -164,7 +164,7 @@ const faqs = [
     category: 'settings',
     question: '¿Qué límites tiene mi plan?',
     answer:
-      'Los límites actuales son: Free permanente (3 vehículos, 1 usuario, con anuncios), Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios) y Enterprise (vehículos y usuarios ilimitados). Consulta Suscripción para confirmar el plan activo.',
+      'Los límites actuales son: Free permanente (1 vehículo, 1 usuario, con anuncios), Starter (5 vehículos, 1 usuario), Pro (15 vehículos, 3 usuarios) y Enterprise (vehículos y usuarios ilimitados). Consulta Suscripción para confirmar el plan activo.',
   },
   {
     category: 'settings',
