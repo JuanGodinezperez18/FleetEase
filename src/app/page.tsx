@@ -99,7 +99,7 @@ export default function LandingPage() {
                 la operación diaria en una vista clara de rentabilidad, mantenimiento y desempeño.
               </p>
 
-              {/* Prueba concreta cerca del CTA principal */}
+              {/* Ejemplo de uso sin métricas ni testimonios atribuidos a clientes. */}
               <blockquote className="mt-6 max-w-[520px] rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5">
                 <p className="text-[13px] leading-5 text-white/70">
                   Ejemplo de uso: centralizar costos y detectar gastos de mantenimiento y multas antes de que provoquen paros operativos.
