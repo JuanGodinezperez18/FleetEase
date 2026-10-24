@@ -265,7 +265,7 @@ export const navItemsBase: NavItem[] = [
       { href: "/dashboard/settings/subscription", label: "Suscripción y Planes", icon: DollarSignIcon },
       { href: "/dashboard/faq", label: "Preguntas Frecuentes", icon: MessageSquare },
       { href: "/dashboard/settings", label: "Mi Configuración", icon: SettingsIcon },
-      { href: "mailto:soporte@fleetease.mx", label: "Contactar Soporte", icon: Mail, external: true },
+      { href: "mailto:soporte@fleetease.com.mx", label: "Contactar Soporte", icon: Mail, external: true },
     ],
     roles: ["superAdmin", "admin"],
   },
