@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { sendEmail } from "@/lib/resend";
+import { checkRateLimit, salesContactLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,9 @@ function escapeHtml(value: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await checkRateLimit(request, salesContactLimiter);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const contentType = request.headers.get("content-type") ?? "";
     if (!contentType.toLowerCase().includes("application/json")) {
       return NextResponse.json({ message: "Solicitud no válida." }, { status: 415 });
