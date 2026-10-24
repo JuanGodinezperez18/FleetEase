@@ -31,7 +31,7 @@ const enterprise: Record<FeatureKey, boolean> = { ...pro };
 /**
  * Free permanente = mismas funciones de producto que Pro
  * (rentabilidad, analytics, reportes, etc.).
- * Los límites de cupo (1 usuario / 3 vehículos) se aplican aparte en plans.ts y DB.
+ * Los límites de cupo (1 usuario / 1 vehículo) se aplican aparte en plans.ts y DB.
  * multi_user queda habilitado en UI, pero maxUsers=1 impide agregar más usuarios.
  */
 export const featureFlags: Record<PlanType, Record<FeatureKey, boolean>> = {
