@@ -197,7 +197,7 @@ export default function LandingPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--fe-ink)]/20 bg-transparent px-6 py-4 text-sm font-semibold text-[var(--fe-ink)] transition hover:bg-[var(--fe-ink)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-lime)]"
                 >
                   Hablar con ventas
-                </a>
+                </Link>
               </div>
             </div>
           </section>
