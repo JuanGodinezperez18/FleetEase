@@ -51,8 +51,7 @@ const mileageLogSchema = z
       ),
     mileage: z.coerce
       .number({
-        required_error: "El kilometraje es obligatorio.",
-        invalid_type_error: "Debe ingresar un valor numérico.",
+        error: "Debe ingresar un valor numérico.",
       })
       .positive("El kilometraje debe ser un número positivo.")
       .int("El kilometraje debe ser un número entero.")
