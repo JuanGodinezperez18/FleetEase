@@ -51,10 +51,10 @@ import { DialogFooter } from '@/components/ui/dialog';
 const baseCategorySchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   type: z.enum(['income', 'expense', 'payment'], {
-    required_error: 'Debe seleccionar un tipo.',
+    error: 'Debe seleccionar un tipo.',
   }),
   affects: z.enum(['client_balance', 'partner_balance', 'none'], {
-    required_error: 'Debe seleccionar a quién afecta.',
+    error: 'Debe seleccionar a quién afecta.',
   }),
   description: z.string().optional(),
   companyId: z.string().optional().nullable(),
