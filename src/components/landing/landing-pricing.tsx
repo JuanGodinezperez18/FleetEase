@@ -8,7 +8,7 @@ import { plans, type PlanType } from "@/config/plans";
 const ORDER: PlanType[] = ["free", "starter", "pro"];
 
 /** Highlights cortos por plan para la landing (no listar 20 features). */
-const HIGHLIGHTS: Record<PlanType, string[]> = {
+const HIGHLIGHTS: Partial<Record<PlanType, string[]>> = {
   free: [
     "Gratis para siempre",
     "Todas las funciones Pro",
@@ -29,12 +29,6 @@ const HIGHLIGHTS: Record<PlanType, string[]> = {
     "Rentabilidad por vehículo",
     "Reportes PDF y Excel",
     "Soporte prioritario",
-  ],
-  enterprise: [
-    "Todo lo de Pro",
-    "Vehículos y usuarios ilimitados",
-    "Acompañamiento empresarial",
-    "Ideal para flotillas grandes",
   ],
 };
 
@@ -110,7 +104,7 @@ export function LandingPricing() {
                 </div>
 
                 <ul className="mt-6 flex flex-1 flex-col gap-2.5">
-                  {HIGHLIGHTS[id].map((f) => (
+                  {(HIGHLIGHTS[id] ?? []).map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-white/70">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fe-lime)]" />
                       <span>{f}</span>
