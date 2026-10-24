@@ -1,17 +1,16 @@
 import { Activity, BarChart3, Gauge, Wrench } from "lucide-react";
 
 /**
- * Mock del dashboard en el hero.
- * Datos ilustrativos — aria-hidden para que lectores de pantalla no lean números sueltos.
+ * Vista conceptual del dashboard en el hero. No representa datos reales de clientes.
  */
 export function HeroDashboard() {
   const bars = [38, 48, 43, 62, 57, 75, 68, 88, 79, 94, 83, 100];
 
   return (
     <div className="relative" aria-hidden="true">
-      {/* Glow: sin blur-3xl en mobile (coste de paint) */}
+      {/* Halo limitado al producto para separarlo del fondo sin decorar toda la página. */}
       <div
-        className="pointer-events-none absolute -inset-6 rounded-[40px] sm:-inset-10 sm:bg-[var(--fe-lime)]/[0.07] sm:blur-3xl"
+        className="pointer-events-none absolute -inset-6 rounded-[40px] sm:-inset-10 sm:bg-[var(--fe-lime)]/[0.07]"
         style={{
           background:
             "radial-gradient(circle at 50% 40%, rgba(var(--fe-lime-rgb), 0.10), transparent 70%)",
@@ -26,22 +25,22 @@ export function HeroDashboard() {
             <div>
               <span className="text-xs font-semibold">Resumen de flotilla</span>
               <span className="mt-0.5 block text-[10px] text-white/60">
-                Datos ilustrativos de la interfaz
+                Demostración visual sin datos reales
               </span>
             </div>
           </div>
           <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold text-white/60">
-            VISTA DE EJEMPLO
+            DEMO SIN DATOS REALES
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
           {(
             [
-              ["24", "Vehículos"],
-              ["$96.4K", "Ingresos"],
-              ["$31.8K", "Costos"],
-              ["67%", "Margen"],
+              ["Vista", "Vehículos"],
+              ["Ejemplo", "Ingresos"],
+              ["Ejemplo", "Costos"],
+              ["Referencia", "Margen"],
             ] as const
           ).map(([value, label], i) => (
             <div
@@ -50,7 +49,7 @@ export function HeroDashboard() {
             >
               <div className="mb-2 text-[10px] text-white/60">{label}</div>
               <div
-                className={`text-xl font-semibold tracking-tight tabular-nums ${
+                className={`break-words text-base font-semibold tracking-tight sm:text-lg ${
                   i === 3 ? "text-[var(--fe-lime)]" : "text-white"
                 }`}
               >
@@ -64,8 +63,8 @@ export function HeroDashboard() {
           <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold">Rentabilidad mensual</div>
-                <div className="mt-1 text-[10px] text-white/60">Ingresos vs. costos</div>
+                <div className="text-xs font-semibold">Tendencia visual</div>
+                <div className="mt-1 text-[10px] text-white/60">Gráfico ilustrativo, sin valores reales</div>
               </div>
               <BarChart3 className="h-4 w-4 text-white/50" />
             </div>
@@ -94,20 +93,18 @@ export function HeroDashboard() {
                 <span className="text-xs font-semibold">Estado de flota</span>
                 <Activity className="h-4 w-4 text-[var(--fe-lime)]" />
               </div>
-              <div className="mb-3 text-3xl font-semibold tabular-nums">
-                22<span className="text-sm text-white/60"> / 24 activas</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-[92%] rounded-full bg-[var(--fe-lime)]" />
-              </div>
+              <div className="text-lg font-semibold">Estados operativos</div>
+              <p className="mt-2 text-xs leading-5 text-white/65">
+                Una vista para revisar disponibilidad y seguimiento de cada unidad.
+              </p>
             </div>
             <div className="rounded-2xl border border-[var(--fe-lime)]/20 bg-[var(--fe-lime)]/[0.055] p-5">
               <div className="flex items-start gap-3">
                 <Wrench className="mt-0.5 h-4 w-4 text-[var(--fe-lime)]" />
                 <div>
-                  <div className="text-xs font-semibold">3 mantenimientos</div>
-                  <div className="mt-1 text-[10px] leading-4 text-white/60">
-                    requieren atención esta semana
+                  <div className="text-xs font-semibold">Seguimiento de mantenimiento</div>
+                  <div className="mt-1 text-[10px] leading-4 text-white/65">
+                    Servicios, kilometraje y vencimientos en un mismo lugar.
                   </div>
                 </div>
               </div>
