@@ -5,6 +5,7 @@ import {
   BarChart3,
   Check,
   CircleDollarSign,
+  MapPin,
   Wrench,
 } from "lucide-react";
 import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
@@ -62,6 +63,11 @@ const salesHref = WHATSAPP_NUMBER
       "Hola, quiero hablar con ventas sobre FleetEase para mi flotilla."
     )}`
   : "#pricing";
+const administrationHref = WHATSAPP_NUMBER
+  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      "Hola, me interesa el servicio de administración de vehículos de renta en Monterrey, Nuevo León."
+    )}`
+  : "mailto:ventas@fleetease.com.mx?subject=Informaci%C3%B3n%20sobre%20administraci%C3%B3n%20de%20veh%C3%ADculos%20de%20renta";
 
 export default function LandingPage() {
   return (
@@ -181,6 +187,68 @@ export default function LandingPage() {
           </section>
 
           <LandingHowItWorks />
+
+          <section
+            id="administracion-monterrey"
+            aria-labelledby="administracion-monterrey-title"
+            className="mx-auto max-w-[1240px] scroll-mt-[var(--header-h)] px-5 py-16 lg:px-8 lg:py-24"
+          >
+            <div className="overflow-hidden rounded-[28px] border border-white/[0.1] bg-white/[0.035]">
+              <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:p-12">
+                <div>
+                  <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--fe-lime)]/25 bg-[var(--fe-lime)]/[0.08] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fe-lime)]">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Servicio presencial en Monterrey
+                  </div>
+                  <h2
+                    id="administracion-monterrey-title"
+                    className="max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl"
+                  >
+                    ¿Tienes vehículos de renta, pero no tiempo para administrarlos?
+                  </h2>
+                  <p className="mt-5 max-w-2xl text-base leading-7 text-white/65">
+                    En FleetEase contamos con más de 8 años de experiencia administrando vehículos de renta para conductores de plataformas digitales. Te ayudamos a dar seguimiento a la operación, las finanzas y el mantenimiento de tus unidades.
+                  </p>
+                  <p className="mt-4 text-sm font-semibold text-white/85">
+                    Disponible exclusivamente en Monterrey, Nuevo León.
+                  </p>
+                  <a
+                    href={administrationHref}
+                    target={WHATSAPP_NUMBER ? "_blank" : undefined}
+                    rel={WHATSAPP_NUMBER ? "noopener noreferrer" : undefined}
+                    className={`mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--fe-lime)] px-6 py-4 text-sm font-bold text-[var(--fe-ink)] transition hover:bg-white ${focusRing}`}
+                  >
+                    Solicitar información sobre administración
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                  <article className="rounded-2xl border border-white/[0.08] bg-black/20 p-5">
+                    <Activity className="h-5 w-5 text-[var(--fe-lime)]" />
+                    <h3 className="mt-4 text-base font-semibold">Seguimiento operativo</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/55">
+                      Visibilidad sobre la operación de tus vehículos de renta.
+                    </p>
+                  </article>
+                  <article className="rounded-2xl border border-white/[0.08] bg-black/20 p-5">
+                    <CircleDollarSign className="h-5 w-5 text-[var(--fe-lime)]" />
+                    <h3 className="mt-4 text-base font-semibold">Control financiero</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/55">
+                      Seguimiento de ingresos, gastos y rentabilidad por unidad.
+                    </p>
+                  </article>
+                  <article className="rounded-2xl border border-white/[0.08] bg-black/20 p-5">
+                    <Wrench className="h-5 w-5 text-[var(--fe-lime)]" />
+                    <h3 className="mt-4 text-base font-semibold">Mantenimiento</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/55">
+                      Control de servicios y gastos de mantenimiento de la flotilla.
+                    </p>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <LandingPricing />
 
