@@ -32,7 +32,7 @@ const newCategoryValue = "createNewCategory";
 const createIncomeSchema = (currentUserRole?: string) => z.object({
   date: z.string().min(1, "La fecha es obligatoria."),
   description: z.string().trim().min(1, "El concepto es obligatorio."),
-  amount: z.coerce.number({ required_error: "El monto es obligatorio.", invalid_type_error: "El monto debe ser un número." }).positive("El monto debe ser mayor que cero."),
+  amount: z.coerce.number({ error: "El monto debe ser un número." }).positive("El monto debe ser mayor que cero."),
   clientId: z.string().optional().nullable(),
   partnerId: z.string().optional().nullable(),
   vehicleId: z.string().optional().nullable(),

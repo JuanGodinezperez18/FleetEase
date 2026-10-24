@@ -28,7 +28,7 @@ const baseUserFormSchema = z.object({
   state: z.string().optional(),
   zipCode: z.string().optional(),
   country: z.string().optional(),
-  role: z.enum(['admin', 'editor', 'viewer', 'superAdmin', 'partner', 'client'], { required_error: "El rol es obligatorio." }),
+  role: z.enum(['admin', 'editor', 'viewer', 'superAdmin', 'partner', 'client'], { error: "El rol es obligatorio." }),
   companyId: z.string().optional().nullable(),
   partnerAccess: z.array(z.string()).optional(),
 });

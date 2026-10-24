@@ -40,7 +40,7 @@ function parseJsonObject(text: string): unknown {
 async function extractJson<T>(opts: {
   instruction: string;
   image: ImageInput;
-  schema: ZodType<T, any, any>;
+  schema: ZodType<T, any>;
 }): Promise<T> {
   const res = await client().messages.create({
     model: MODEL,
