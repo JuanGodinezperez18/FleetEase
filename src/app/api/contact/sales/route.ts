@@ -6,6 +6,7 @@ import { checkRateLimit, salesContactLimiter } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 const schema = z.object({
+  requestType: z.enum(["sales", "vehicle_management"]).optional().default("sales"),
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(254),
   company: z.string().trim().max(120).optional().default(""),
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Honeypot: silently accept automated submissions without sending email.
     if (parsed.data.website) return NextResponse.json({ success: true });
 
-    const { name, email, company, fleetSize, interest, message } = parsed.data;
+    const { requestType, name, email, company, fleetSize, interest, message } = parsed.data;
     const configuredRecipient = (process.env.SALES_CONTACT_EMAIL || process.env.SUPPORT_EMAIL || "").trim();
     const recipient = /@fleetease\.com\.mx$/i.test(configuredRecipient)
       ? configuredRecipient
@@ -43,7 +44,9 @@ export async function POST(request: NextRequest) {
     const safe = { name: escapeHtml(name), email: escapeHtml(email), company: escapeHtml(company || "No especificada"), fleetSize: escapeHtml(fleetSize), interest: escapeHtml(interest), message: escapeHtml(message).replace(/\n/g, "<br />") };
     const result = await sendEmail({
       to: recipient,
-      subject: `Nuevo prospecto de ventas FleetEase — ${fleetSize} vehículo(s)`,
+      subject: requestType === "vehicle_management"
+        ? `Solicitud de administración de vehículos FleetEase — ${fleetSize} vehículo(s)`
+        : `Nuevo prospecto de ventas FleetEase — ${fleetSize} vehículo(s)`,
       text: `Nueva solicitud comercial FleetEase\nNombre: ${name}\nCorreo: ${email}\nEmpresa: ${company || "No especificada"}\nVehículos: ${fleetSize}\nInterés: ${interest}\n\nNecesidades / dudas:\n${message}`,
       html: `<h2>Nueva solicitud comercial FleetEase</h2><p><b>Nombre:</b> ${safe.name}</p><p><b>Correo:</b> ${safe.email}</p><p><b>Empresa:</b> ${safe.company}</p><p><b>Vehículos:</b> ${safe.fleetSize}</p><p><b>Interés:</b> ${safe.interest}</p><hr /><p><b>Necesidades / dudas:</b></p><p>${safe.message}</p>`,
     });
