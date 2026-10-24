@@ -9,7 +9,7 @@
  * ```
  */
 
-import { z, type ZodTypeAny, type ZodError } from 'zod';
+import { z, type ZodType, type ZodError } from 'zod';
 import type { NextRequest } from 'next/server';
 import type { NextResponse } from 'next/server';
 import { validationError, type ApiErrorBody } from './api-error';
@@ -25,7 +25,7 @@ const MAX_JSON_BYTES = 1_000_000; // 1 MB
  * Parsea y valida el body JSON de la request. Devuelve un error 400 opaco
  * si el JSON está malformado o no cumple el esquema.
  */
-export async function parseJsonBody<T extends ZodTypeAny>(
+export async function parseJsonBody<T extends ZodType>(
   request: NextRequest,
   schema: T,
 ): Promise<ParseResult<z.infer<T>>> {
@@ -45,7 +45,7 @@ export async function parseJsonBody<T extends ZodTypeAny>(
 }
 
 /** Valida un valor ya obtenido (query params, body parseado a mano, etc.). */
-export function parseValue<T extends ZodTypeAny>(
+export function parseValue<T extends ZodType>(
   raw: unknown,
   schema: T,
 ): ParseResult<z.infer<T>> {
@@ -60,7 +60,7 @@ export function parseValue<T extends ZodTypeAny>(
  * Extrae campos string de FormData y los valida con un esquema Zod.
  * Los campos ausentes quedan como `undefined` (usar `.optional()` en el schema).
  */
-export function parseFormFields<T extends ZodTypeAny>(
+export function parseFormFields<T extends ZodType>(
   formData: FormData,
   schema: T,
   keys: string[],
