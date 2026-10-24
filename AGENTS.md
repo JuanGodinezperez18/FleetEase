@@ -177,3 +177,6 @@ For public marketing/landing-page work, use landing-page-design.
 For validation and regression review, use testing-review.
 
 These skills refine the existing product; they do not authorize changes to protected business formulas or replacement of established UI direction without user scope.
+
+## Anti-slop agent rules
+Before creating or reviewing UI, copy, responsive layouts, accessibility, or code comments, read `antislop.md` at the repository root and follow its rules. Resolve the usage mode according to its instructions before work; do not bypass existing project requirements, tests, security boundaries, or business logic.
