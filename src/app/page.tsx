@@ -54,16 +54,6 @@ const features = [
   },
 ];
 
-const WHATSAPP_NUMBER =
-  typeof process.env.NEXT_PUBLIC_WHATSAPP_NUMBER === "string"
-    ? process.env.NEXT_PUBLIC_WHATSAPP_NUMBER.replace(/\D/g, "")
-    : "";
-const administrationHref = WHATSAPP_NUMBER
-  ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      "Hola, me interesa el servicio de administración de vehículos de renta en Monterrey, Nuevo León."
-    )}`
-  : "mailto:ventas@fleetease.com.mx?subject=Informaci%C3%B3n%20sobre%20administraci%C3%B3n%20de%20veh%C3%ADculos%20de%20renta";
-
 export default function LandingPage() {
   return (
     <LandingAuthRedirect>
@@ -182,6 +172,33 @@ export default function LandingPage() {
           <LandingHowItWorks />
 
           <section
+            id="nuestra-vision"
+            aria-labelledby="nuestra-vision-title"
+            className="mx-auto max-w-[1240px] scroll-mt-[var(--header-h)] px-5 py-12 lg:px-8 lg:py-16"
+          >
+            <div className="grid gap-5 rounded-[28px] border border-white/[0.09] bg-white/[0.025] p-6 sm:p-9 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-12 lg:p-12">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fe-lime)]">Por qué existe FleetEase</p>
+                <h2 id="nuestra-vision-title" className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+                  La rentabilidad de una flotilla no debería ser una incógnita.
+                </h2>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-white/65 sm:text-base">
+                  La experiencia directa administrando vehículos de renta nos mostró un problema cotidiano: ingresos, gastos, mantenimiento y compromisos terminan repartidos entre hojas de cálculo, mensajes y recordatorios. Creamos FleetEase para reunir esa operación y ayudar a entender qué sucede con cada unidad.
+                </p>
+              </div>
+              <article className="rounded-2xl border border-[var(--fe-lime)]/20 bg-[var(--fe-lime)]/[0.045] p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--fe-lime)]">Nuestra visión</p>
+                <p className="mt-3 text-lg font-semibold leading-7 text-white">
+                  Que propietarios y empresas puedan crecer con control y tomar decisiones a partir de datos claros.
+                </p>
+                <p className="mt-3 text-sm leading-6 text-white/55">
+                  Menos información dispersa; más claridad sobre rentabilidad, mantenimiento y prioridades operativas.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section
             id="administracion-monterrey"
             aria-labelledby="administracion-monterrey-title"
             className="mx-auto max-w-[1240px] scroll-mt-[var(--header-h)] px-5 py-16 lg:px-8 lg:py-24"
@@ -205,15 +222,13 @@ export default function LandingPage() {
                   <p className="mt-4 text-sm font-semibold text-white/85">
                     Disponible exclusivamente en Monterrey, Nuevo León.
                   </p>
-                  <a
-                    href={administrationHref}
-                    target={WHATSAPP_NUMBER ? "_blank" : undefined}
-                    rel={WHATSAPP_NUMBER ? "noopener noreferrer" : undefined}
+                  <Link
+                    href="/contacto-ventas?tipo=administracion"
                     className={`mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--fe-lime)] px-6 py-4 text-sm font-bold text-[var(--fe-ink)] transition hover:bg-white ${focusRing}`}
                   >
                     Solicitar información sobre administración
                     <ArrowRight className="h-4 w-4" />
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
