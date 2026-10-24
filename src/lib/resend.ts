@@ -20,10 +20,6 @@ function getFleetEaseFromEmail(from?: string): string {
 
   if (!configured) return DEFAULT_FROM_EMAIL;
 
-  if (/@fleetease\.mx\b/i.test(configured)) {
-    return configured.replace(/@fleetease\.mx\b/gi, `@${FLEETEASE_EMAIL_DOMAIN}`);
-  }
-
   if (!/@fleetease\.com\.mx\b/i.test(configured)) {
     return DEFAULT_FROM_EMAIL;
   }
