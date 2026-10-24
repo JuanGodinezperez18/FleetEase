@@ -265,14 +265,12 @@ export default function LandingPage() {
                 >
                   Comenzar gratis <ArrowRight className="h-4 w-4" />
                 </Link>
-                <a
-                  href={salesHref}
-                  target={WHATSAPP_NUMBER ? "_blank" : undefined}
-                  rel={WHATSAPP_NUMBER ? "noopener noreferrer" : undefined}
+                <Link
+                  href="/contacto-ventas"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--fe-ink)]/20 bg-transparent px-6 py-4 text-sm font-semibold text-[var(--fe-ink)] transition hover:bg-[var(--fe-ink)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-lime)]"
                 >
                   Hablar con ventas
-                </a>
+                </Link>
               </div>
             </div>
           </section>
