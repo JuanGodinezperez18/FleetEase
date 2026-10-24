@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
     if (parsed.data.website) return NextResponse.json({ success: true });
 
     const { name, email, company, fleetSize, interest, message } = parsed.data;
-    const recipient = process.env.SALES_CONTACT_EMAIL || process.env.SUPPORT_EMAIL || "soporte@fleetease.com.mx";
+    const configuredRecipient = (process.env.SALES_CONTACT_EMAIL || process.env.SUPPORT_EMAIL || "").trim();
+    const recipient = /@fleetease\.com\.mx$/i.test(configuredRecipient)
+      ? configuredRecipient
+      : "ventas@fleetease.com.mx";
     const safe = { name: escapeHtml(name), email: escapeHtml(email), company: escapeHtml(company || "No especificada"), fleetSize: escapeHtml(fleetSize), interest: escapeHtml(interest), message: escapeHtml(message).replace(/\n/g, "<br />") };
     const result = await sendEmail({
       to: recipient,
