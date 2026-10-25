@@ -8,7 +8,14 @@ export const metadata = {
   description: "Cuéntanos sobre tu flotilla y las necesidades de tu operación. El equipo de FleetEase se pondrá en contacto contigo.",
 };
 
-export default function ContactoVentasPage() {
+export default async function ContactoVentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const requestType = params.tipo === "administracion" ? "vehicle_management" : "sales";
+
   return <main className="fe-landing min-h-screen bg-[var(--fe-ink)] px-5 py-8 text-white sm:py-12">
     <div className="mx-auto max-w-3xl">
       <div className="flex items-center justify-between gap-4"><BrandLogo size={44} /><Link href="/" className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"><ArrowLeft className="h-4 w-4" /> Volver</Link></div>
@@ -16,7 +23,7 @@ export default function ContactoVentasPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fe-lime)]">Hablemos de tu operación</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">Cuéntanos qué necesitas.</h1>
         <p className="mt-5 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">Si representas una empresa, revisaremos contigo el tamaño de tu flotilla, los procesos que quieres controlar y las funciones que necesitas antes de recomendarte una solución. También atendemos a conductores independientes.</p>
-        <div className="mt-8"><SalesContactForm /></div>
+        <div className="mt-8"><SalesContactForm requestType={requestType} /></div>
       </section>
     </div>
   </main>;
