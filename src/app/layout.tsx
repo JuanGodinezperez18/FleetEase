@@ -152,7 +152,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               try {
                 var raw = window.localStorage.getItem('fleetease-cookie-consent-v1');
                 if (!raw) {
-                  var match = document.cookie.match(/(?:^|;\\s*)fe_cookie_consent=([^;]*)/);
+                  var match = document.cookie.match(/(?:^|;\s*)fe_cookie_consent=([^;]*)/);
                   raw = match ? decodeURIComponent(match[1]) : null;
                 }
                 var consent = raw ? JSON.parse(raw) : null;
