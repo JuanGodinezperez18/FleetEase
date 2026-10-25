@@ -2,19 +2,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
+const url = "https://www.fleetease.com.mx/control-de-mantenimiento-de-flotillas";
+
 export const metadata: Metadata = {
-  title: "Control de mantenimiento de flotillas | FleetEase",
+  title: "Control de Mantenimiento de Flotillas",
   description:
-    "Controla mantenimiento, kilometraje y servicios de tu flotilla con FleetEase. Anticipa vencimientos y reduce paros inesperados.",
-  alternates: {
-    canonical: "https://fleetease.com.mx/control-de-mantenimiento-de-flotillas",
-  },
+    "Kilometraje, servicios y vencimientos en un solo lugar. Reduce paros y gastos imprevistos con alertas de mantenimiento para tu flotilla. Empieza gratis.",
+  alternates: { canonical: url },
   openGraph: {
-    title: "Control de mantenimiento de flotillas | FleetEase",
+    title: "Control de Mantenimiento de Flotillas | FleetEase",
     description:
-      "Organiza servicios, kilometraje y alertas para mantener tus vehículos operando.",
-    url: "https://fleetease.com.mx/control-de-mantenimiento-de-flotillas",
+      "Kilometraje, servicios y vencimientos en un solo lugar. Reduce paros y gastos imprevistos con alertas de mantenimiento.",
+    url,
+    siteName: "FleetEase",
+    locale: "es_MX",
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Control de Mantenimiento de Flotillas | FleetEase",
+    description:
+      "Kilometraje, servicios y vencimientos en un solo lugar. Reduce paros y gastos imprevistos.",
+    images: ["/og-image.png"],
   },
 };
 
@@ -46,7 +56,7 @@ export default function Page() {
             Mantenimiento de flotillas
           </p>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-            Mantén tus vehículos trabajando, no detenidos.
+            Control de mantenimiento de flotillas sin hojas de cálculo
           </h1>
           <p className="mt-7 max-w-2xl text-lg leading-8 text-white/50">
             FleetEase concentra kilometraje, servicios, costos y alertas para

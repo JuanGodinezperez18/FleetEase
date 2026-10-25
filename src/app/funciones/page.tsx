@@ -2,10 +2,30 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
+const url = "https://www.fleetease.com.mx/funciones";
+
 export const metadata: Metadata = {
-  title: "Funciones | FleetEase",
+  title: "Funciones de FleetEase | Rentabilidad y Mantenimiento",
   description:
-    "Conoce las funciones de FleetEase para gestionar flotillas, rentabilidad, mantenimiento y operación en México.",
+    "Rentabilidad por vehículo, control de mantenimiento, cobranza, clientes y reportes PDF/Excel. Descubre todo lo que FleetEase hace por tu flotilla.",
+  alternates: { canonical: url },
+  openGraph: {
+    title: "Funciones de FleetEase | Rentabilidad y Mantenimiento",
+    description:
+      "Rentabilidad por vehículo, control de mantenimiento, cobranza, clientes y reportes PDF/Excel.",
+    url,
+    siteName: "FleetEase",
+    locale: "es_MX",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Funciones de FleetEase | Rentabilidad y Mantenimiento",
+    description:
+      "Rentabilidad por vehículo, control de mantenimiento, cobranza, clientes y reportes PDF/Excel.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function FuncionesPage() {
@@ -22,7 +42,7 @@ export default function FuncionesPage() {
       </header>
       <main className="mx-auto max-w-6xl px-6 py-16">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          Funciones pensadas para operar flotillas
+          Funciones pensadas para operar y decidir con números
         </h1>
         <p className="mt-4 max-w-2xl text-white/55">
           Controla vehículos, clientes, finanzas, mantenimiento y rentabilidad

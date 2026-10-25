@@ -2,10 +2,30 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
+const url = "https://www.fleetease.com.mx/software-para-flotillas";
+
 export const metadata: Metadata = {
-  title: "Software para flotillas en México | FleetEase",
+  title: "Software para Flotillas en México",
   description:
-    "Software de gestión de flotillas y renta de vehículos en México. Plan Free permanente para conductores y empresas, con 1 vehículo y 1 usuario.",
+    "Administra tu flotilla en un solo sistema: rentabilidad por vehículo, mantenimiento, cobranza y reportes. Plan Free permanente para empezar sin tarjeta.",
+  alternates: { canonical: url },
+  openGraph: {
+    title: "Software para Flotillas en México | FleetEase",
+    description:
+      "Administra tu flotilla en un solo sistema: rentabilidad por vehículo, mantenimiento, cobranza y reportes.",
+    url,
+    siteName: "FleetEase",
+    locale: "es_MX",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Software para Flotillas en México | FleetEase",
+    description:
+      "Administra tu flotilla en un solo sistema: rentabilidad por vehículo, mantenimiento, cobranza y reportes.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function SoftwareParaFlotillasPage() {
@@ -26,7 +46,7 @@ export default function SoftwareParaFlotillasPage() {
           Software para flotillas
         </p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-          Controla rentabilidad, mantenimiento y operación de tu flotilla.
+          Software para flotillas: controla tu operación y tu rentabilidad
         </h1>
         <p className="mt-5 max-w-2xl text-white/55">
           FleetEase centraliza vehículos, clientes, finanzas y alertas en un
