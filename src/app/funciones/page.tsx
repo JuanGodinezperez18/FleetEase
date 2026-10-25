@@ -5,7 +5,10 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 const url = "https://www.fleetease.com.mx/funciones";
 
 export const metadata: Metadata = {
-  title: "Funciones de FleetEase | Rentabilidad y Mantenimiento",
+  // absolute evita el template "%s | FleetEase" (el title ya incluye la marca)
+  title: {
+    absolute: "Funciones de FleetEase | Rentabilidad y Mantenimiento",
+  },
   description:
     "Rentabilidad por vehículo, control de mantenimiento, cobranza, clientes y reportes PDF/Excel. Descubre todo lo que FleetEase hace por tu flotilla.",
   alternates: { canonical: url },
