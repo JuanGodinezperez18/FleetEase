@@ -28,7 +28,7 @@ export function BrandLogo({
       >
         <Image
           src="/logo.png"
-          alt="FleetEase"
+          alt=""
           width={size}
           height={size}
           className="h-full w-full object-contain"

@@ -114,6 +114,7 @@ export function LandingPricing() {
 
                 <Link
                   href={`/registro?plan=${id}`}
+                  aria-label={`${plan.price === 0 ? "Empezar gratis" : "Elegir plan"} ${plan.name}`}
                   className={[
                     "mt-7 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition",
                     popular

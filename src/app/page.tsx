@@ -335,7 +335,7 @@ export default function LandingPage() {
               </nav>
             </div>
             <div className="border-t border-white/[0.07] pt-6">
-              <span className="text-xs text-white/45">
+              <span className="text-xs text-white/70">
                 © 2026 FleetEase · Software de gestión de flotillas
               </span>
             </div>
