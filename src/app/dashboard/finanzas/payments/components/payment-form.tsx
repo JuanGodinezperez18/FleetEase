@@ -177,7 +177,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
 
   const targets = useMemo(() => {
     if (!entityId) return [];
-    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY && r.sourceRecordType !== "multa" && recordDateOnOrBefore(r.date, date))
+    if (kind === "client_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.category !== SECURITY_DEPOSIT_CATEGORY && r.sourceRecordType !== "multa" && !r.creditId && !r.creditGranted && !r.creditPayment && !r.creditPaymentScheduleId && recordDateOnOrBefore(r.date, date))
       .map(r => ({ ...r, outstanding: Math.max(0, Number(r.amount) - (appliedByTarget.get(r.id) || 0)) }))
       .filter(r => r.outstanding > 0).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     if (kind === "multa_payment") return financialRecords.filter(r => !r.isDeleted && r.type === "income" && r.clientId === entityId && r.sourceRecordType === "multa" && r.category === "Multa" && recordDateOnOrBefore(r.date, date))

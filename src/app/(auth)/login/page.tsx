@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { GlobalLoader } from "@/components/common/GlobalLoader";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -85,6 +86,8 @@ export default function LoginPage() {
     try {
       await login(email, password, rememberMe);
       toast.success("Inicio de sesión exitoso");
+      // Keep isSubmitting true until currentUser is set and redirect runs,
+      // so GlobalLoader stays visible through the auth transition.
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code || "unknown";
       const errorMessages: Record<string, string> = {
@@ -99,20 +102,14 @@ export default function LoginPage() {
         errorMessages[code] || "Error al iniciar sesión. Verifica tus credenciales.";
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading || currentUser) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--fe-ink)] text-[var(--fe-text)]">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--fe-lime)]" />
-        <p className="mt-4 text-sm text-[var(--fe-text-muted)]">
-          {currentUser ? "Entrando a tu dashboard…" : "Cargando…"}
-        </p>
-      </div>
-    );
+  // Full skeleton while auth resolves, after successful login, or while redirecting.
+  // Avoids blank/black flash between the form and the dashboard shell.
+  if (loading || currentUser || isRedirecting || isSubmitting) {
+    return <GlobalLoader />;
   }
 
   return (
