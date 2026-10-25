@@ -25,9 +25,9 @@ interface RegisterData {
 
 const getPhoneValidationError = (value: string): string | null => {
   if (!value.trim()) return 'Ingresa tu número telefónico.';
-  const digits = value.replace(/\D/g, '');
-  const nationalDigits = digits.length === 12 && digits.startsWith('52') ? digits.slice(2) : digits;
-  if (!/^[0-9+()\s.-]+$/.test(value) || nationalDigits.length !== 10) {
+  const compact = value.replace(/[\s().-]/g, '');
+  const isValidMexicanPhone = /^\d{10}$/.test(compact) || /^\+52\d{10}$/.test(compact) || /^52\d{10}$/.test(compact);
+  if (!isValidMexicanPhone) {
     return 'El formato del teléfono es incorrecto. Ingresa 10 dígitos; puedes incluir +52.';
   }
   return null;
