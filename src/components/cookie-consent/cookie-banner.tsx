@@ -20,7 +20,7 @@ import {
 } from '@/lib/cookie-consent';
 
 export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -31,6 +31,7 @@ export function CookieBanner() {
       setVisible(true);
     }
     const onOpen = () => {
+      document.documentElement.removeAttribute('data-cookie-consent-saved');
       setShowSettings(true);
       setVisible(true);
     };
@@ -51,6 +52,7 @@ export function CookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-label="Preferencias de cookies"
+      data-cookie-banner
       className="fixed inset-x-0 bottom-0 z-[80] px-4 pb-4 sm:px-6 sm:pb-6"
     >
       <div
