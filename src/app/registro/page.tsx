@@ -35,8 +35,17 @@ const getPhoneValidationError = (value: string): string | null => {
 
 const getPasswordValidationError = (value: string): string | null => {
   if (!value) return 'Ingresa una contraseña.';
-  if (value.length < 8 || !/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
-    return 'Contraseña débil: usa mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.';
+  const missingRequirements = [
+    value.length < 8 ? 'mínimo 8 caracteres' : null,
+    !/[a-z]/.test(value) ? 'una letra minúscula' : null,
+    !/[A-Z]/.test(value) ? 'una letra mayúscula' : null,
+    !/\d/.test(value) ? 'un número' : null,
+    // Accept punctuation and symbols from common mobile keyboards, including Gboard.
+    !/[\p{P}\p{S}]/u.test(value) ? 'un símbolo (por ejemplo: ! @ # $ % & *)' : null,
+  ].filter((requirement): requirement is string => Boolean(requirement));
+
+  if (missingRequirements.length > 0) {
+    return `Contraseña débil. Agrega: ${missingRequirements.join(', ')}.`;
   }
   return null;
 };
