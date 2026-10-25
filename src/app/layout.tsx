@@ -146,6 +146,27 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Script id="fleetease-boot-failsafe" strategy="beforeInteractive">
           {bootFailsafeScript}
         </Script>
+        <Script id="cookie-consent-visibility" strategy="beforeInteractive">
+          {`
+            (function() {
+              try {
+                var raw = window.localStorage.getItem('fleetease-cookie-consent-v1');
+                if (!raw) {
+                  var match = document.cookie.match(/(?:^|;\\s*)fe_cookie_consent=([^;]*)/);
+                  raw = match ? decodeURIComponent(match[1]) : null;
+                }
+                var consent = raw ? JSON.parse(raw) : null;
+                if (consent && consent.version === 1 && typeof consent.analytics === 'boolean' && typeof consent.marketing === 'boolean') {
+                  document.documentElement.setAttribute('data-cookie-consent-saved', 'true');
+                } else {
+                  document.documentElement.removeAttribute('data-cookie-consent-saved');
+                }
+              } catch (e) {
+                document.documentElement.removeAttribute('data-cookie-consent-saved');
+              }
+            })();
+          `}
+        </Script>
         <Script id="pwa-install-capture" strategy="beforeInteractive">
           {`
             window.addEventListener('beforeinstallprompt', function(event) {
