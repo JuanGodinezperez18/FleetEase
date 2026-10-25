@@ -23,6 +23,24 @@ interface RegisterData {
   selectedPlan: PlanType;
 }
 
+const getPhoneValidationError = (value: string): string | null => {
+  if (!value.trim()) return 'Ingresa tu número telefónico.';
+  const digits = value.replace(/\D/g, '');
+  const nationalDigits = digits.length === 12 && digits.startsWith('52') ? digits.slice(2) : digits;
+  if (!/^[0-9+()\s.-]+$/.test(value) || nationalDigits.length !== 10) {
+    return 'El formato del teléfono es incorrecto. Ingresa 10 dígitos; puedes incluir +52.';
+  }
+  return null;
+};
+
+const getPasswordValidationError = (value: string): string | null => {
+  if (!value) return 'Ingresa una contraseña.';
+  if (value.length < 8 || !/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
+    return 'Contraseña débil: usa mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.';
+  }
+  return null;
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -34,12 +52,22 @@ export default function RegisterPage() {
   });
 
   const updateField = (field: keyof RegisterData, value: string) => setData(prev => ({ ...prev, [field]: value }));
+  const phoneError = data.phone ? getPhoneValidationError(data.phone) : null;
+  const passwordError = data.password ? getPasswordValidationError(data.password) : null;
+  const confirmPasswordError = data.confirmPassword && data.password !== data.confirmPassword
+    ? 'Las contraseñas no coinciden.'
+    : null;
+  const canContinueFromContact = Boolean(
+    data.phone && !phoneError && data.password && !passwordError &&
+    data.confirmPassword && !confirmPasswordError
+  );
 
   const handleNextStep = () => {
-    if (step === 1 && data.name && data.email && data.companyName) setStep(2);
-    else if (step === 2 && data.phone && data.password && data.confirmPassword) {
-      if (data.password !== data.confirmPassword) { toast.error('Las contraseñas no coinciden'); return; }
-      if (data.password.length < 8 || !/[a-z]/.test(data.password) || !/[A-Z]/.test(data.password) || !/\d/.test(data.password) || !/[^A-Za-z0-9]/.test(data.password)) { toast.error('Usa al menos 8 caracteres, con mayúscula, minúscula, número y símbolo'); return; }
+    if (step === 1 && data.name.trim() && data.email.trim() && data.companyName.trim()) setStep(2);
+    else if (step === 2) {
+      if (phoneError || !data.phone.trim()) { toast.error(phoneError || 'Ingresa tu número telefónico.'); return; }
+      if (passwordError || !data.password) { toast.error(passwordError || 'Ingresa una contraseña.'); return; }
+      if (confirmPasswordError || !data.confirmPassword) { toast.error(confirmPasswordError || 'Confirma tu contraseña.'); return; }
       setStep(3);
     }
   };
@@ -158,11 +186,17 @@ export default function RegisterPage() {
 
                 {step === 2 && <>
                   <div className="grid gap-5 md:grid-cols-2">
-                    <div className="space-y-2"><Label htmlFor="phone" className="text-xs font-medium text-white/55">Teléfono / WhatsApp</Label><div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="phone" type="tel" placeholder="Ej: 55 1234 5678" value={data.phone} onChange={e => updateField('phone', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" autoFocus /></div></div>
-                    <div className="space-y-2"><Label htmlFor="password" className="text-xs font-medium text-white/55">Contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={data.password} onChange={e => updateField('password', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
+                    <div className="space-y-2"><Label htmlFor="phone" className="text-xs font-medium text-white/55">Teléfono / WhatsApp</Label><div className="relative"><Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="phone" type="tel" inputMode="tel" autoComplete="tel" aria-invalid={Boolean(phoneError)} aria-describedby={phoneError ? "phone-error" : "phone-help"} placeholder="Ej: 55 1234 5678" value={data.phone} onChange={e => updateField('phone', e.target.value)} className={`h-11 rounded-xl bg-white/[0.04] pl-10 text-white placeholder:text-white/25 ${phoneError ? 'border-red-500 focus-visible:ring-red-500/20' : 'border-white/10 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15'}`} autoFocus /></div>
+                      {phoneError ? <p id="phone-error" role="alert" className="text-xs text-red-400">{phoneError}</p> : <p id="phone-help" className="text-xs text-white/35">Usa 10 dígitos; también se acepta el prefijo +52.</p>}
+                    </div>
+                    <div className="space-y-2"><Label htmlFor="password" className="text-xs font-medium text-white/55">Contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="password" type="password" autoComplete="new-password" aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? "password-error" : "password-help"} placeholder="Mínimo 8 caracteres" value={data.password} onChange={e => updateField('password', e.target.value)} className={`h-11 rounded-xl bg-white/[0.04] pl-10 text-white placeholder:text-white/25 ${passwordError ? 'border-red-500 focus-visible:ring-red-500/20' : 'border-white/10'}`} /></div>
+                      {passwordError ? <p id="password-error" role="alert" className="text-xs text-red-400">{passwordError}</p> : <p id="password-help" className="text-xs text-[#d7ff3f]/75">Contraseña segura: cumple todos los requisitos.</p>}
+                    </div>
                   </div>
-                  <div className="space-y-2"><Label htmlFor="confirmPassword" className="text-xs font-medium text-white/55">Confirmar contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="confirmPassword" type="password" placeholder="Repite tu contraseña" value={data.confirmPassword} onChange={e => updateField('confirmPassword', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
-                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5"><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleNextStep} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!data.phone || !data.password || !data.confirmPassword}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+                  <div className="space-y-2"><Label htmlFor="confirmPassword" className="text-xs font-medium text-white/55">Confirmar contraseña</Label><div className="relative"><Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="confirmPassword" type="password" autoComplete="new-password" aria-invalid={Boolean(confirmPasswordError)} aria-describedby={confirmPasswordError ? "confirm-password-error" : undefined} placeholder="Repite tu contraseña" value={data.confirmPassword} onChange={e => updateField('confirmPassword', e.target.value)} className={`h-11 rounded-xl bg-white/[0.04] pl-10 text-white placeholder:text-white/25 ${confirmPasswordError ? 'border-red-500 focus-visible:ring-red-500/20' : 'border-white/10'}`} /></div>
+                    {confirmPasswordError ? <p id="confirm-password-error" role="alert" className="text-xs text-red-400">{confirmPasswordError}</p> : data.confirmPassword ? <p className="text-xs text-[#d7ff3f]/75">Las contraseñas coinciden.</p> : null}
+                  </div>
+                  <div className="flex gap-3"><Button onClick={handleBackStep} variant="outline" className="h-11 flex-1 rounded-xl border-white/10 bg-transparent text-white hover:bg-white/5"><ArrowLeft className="mr-2 h-4 w-4" />Atrás</Button><Button onClick={handleNextStep} className="h-11 flex-1 rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!canContinueFromContact}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
                 </>}
 
                 {step === 3 && <div className="space-y-5">
