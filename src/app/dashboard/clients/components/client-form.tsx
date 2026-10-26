@@ -115,7 +115,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
         setIsCheckingDuplicates(false);
         return;
       }
-      const duplicateName = nameIsValid && (nameResult.data ?? []).some((client: { firstname?: string | null; lastname?: string | null }) =>
+      const nameMatches = (nameResult.data ?? []) as Array<{ id: string; firstname?: string | null; lastname?: string | null }>;
+      const duplicateName = nameIsValid && nameMatches.some(client =>
         normalizePersonName(client.firstname) === firstName && normalizePersonName(client.lastname) === lastName
       );
       const duplicateEmail = emailIsValid && !!email && (emailResult.data?.length ?? 0) > 0;
