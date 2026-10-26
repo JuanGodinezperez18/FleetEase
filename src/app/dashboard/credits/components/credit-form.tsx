@@ -70,8 +70,8 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
     [initialData, currentUser?.companyId, globalCompanyId]
   );
 
-  const form = useForm<z.input<typeof creditSchema>, any, CreditFormValues>({
-    resolver: zodResolver(creditSchema),
+  const form = useForm<CreditFormValues>({
+    resolver: zodResolver(creditSchema) as Resolver<CreditFormValues, any, CreditFormValues>,
     defaultValues,
     mode: "onBlur",
   });
