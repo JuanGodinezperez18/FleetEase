@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
 import { useRouter } from 'next/navigation';
-import { GlobalLoader } from '@/components/common/GlobalLoader';
+import { AuthLoading } from '@/components/auth/auth-loading';
 import { PasswordVisibility } from '@/components/auth/password-visibility';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
