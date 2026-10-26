@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ManageCookiesButton } from "@/components/cookie-consent/manage-cookies-button";
+import { PublicLegalShell } from "@/components/marketing/public-legal-shell";
 
 export const metadata: Metadata = {
   title: "Política de Cookies | FleetEase",
@@ -9,8 +10,7 @@ export const metadata: Metadata = {
 
 export default function CookiesPage() {
   return (
-    <div className="min-h-screen bg-[#080a0f] text-white">
-      <div className="mx-auto max-w-3xl px-5 py-16 lg:px-8 lg:py-24">
+    <PublicLegalShell>
         <Link
           href="/"
           className="mb-10 inline-flex text-sm text-white/50 transition hover:text-[#d7ff3f]"
@@ -80,7 +80,6 @@ export default function CookiesPage() {
             </p>
           </section>
         </div>
-      </div>
-    </div>
+    </PublicLegalShell>
   );
 }

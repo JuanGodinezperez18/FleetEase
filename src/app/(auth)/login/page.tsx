@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-provider";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { GlobalLoader } from "@/components/common/GlobalLoader";
+import { AuthLoading } from "@/components/auth/auth-loading";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -109,7 +110,7 @@ export default function LoginPage() {
   // Full skeleton while auth resolves, after successful login, or while redirecting.
   // Avoids blank/black flash between the form and the dashboard shell.
   if (loading || currentUser || isRedirecting || isSubmitting) {
-    return <GlobalLoader />;
+    return <AuthLoading />;
   }
 
   return (
@@ -125,15 +126,18 @@ export default function LoginPage() {
         transition={{ duration: 0.45 }}
         className="relative z-10 w-full max-w-[400px]"
       >
-        <div className="mb-8 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fe-text-faint)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
+        <div className="mb-6 text-center sm:mb-8">
+          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]" />
             Fleet OS
           </div>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--fe-text)]">
-            FleetEase <span className="text-[var(--fe-lime)]">Manager</span>
+          <div className="mx-auto mb-3 flex justify-center">
+            <BrandLogo size={56} showWordmark={false} priority className="justify-center" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            FleetEase <span className="text-[#d7ff3f]">Manager</span>
           </h1>
-          <p className="mt-2 text-sm text-[var(--fe-text-muted)]">Gestión inteligente de flotillas</p>
+          <p className="mt-1.5 text-sm text-white/45">Gestión inteligente de flotillas</p>
         </div>
 
         <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">

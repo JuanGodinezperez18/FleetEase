@@ -9,6 +9,7 @@ import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieBanner } from "@/components/cookie-consent/cookie-banner";
 import { Providers } from "@/components/common/providers";
+import { BootSplashHandoff } from "@/components/common/boot-splash-handoff";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
@@ -127,17 +128,10 @@ const legacySwCleanupScript = `
 const bootFailsafeScript = `
 (function() {
   try {
-    function hideBoot() {
+    // Emergency fallback only; React loading states own the normal handoff.
+    setTimeout(function() {
       document.documentElement.dataset.feBootHidden = 'true';
-    }
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(hideBoot, 300);
-    } else {
-      window.addEventListener('DOMContentLoaded', function() {
-        setTimeout(hideBoot, 300);
-      });
-    }
-    setTimeout(hideBoot, 2500);
+    }, 8000);
   } catch (e) {}
 })();
 `;
@@ -207,6 +201,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
         <GlobalErrorBoundary>
           <Providers>
+            <BootSplashHandoff />
             <OfflineIndicator />
             {children}
             <PwaInstallButton />

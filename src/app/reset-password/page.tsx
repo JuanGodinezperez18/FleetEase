@@ -170,8 +170,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] px-5 py-12 text-white">
-      <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:72px_72px]" />
+    <main className="fleetease-auth-modern dark relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] px-5 py-12 text-white">
       <div className="pointer-events-none fixed left-1/2 top-[-260px] z-0 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-[#d7ff3f]/[0.08] blur-[130px]" />
       <div className="relative z-10 w-full max-w-[400px]">
         <div className="mb-6 text-center sm:mb-8">
