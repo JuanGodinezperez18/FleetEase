@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useCallback, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ interface ClientFormProps { onSubmit: (data: ClientFormValues) => void; initialD
 export interface ClientFormHandles { submit: () => void; }
 const NONE_SELECT_VALUE = "@none";
 const normalizeUniqueValue = (value: string | undefined | null, type: 'email' | 'phone' | 'license') => { const raw = (value ?? '').trim(); if (!raw) return ''; if (type === 'email') return raw.toLowerCase(); if (type === 'phone') return raw.replace(/\D/g, ''); return raw.replace(/\s+/g, ' ').toUpperCase(); };
+const normalizePersonName = (value: string | undefined | null) => (value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es-MX');
 const getInitialFormValues = (data: Client | null, currentUser: UserProfile | null, globalCompanyId: string | null) => {
   const defaults = { firstname: '', lastname: '', email: '', phone: '', status: 'active' as const, createdAt: format(new Date(), 'yyyy-MM-dd'), vehicleAssignedAt: '', licenseNumber: '', licenseExpiry: '', street: '', city: '', state: '', zipCode: '', country: 'México', assignedVehicleId: NONE_SELECT_VALUE, initialBalance: 0, securityDeposit: 0, photoUrl: undefined as string | undefined, ineUrl: undefined as string | undefined, licenseImageUrl: undefined as string | undefined, companyId: currentUser?.role === 'superAdmin' ? (data?.companyId || globalCompanyId) : currentUser?.companyId };
   if (data) { const normalizedDate = infallibleNormalizeDate(data.licenseExpiry); const normalizedCreatedAt = data.createdAt ? infallibleNormalizeDate(data.createdAt) : null; const normalizedVehicleAssignedAt = data.vehicleAssignedAt ? infallibleNormalizeDate(data.vehicleAssignedAt) : null; return { ...defaults, ...data, createdAt: normalizedCreatedAt ? format(normalizedCreatedAt, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'), vehicleAssignedAt: normalizedVehicleAssignedAt ? format(normalizedVehicleAssignedAt, 'yyyy-MM-dd') : '', licenseExpiry: normalizedDate ? format(normalizedDate, 'yyyy-MM-dd') : '', assignedVehicleId: data.assignedVehicleId || NONE_SELECT_VALUE, photoUrl: data.photoUrl || undefined, ineUrl: data.ineUrl || undefined, licenseImageUrl: data.licenseImageUrl || undefined, street: data.street || '', city: data.city || '', state: data.state || '', zipCode: data.zipCode || '', country: data.country || 'México' }; }
@@ -58,23 +59,129 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
   /** Admin y SuperAdmin pueden corregir la fecha de alta (p. ej. importaciones o registros históricos). */
   const canEditCreatedAt = currentUser?.role === 'admin' || currentUser?.role === 'superAdmin';
   const clientSchema = useMemo(() => { const schema = baseClientSchema; if (currentUser?.role === 'superAdmin') return schema.superRefine((data, ctx) => { if (!data.companyId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Como Super Admin, debe seleccionar una empresa.", path: ['companyId'] }); }); return schema; }, [currentUser?.role]);
-  const form = useForm<ClientFormValues>({ resolver: zodResolver(clientSchema), defaultValues: getInitialFormValues(initialData || null, currentUser, globalCompanyId) });
-  const selectedCompanyId = form.watch('companyId'), watchedVehicleId = form.watch('assignedVehicleId'), currentVehicleAssignedAt = form.watch('vehicleAssignedAt'), watchedEmail = form.watch('email'), watchedPhone = form.watch('phone'), watchedLicenseNumber = form.watch('licenseNumber');
-  const [duplicateStatus, setDuplicateStatus] = useState({ email: false, phone: false, licenseNumber: false }); const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false); const duplicateCheckRequestRef = useRef(0);
-  const clearDuplicateError = useCallback((fieldName: 'email' | 'phone' | 'licenseNumber') => { const fieldState = form.getFieldState(fieldName); if (fieldState.error?.type === 'duplicate') form.clearErrors(fieldName); }, [form]);
-  useEffect(() => { const companyId = currentUser?.role === 'superAdmin' ? selectedCompanyId : currentUser?.companyId; const requestId = ++duplicateCheckRequestRef.current; const timer = window.setTimeout(async () => { if (!companyId) { setDuplicateStatus({ email: false, phone: false, licenseNumber: false }); setIsCheckingDuplicates(false); return; } const email = normalizeUniqueValue(watchedEmail, 'email'), phone = normalizeUniqueValue(watchedPhone, 'phone'), licenseNumber = normalizeUniqueValue(watchedLicenseNumber, 'license'); const emailIsValid = !email || z.string().email().safeParse(email).success, phoneIsValid = /^\d{10}$/.test(phone), licenseIsValid = licenseNumber.length >= 5; if (!emailIsValid && !phoneIsValid && !licenseIsValid) { setDuplicateStatus({ email: false, phone: false, licenseNumber: false }); setIsCheckingDuplicates(false); return; } setIsCheckingDuplicates(true); const baseQuery = () => { const query = supabase.from('clients').select('id').eq('company_id', companyId).eq('is_deleted', false).limit(1); if (initialData?.id) query.neq('id', initialData.id); return query; }; const emailQuery = baseQuery(), phoneQuery = baseQuery(), licenseQuery = baseQuery(); const checks = [emailIsValid && email ? emailQuery.ilike('email', email) : Promise.resolve({ data: [], error: null }), phoneIsValid ? phoneQuery.eq('phone', phone) : Promise.resolve({ data: [], error: null }), licenseIsValid ? licenseQuery.ilike('license_number', licenseNumber) : Promise.resolve({ data: [], error: null })]; const [emailResult, phoneResult, licenseResult] = await Promise.all(checks); if (requestId !== duplicateCheckRequestRef.current) return; const results = [emailResult, phoneResult, licenseResult]; const queryError = results.find(result => result.error)?.error; if (queryError) { setDuplicateStatus({ email: false, phone: false, licenseNumber: false }); setIsCheckingDuplicates(false); return; } const duplicateEmail = emailIsValid && email ? (emailResult.data?.length ?? 0) > 0 : false, duplicatePhone = phoneIsValid ? (phoneResult.data?.length ?? 0) > 0 : false, duplicateLicense = licenseIsValid ? (licenseResult.data?.length ?? 0) > 0 : false; setDuplicateStatus({ email: duplicateEmail, phone: duplicatePhone, licenseNumber: duplicateLicense }); setIsCheckingDuplicates(false); if (duplicateEmail) form.setError('email', { type: 'duplicate', message: 'Este correo electrónico ya está registrado para otro cliente de esta empresa.' }); else clearDuplicateError('email'); if (duplicatePhone) form.setError('phone', { type: 'duplicate', message: 'Este número de teléfono ya está registrado para otro cliente de esta empresa.' }); else clearDuplicateError('phone'); if (duplicateLicense) form.setError('licenseNumber', { type: 'duplicate', message: 'Este número de licencia ya está registrado para otro cliente de esta empresa.' }); else clearDuplicateError('licenseNumber'); }, 450); setIsCheckingDuplicates(Boolean(companyId && (((watchedEmail?.trim() && z.string().email().safeParse(watchedEmail.trim()).success) || /^\d{10}$/.test(normalizeUniqueValue(watchedPhone, 'phone')) || normalizeUniqueValue(watchedLicenseNumber, 'license').length >= 5)))); return () => window.clearTimeout(timer); }, [selectedCompanyId, currentUser?.companyId, currentUser?.role, watchedEmail, watchedPhone, watchedLicenseNumber, initialData?.id, form, clearDuplicateError]);
+  const form = useForm<ClientFormValues>({ resolver: zodResolver(clientSchema) as Resolver<ClientFormValues, any, ClientFormValues>, defaultValues: getInitialFormValues(initialData || null, currentUser, globalCompanyId) });
+  const selectedCompanyId = form.watch('companyId'), watchedVehicleId = form.watch('assignedVehicleId'), currentVehicleAssignedAt = form.watch('vehicleAssignedAt'), watchedFirstname = form.watch('firstname'), watchedLastname = form.watch('lastname'), watchedEmail = form.watch('email'), watchedPhone = form.watch('phone'), watchedLicenseNumber = form.watch('licenseNumber');
+  const [duplicateStatus, setDuplicateStatus] = useState({ name: false, email: false, phone: false, licenseNumber: false });
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const duplicateCheckRequestRef = useRef(0);
+  const clearDuplicateError = useCallback((fieldName: 'firstname' | 'email' | 'phone' | 'licenseNumber') => {
+    const fieldState = form.getFieldState(fieldName);
+    if (fieldState.error?.type === 'duplicate') form.clearErrors(fieldName);
+  }, [form]);
+
+  useEffect(() => {
+    const companyId = currentUser?.role === 'superAdmin' ? selectedCompanyId : currentUser?.companyId;
+    const requestId = ++duplicateCheckRequestRef.current;
+    const firstName = normalizePersonName(watchedFirstname);
+    const lastName = normalizePersonName(watchedLastname);
+    const nameIsValid = firstName.length >= 2 && lastName.length >= 2;
+    const email = normalizeUniqueValue(watchedEmail, 'email');
+    const phone = normalizeUniqueValue(watchedPhone, 'phone');
+    const licenseNumber = normalizeUniqueValue(watchedLicenseNumber, 'license');
+    const emailIsValid = !email || z.string().email().safeParse(email).success;
+    const phoneIsValid = /^\d{10}$/.test(phone);
+    const licenseIsValid = licenseNumber.length >= 5;
+    const hasCheckableValue = nameIsValid || (emailIsValid && !!email) || phoneIsValid || licenseIsValid;
+    const timer = window.setTimeout(async () => {
+      if (!companyId || !hasCheckableValue) {
+        setDuplicateStatus({ name: false, email: false, phone: false, licenseNumber: false });
+        setIsCheckingDuplicates(false);
+        return;
+      }
+      setIsCheckingDuplicates(true);
+      const baseQuery = () => {
+        const query = supabase.from('clients').select('id').eq('company_id', companyId).eq('is_deleted', false).limit(1);
+        if (initialData?.id) query.neq('id', initialData.id);
+        return query;
+      };
+      const nameQuery = () => {
+        let query = supabase.from('clients').select('id,firstname,lastname').eq('company_id', companyId).eq('is_deleted', false).limit(5000);
+        if (initialData?.id) query = query.neq('id', initialData.id);
+        return query;
+      };
+      const emailQuery = baseQuery(), phoneQuery = baseQuery(), licenseQuery = baseQuery();
+      const checks = [
+        nameIsValid ? nameQuery() : Promise.resolve({ data: [], error: null }),
+        emailIsValid && email ? emailQuery.ilike('email', email) : Promise.resolve({ data: [], error: null }),
+        phoneIsValid ? phoneQuery.eq('phone', phone) : Promise.resolve({ data: [], error: null }),
+        licenseIsValid ? licenseQuery.ilike('license_number', licenseNumber) : Promise.resolve({ data: [], error: null }),
+      ];
+      const [nameResult, emailResult, phoneResult, licenseResult] = await Promise.all(checks);
+      if (requestId !== duplicateCheckRequestRef.current) return;
+      const results = [nameResult, emailResult, phoneResult, licenseResult];
+      const queryError = results.find(result => result.error)?.error;
+      if (queryError) {
+        setDuplicateStatus({ name: false, email: false, phone: false, licenseNumber: false });
+        setIsCheckingDuplicates(false);
+        return;
+      }
+      const nameMatches = (nameResult.data ?? []) as Array<{ id: string; firstname?: string | null; lastname?: string | null }>;
+      const duplicateName = nameIsValid && nameMatches.some(client =>
+        normalizePersonName(client.firstname) === firstName && normalizePersonName(client.lastname) === lastName
+      );
+      const duplicateEmail = emailIsValid && !!email && (emailResult.data?.length ?? 0) > 0;
+      const duplicatePhone = phoneIsValid && (phoneResult.data?.length ?? 0) > 0;
+      const duplicateLicense = licenseIsValid && (licenseResult.data?.length ?? 0) > 0;
+      setDuplicateStatus({ name: duplicateName, email: duplicateEmail, phone: duplicatePhone, licenseNumber: duplicateLicense });
+      setIsCheckingDuplicates(false);
+      if (duplicateName) form.setError('firstname', { type: 'duplicate', message: 'Ya existe un cliente con este nombre y apellidos en esta empresa. Verifica el registro antes de continuar.' });
+      else clearDuplicateError('firstname');
+      if (duplicateEmail) form.setError('email', { type: 'duplicate', message: 'Este correo electrónico ya está registrado para otro cliente de esta empresa.' });
+      else clearDuplicateError('email');
+      if (duplicatePhone) form.setError('phone', { type: 'duplicate', message: 'Este número de teléfono ya está registrado para otro cliente de esta empresa.' });
+      else clearDuplicateError('phone');
+      if (duplicateLicense) form.setError('licenseNumber', { type: 'duplicate', message: 'Este número de licencia ya está registrado para otro cliente de esta empresa.' });
+      else clearDuplicateError('licenseNumber');
+    }, 450);
+    setIsCheckingDuplicates(Boolean(companyId && hasCheckableValue));
+    return () => window.clearTimeout(timer);
+  }, [selectedCompanyId, currentUser?.companyId, currentUser?.role, watchedFirstname, watchedLastname, watchedEmail, watchedPhone, watchedLicenseNumber, initialData?.id, form, clearDuplicateError]);
   const hasDuplicateData = Object.values(duplicateStatus).some(Boolean); const intelligentAssignment = useIntelligentVehicleAssignment(initialData?.id, watchedVehicleId === NONE_SELECT_VALUE ? null : watchedVehicleId, vehicleAssignmentLogs, currentVehicleAssignedAt); const hasActiveCredit = useMemo(() => !!initialData && !!credits && credits.some(c => c.clientId === initialData.id && c.status === 'active' && !c.isDeleted), [credits, initialData]);
   const selectableVehicles = useMemo(() => { const companyIdToFilter = currentUser?.role === 'superAdmin' ? selectedCompanyId : currentUser?.companyId; if (!companyIdToFilter) return []; const companyVehicles = vehicles.filter(v => v.companyId === companyIdToFilter && !v.isDeleted); return companyVehicles.filter(v => { const current = v.id === initialData?.assignedVehicleId; if (v.lockedByCredit && !current) return false; return (v.status === 'active' && !v.clientId) || current; }); }, [vehicles, initialData, selectedCompanyId, currentUser]);
   useEffect(() => { if (isSubmitting) return; if (intelligentAssignment.isDateLocked && intelligentAssignment.assignmentDate && form.getValues('vehicleAssignedAt') !== intelligentAssignment.assignmentDate) form.setValue('vehicleAssignedAt', intelligentAssignment.assignmentDate, { shouldValidate: false, shouldDirty: false }); }, [intelligentAssignment.isDateLocked, intelligentAssignment.assignmentDate, isSubmitting, form]);
   useEffect(() => { if (isSubmitting) return; if (watchedVehicleId && watchedVehicleId !== NONE_SELECT_VALUE && !currentVehicleAssignedAt && !intelligentAssignment.isDateLocked) { const previousVehicleId = initialData?.assignedVehicleId; if (!previousVehicleId || previousVehicleId !== watchedVehicleId) form.setValue('vehicleAssignedAt', format(new Date(), 'yyyy-MM-dd'), { shouldValidate: false, shouldDirty: true }); } }, [watchedVehicleId, currentVehicleAssignedAt, intelligentAssignment.isDateLocked, initialData?.assignedVehicleId, isSubmitting, form]);
   const handleFileChange = useCallback((files: (string | File)[], fieldName: keyof ClientFormValues) => { form.setValue(fieldName, files.length > 0 ? files[0] : null, { shouldValidate: true, shouldDirty: true }); }, [form]);
   const handleINEDataExtracted = useCallback((data: { firstname?: string; lastname?: string; street?: string; city?: string; state?: string; zipCode?: string; curp?: string; claveElector?: string; birthDate?: string; sex?: string; }) => { if (data.firstname) form.setValue('firstname', data.firstname, { shouldValidate: true }); if (data.lastname) form.setValue('lastname', data.lastname, { shouldValidate: true }); if (data.street) form.setValue('street', data.street, { shouldValidate: true }); if (data.city) form.setValue('city', data.city, { shouldValidate: true }); if (data.state) form.setValue('state', data.state, { shouldValidate: true }); if (data.zipCode) form.setValue('zipCode', data.zipCode, { shouldValidate: true }); toast.success('Datos del cliente cargados', { description: 'Revisa y completa la información faltante' }); }, [form]);
+  const handleClientSubmit = useCallback(async (data: ClientFormValues) => {
+    const companyId = currentUser?.role === 'superAdmin' ? data.companyId : currentUser?.companyId;
+    const firstName = normalizePersonName(data.firstname);
+    const lastName = normalizePersonName(data.lastname);
+    if (!companyId) {
+      form.setError('companyId', { type: 'manual', message: 'Selecciona una empresa antes de guardar el cliente.' });
+      return;
+    }
+
+    // Recheck on submit so a delayed realtime check cannot be bypassed.
+    const { data: existingClients, error } = await supabase
+      .from('clients')
+      .select('id,firstname,lastname')
+      .eq('company_id', companyId)
+      .eq('is_deleted', false)
+      .limit(5000);
+    if (error) {
+      toast.error('No se pudo verificar si el cliente ya existe', { description: 'No se guardó el registro. Inténtalo de nuevo.' });
+      return;
+    }
+    const duplicate = (existingClients ?? []).some((client: { id: string; firstname?: string | null; lastname?: string | null }) =>
+      client.id !== initialData?.id &&
+      normalizePersonName(client.firstname) === firstName &&
+      normalizePersonName(client.lastname) === lastName
+    );
+    if (duplicate) {
+      form.setError('firstname', { type: 'duplicate', message: 'Ya existe un cliente con este nombre y apellidos en esta empresa. Verifica el registro antes de continuar.' });
+      form.setFocus('firstname');
+      toast.error('Posible cliente duplicado', { description: 'Ya existe un cliente con el mismo nombre y apellidos en esta empresa.' });
+      return;
+    }
+    onSubmit(data);
+  }, [currentUser?.role, currentUser?.companyId, initialData?.id, form, onSubmit]);
+
   const SectionHeader = ({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) => <div className="flex items-start gap-3 pb-1"><div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d7ff3f]/10 text-[#d7ff3f]"><Icon className="h-4 w-4" /></div><div><h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3><p className="mt-0.5 text-xs text-muted-foreground">{description}</p></div></div>;
-  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+  return <Form {...form}><form onSubmit={form.handleSubmit(handleClientSubmit)} className="flex flex-col">
     <div className="space-y-7">
       {!initialData && <div className="rounded-2xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.035] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-semibold">Carga rápida con INE</h3><p className="mt-1 text-xs text-muted-foreground">Escanea la INE para completar automáticamente nombre y dirección.</p></div><INEScanner onDataExtracted={handleINEDataExtracted} disabled={isSubmitting} /></div></div>}
       {currentUser?.role === 'superAdmin' && <section className="space-y-4"><SectionHeader icon={WalletCards} title="Empresa" description="Define a qué empresa pertenece este cliente." /><FormField control={form.control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger></FormControl><SelectContent>{companies.map(company => <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} /></section>}
-      <section className="space-y-4"><SectionHeader icon={UserRound} title="Información personal" description="Datos principales para identificar y contactar al cliente." /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><FormField control={form.control} name="firstname" render={({ field }) => <FormItem><FormLabel>Nombre(s)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} /><FormField control={form.control} name="lastname" render={({ field }) => <FormItem><FormLabel>Apellidos</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} /><FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel>Correo electrónico</FormLabel><FormControl><Input type="email" {...field} /></FormControl>{isCheckingDuplicates && watchedEmail?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}<FormMessage /></FormItem>} /><FormField control={form.control} name="phone" render={({ field }) => <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input type="tel" inputMode="numeric" {...field} onChange={e => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))} /></FormControl>{isCheckingDuplicates && watchedPhone?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}<FormMessage /></FormItem>} /></div></section>
+      <section className="space-y-4"><SectionHeader icon={UserRound} title="Información personal" description="Datos principales para identificar y contactar al cliente." /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><FormField control={form.control} name="firstname" render={({ field }) => <FormItem><FormLabel>Nombre(s)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>} /><FormField control={form.control} name="lastname" render={({ field }) => <FormItem><FormLabel>Apellidos</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage />{isCheckingDuplicates && watchedFirstname?.trim() && watchedLastname?.trim() && <p className="text-xs text-muted-foreground">Verificando si el cliente ya existe...</p>}{duplicateStatus.name && <p className="text-xs text-destructive">Ya existe un cliente con este nombre y apellidos en esta empresa.</p>}</FormItem>} /><FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel>Correo electrónico</FormLabel><FormControl><Input type="email" {...field} /></FormControl>{isCheckingDuplicates && watchedEmail?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}<FormMessage /></FormItem>} /><FormField control={form.control} name="phone" render={({ field }) => <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input type="tel" inputMode="numeric" {...field} onChange={e => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10))} /></FormControl>{isCheckingDuplicates && watchedPhone?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}<FormMessage /></FormItem>} /></div></section>
       <Separator /><section className="space-y-4"><SectionHeader icon={CalendarPlus} title="Registro" description="Fecha de alta del cliente en el sistema (independiente de la licencia)." /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><FormField control={form.control} name="createdAt" render={({ field }) => <FormItem><FormLabel>Fecha de registro del cliente</FormLabel><FormControl><Input type="date" min="2000-01-01" max={format(new Date(), "yyyy-MM-dd")} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData && !canEditCreatedAt} /></FormControl>{!!initialData && !canEditCreatedAt && <p className="text-xs text-muted-foreground">Solo administradores pueden modificar la fecha de registro.</p>}{!!initialData && canEditCreatedAt && <p className="text-xs text-muted-foreground">Como administrador puedes corregir la fecha de alta (útil en importaciones o registros históricos).</p>}<FormMessage /></FormItem>} /></div></section><Separator /><section className="space-y-4"><SectionHeader icon={CalendarPlus} title="Licencia" description="Número y vencimiento de la licencia de conducir." /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><FormField control={form.control} name="status" render={({ field }) => <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Activo</SelectItem><SelectItem value="inactive">Inactivo</SelectItem></SelectContent></Select><FormMessage /></FormItem>} /><FormField control={form.control} name="licenseNumber" render={({ field }) => <FormItem><FormLabel>Número de licencia</FormLabel><FormControl><Input {...field} className="uppercase" /></FormControl>{isCheckingDuplicates && watchedLicenseNumber?.trim() && <p className="text-xs text-muted-foreground">Verificando disponibilidad...</p>}<FormMessage /></FormItem>} /><FormField control={form.control} name="licenseExpiry" render={({ field }) => <FormItem><FormLabel>Vencimiento de licencia</FormLabel><FormControl><Input type="date" {...field} onFocus={e => e.currentTarget.select()} /></FormControl><FormMessage /></FormItem>} /></div></section>
       <Separator /><section className="space-y-4"><SectionHeader icon={MapPin} title="Dirección" description="Domicilio del cliente y búsqueda automática." /><AddressAutocomplete values={{ street: form.watch('street'), city: form.watch('city'), state: form.watch('state'), zipCode: form.watch('zipCode'), country: form.watch('country') }} onChange={(address) => { form.setValue('street', address.street || '', { shouldValidate: true }); form.setValue('city', address.city || '', { shouldValidate: true }); form.setValue('state', address.state || '', { shouldValidate: true }); form.setValue('zipCode', address.zipCode || '', { shouldValidate: true }); form.setValue('country', address.country || 'México', { shouldValidate: true }); }} errors={{ street: form.formState.errors.street?.message, city: form.formState.errors.city?.message, state: form.formState.errors.state?.message, zipCode: form.formState.errors.zipCode?.message }} disabled={isSubmitting} /></section>
       <Separator /><section className="space-y-4"><SectionHeader icon={CarFront} title="Vehículo y cuenta" description="Asignación actual y datos financieros asociados." /><div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><FormField control={form.control} name="assignedVehicleId" render={({ field }) => <FormItem><FormLabel>Vehículo asignado</FormLabel><Select onValueChange={value => field.onChange(value === NONE_SELECT_VALUE ? null : value)} value={field.value ?? NONE_SELECT_VALUE} disabled={hasActiveCredit}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un vehículo" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>Ninguno</SelectItem>{selectableVehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>{`${vehicle.make} ${vehicle.model} (${vehicle.plate})`}</SelectItem>)}</SelectContent></Select>{hasActiveCredit && <p className="flex items-center gap-1 text-xs text-muted-foreground"><Info className="h-3 w-3" /> No se puede cambiar mientras exista un crédito activo.</p>}<FormMessage /></FormItem>} /><FormField control={form.control} name="vehicleAssignedAt" render={({ field }) => <FormItem><FormLabel className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" />Fecha de asignación{intelligentAssignment.isCurrentAssignment && <Badge variant="secondary" className="ml-1 text-xs">Actual</Badge>}{intelligentAssignment.isReassignment && <Badge variant="outline" className="ml-1 text-xs border-yellow-500 text-yellow-600">Reasignación</Badge>}</FormLabel><FormControl><Input type="date" {...field} value={field.value || ''} disabled={intelligentAssignment.isDateLocked} /></FormControl>{intelligentAssignment.isDateLocked && <Alert className="mt-2 border-blue-500"><Info className="h-4 w-4 text-blue-500" /><AlertDescription className="text-xs">La fecha se conserva para proteger el historial.</AlertDescription></Alert>}<FormMessage /></FormItem>} /><FormField control={form.control} name="initialBalance" render={({ field }) => <FormItem><FormLabel>Saldo inicial (MXN)</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>} /><FormItem><FormLabel>Depósito en garantía</FormLabel><div className="relative"><ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /><Input type="text" readOnly value={formatCurrency(initialData?.securityDeposit || 0)} className="pl-10 cursor-not-allowed bg-muted/50" /></div><p className="text-xs text-muted-foreground">Se actualiza desde Ingresos.</p></FormItem></div></section>

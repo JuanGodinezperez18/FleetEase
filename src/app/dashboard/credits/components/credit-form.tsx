@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMemo, useEffect, useState } from "react";
@@ -71,7 +71,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
   );
 
   const form = useForm<CreditFormValues>({
-    resolver: zodResolver(creditSchema),
+    resolver: zodResolver(creditSchema) as Resolver<CreditFormValues, any, CreditFormValues>,
     defaultValues,
     mode: "onBlur",
   });

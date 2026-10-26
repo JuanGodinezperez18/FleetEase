@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react";
@@ -130,10 +130,19 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
     }), [initialData, currentUser]);
 
     const form = useForm<VehicleFormValues>({
-        resolver: zodResolver(vehicleSchema),
+        resolver: zodResolver(vehicleSchema) as Resolver<VehicleFormValues, any, VehicleFormValues>,
         defaultValues: initialValues,
         mode: 'onChange'
     });
+
+    const handleInvalidSubmit = (errors: typeof form.formState.errors) => {
+      const firstError = Object.values(errors).find(
+        (error) => error && typeof error.message === 'string' && error.message.length > 0,
+      );
+      toast.error('No se pudo guardar el vehículo', {
+        description: firstError?.message || 'Revisa los campos marcados antes de guardar.',
+      });
+    };
 
     const hasActiveCredit = useMemo(() => {
         if (!initialData || !credits) return false;
@@ -182,7 +191,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
 
     return (
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+        <form onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)} className="flex flex-col">
           <div className="pr-1 sm:pr-3">
             <div className="space-y-5 p-1 sm:space-y-6">
               {!initialData && (

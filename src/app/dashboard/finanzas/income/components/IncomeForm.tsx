@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -93,7 +93,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     };
   }, [currentUser?.companyId, companies, incomeAndPaymentCategories]);
 
-  const form = useForm<IncomeFormValues>({ resolver: zodResolver(incomeSchema), defaultValues: getInitialFormValues(initialData || null) });
+  const form = useForm<IncomeFormValues>({ resolver: zodResolver(incomeSchema) as Resolver<IncomeFormValues, any, IncomeFormValues>, defaultValues: getInitialFormValues(initialData || null) });
   useEffect(() => { form.reset(getInitialFormValues(initialData || null)); }, [initialData, form, getInitialFormValues]);
 
   const selectedClientId = form.watch("clientId");

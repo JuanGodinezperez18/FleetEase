@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, Controller, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, type Resolver, Controller, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
@@ -182,7 +182,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     };
   }, [initialData, currentUser, globalCompanyId, existingItems]);
 
-  const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema), defaultValues });
+  const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema) as Resolver<ExpensesFormValues, any, ExpensesFormValues>, defaultValues });
   const { control, handleSubmit, setValue, reset, formState: { isDirty } } = form;
 
   // Al editar un gasto existente, los campos contables/relacionales permanecen inmutables.
