@@ -182,7 +182,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
     };
   }, [initialData, currentUser, globalCompanyId, existingItems]);
 
-  const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema), defaultValues });
+  const form = useForm<z.input<typeof expenseSchema>, any, ExpensesFormValues>({ resolver: zodResolver(expenseSchema), defaultValues });
   const { control, handleSubmit, setValue, reset, formState: { isDirty } } = form;
 
   // Al editar un gasto existente, los campos contables/relacionales permanecen inmutables.
