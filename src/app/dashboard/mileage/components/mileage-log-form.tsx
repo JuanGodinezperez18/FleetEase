@@ -105,7 +105,7 @@ const MileageLogForm: React.FC<MileageLogFormProps> = ({
     [currentUser?.role]
   );
 
-  const form = useForm<MileageLogFormValues>({
+  const form = useForm<z.input<typeof finalMileageLogSchema>, any, MileageLogFormValues>({
     resolver: zodResolver(finalMileageLogSchema),
     defaultValues: {
       clientId: "",
