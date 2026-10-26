@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--fe-ink)] p-4 text-[var(--fe-text)]">
+    <div className="fleetease-auth-modern dark relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080a0f] p-4 text-white">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[var(--fe-lime)]/[0.04] blur-[100px]" />
       </div>
