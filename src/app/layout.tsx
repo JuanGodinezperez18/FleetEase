@@ -127,17 +127,10 @@ const legacySwCleanupScript = `
 const bootFailsafeScript = `
 (function() {
   try {
-    function hideBoot() {
+    // Emergency fallback only; React loading states own the normal handoff.
+    setTimeout(function() {
       document.documentElement.dataset.feBootHidden = 'true';
-    }
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(hideBoot, 300);
-    } else {
-      window.addEventListener('DOMContentLoaded', function() {
-        setTimeout(hideBoot, 300);
-      });
-    }
-    setTimeout(hideBoot, 2500);
+    }, 8000);
   } catch (e) {}
 })();
 `;
