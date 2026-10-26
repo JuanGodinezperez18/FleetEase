@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
+// Regression guard: invalid values must reach the form's validation feedback.
 describe('Zod v4 resolver compatibility', () => {
   it('returns field validation errors instead of throwing for invalid form values', async () => {
     const schema = z.object({
