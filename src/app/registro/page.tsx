@@ -125,7 +125,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#080a0f] px-3 py-5 text-white sm:p-4">
+    <div className="fleetease-auth-modern dark relative flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#080a0f] px-3 py-5 text-white sm:p-4">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-1/4 -top-1/4 h-[60%] w-[60%] rounded-full bg-[#d7ff3f]/[0.04] blur-[100px]" />
         <div className="absolute -bottom-1/4 -left-1/4 h-[50%] w-[50%] rounded-full bg-[#d7ff3f]/[0.03] blur-[80px]" />
