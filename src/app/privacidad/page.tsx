@@ -27,9 +27,13 @@ export default function PrivacidadPage() {
           <section>
             <h2 className="text-lg font-semibold text-white">Responsable del tratamiento</h2>
             <p>
-              FleetEase (en adelante el "Responsable"), con domicilio en México, es responsable
-              del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos
-              Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento.
+              José Juan Godínez Pérez, persona física que opera bajo el nombre comercial FleetEase (en adelante,
+              el "Responsable"), es responsable del tratamiento de sus datos personales conforme a la Ley Federal
+              de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento.
+            </p>
+            <p className="mt-2">
+              <strong className="text-white/90">Domicilio del Responsable:</strong> pendiente de confirmación.
+              Este aviso no debe publicarse en producción hasta completar el domicilio y validar el contenido legal.
             </p>
             <p className="mt-2 text-sm text-white/50">
               Contacto de privacidad:{" "}
