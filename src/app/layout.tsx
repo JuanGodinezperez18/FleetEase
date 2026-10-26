@@ -9,6 +9,7 @@ import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieBanner } from "@/components/cookie-consent/cookie-banner";
 import { Providers } from "@/components/common/providers";
+import { BootSplashHandoff } from "@/components/common/boot-splash-handoff";
 import GlobalErrorBoundary from "@/components/common/global-error-boundary";
 import { OfflineIndicator } from "@/components/common/offline-indicator";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
@@ -200,6 +201,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
         <GlobalErrorBoundary>
           <Providers>
+            <BootSplashHandoff />
             <OfflineIndicator />
             {children}
             <PwaInstallButton />
