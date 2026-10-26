@@ -106,8 +106,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
     companyId: initialData?.companyId || currentUser?.companyId || null,
   }), [initialData, currentUser]);
 
-  const form = useForm<PartnerFormValues, any, PartnerFormValues>({
-    resolver: zodResolver(partnerSchema) as Resolver<PartnerFormValues, any, PartnerFormValues>,
+  const form = useForm<z.input<typeof partnerSchema>, any, PartnerFormValues>({
+    resolver: zodResolver(partnerSchema),
     defaultValues,
     mode: 'onChange',
   });
