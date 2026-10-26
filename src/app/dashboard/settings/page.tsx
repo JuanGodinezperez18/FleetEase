@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -196,8 +196,8 @@ export default function SettingsPage() {
     resolver: zodResolver(passwordSchema),
   });
 
-  const notificationsForm = useForm<z.input<typeof notificationsSchema>, any, NotificationsFormValues>({
-    resolver: zodResolver(notificationsSchema),
+  const notificationsForm = useForm<NotificationsFormValues>({
+    resolver: zodResolver(notificationsSchema) as Resolver<NotificationsFormValues, any, NotificationsFormValues>,
     defaultValues: {
       maintenance: true,
       maintenanceThreshold: 1000,
