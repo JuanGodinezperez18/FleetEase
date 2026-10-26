@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -75,8 +75,8 @@ export default function CompanySettingsPage() {
     [companyId, companies]
   );
 
-  const form = useForm<z.input<typeof companySettingsSchema>, any, CompanySettingsFormValues>({
-    resolver: zodResolver(companySettingsSchema),
+  const form = useForm<CompanySettingsFormValues>({
+    resolver: zodResolver(companySettingsSchema) as Resolver<CompanySettingsFormValues, any, CompanySettingsFormValues>,
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
