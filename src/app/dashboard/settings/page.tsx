@@ -196,7 +196,7 @@ export default function SettingsPage() {
     resolver: zodResolver(passwordSchema),
   });
 
-  const notificationsForm = useForm<NotificationsFormValues>({
+  const notificationsForm = useForm<z.input<typeof notificationsSchema>, any, NotificationsFormValues>({
     resolver: zodResolver(notificationsSchema),
     defaultValues: {
       maintenance: true,
