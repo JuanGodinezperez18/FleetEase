@@ -60,7 +60,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSubmit, initialData,
     
     const companySchema = useMemo(() => createCompanySchema(initialData || null, currentVehicleCount), [initialData, currentVehicleCount]);
 
-    const form = useForm<CompanyFormValues>({
+    const form = useForm<z.input<typeof companySchema>, any, CompanyFormValues>({
       resolver: zodResolver(companySchema),
       defaultValues: {
         name: initialData?.name || '',
