@@ -35,7 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
-  if (loading || currentUser) return <GlobalLoader />;
+  if (loading || currentUser) return <AuthLoading />;
 
   return (
     <div className="fleetease-auth-modern dark min-h-screen bg-[var(--fe-ink)] text-[var(--fe-text)]">
