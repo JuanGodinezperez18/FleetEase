@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { GlobalLoader } from "@/components/common/GlobalLoader";
+import { AuthLoading } from "@/components/auth/auth-loading";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -109,7 +109,7 @@ export default function LoginPage() {
   // Full skeleton while auth resolves, after successful login, or while redirecting.
   // Avoids blank/black flash between the form and the dashboard shell.
   if (loading || currentUser || isRedirecting || isSubmitting) {
-    return <GlobalLoader />;
+    return <AuthLoading />;
   }
 
   return (
