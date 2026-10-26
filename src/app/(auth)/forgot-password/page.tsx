@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-provider";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { Loader2, Mail, Send, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -84,14 +85,17 @@ export default function ForgotPasswordPage() {
         className="relative z-10 w-full max-w-[400px]"
       >
         <div className="mb-6 text-center sm:mb-8">
-          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fe-text-faint)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)] shadow-[0_0_12px_var(--fe-lime)]" />
+          <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]" />
             Fleet OS
           </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--fe-text)] sm:text-3xl">
-            Recuperar <span className="text-[var(--fe-lime)]">acceso</span>
+          <div className="mx-auto mb-3 flex justify-center">
+            <BrandLogo size={56} showWordmark={false} priority className="justify-center" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
+            Recuperar <span className="text-[#d7ff3f]">acceso</span>
           </h1>
-          <p className="mt-2 text-sm text-[var(--fe-text-muted)]">Te enviaremos un enlace a tu correo</p>
+          <p className="mt-2 text-sm text-white/45">Te enviaremos un enlace a tu correo</p>
         </div>
 
         <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 shadow-2xl backdrop-blur-xl sm:p-7">
