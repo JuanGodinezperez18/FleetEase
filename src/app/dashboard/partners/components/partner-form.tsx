@@ -15,6 +15,7 @@ import { useData } from '@/hooks/use-data';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/common/address-autocomplete';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const normalizePhone = (value: string) => value.replace(/\D/g, '');
@@ -110,9 +111,18 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
     mode: 'onChange',
   });
 
+  const handleInvalidSubmit = (errors: typeof form.formState.errors) => {
+    const firstError = Object.values(errors).find(
+      (error) => error && typeof error.message === 'string' && error.message.length > 0,
+    );
+    toast.error('No se pudo guardar el socio', {
+      description: firstError?.message || 'Revisa los campos marcados antes de guardar.',
+    });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)} className="space-y-6">
         {currentUser?.role === 'superAdmin' && (
           <FormField
             control={form.control}
