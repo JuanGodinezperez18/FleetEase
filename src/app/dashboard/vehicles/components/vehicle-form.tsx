@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, forwardRef, useImperativeHandle, useEffect, useState, useCallback } from "react";
@@ -129,8 +129,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       gpsPhoneCompany: initialData?.gpsPhoneCompany || "",
     }), [initialData, currentUser]);
 
-    const form = useForm<VehicleFormValues>({
-        resolver: zodResolver(vehicleSchema),
+    const form = useForm<VehicleFormValues, any, VehicleFormValues>({
+        resolver: zodResolver(vehicleSchema) as Resolver<VehicleFormValues, any, VehicleFormValues>,
         defaultValues: initialValues,
         mode: 'onChange'
     });
