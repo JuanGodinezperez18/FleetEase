@@ -2,19 +2,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
+const url = "https://www.fleetease.com.mx/software-para-renta-de-vehiculos";
+
 export const metadata: Metadata = {
-  title: "Software para renta de vehículos | FleetEase",
+  title: "Software para Renta de Vehículos",
   description:
-    "Administra una empresa de renta de vehículos con FleetEase: clientes, unidades, asignaciones, créditos, mantenimiento, gastos y rentabilidad.",
-  alternates: {
-    canonical: "https://fleetease.com.mx/software-para-renta-de-vehiculos",
-  },
+    "Gestiona la renta de vehículos: contratos, clientes, cobranza, mantenimiento y rentabilidad por unidad. Empieza gratis, sin tarjeta de crédito.",
+  alternates: { canonical: url },
   openGraph: {
-    title: "Software para renta de vehículos | FleetEase",
+    title: "Software para Renta de Vehículos | FleetEase",
     description:
-      "Centraliza la operación de tu negocio de renta de vehículos y conoce la rentabilidad de cada unidad.",
-    url: "https://fleetease.com.mx/software-para-renta-de-vehiculos",
+      "Gestiona la renta de vehículos: contratos, clientes, cobranza, mantenimiento y rentabilidad por unidad.",
+    url,
+    siteName: "FleetEase",
+    locale: "es_MX",
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Software para Renta de Vehículos | FleetEase",
+    description:
+      "Gestiona la renta de vehículos: contratos, clientes, cobranza, mantenimiento y rentabilidad por unidad.",
+    images: ["/og-image.png"],
   },
 };
 
@@ -57,7 +67,7 @@ export default function Page() {
             Para negocios de renta de vehículos
           </p>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.05em] md:text-7xl">
-            El control de tu negocio de renta, en un solo lugar.
+            Software para renta de vehículos: tu operación bajo control
           </h1>
           <p className="mt-7 max-w-2xl text-lg leading-8 text-white/50">
             FleetEase te ayuda a administrar vehículos, clientes, asignaciones,
@@ -103,8 +113,8 @@ export default function Page() {
         <div className="rounded-3xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.05] p-8 text-center md:p-14">
           <h2 className="text-3xl font-semibold">Empieza sin tarjeta.</h2>
           <p className="mx-auto mt-4 max-w-xl text-white/45">
-            Plan Free permanente con hasta 3 vehículos. Todas las funciones Pro,
-            con anuncios.
+            Plan Free permanente con 1 vehículo y 1 usuario. Todas las funciones
+            Pro, con anuncios.
           </p>
           <Link
             href="/registro"

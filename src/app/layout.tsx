@@ -31,7 +31,8 @@ export const metadata: Metadata = {
     default: "FleetEase | Software de Gestión de Flotillas en México",
     template: "%s | FleetEase",
   },
-  description: "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Plan Free permanente con todas las funciones.",
+  description:
+    "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Plan Free permanente sin tarjeta.",
   applicationName: "FleetEase",
   appleWebApp: {
     capable: true,
@@ -41,13 +42,20 @@ export const metadata: Metadata = {
   keywords: [
     "gestión de flotillas",
     "software para flotillas",
+    "software renta de vehículos",
     "FleetEase",
   ],
-  alternates: { canonical: "/" },
+  // No canonical global: cada ruta define la suya (evita canibalizar landings hacia home)
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
   openGraph: {
     type: "website",
@@ -55,8 +63,9 @@ export const metadata: Metadata = {
     url: "https://www.fleetease.com.mx/",
     siteName: "FleetEase",
     title: "FleetEase | Software de Gestión de Flotillas en México",
-    description: "Controla rentabilidad, mantenimiento y operación de tu flotilla. Plan Free permanente con todas las funciones.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "FleetEase Manager" }],
+    description:
+      "Controla rentabilidad, mantenimiento y operación de tu flotilla. Plan Free permanente sin tarjeta.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "FleetEase" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -152,7 +161,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               try {
                 var raw = window.localStorage.getItem('fleetease-cookie-consent-v1');
                 if (!raw) {
-                  var match = document.cookie.match(/(?:^|;\s*)fe_cookie_consent=([^;]*)/);
+                  var match = document.cookie.match(/(?:^|;\\s*)fe_cookie_consent=([^;]*)/);
                   raw = match ? decodeURIComponent(match[1]) : null;
                 }
                 var consent = raw ? JSON.parse(raw) : null;
@@ -187,9 +196,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         ) : null}
       </head>
       <body className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans fe-shell-bg antialiased`}>
+        {/* Splash de carga: NO usar h1 — el H1 temático vive en cada página de marketing */}
         <div id="fe-boot" aria-hidden="true">
           <div className="fe-boot-kicker">Fleet OS</div>
-          <h1>FleetEase <span>Manager</span></h1>
+          <div className="fe-boot-title">
+            FleetEase <span>Manager</span>
+          </div>
           <p>Gestión inteligente de flotillas</p>
           <div className="fe-boot-bar"><i /></div>
         </div>

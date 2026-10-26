@@ -190,6 +190,7 @@
 /* --------------------------------------------------------------------------
    Boot / splash overlay (#fe-boot)
    Shown while the app hydrates; hidden via data-fe-boot-hidden on <html>.
+   Title uses .fe-boot-title (not h1) so marketing pages keep a single thematic H1.
    -------------------------------------------------------------------------- */
 #fe-boot {
   position: fixed;
@@ -215,7 +216,7 @@
   color: rgba(215, 255, 63, 0.85);
 }
 
-#fe-boot h1 {
+#fe-boot .fe-boot-title {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
@@ -223,7 +224,7 @@
   color: #ffffff;
 }
 
-#fe-boot h1 span {
+#fe-boot .fe-boot-title span {
   color: #d7ff3f;
 }
 

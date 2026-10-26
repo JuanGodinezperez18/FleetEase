@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Activity,
@@ -19,6 +20,27 @@ import { HeroDashboard } from "@/components/landing/hero-dashboard";
 import { LandingJsonLd } from "@/components/landing/landing-json-ld";
 import { WhatsAppWidget } from "@/components/landing/whatsapp-widget";
 import { BrandLogo } from "@/components/brand/brand-logo";
+
+const homeUrl = "https://www.fleetease.com.mx/";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "FleetEase | Software de Gestión de Flotillas en México",
+  },
+  description:
+    "Software de gestión de flotillas y renta de vehículos en México. Controla rentabilidad, mantenimiento y operación. Plan Free permanente sin tarjeta.",
+  alternates: { canonical: homeUrl },
+  openGraph: {
+    title: "FleetEase | Software de Gestión de Flotillas en México",
+    description:
+      "Controla rentabilidad, mantenimiento y operación de tu flotilla. Plan Free permanente sin tarjeta.",
+    url: homeUrl,
+    siteName: "FleetEase",
+    locale: "es_MX",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "FleetEase" }],
+  },
+};
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]";
@@ -90,7 +112,6 @@ export default function LandingPage() {
                 la operación diaria en una vista clara de rentabilidad, mantenimiento y desempeño.
               </p>
 
-              {/* Ejemplo de uso sin métricas ni testimonios atribuidos a clientes. */}
               <blockquote className="mt-6 max-w-[520px] rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5">
                 <p className="text-[13px] leading-5 text-white/70">
                   Ejemplo de uso: centralizar costos y detectar gastos de mantenimiento y multas antes de que provoquen paros operativos.

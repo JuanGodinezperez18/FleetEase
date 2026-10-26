@@ -2,17 +2,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
+const url = "https://www.fleetease.com.mx/soluciones";
+
 export const metadata: Metadata = {
-  title: "Software para administrar flotillas | FleetEase",
+  title: "Soluciones para Flotillas y Renta de Vehículos",
   description:
-    "Administra vehículos, clientes, créditos, mantenimiento y rentabilidad de tu flotilla desde FleetEase.",
-  alternates: { canonical: "https://fleetease.com.mx/soluciones" },
+    "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas: operación, costos y rentabilidad en una sola plataforma.",
+  alternates: { canonical: url },
   openGraph: {
-    title: "Soluciones para flotillas | FleetEase",
+    title: "Soluciones para Flotillas y Renta de Vehículos | FleetEase",
     description:
-      "Control total de tu operación de renta y administración de vehículos.",
-    url: "https://fleetease.com.mx/soluciones",
+      "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas: operación, costos y rentabilidad.",
+    url,
+    siteName: "FleetEase",
+    locale: "es_MX",
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Soluciones para Flotillas y Renta de Vehículos | FleetEase",
+    description:
+      "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas.",
+    images: ["/og-image.png"],
   },
 };
 
@@ -64,7 +76,7 @@ export default function SolutionsPage() {
             FleetEase
           </p>
           <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-            Todo lo que necesitas para administrar una flotilla rentable.
+            Soluciones para cada tipo de operación con vehículos
           </h1>
           <p className="mt-6 text-lg text-white/55 md:text-xl">
             Una plataforma diseñada para operadores de renta de vehículos que
