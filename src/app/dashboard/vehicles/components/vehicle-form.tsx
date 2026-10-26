@@ -129,8 +129,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       gpsPhoneCompany: initialData?.gpsPhoneCompany || "",
     }), [initialData, currentUser]);
 
-    const form = useForm<VehicleFormValues, any, VehicleFormValues>({
-        resolver: zodResolver(vehicleSchema) as Resolver<VehicleFormValues, any, VehicleFormValues>,
+    const form = useForm<z.input<typeof vehicleSchema>, any, VehicleFormValues>({
+        resolver: zodResolver(vehicleSchema),
         defaultValues: initialValues,
         mode: 'onChange'
     });
