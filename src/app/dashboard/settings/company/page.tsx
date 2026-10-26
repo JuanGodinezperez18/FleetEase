@@ -75,7 +75,7 @@ export default function CompanySettingsPage() {
     [companyId, companies]
   );
 
-  const form = useForm<CompanySettingsFormValues>({
+  const form = useForm<z.input<typeof companySettingsSchema>, any, CompanySettingsFormValues>({
     resolver: zodResolver(companySettingsSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
