@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Auth-specific loading state; deliberately avoids dashboard-shaped placeholders. */
 export function AuthLoading() {
-  useEffect(() => {
-    // The static boot overlay may now hand off safely because this accessible
-    // auth skeleton is already mounted beneath it.
-    document.documentElement.dataset.feBootHidden = "true";
-  }, []);
-
   return (
     <main
       className="fleetease-auth-modern dark flex min-h-screen items-center justify-center bg-[#080a0f] px-4 py-10 text-white"
