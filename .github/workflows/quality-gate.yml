@@ -52,7 +52,7 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
       - name: Pruebas de regresión
-        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts src/lib/shared-links.test.ts src/lib/security/notification-scope.test.ts src/lib/security/admin-target-scope.test.ts src/app/api/notifications/tenant-isolation.test.ts src/app/api/admin/users/email-delivery.test.ts
+        run: npm run test:ci -- --runInBand src/__tests__/middleware.test.ts src/lib/shared-links.test.ts src/lib/security/notification-scope.test.ts src/lib/security/admin-target-scope.test.ts src/app/api/notifications/tenant-isolation.test.ts src/app/api/admin/users/email-delivery.test.ts src/lib/__tests__/zod-resolver-compatibility.test.ts
       - run: npm run type-check
       - name: Build
         run: npm run build
