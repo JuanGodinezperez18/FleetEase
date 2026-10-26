@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
+import type { Resolver } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -105,8 +106,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onSubmit, initialData,
     companyId: initialData?.companyId || currentUser?.companyId || null,
   }), [initialData, currentUser]);
 
-  const form = useForm<PartnerFormValues>({
-    resolver: zodResolver(partnerSchema),
+  const form = useForm<PartnerFormValues, any, PartnerFormValues>({
+    resolver: zodResolver(partnerSchema) as Resolver<PartnerFormValues, any, PartnerFormValues>,
     defaultValues,
     mode: 'onChange',
   });
