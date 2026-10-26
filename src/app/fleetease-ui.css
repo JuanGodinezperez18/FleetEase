@@ -85,11 +85,13 @@
   --fe-text-muted: rgba(255, 255, 255, 0.60);
   --fe-text-faint: rgba(255, 255, 255, 0.55);
   --fe-hover: rgba(255, 255, 255, 0.06);
+  --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-menu-bg: var(--fe-dark-surface);
   --fe-menu-text: #ffffff;
   --fe-input-bg: rgba(255, 255, 255, 0.035);
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
+  --fe-panel: rgba(14, 17, 23, 0.95);
 }
 
 .light {
@@ -104,6 +106,7 @@
   --fe-text-muted: rgba(8, 10, 15, 0.55);
   --fe-text-faint: rgba(8, 10, 15, 0.42);
   --fe-hover: rgba(8, 10, 15, 0.05);
+  --fe-hover-strong: rgba(8, 10, 15, 0.08);
   --fe-menu-bg: var(--fe-light-surface);
   --fe-menu-text: #0a0c12;
   --fe-input-bg: rgba(8, 10, 15, 0.03);
@@ -112,8 +115,15 @@
   --fe-input-placeholder: rgba(8, 10, 15, 0.35);
   --fe-skeleton: rgba(8, 10, 15, 0.06);
   --fe-link: var(--fe-lime-text);
+  --fe-panel: rgba(255, 255, 255, 0.96);
+  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.18);
+  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.14);
+  --fe-overlay: rgba(8, 10, 15, 0.45);
 }
 
+/* --------------------------------------------------------------------------
+   Light-mode text bridges (hardcoded text-white utilities)
+   -------------------------------------------------------------------------- */
 .light .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
 .light [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
   color: var(--fe-text) !important;
@@ -134,6 +144,86 @@
   color: var(--fe-text-secondary) !important;
 }
 .light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
+
+/* Hardcoded dark surfaces → theme surface in light mode */
+.light [class*="bg-[#0e1117]"],
+.light [class*="bg-[#0a0c12]"],
+.light [class*="bg-[#080a0f]"],
+.light [class*="bg-[var(--fe-ink)]"],
+.light [class*="bg-[var(--fe-dark-surface)]"],
+.light [class*="bg-[var(--fe-dark-main)]"] {
+  background-color: var(--fe-surface) !important;
+}
+
+/* Metric / KPI cards */
+.fe-metric-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-surface);
+  color: var(--fe-text);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--fe-shadow-sm);
+  transition: border-color var(--fe-motion-base), box-shadow var(--fe-motion-base), transform var(--fe-motion-fast);
+}
+.fe-metric-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fe-text-faint);
+}
+.fe-metric-value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--fe-text);
+  font-variant-numeric: tabular-nums;
+}
+.fe-metric-description {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--fe-text-muted);
+}
+.fe-metric-icon {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--fe-lime) 25%, transparent);
+  background: color-mix(in srgb, var(--fe-lime) 12%, transparent);
+  color: var(--fe-lime);
+}
+.light .fe-metric-icon {
+  border-color: color-mix(in srgb, var(--fe-lime-text) 30%, transparent);
+  background: color-mix(in srgb, var(--fe-lime) 18%, transparent);
+  color: var(--fe-lime-text);
+}
+.fe-metric-divider {
+  border-color: var(--fe-border);
+}
+
+/* Page shell + panels */
+.fe-page-shell {
+  background: transparent;
+  color: var(--fe-text);
+}
+.fe-panel-bg,
+.fe-shell-bg {
+  background-color: var(--fe-bg);
+  color: var(--fe-text);
+}
+.fe-border-subtle {
+  border-color: var(--fe-border);
+}
+.fe-text-secondary {
+  color: var(--fe-text-secondary);
+}
 
 /* Landing always dark + white text (overrides light bridge) */
 .fe-landing,

@@ -92,16 +92,29 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * FOUC prevention — must use the SAME storageKey as ThemeProvider ("fleetease-theme").
+ * Mirrors next-themes resolution: stored value | system preference | default dark.
+ */
 const themeInitScript = `
 (function() {
   try {
     var stored = localStorage.getItem('fleetease-theme');
-    var theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
+    var theme = 'dark';
+    if (stored === 'light' || stored === 'dark') {
+      theme = stored;
+    } else if (stored === 'system' || !stored) {
+      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      // When nothing is stored we still default the app to dark (product preference),
+      // but respect an explicit "system" choice.
+      if (!stored) theme = 'dark';
+    }
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
     document.documentElement.style.colorScheme = theme;
   } catch (e) {
     document.documentElement.classList.add('dark');
+    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 `;
