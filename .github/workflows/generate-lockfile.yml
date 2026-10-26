@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - security/performance-hardening
-      - fix/forms-zod4-submit-feedback-2026-10-25
     paths-ignore:
       - package-lock.json
       - .github/workflows/generate-lockfile.yml
