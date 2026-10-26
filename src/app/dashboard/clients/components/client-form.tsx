@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useCallback, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, v
   /** Admin y SuperAdmin pueden corregir la fecha de alta (p. ej. importaciones o registros históricos). */
   const canEditCreatedAt = currentUser?.role === 'admin' || currentUser?.role === 'superAdmin';
   const clientSchema = useMemo(() => { const schema = baseClientSchema; if (currentUser?.role === 'superAdmin') return schema.superRefine((data, ctx) => { if (!data.companyId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Como Super Admin, debe seleccionar una empresa.", path: ['companyId'] }); }); return schema; }, [currentUser?.role]);
-  const form = useForm<z.input<typeof clientSchema>, any, ClientFormValues>({ resolver: zodResolver(clientSchema), defaultValues: getInitialFormValues(initialData || null, currentUser, globalCompanyId) });
+  const form = useForm<ClientFormValues>({ resolver: zodResolver(clientSchema) as Resolver<ClientFormValues, any, ClientFormValues>, defaultValues: getInitialFormValues(initialData || null, currentUser, globalCompanyId) });
   const selectedCompanyId = form.watch('companyId'), watchedVehicleId = form.watch('assignedVehicleId'), currentVehicleAssignedAt = form.watch('vehicleAssignedAt'), watchedEmail = form.watch('email'), watchedPhone = form.watch('phone'), watchedLicenseNumber = form.watch('licenseNumber');
   const [duplicateStatus, setDuplicateStatus] = useState({ email: false, phone: false, licenseNumber: false }); const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false); const duplicateCheckRequestRef = useRef(0);
   const clearDuplicateError = useCallback((fieldName: 'email' | 'phone' | 'licenseNumber') => { const fieldState = form.getFieldState(fieldName); if (fieldState.error?.type === 'duplicate') form.clearErrors(fieldName); }, [form]);
