@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '@/components/ui/input';
@@ -60,8 +60,8 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSubmit, initialData,
     
     const companySchema = useMemo(() => createCompanySchema(initialData || null, currentVehicleCount), [initialData, currentVehicleCount]);
 
-    const form = useForm<z.input<typeof companySchema>, any, CompanyFormValues>({
-      resolver: zodResolver(companySchema),
+    const form = useForm<CompanyFormValues>({
+      resolver: zodResolver(companySchema) as Resolver<CompanyFormValues, any, CompanyFormValues>,
       defaultValues: {
         name: initialData?.name || '',
         email: initialData?.email || '',
