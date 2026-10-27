@@ -120,3 +120,5 @@ html[data-cookie-consent-saved="true"] [data-cookie-banner] {
 @media (prefers-reduced-motion: reduce) {
   .fe-capability-track, .fe-fact-reveal { animation: none !important; will-change: auto; }
 }
+
+/* Keep landing motion styles centralized; lockfile validation runs in CI. */
