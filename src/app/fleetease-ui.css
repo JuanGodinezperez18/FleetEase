@@ -9,17 +9,18 @@
   --fe-dark-border: rgba(255, 255, 255, 0.09);
   --fe-dark-shell-glow: rgba(215, 255, 63, 0.055);
   --fe-dark-surface-rgb: 14, 17, 23;
-  --fe-light-bg: #f6f7f2;
+  --fe-light-bg: #fafafa;
   --fe-light-surface: #ffffff;
-  --fe-light-main: #f0f1ec;
-  --fe-light-border: rgba(8, 10, 15, 0.09);
-  --fe-light-shell-glow: rgba(180, 209, 0, 0.1);
+  --fe-light-main: #ffffff;
+  --fe-light-border: rgba(8, 10, 15, 0.1);
+  --fe-light-shell-glow: rgba(215, 255, 63, 0.08);
   --fe-light-surface-rgb: 255, 255, 255;
   --fe-lime-text: #5c6d08;
   --fe-link: var(--fe-lime);
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
+  --fe-border-strong: rgba(255, 255, 255, 0.16);
   --fe-skeleton: rgba(255, 255, 255, 0.08);
   --fe-skeleton-shimmer: rgba(255, 255, 255, 0.12);
   --fe-bg: var(--fe-ink);
@@ -43,6 +44,8 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-input-placeholder: rgba(255, 255, 255, 0.3);
+  --fe-control-bg: rgba(255, 255, 255, 0.045);
+  --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --fe-radius-sm: 10px;
   --fe-radius-md: 14px;
   --fe-radius-lg: 18px;
@@ -66,9 +69,7 @@
 }
 
 @media (min-width: 640px) {
-  :root {
-    --header-h: 80px;
-  }
+  :root { --header-h: 80px; }
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
@@ -78,6 +79,7 @@
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
+  --fe-border-strong: rgba(255, 255, 255, 0.16);
   --fe-bg: var(--fe-ink);
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
@@ -93,41 +95,48 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-panel: rgba(14, 17, 23, 0.95);
+  --fe-control-bg: rgba(255, 255, 255, 0.045);
+  --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .light {
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
-  --fe-border: var(--fe-light-border);
-  --fe-bg: var(--fe-light-bg);
-  --fe-surface: var(--fe-light-surface);
-  --fe-main: var(--fe-light-main);
+  --fe-border: rgba(8, 10, 15, 0.1);
+  --fe-border-strong: rgba(8, 10, 15, 0.16);
+  --fe-bg: #fafafa;
+  --fe-surface: #ffffff;
+  --fe-main: #ffffff;
   --fe-text: #0a0c12;
-  --fe-text-secondary: rgba(8, 10, 15, 0.72);
-  --fe-text-muted: rgba(8, 10, 15, 0.55);
-  --fe-text-faint: rgba(8, 10, 15, 0.42);
-  --fe-hover: rgba(8, 10, 15, 0.05);
-  --fe-hover-strong: rgba(8, 10, 15, 0.08);
-  --fe-menu-bg: var(--fe-light-surface);
+  --fe-text-secondary: rgba(8, 10, 15, 0.7);
+  --fe-text-muted: rgba(8, 10, 15, 0.52);
+  --fe-text-faint: rgba(8, 10, 15, 0.4);
+  --fe-hover: rgba(8, 10, 15, 0.04);
+  --fe-hover-strong: rgba(8, 10, 15, 0.07);
+  --fe-menu-bg: #ffffff;
   --fe-menu-text: #0a0c12;
-  --fe-input-bg: rgba(8, 10, 15, 0.03);
-  --fe-input-border: rgba(8, 10, 15, 0.12);
+  --fe-input-bg: #ffffff;
+  --fe-input-border: rgba(8, 10, 15, 0.14);
   --fe-input-text: #0a0c12;
   --fe-input-placeholder: rgba(8, 10, 15, 0.35);
-  --fe-skeleton: rgba(8, 10, 15, 0.06);
+  --fe-skeleton: rgba(8, 10, 15, 0.05);
   --fe-link: var(--fe-lime-text);
-  --fe-panel: rgba(255, 255, 255, 0.96);
-  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.18);
-  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.14);
-  --fe-overlay: rgba(8, 10, 15, 0.45);
-  --fe-nav-active: rgba(215, 255, 63, 0.35);
-  --fe-nav-active-strong: rgba(215, 255, 63, 0.55);
+  --fe-panel: #ffffff;
+  --fe-shadow-sm: 0 4px 16px rgba(8, 10, 15, 0.06);
+  --fe-shadow-md: 0 10px 28px rgba(8, 10, 15, 0.08);
+  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.14);
+  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.1);
+  --fe-overlay: rgba(8, 10, 15, 0.4);
+  --fe-nav-active: rgba(215, 255, 63, 0.28);
+  --fe-nav-active-strong: rgba(215, 255, 63, 0.42);
   --fe-nav-active-text: #080a0f;
-  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.1);
-  --fe-focus-ring: rgba(92, 109, 8, 0.35);
+  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.08);
+  --fe-focus-ring: rgba(92, 109, 8, 0.28);
+  --fe-control-bg: #ffffff;
+  --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.05);
 }
 
-/* Light-mode text bridges */
+/* Light-mode bridges */
 .light .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
 .light [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
   color: var(--fe-text) !important;
@@ -156,6 +165,29 @@
 .light [class*="bg-[var(--fe-dark-surface)]"],
 .light [class*="bg-[var(--fe-dark-main)]"] {
   background-color: var(--fe-surface) !important;
+}
+
+.light [class*="border-white/"]:not(.fe-landing *),
+.light [class*="border-white\["]:not(.fe-landing *) {
+  border-color: var(--fe-border-strong) !important;
+}
+.light [class*="bg-white/["]:not(.fe-landing *),
+.light [class*="bg-white/"]:not(.fe-landing *) {
+  background-color: var(--fe-control-bg) !important;
+}
+.light [class*="hover:bg-white/"]:not(.fe-landing *):hover,
+.light [class*="hover:bg-white\["]:not(.fe-landing *):hover {
+  background-color: var(--fe-hover-strong) !important;
+}
+.light [class*="hover:border-white/"]:not(.fe-landing *):hover,
+.light [class*="hover:border-white\["]:not(.fe-landing *):hover {
+  border-color: var(--fe-border-strong) !important;
+}
+
+.light select,
+.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.light textarea {
+  color: var(--fe-input-text);
 }
 
 .fe-metric-card {
@@ -208,7 +240,12 @@
 }
 .fe-metric-divider { border-color: var(--fe-border); }
 
-.fe-page-shell { background: transparent; color: var(--fe-text); }
+/* Page shell */
+.fe-page-shell {
+  position: relative;
+  background: transparent;
+  color: var(--fe-text);
+}
 .fe-panel-bg,
 .fe-shell-bg {
   background-color: var(--fe-bg);
@@ -216,6 +253,87 @@
 }
 .fe-border-subtle { border-color: var(--fe-border); }
 .fe-text-secondary { color: var(--fe-text-secondary); }
+
+.fe-control {
+  border: 1px solid var(--fe-border-strong);
+  background-color: var(--fe-control-bg);
+  color: var(--fe-text);
+  box-shadow: var(--fe-control-shadow);
+}
+
+/* --------------------------------------------------------------------------
+   Module page header — used by Multas, Alertas, Créditos, Ingresos, etc.
+   Was documented in DESIGN.md but never defined → titles looked broken.
+   -------------------------------------------------------------------------- */
+.fe-module-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-surface);
+  color: var(--fe-text);
+  box-shadow: var(--fe-shadow-sm);
+}
+@media (min-width: 640px) {
+  .fe-module-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+  }
+}
+.fe-module-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fe-text-faint);
+}
+.fe-module-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--fe-text);
+}
+@media (min-width: 640px) {
+  .fe-module-title { font-size: 1.75rem; }
+}
+.fe-module-subtitle {
+  margin: 0.35rem 0 0;
+  max-width: 36rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--fe-text-muted);
+}
+.fe-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .fe-module-actions {
+    width: auto;
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+}
+.fe-filter-surface {
+  border-radius: 14px;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-control-bg);
+  box-shadow: var(--fe-control-shadow);
+}
 
 .fe-landing,
 .light .fe-landing {
@@ -312,7 +430,6 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   pointer-events: none;
 }
 
-/* Skeleton primitive (required — components use .fe-skeleton) */
 .fe-skeleton {
   background: var(--fe-skeleton);
   position: relative;
@@ -349,7 +466,6 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   min-height: 100svh;
 }
 
-/* Sidebar active — force brand lime over shadcn sidebar-primary */
 [data-sidebar="menu-button"][data-active="true"],
 [data-sidebar="menu-button"][data-active=true] {
   background-color: var(--fe-nav-active) !important;

@@ -14,11 +14,12 @@ const buttonVariants = cva(
         destructive:
           "bg-[var(--fe-danger)]/15 text-[var(--fe-danger)] border border-[var(--fe-danger)]/20 hover:bg-[var(--fe-danger)]/25",
         outline:
-          "border border-[var(--fe-border)] bg-[var(--fe-input-bg)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+          "border border-[var(--fe-border-strong)] bg-[var(--fe-control-bg)] text-[var(--fe-text)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
         secondary:
-          "bg-[var(--fe-hover)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover-strong)]",
+          "border border-[var(--fe-border)] bg-[var(--fe-control-bg)] text-[var(--fe-text-secondary)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
+        /* Same control surface as secondary: toolbar actions (Exportar, Excel, etc.) stay legible in light */
         ghost:
-          "text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+          "border border-[var(--fe-border)] bg-[var(--fe-control-bg)] text-[var(--fe-text-secondary)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
         link:
           "text-[var(--fe-link)] underline-offset-4 hover:underline",
       },
