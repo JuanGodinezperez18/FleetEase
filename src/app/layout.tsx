@@ -15,6 +15,7 @@ import { OfflineIndicator } from "@/components/common/offline-indicator";
 import { PwaInstallButton } from "@/components/common/pwa-install-button";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
@@ -224,6 +225,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <GoogleAnalytics />
             </Suspense>
             <Analytics />
+            <SpeedInsights />
           </Providers>
         </GlobalErrorBoundary>
       </body>
