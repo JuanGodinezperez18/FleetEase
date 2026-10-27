@@ -13,10 +13,11 @@ const buttonVariants = cva(
           "bg-[var(--fe-lime)] text-[var(--fe-ink)] font-semibold hover:brightness-95 shadow-[0_0_0_1px_var(--fe-focus-ring)]",
         destructive:
           "bg-[var(--fe-danger)]/15 text-[var(--fe-danger)] border border-[var(--fe-danger)]/20 hover:bg-[var(--fe-danger)]/25",
+        /* Solid surface + visible border so light theme keeps relief on white cards */
         outline:
-          "border border-[var(--fe-border)] bg-[var(--fe-input-bg)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+          "border border-[var(--fe-border-strong)] bg-[var(--fe-control-bg)] text-[var(--fe-text)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
         secondary:
-          "bg-[var(--fe-hover)] text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover-strong)]",
+          "border border-[var(--fe-border)] bg-[var(--fe-control-bg)] text-[var(--fe-text-secondary)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
         ghost:
           "text-[var(--fe-text-secondary)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
         link:
