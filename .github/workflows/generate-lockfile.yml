@@ -7,9 +7,6 @@ on:
       - master
     paths:
       - package.json
-    paths-ignore:
-      - package-lock.json
-      - .github/workflows/generate-lockfile.yml
   workflow_dispatch:
 
 permissions:
