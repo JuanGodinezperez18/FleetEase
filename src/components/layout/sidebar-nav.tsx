@@ -53,9 +53,9 @@ import { useNotificationsAnalytics } from "@/hooks/use-notifications-analytics";
 /** Inactive nav item — theme-aware */
 const itemBase =
   "group relative rounded-xl fe-text-muted transition-all duration-200 hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]";
-/** Active nav item — theme-aware surface + strong text */
+/** Active nav item — brand lime tint (not muted hover / not dark HSL primary) */
 const itemActive =
-  "bg-[var(--fe-hover)] font-medium fe-text hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]";
+  "bg-[var(--fe-nav-active)] font-semibold text-[var(--fe-text)] hover:bg-[var(--fe-nav-active-strong)] hover:text-[var(--fe-text)] data-[active=true]:bg-[var(--fe-nav-active)] data-[active=true]:text-[var(--fe-text)]";
 
 const navGroupByLabel: Record<string, string> = {
   "Panel de Control": "Operación",
@@ -86,6 +86,95 @@ function NavGroupLabel({ label, collapsed }: { label: string; collapsed: boolean
     </div>
   );
 }
+
+export type UserRole = "admin" | "editor" | "viewer" | "superAdmin" | "partner" | "client";
+
+export interface SubNavItem {
+  href: string;
+  label: string;
+  icon?: LucideIcon;
+  roles?: UserRole[];
+  external?: boolean;
+}
+interface NavLinkItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  basePath?: string;
+  subItems?: never;
+  type?: "notificationsLink";
+  roles?: UserRole[];
+  external?: boolean;
+}
+interface NavSectionItem {
+  href?: never;
+  label: string;
+  icon: LucideIcon;
+  basePath: string;
+  subItems: SubNavItem[];
+  type?: never;
+  roles?: UserRole[];
+}
+export type NavItem = NavLinkItem | NavSectionItem;
+
+export const navItemsBase: NavItem[] = [
+  { href: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
+  { href: "/dashboard/vehicles", label: "Vehículos", icon: CarIcon },
+  { href: "/dashboard/clients", label: "Clientes", icon: UsersIconLucide },
+  { href: "/dashboard/partners", label: "Socios", icon: Briefcase },
+  { href: "/dashboard/mileage", label: "Registro de Kilometraje", icon: Gauge },
+  { href: "/dashboard/multas", label: "Multas", icon: ShieldAlert, roles: ["admin", "superAdmin", "editor"] },
+  { href: "/dashboard/seguimientos", label: "Seguimientos Fotográficos", icon: Camera, roles: ["admin", "superAdmin", "editor"] },
+  { href: "/dashboard/credits", label: "Créditos", icon: Landmark },
+  {
+    label: "Finanzas",
+    icon: DollarSignIcon,
+    basePath: "/dashboard/finanzas",
+    subItems: [
+      { href: "/dashboard/finanzas", label: "Análisis Financiero", icon: AreaChart },
+      { href: "/dashboard/finanzas/income", label: "Ingresos", icon: FolderKanban },
+      { href: "/dashboard/finanzas/payments", label: "Pagos", icon: HandCoins },
+      { href: "/dashboard/finanzas/expenses", label: "Gastos", icon: FileText },
+      { href: "/dashboard/finanzas/supplier-purchases", label: "Proveedores", icon: Briefcase },
+      { href: "/dashboard/finanzas/accounts-payable", label: "Cuentas por pagar", icon: HandCoins },
+    ],
+  },
+  { href: "/dashboard/profitability", label: "Rentabilidad", icon: AreaChart, roles: ["admin", "superAdmin", "editor"] },
+  {
+    label: "Reportes",
+    icon: FileText,
+    basePath: "/dashboard/reports",
+    subItems: [
+      { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3 },
+      { href: "/dashboard/reports/history", label: "Historial", icon: History },
+    ],
+  },
+  { href: "/dashboard/alerts", label: "Alertas de Negocio", icon: BellIcon, roles: ["admin", "superAdmin", "editor"] },
+  { href: "/dashboard/messages", label: "Mensajería", icon: MessageSquare },
+  { type: "notificationsLink", href: "/dashboard/notifications", label: "Notificaciones", icon: BellIcon },
+  {
+    label: "Administración",
+    icon: SettingsIcon,
+    basePath: "/dashboard/settings",
+    subItems: [
+      { href: "/dashboard/users", label: "Usuarios", icon: Users, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/companies", label: "Empresas", icon: Building, roles: ["superAdmin"] },
+      { href: "/dashboard/settings/categories", label: "Categorías", icon: Tags, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/settings/catalogs", label: "Catálogos", icon: Package, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/settings/company", label: "Configuración de Empresa", icon: SettingsIcon, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/shared-links", label: "Enlaces compartidos", icon: Link2, roles: ["superAdmin", "admin"] },
+      { href: "/dashboard/settings/subscription", label: "Suscripción y Planes", icon: DollarSignIcon },
+      { href: "/dashboard/faq", label: "Preguntas Frecuentes", icon: MessageSquare },
+      { href: "/dashboard/settings", label: "Mi Configuración", icon: SettingsIcon },
+      { href: "mailto:soporte@fleetease.com.mx", label: "Contactar Soporte", icon: Mail, external: true },
+    ],
+    roles: ["superAdmin", "admin"],
+  },
+];
+
+// NOTE: NotificationBell and full SidebarNav body intentionally kept on branch
+// via incremental commits; itemActive constant is the critical visual fix.
+// Re-export isActive styling is applied through itemActive + CSS overrides.
 
 const NotificationBell = () => {
   const { clients, vehicles, financialRecords, clientBalances, notifications: rawNotifications, loadingData } =
@@ -120,10 +209,7 @@ const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="fe-panel-bg mr-2 w-80 border p-0 shadow-xl"
-        align="end"
-      >
+      <PopoverContent className="fe-panel-bg mr-2 w-80 border p-0 shadow-xl" align="end">
         <div className="space-y-0">
           <div className="border-b fe-border-subtle px-4 py-3">
             <h4 className="text-sm font-semibold fe-text">Notificaciones</h4>
@@ -145,12 +231,7 @@ const NotificationBell = () => {
                   <div className="flex items-start gap-3">
                     {!notif.isRead && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--fe-lime)]" />}
                     <div className="min-w-0 flex-1">
-                      <p
-                        className={cn(
-                          "mb-1 text-sm leading-snug fe-text-secondary",
-                          !notif.isRead && "font-semibold fe-text"
-                        )}
-                      >
+                      <p className={cn("mb-1 text-sm leading-snug fe-text-secondary", !notif.isRead && "font-semibold fe-text")}>
                         {notif.message}
                       </p>
                       <p className="text-xs fe-text-faint">
@@ -164,10 +245,7 @@ const NotificationBell = () => {
           </div>
           <div className="border-t fe-border-subtle px-4 py-3">
             <Link href="/dashboard/notifications" className="block">
-              <Button
-                variant="ghost"
-                className="w-full text-sm font-medium fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
-              >
+              <Button variant="ghost" className="w-full text-sm font-medium fe-text-secondary hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]">
                 Ver todas las notificaciones
               </Button>
             </Link>
@@ -177,99 +255,6 @@ const NotificationBell = () => {
     </Popover>
   );
 };
-
-export interface SubNavItem {
-  href: string;
-  label: string;
-  icon?: LucideIcon;
-  roles?: UserRole[];
-  external?: boolean;
-}
-interface NavLinkItem {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  basePath?: string;
-  subItems?: never;
-  type?: "notificationsLink";
-  roles?: UserRole[];
-  external?: boolean;
-}
-interface NavSectionItem {
-  href?: never;
-  label: string;
-  icon: LucideIcon;
-  basePath: string;
-  subItems: SubNavItem[];
-  type?: never;
-  roles?: UserRole[];
-}
-export type UserRole = "admin" | "editor" | "viewer" | "superAdmin" | "partner" | "client";
-export type NavItem = NavLinkItem | NavSectionItem;
-
-export const navItemsBase: NavItem[] = [
-  // Operación
-  { href: "/dashboard", label: "Panel de Control", icon: LayoutDashboard },
-  { href: "/dashboard/vehicles", label: "Vehículos", icon: CarIcon },
-  { href: "/dashboard/clients", label: "Clientes", icon: UsersIconLucide },
-  { href: "/dashboard/partners", label: "Socios", icon: Briefcase },
-  { href: "/dashboard/mileage", label: "Registro de Kilometraje", icon: Gauge },
-  { href: "/dashboard/multas", label: "Multas", icon: ShieldAlert, roles: ["admin", "superAdmin", "editor"] },
-  { href: "/dashboard/seguimientos", label: "Seguimientos Fotográficos", icon: Camera, roles: ["admin", "superAdmin", "editor"] },
-
-  // Finanzas
-  { href: "/dashboard/credits", label: "Créditos", icon: Landmark },
-  {
-    label: "Finanzas",
-    icon: DollarSignIcon,
-    basePath: "/dashboard/finanzas",
-    subItems: [
-      { href: "/dashboard/finanzas", label: "Análisis Financiero", icon: AreaChart },
-      { href: "/dashboard/finanzas/income", label: "Ingresos", icon: FolderKanban },
-      { href: "/dashboard/finanzas/payments", label: "Pagos", icon: HandCoins },
-      { href: "/dashboard/finanzas/expenses", label: "Gastos", icon: FileText },
-      { href: "/dashboard/finanzas/supplier-purchases", label: "Proveedores", icon: Briefcase },
-      { href: "/dashboard/finanzas/accounts-payable", label: "Cuentas por pagar", icon: HandCoins },
-    ],
-  },
-
-  // Análisis
-  { href: "/dashboard/profitability", label: "Rentabilidad", icon: AreaChart, roles: ["admin", "superAdmin", "editor"] },
-  {
-    label: "Reportes",
-    icon: FileText,
-    basePath: "/dashboard/reports",
-    subItems: [
-      { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3 },
-      { href: "/dashboard/reports/history", label: "Historial", icon: History },
-    ],
-  },
-  { href: "/dashboard/alerts", label: "Alertas de Negocio", icon: BellIcon, roles: ["admin", "superAdmin", "editor"] },
-
-  // Comunicación
-  { href: "/dashboard/messages", label: "Mensajería", icon: MessageSquare },
-  { type: "notificationsLink", href: "/dashboard/notifications", label: "Notificaciones", icon: BellIcon },
-
-  // Administración
-  {
-    label: "Administración",
-    icon: SettingsIcon,
-    basePath: "/dashboard/settings",
-    subItems: [
-      { href: "/dashboard/users", label: "Usuarios", icon: Users, roles: ["superAdmin", "admin"] },
-      { href: "/dashboard/companies", label: "Empresas", icon: Building, roles: ["superAdmin"] },
-      { href: "/dashboard/settings/categories", label: "Categorías", icon: Tags, roles: ["superAdmin", "admin"] },
-      { href: "/dashboard/settings/catalogs", label: "Catálogos", icon: Package, roles: ["superAdmin", "admin"] },
-      { href: "/dashboard/settings/company", label: "Configuración de Empresa", icon: SettingsIcon, roles: ["superAdmin", "admin"] },
-      { href: "/dashboard/shared-links", label: "Enlaces compartidos", icon: Link2, roles: ["superAdmin", "admin"] },
-      { href: "/dashboard/settings/subscription", label: "Suscripción y Planes", icon: DollarSignIcon },
-      { href: "/dashboard/faq", label: "Preguntas Frecuentes", icon: MessageSquare },
-      { href: "/dashboard/settings", label: "Mi Configuración", icon: SettingsIcon },
-      { href: "mailto:soporte@fleetease.com.mx", label: "Contactar Soporte", icon: Mail, external: true },
-    ],
-    roles: ["superAdmin", "admin"],
-  },
-];
 
 export function SidebarNav() {
   const pathname = usePathname();
@@ -331,153 +316,151 @@ export function SidebarNav() {
           <React.Fragment key={item.label}>
             {showGroup && <NavGroupLabel label={group} collapsed={state === "collapsed"} />}
             <SidebarMenuItem>
-          {"subItems" in item && item.subItems ? (
-            <>
-              <SidebarMenuButton
-                onClick={() => handleToggleSection(item.label)}
-                isActive={isSectionActive(item.basePath, item.subItems)}
-                tooltip={item.label}
-                aria-label={item.label}
-                className={cn(itemBase, isSectionActive(item.basePath, item.subItems) && itemActive)}
-              >
-                <div
-                  className={cn(
-                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
-                    isSectionActive(item.basePath, item.subItems) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
-                  )}
-                />
-                <item.icon
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-colors",
-                    isSectionActive(item.basePath, item.subItems)
-                      ? "text-[var(--fe-lime)]"
-                      : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
-                  )}
-                  strokeWidth={1.75}
-                />
-                {state === "expanded" && (
-                  <>
-                    <span className="flex-1 text-[13px]">{item.label}</span>
-                    <ChevronRight
+              {"subItems" in item && item.subItems ? (
+                <>
+                  <SidebarMenuButton
+                    onClick={() => handleToggleSection(item.label)}
+                    isActive={isSectionActive(item.basePath, item.subItems)}
+                    tooltip={item.label}
+                    aria-label={item.label}
+                    className={cn(itemBase, isSectionActive(item.basePath, item.subItems) && itemActive)}
+                  >
+                    <div
                       className={cn(
-                        "h-3.5 w-3.5 fe-text-faint transition-transform duration-300",
-                        openSections[item.label] && "rotate-90"
+                        "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                        isSectionActive(item.basePath, item.subItems) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
+                      )}
+                    />
+                    <item.icon
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-colors",
+                        isSectionActive(item.basePath, item.subItems)
+                          ? "text-[var(--fe-lime)]"
+                          : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
                       )}
                       strokeWidth={1.75}
                     />
-                  </>
-                )}
-              </SidebarMenuButton>
-              {openSections[item.label] && state === "expanded" && (
-                <SidebarMenuSub className="fe-sidebar-submenu ml-3 space-y-0.5 border-l fe-border-subtle pl-2">
-                  {item.subItems.map(subItem => (
-                    <SidebarMenuSubItem key={subItem.label}>
-                      {subItem.external ? (
-                        <a
-                          href={subItem.href}
-                          className="group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] fe-text-muted transition-all duration-200 hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
-                        >
-                          {subItem.icon && (
-                            <subItem.icon className="h-3.5 w-3.5 shrink-0 fe-text-faint" strokeWidth={1.75} />
-                          )}
-                          <span>{subItem.label}</span>
-                        </a>
-                      ) : (
-                        <SidebarMenuSubButton
-                          onClick={() => handleNavigation(subItem.href)}
-                          isActive={pathname === subItem.href}
-                          aria-label={subItem.label}
+                    {state === "expanded" && (
+                      <>
+                        <span className="flex-1 text-[13px]">{item.label}</span>
+                        <ChevronRight
                           className={cn(
-                            "group relative rounded-lg fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
-                            pathname === subItem.href && "bg-[var(--fe-hover)] font-medium fe-text"
+                            "h-3.5 w-3.5 fe-text-faint transition-transform duration-300",
+                            openSections[item.label] && "rotate-90"
                           )}
-                        >
-                          <div
-                            className={cn(
-                              "absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
-                              pathname === subItem.href && "h-4"
-                            )}
-                          />
-                          {subItem.icon && (
-                            <subItem.icon
-                              className={cn(
-                                "h-3.5 w-3.5 shrink-0",
-                                pathname === subItem.href ? "text-[var(--fe-lime)]" : "fe-text-faint"
+                          strokeWidth={1.75}
+                        />
+                      </>
+                    )}
+                  </SidebarMenuButton>
+                  {openSections[item.label] && state === "expanded" && (
+                    <SidebarMenuSub className="fe-sidebar-submenu ml-3 space-y-0.5 border-l fe-border-subtle pl-2">
+                      {item.subItems.map(subItem => (
+                        <SidebarMenuSubItem key={subItem.label}>
+                          {subItem.external ? (
+                            <a
+                              href={subItem.href}
+                              className="group relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] fe-text-muted transition-all duration-200 hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]"
+                            >
+                              {subItem.icon && (
+                                <subItem.icon className="h-3.5 w-3.5 shrink-0 fe-text-faint" strokeWidth={1.75} />
                               )}
-                              strokeWidth={1.75}
-                            />
+                              <span>{subItem.label}</span>
+                            </a>
+                          ) : (
+                            <SidebarMenuSubButton
+                              onClick={() => handleNavigation(subItem.href)}
+                              isActive={pathname === subItem.href}
+                              aria-label={subItem.label}
+                              className={cn(
+                                "group relative rounded-lg fe-text-muted hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]",
+                                pathname === subItem.href && "bg-[var(--fe-nav-active)] font-medium fe-text"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                                  pathname === subItem.href && "h-4"
+                                )}
+                              />
+                              {subItem.icon && (
+                                <subItem.icon
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0",
+                                    pathname === subItem.href ? "text-[var(--fe-lime)]" : "fe-text-faint"
+                                  )}
+                                  strokeWidth={1.75}
+                                />
+                              )}
+                              <span className="text-[12.5px]">{subItem.label}</span>
+                            </SidebarMenuSubButton>
                           )}
-                          <span className="text-[12.5px]">{subItem.label}</span>
-                        </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  )}
+                </>
+              ) : item.href ? (
+                item.type === "notificationsLink" ? (
+                  <div className="flex w-full items-center gap-1">
+                    <SidebarMenuButton
+                      onClick={() => handleNavigation(item.href!)}
+                      isActive={isSectionActive(item.href)}
+                      tooltip={item.label}
+                      aria-label={item.label}
+                      className={cn("flex-1", itemBase, isSectionActive(item.href) && itemActive)}
+                    >
+                      <div
+                        className={cn(
+                          "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                          isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
+                        )}
+                      />
+                      <item.icon
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          isSectionActive(item.href) ? "text-[var(--fe-lime)]" : "fe-text-faint"
+                        )}
+                        strokeWidth={1.75}
+                      />
+                      {state === "expanded" && <span className="text-[13px]">{item.label}</span>}
+                      {state === "collapsed" && unreadNotificationsCount > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-semibold text-white">
+                          {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+                        </span>
                       )}
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              )}
-            </>
-          ) : item.href ? (
-            item.type === "notificationsLink" ? (
-              <div className="flex w-full items-center gap-1">
-                <SidebarMenuButton
-                  onClick={() => handleNavigation(item.href!)}
-                  isActive={isSectionActive(item.href)}
-                  tooltip={item.label}
-                  aria-label={item.label}
-                  className={cn("flex-1", itemBase, isSectionActive(item.href) && itemActive)}
-                >
-                  <div
-                    className={cn(
-                      "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
-                      isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
+                    </SidebarMenuButton>
+                    {state === "expanded" && (
+                      <div className="shrink-0">
+                        <NotificationBell />
+                      </div>
                     )}
-                  />
-                  <item.icon
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      isSectionActive(item.href) ? "text-[var(--fe-lime)]" : "fe-text-faint"
-                    )}
-                    strokeWidth={1.75}
-                  />
-                  {state === "expanded" && <span className="text-[13px]">{item.label}</span>}
-                  {state === "collapsed" && unreadNotificationsCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-semibold text-white">
-                      {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
-                    </span>
-                  )}
-                </SidebarMenuButton>
-                {state === "expanded" && (
-                  <div className="shrink-0">
-                    <NotificationBell />
                   </div>
-                )}
-              </div>
-            ) : (
-              <SidebarMenuButton
-                onClick={() => handleNavigation(item.href!)}
-                isActive={isSectionActive(item.href)}
-                tooltip={item.label}
-                aria-label={item.label}
-                className={cn(itemBase, isSectionActive(item.href) && itemActive)}
-              >
-                <div
-                  className={cn(
-                    "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
-                    isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
-                  )}
-                />
-                <item.icon
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-colors",
-                    isSectionActive(item.href)
-                      ? "text-[var(--fe-lime)]"
-                      : "fe-text-faint group-hover:text-[var(--fe-text-secondary)]"
-                  )}
-                  strokeWidth={1.75}
-                />
-                {state === "expanded" && <span className="text-[13px]">{item.label}</span>}
-              </SidebarMenuButton>
-            )
-          ) : null}
+                ) : (
+                  <SidebarMenuButton
+                    onClick={() => handleNavigation(item.href!)}
+                    isActive={isSectionActive(item.href)}
+                    tooltip={item.label}
+                    aria-label={item.label}
+                    className={cn(itemBase, isSectionActive(item.href) && itemActive)}
+                  >
+                    <div
+                      className={cn(
+                        "absolute left-0 top-1/2 h-0 w-1 -translate-y-1/2 rounded-r-full bg-[var(--fe-lime)] transition-all duration-300",
+                        isSectionActive(item.href) && "h-7 shadow-[0_0_10px_var(--fe-lime)]"
+                      )}
+                    />
+                    <item.icon
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        isSectionActive(item.href) ? "text-[var(--fe-lime)]" : "fe-text-faint"
+                      )}
+                      strokeWidth={1.75}
+                    />
+                    {state === "expanded" && <span className="text-[13px]">{item.label}</span>}
+                  </SidebarMenuButton>
+                )
+              ) : null}
             </SidebarMenuItem>
           </React.Fragment>
         );
