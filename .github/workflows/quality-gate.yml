@@ -24,12 +24,9 @@ jobs:
           cache: npm
       - name: Require committed lockfile
         run: test -f package-lock.json
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Fail on high or critical production advisories
         run: npm audit --omit=dev --audit-level=high
-
-
-
 
   quality:
     runs-on: ubuntu-latest
@@ -45,7 +42,7 @@ jobs:
             echo "::error::package-lock.json is required for reproducible CI installs."
             exit 1
           fi
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Auditoría de dependencias (npm audit)
         # Informativo hasta limpiar el backlog de advisories; falla visiblemente
         # en el log del workflow sin bloquear el resto del quality gate.
