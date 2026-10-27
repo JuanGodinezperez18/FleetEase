@@ -58,14 +58,24 @@ export default function ProfitabilityPage() {
             </p>
             <p className="mt-2 font-medium text-[var(--fe-text-secondary)]">Estados</p>
             <ul className="mt-1 list-inside list-disc space-y-1">
-              <li><strong>Rentable:</strong> ingresos > gastos</li>
-              <li><strong>Tablas:</strong> sin ganancia ni pérdida clara</li>
-              <li><strong>Pérdida:</strong> gastos > ingresos</li>
+              <li>
+                <strong>Rentable:</strong> ingresos {'>'} gastos
+              </li>
+              <li>
+                <strong>Tablas:</strong> sin ganancia ni pérdida clara
+              </li>
+              <li>
+                <strong>Pérdida:</strong> gastos {'>'} ingresos
+              </li>
             </ul>
             <p className="mt-2 font-medium text-[var(--fe-text-secondary)]">Métricas</p>
             <ul className="mt-1 list-inside list-disc space-y-1">
-              <li><strong>Margen:</strong> >30% excelente, 15–30% bueno, <15% revisar</li>
-              <li><strong>Ocupación:</strong> >70% excelente</li>
+              <li>
+                <strong>Margen:</strong> {'>'}30% excelente, 15–30% bueno, {'<'}15% revisar
+              </li>
+              <li>
+                <strong>Ocupación:</strong> {'>'}70% excelente
+              </li>
             </ul>
           </InfoTip>
         </div>
