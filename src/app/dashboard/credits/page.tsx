@@ -6,6 +6,7 @@ import { getCreditColumns } from "./columns";
 import { ResponsiveTable } from "@/components/common/ResponsiveTable";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreHorizontal, CreditCard } from "lucide-react";
+import { InfoTip } from "@/components/ui/info-tip";
 import { FormModal } from "@/components/common/form-modal";
 import { CreditForm, CreditFormValues } from "./components/credit-form";
 import type { Credit } from "@/types";
@@ -296,9 +297,11 @@ export default function CreditsPage() {
               Finanzas
             </div>
             <h1 className="fe-module-title">Créditos</h1>
-            <p className="fe-module-subtitle">Portafolio, morosidad y gestión de créditos</p>
           </div>
           <div className="fe-module-actions gap-3">
+            <InfoTip title="Créditos" label="Qué hace este módulo">
+              <p>Portafolio, morosidad y gestión de créditos activos y cancelados.</p>
+            </InfoTip>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
               <CreditCard className="h-5 w-5" strokeWidth={1.75} />
             </div>

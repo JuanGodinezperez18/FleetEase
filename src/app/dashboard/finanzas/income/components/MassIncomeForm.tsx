@@ -13,7 +13,7 @@ import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useClients } from '@/contexts/providers/clients-provider';
 import { useData } from '@/contexts/data-provider';
 import { useToast } from '@/hooks/use-toast';
-import { X, User, Car, Loader2, Building, AlertCircle, Download, CreditCard, CheckCircle2 } from 'lucide-react';
+import { X, User, Car, Loader2, Building, Download, CreditCard, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { FinancialRecord, Company, FinancialCategory } from '@/types';
 import { toast as sonnerToast } from 'sonner';
@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/auth-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoTip } from "@/components/ui/info-tip";
 import { DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
@@ -109,8 +109,6 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
           selectedDateKey,
         );
 
-        // Legacy fallback for today's capture: vehicles created before the
-        // assignment log history existed may still have clientId populated.
         const historicalClientId = assignment?.clientId
           || (selectedDateKey === todayKey ? vehicle.clientId : null);
 
@@ -122,8 +120,6 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
         const clientCreatedDateKey = client.createdAt?.slice(0, 10);
         if (clientCreatedDateKey && clientCreatedDateKey > selectedDateKey) return [];
 
-        // Mass ordinary-rent income is only for clients assigned to the
-        // vehicle on the selected date and without an active credit.
         if (clientsWithActiveCredit.has(historicalClientId)) return [];
 
         return [{
@@ -188,12 +184,8 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
         creditPayment: false,
       }));
 
-      // Usar la función addIncome del contexto que maneja la lógica completa
       await Promise.all(recordsToCreate.map(record => addIncome(record as Omit<FinancialRecord, 'id'>)));
 
-      // Gasto por administración: solo vehículos con adminCommission > 0.
-      // El trigger de BD crea el ingreso pareado para la empresa cuando el
-      // vehículo pertenece a un socio (categoría Administración de Vehículo).
       const adminCat =
         financialCategories?.find(
           c => c.type === 'expense' && c.name?.toLowerCase().trim() === 'administración de vehículo'
@@ -432,13 +424,19 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
               </Card>
             </div>
             
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Se registrará un ingreso para cada uno de los <strong>{vehicleRentData.length} vehículos</strong> de clientes activos de renta ordinaria. Los clientes con crédito activo o registrados después de la fecha seleccionada no se muestran. Si el vehículo tiene costo de administración, también se genera el gasto (y el ingreso de empresa asociado).
-              </AlertDescription>
-            </Alert>
-
+            <div className="flex items-center justify-between gap-2 rounded-[12px] border border-[var(--fe-border)] bg-[var(--fe-surface)] px-3 py-2">
+              <p className="text-xs text-[var(--fe-text-muted)]">
+                {vehicleRentData.filter(v => !v.disabled).length} vehículos de renta ordinaria listos para registrar
+              </p>
+              <InfoTip title="Ingreso masivo" label="Cómo funciona el ingreso masivo" align="end">
+                <p>
+                  Se registrará un ingreso por cada vehículo de clientes activos de renta ordinaria.
+                  No aparecen clientes con crédito activo ni registrados después de la fecha elegida.
+                  Si el vehículo tiene costo de administración, también se genera el gasto (y el ingreso
+                  de empresa asociado).
+                </p>
+              </InfoTip>
+            </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {vehicleRentData.map((rentData, index) => (
@@ -479,15 +477,12 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
-          <Button
-            type="submit"
-            disabled={isSubmitting || !isVehicleRentCategory || vehicleRentData.filter(v => !v.disabled && v.weeklyRent > 0).length === 0}
-          >
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="submit" disabled={isSubmitting || (isVehicleRentCategory && vehicleRentData.filter(v => !v.disabled && v.weeklyRent > 0).length === 0)}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Procesando...
+                Registrando...
               </>
             ) : (
               <>
