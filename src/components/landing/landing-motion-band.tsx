@@ -1,4 +1,4 @@
-import { CarFront, Check, ArrowRight } from "lucide-react";
+import { CarFront, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 const capabilities = [
