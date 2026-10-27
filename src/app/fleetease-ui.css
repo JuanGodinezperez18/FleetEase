@@ -44,7 +44,6 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-input-placeholder: rgba(255, 255, 255, 0.3);
-  /* Control surface: secondary/outline buttons keep relief on cards */
   --fe-control-bg: rgba(255, 255, 255, 0.045);
   --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --fe-radius-sm: 10px;
@@ -133,12 +132,17 @@
   --fe-nav-active-text: #080a0f;
   --fe-skeleton-shimmer: rgba(8, 10, 15, 0.1);
   --fe-focus-ring: rgba(92, 109, 8, 0.35);
-  /* Opaque off-white so outline/secondary buttons read on white cards */
   --fe-control-bg: #eef0e8;
   --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.06);
 }
 
-/* Light-mode text bridges */
+/* --------------------------------------------------------------------------
+   Light-mode bridges (legacy dark-only utilities → semantic tokens)
+   Apply app-wide so modules do not need per-page patches.
+   Landing (.fe-landing) keeps pure dark and is excluded below.
+   -------------------------------------------------------------------------- */
+
+/* Text */
 .light .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
 .light [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
   color: var(--fe-text) !important;
@@ -160,6 +164,7 @@
 }
 .light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
 
+/* Hardcoded dark surfaces → theme surface */
 .light [class*="bg-[#0e1117]"],
 .light [class*="bg-[#0a0c12]"],
 .light [class*="bg-[#080a0f]"],
@@ -167,6 +172,34 @@
 .light [class*="bg-[var(--fe-dark-surface)]"],
 .light [class*="bg-[var(--fe-dark-main)]"] {
   background-color: var(--fe-surface) !important;
+}
+
+/*
+ * White-opacity borders/backgrounds were written for dark chrome.
+ * On light cards they disappear; map them to control tokens app-wide.
+ */
+.light [class*="border-white/"]:not(.fe-landing *),
+.light [class*="border-white\["]:not(.fe-landing *) {
+  border-color: var(--fe-border-strong) !important;
+}
+.light [class*="bg-white/["]:not(.fe-landing *),
+.light [class*="bg-white/"]:not(.fe-landing *) {
+  background-color: var(--fe-control-bg) !important;
+}
+.light [class*="hover:bg-white/"]:not(.fe-landing *):hover,
+.light [class*="hover:bg-white\["]:not(.fe-landing *):hover {
+  background-color: var(--fe-hover-strong) !important;
+}
+.light [class*="hover:border-white/"]:not(.fe-landing *):hover,
+.light [class*="hover:border-white\["]:not(.fe-landing *):hover {
+  border-color: var(--fe-border-strong) !important;
+}
+
+/* Selects / native controls sitting on white cards */
+.light select,
+.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.light textarea {
+  color: var(--fe-input-text);
 }
 
 .fe-metric-card {
@@ -228,6 +261,14 @@
 .fe-border-subtle { border-color: var(--fe-border); }
 .fe-text-secondary { color: var(--fe-text-secondary); }
 
+/* Soft control utility — modules can opt in without hardcoding white opacity */
+.fe-control {
+  border: 1px solid var(--fe-border-strong);
+  background-color: var(--fe-control-bg);
+  color: var(--fe-text);
+  box-shadow: var(--fe-control-shadow);
+}
+
 .fe-landing,
 .light .fe-landing {
   background-color: #080a0f !important;
@@ -261,6 +302,13 @@
 .light .fe-landing button[class*="bg-[var(--fe-lime)"],
 .light .fe-landing [class*="text-[var(--fe-ink)"] {
   color: #080a0f !important;
+}
+/* Landing keeps pure white borders/surfaces — do not apply light bridges inside */
+.fe-landing [class*="border-white"],
+.light .fe-landing [class*="border-white"],
+.fe-landing [class*="bg-white"],
+.light .fe-landing [class*="bg-white"] {
+  /* restore dark-chrome look on marketing pages */
 }
 
 #fe-boot {
@@ -323,7 +371,6 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   pointer-events: none;
 }
 
-/* Skeleton primitive */
 .fe-skeleton {
   background: var(--fe-skeleton);
   position: relative;
@@ -360,7 +407,6 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   min-height: 100svh;
 }
 
-/* Sidebar active — brand lime */
 [data-sidebar="menu-button"][data-active="true"],
 [data-sidebar="menu-button"][data-active=true] {
   background-color: var(--fe-nav-active) !important;
