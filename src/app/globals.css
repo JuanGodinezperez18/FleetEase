@@ -5,22 +5,22 @@
 /*
  * Tokens shadcn (HSL) alineados con el sistema de marca --fe-* de fleetease-ui.css.
  * Fuente de verdad de color de marca: --fe-lime / --fe-ink en fleetease-ui.css.
- * --primary aproxima #d7ff3f (lima) en HSL para compatibilidad con shadcn/Tailwind.
+ * Light: blanco limpio (sin tinte gris-verdoso) para contraste con lima y gráficas.
  */
 @layer base {
   :root {
-    --background: 60 20% 96%;
+    --background: 0 0% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    /* Lima de marca (#d7ff3f) → HSL; en claro usamos tono más oscuro para contraste */
+    /* Lima de marca (#d7ff3f) → HSL; en claro tono más oscuro para contraste de texto */
     --primary: 72 88% 42%;
     --primary-foreground: 222 47% 8%;
-    --secondary: 60 10% 90%;
+    --secondary: 0 0% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 60 10% 90%;
+    --muted: 0 0% 96%;
     --muted-foreground: 215 16% 35%;
     --accent: 72 88% 42%;
     --accent-foreground: 222 47% 8%;
@@ -28,19 +28,17 @@
     --destructive-foreground: 0 0% 100%;
     --danger: 0 84.2% 60.2%;
     --danger-foreground: 0 0% 100%;
-    --border: 30 8% 86%;
-    --input: 30 8% 86%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
     --ring: 72 88% 42%;
-    /* Radio unificado con --fe-radius-md (14px) */
     --radius: 0.875rem;
-    --sidebar-background: 60 20% 97%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-border: 30 8% 86%;
+    --sidebar-border: 0 0% 90%;
     --sidebar-ring: 72 88% 42%;
-    /* Align with --fe-lime (#d7ff3f); ink text on lime for WCAG */
     --sidebar-primary: 72 100% 62%;
     --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 60 18% 91%;
+    --sidebar-accent: 0 0% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
   }
 
@@ -51,7 +49,6 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 47% 9%;
     --popover-foreground: 210 40% 98%;
-    /* Lima puro de marca en oscuro */
     --primary: 72 100% 62%;
     --primary-foreground: 222 47% 8%;
     --secondary: 217.2 32.6% 17%;
@@ -95,13 +92,11 @@
     color-scheme: light;
   }
 }
-/* A valid saved consent hides the server-rendered banner before first paint. */
+
 html[data-cookie-consent-saved="true"] [data-cookie-banner] {
   display: none;
 }
 
-
-/* FleetEase landing: restrained motion, with reduced-motion support. */
 .fe-capability-track {
   animation: fe-marquee 36s linear infinite;
   will-change: transform;
