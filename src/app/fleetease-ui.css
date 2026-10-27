@@ -9,7 +9,6 @@
   --fe-dark-border: rgba(255, 255, 255, 0.09);
   --fe-dark-shell-glow: rgba(215, 255, 63, 0.055);
   --fe-dark-surface-rgb: 14, 17, 23;
-  /* Light palette: clean white (not gray-green) so lime & charts pop */
   --fe-light-bg: #fafafa;
   --fe-light-surface: #ffffff;
   --fe-light-main: #ffffff;
@@ -70,9 +69,7 @@
 }
 
 @media (min-width: 640px) {
-  :root {
-    --header-h: 80px;
-  }
+  :root { --header-h: 80px; }
 }
 
 .dark body { background: var(--fe-ink); color: var(--fe-text); }
@@ -102,7 +99,6 @@
   --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* Clean white light theme — relief from border + shadow, not gray fills */
 .light {
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
@@ -136,18 +132,11 @@
   --fe-nav-active-text: #080a0f;
   --fe-skeleton-shimmer: rgba(8, 10, 15, 0.08);
   --fe-focus-ring: rgba(92, 109, 8, 0.28);
-  /* White controls + visible border (no muddy gray fill) */
   --fe-control-bg: #ffffff;
   --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.05);
 }
 
-/* --------------------------------------------------------------------------
-   Light-mode bridges (legacy dark-only utilities → semantic tokens)
-   Apply app-wide so modules do not need per-page patches.
-   Landing (.fe-landing) keeps pure dark and is excluded below.
-   -------------------------------------------------------------------------- */
-
-/* Text */
+/* Light-mode bridges */
 .light .text-white:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]),
 .light [class*="text-white/"]:not([data-radix-select-item]):not([data-radix-dropdown-menu-item]) {
   color: var(--fe-text) !important;
@@ -169,7 +158,6 @@
 }
 .light [class*="text-[#d7ff3f]"] { color: var(--fe-lime-text) !important; }
 
-/* Hardcoded dark surfaces → theme surface */
 .light [class*="bg-[#0e1117]"],
 .light [class*="bg-[#0a0c12]"],
 .light [class*="bg-[#080a0f]"],
@@ -179,10 +167,6 @@
   background-color: var(--fe-surface) !important;
 }
 
-/*
- * White-opacity borders/backgrounds were written for dark chrome.
- * Map to clean white controls + border, not gray fills.
- */
 .light [class*="border-white/"]:not(.fe-landing *),
 .light [class*="border-white\["]:not(.fe-landing *) {
   border-color: var(--fe-border-strong) !important;
@@ -256,7 +240,12 @@
 }
 .fe-metric-divider { border-color: var(--fe-border); }
 
-.fe-page-shell { background: transparent; color: var(--fe-text); }
+/* Page shell */
+.fe-page-shell {
+  position: relative;
+  background: transparent;
+  color: var(--fe-text);
+}
 .fe-panel-bg,
 .fe-shell-bg {
   background-color: var(--fe-bg);
@@ -269,6 +258,80 @@
   border: 1px solid var(--fe-border-strong);
   background-color: var(--fe-control-bg);
   color: var(--fe-text);
+  box-shadow: var(--fe-control-shadow);
+}
+
+/* --------------------------------------------------------------------------
+   Module page header — used by Multas, Alertas, Créditos, Ingresos, etc.
+   Was documented in DESIGN.md but never defined → titles looked broken.
+   -------------------------------------------------------------------------- */
+.fe-module-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-surface);
+  color: var(--fe-text);
+  box-shadow: var(--fe-shadow-sm);
+}
+@media (min-width: 640px) {
+  .fe-module-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+  }
+}
+.fe-module-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fe-text-faint);
+}
+.fe-module-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--fe-text);
+}
+@media (min-width: 640px) {
+  .fe-module-title { font-size: 1.75rem; }
+}
+.fe-module-subtitle {
+  margin: 0.35rem 0 0;
+  max-width: 36rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--fe-text-muted);
+}
+.fe-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .fe-module-actions {
+    width: auto;
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+}
+.fe-filter-surface {
+  border-radius: 14px;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-control-bg);
   box-shadow: var(--fe-control-shadow);
 }
 
@@ -305,12 +368,6 @@
 .light .fe-landing button[class*="bg-[var(--fe-lime)"],
 .light .fe-landing [class*="text-[var(--fe-ink)"] {
   color: #080a0f !important;
-}
-.fe-landing [class*="border-white"],
-.light .fe-landing [class*="border-white"],
-.fe-landing [class*="bg-white"],
-.light .fe-landing [class*="bg-white"] {
-  /* landing stays dark-chrome */
 }
 
 #fe-boot {
