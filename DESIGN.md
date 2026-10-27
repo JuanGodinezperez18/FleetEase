@@ -1,16 +1,17 @@
-# FleetEase Design System — Phase 1
+# FleetEase Design System
 
 ## Scope
 
-Phase 1 consolidates the existing visual language without changing business logic, data flows, permissions, financial calculations, routing semantics, or validation rules.
+This document is the source of truth for FleetEase UI. Visual work must preserve business logic, data flows, permissions, financial calculations, routing semantics, and validation rules.
 
 ## Brand tokens
 
-Use the `--fe-*` CSS variables as the source of truth for FleetEase UI.
+Use the `--fe-*` CSS variables (defined in `src/app/fleetease-ui.css`) as the **only** source of truth for color, radius, shadow, motion, and control sizing.
 
 ### Brand and surfaces
 
-- `--fe-lime`: primary FleetEase accent.
+- `--fe-lime`: primary FleetEase accent (`#d7ff3f`). Signal and brand — not decoration.
+- `--fe-lime-text`: darker lime for text/icons on light surfaces (`#5c6d08`).
 - `--fe-ink`: dark application shell.
 - `--fe-bg`: current theme application background.
 - `--fe-main`: current theme main surface.
@@ -18,6 +19,8 @@ Use the `--fe-*` CSS variables as the source of truth for FleetEase UI.
 - `--fe-panel`: elevated panel surface.
 - `--fe-border`: subtle border.
 - `--fe-hover`, `--fe-hover-strong`: interaction surfaces.
+- `--fe-nav-active`, `--fe-nav-active-strong`: sidebar / nav selected state (lime tint).
+- `--fe-nav-active-text`: text on active nav in light mode.
 
 ### Text
 
@@ -43,28 +46,39 @@ Use the `--fe-*` CSS variables as the source of truth for FleetEase UI.
 - `--fe-shadow-sm`: standard surface elevation.
 - `--fe-shadow-md`: elevated surface.
 
+### Loading
+
+- `--fe-skeleton` / `--fe-skeleton-shimmer`: skeleton base and highlight.
+- Always use the shared `Skeleton` component or the `.fe-skeleton` class. Never invent one-off pulse boxes.
+
+## Theme model
+
+1. **Semantic tokens first.** Components read `--fe-*`, not hard-coded hex (except inside the token file).
+2. **Dark and light from the same tokens.** `.dark` and `.light` only reassign semantic variables; they must not introduce parallel visual systems.
+3. **Avoid long-term `!important` bridges.** Bridges for legacy `text-white` / dark hex exist for migration only; when editing a module, replace them with tokens.
+4. **Lime stays lime.** Active nav, primary actions, and focus rings must resolve to `--fe-lime` (or `--fe-lime-text` on light backgrounds when contrast requires it). Do not use a muted HSL “primary” for brand chrome.
+
 ## Component rules
 
 ### Card
 
-`Card` is the canonical application surface. The component now consumes FleetEase border, radius, surface and shadow tokens.
+`Card` is the canonical application surface. Consume FleetEase border, radius, surface, and shadow tokens.
 
-Use `hover` only when the card is meaningfully interactive. Do not add decorative hover effects to static information.
+Use `hover` only when the card is meaningfully interactive.
 
 ### Button
 
-`Button` is the canonical action component. Prefer semantic variants over local color utilities.
-
-- `default`: primary FleetEase action.
-- `secondary`: secondary action.
-- `outline`: low-emphasis bordered action.
-- `ghost`: contextual action.
-- `destructive`: destructive operation.
-- `link`: inline navigation/action.
+Prefer semantic variants: `default`, `secondary`, `outline`, `ghost`, `destructive`, `link`.
 
 ### Skeleton
 
-Use the shared `Skeleton` component for loading states. Avoid one-off pulse backgrounds when the same state can be represented by a shared primitive.
+Use shared `Skeleton` / `.fe-skeleton` for every loading state (route `loading.tsx`, suspense fallbacks, module placeholders). A single empty rectangle is never an acceptable loading state.
+
+### Sidebar / navigation
+
+- Inactive: muted text + hover surface.
+- Active: `--fe-nav-active` background, lime accent bar/icon, readable text (`--fe-text` or `--fe-nav-active-text` in light).
+- Do not rely solely on shadcn `--sidebar-primary` without aligning it to `--fe-lime`.
 
 ### Modules
 
@@ -90,19 +104,16 @@ for module-level hierarchy.
 7. **Respect `prefers-reduced-motion`.**
 8. **Design dark and light themes from the same semantic tokens.**
 9. **Do not introduce a new visual pattern when an existing primitive can express the same intent.**
+10. **Loading states must feel intentional** (full skeleton structure, never a lone empty box).
 
 ## Migration policy
 
-When a module is already being edited, replace local FleetEase colors, radii and shadows with `--fe-*` tokens where practical.
+When a module is already being edited, replace local colors, radii, and shadows with `--fe-*` tokens.
 
-Do not perform a blind repository-wide class replacement. Visual normalization should be incremental and validated to avoid regressions.
+Do not perform a blind repository-wide class replacement. Visual normalization should be incremental and validated to avoid regressions — but **new work must meet the token standard on first merge**.
 
-## Phase 1 exclusions
+## Explicit non-goals for pure visual PRs
 
-The following are intentionally deferred:
-
-- module-by-module visual redesign;
-- dashboard information architecture changes;
-- removal of legacy components without reference verification;
-- changing default interaction behavior across existing cards;
-- business logic, financial calculations, database queries and authorization changes.
+- Changing business logic, financial calculations, database queries, or authorization.
+- Dashboard information architecture changes without product sign-off.
+- Removing legacy components without a reference check.

@@ -37,8 +37,9 @@
     --sidebar-foreground: 222 47% 11%;
     --sidebar-border: 30 8% 86%;
     --sidebar-ring: 72 88% 42%;
-    --sidebar-primary: 72 88% 42%;
-    --sidebar-primary-foreground: 222 47% 11%;
+    /* Align with --fe-lime (#d7ff3f); ink text on lime for WCAG */
+    --sidebar-primary: 72 100% 62%;
+    --sidebar-primary-foreground: 222 47% 8%;
     --sidebar-accent: 60 18% 91%;
     --sidebar-accent-foreground: 222 47% 11%;
   }
