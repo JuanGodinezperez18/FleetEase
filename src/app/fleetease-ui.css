@@ -12,7 +12,7 @@
   --fe-light-bg: #f6f7f2;
   --fe-light-surface: #ffffff;
   --fe-light-main: #f0f1ec;
-  --fe-light-border: rgba(8, 10, 15, 0.09);
+  --fe-light-border: rgba(8, 10, 15, 0.12);
   --fe-light-shell-glow: rgba(180, 209, 0, 0.1);
   --fe-light-surface-rgb: 255, 255, 255;
   --fe-lime-text: #5c6d08;
@@ -20,6 +20,7 @@
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
+  --fe-border-strong: rgba(255, 255, 255, 0.16);
   --fe-skeleton: rgba(255, 255, 255, 0.08);
   --fe-skeleton-shimmer: rgba(255, 255, 255, 0.12);
   --fe-bg: var(--fe-ink);
@@ -43,6 +44,9 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-input-placeholder: rgba(255, 255, 255, 0.3);
+  /* Control surface: secondary/outline buttons keep relief on cards */
+  --fe-control-bg: rgba(255, 255, 255, 0.045);
+  --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --fe-radius-sm: 10px;
   --fe-radius-md: 14px;
   --fe-radius-lg: 18px;
@@ -78,6 +82,7 @@
   --fe-shell-glow: var(--fe-dark-shell-glow);
   --fe-surface-rgb: var(--fe-dark-surface-rgb);
   --fe-border: var(--fe-dark-border);
+  --fe-border-strong: rgba(255, 255, 255, 0.16);
   --fe-bg: var(--fe-ink);
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
@@ -93,12 +98,15 @@
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
   --fe-panel: rgba(14, 17, 23, 0.95);
+  --fe-control-bg: rgba(255, 255, 255, 0.045);
+  --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .light {
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
-  --fe-border: var(--fe-light-border);
+  --fe-border: rgba(8, 10, 15, 0.12);
+  --fe-border-strong: rgba(8, 10, 15, 0.18);
   --fe-bg: var(--fe-light-bg);
   --fe-surface: var(--fe-light-surface);
   --fe-main: var(--fe-light-main);
@@ -106,12 +114,12 @@
   --fe-text-secondary: rgba(8, 10, 15, 0.72);
   --fe-text-muted: rgba(8, 10, 15, 0.55);
   --fe-text-faint: rgba(8, 10, 15, 0.42);
-  --fe-hover: rgba(8, 10, 15, 0.05);
-  --fe-hover-strong: rgba(8, 10, 15, 0.08);
+  --fe-hover: rgba(8, 10, 15, 0.06);
+  --fe-hover-strong: rgba(8, 10, 15, 0.1);
   --fe-menu-bg: var(--fe-light-surface);
   --fe-menu-text: #0a0c12;
-  --fe-input-bg: rgba(8, 10, 15, 0.03);
-  --fe-input-border: rgba(8, 10, 15, 0.12);
+  --fe-input-bg: #f3f4ef;
+  --fe-input-border: rgba(8, 10, 15, 0.14);
   --fe-input-text: #0a0c12;
   --fe-input-placeholder: rgba(8, 10, 15, 0.35);
   --fe-skeleton: rgba(8, 10, 15, 0.06);
@@ -125,6 +133,9 @@
   --fe-nav-active-text: #080a0f;
   --fe-skeleton-shimmer: rgba(8, 10, 15, 0.1);
   --fe-focus-ring: rgba(92, 109, 8, 0.35);
+  /* Opaque off-white so outline/secondary buttons read on white cards */
+  --fe-control-bg: #eef0e8;
+  --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.06);
 }
 
 /* Light-mode text bridges */
@@ -312,7 +323,7 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   pointer-events: none;
 }
 
-/* Skeleton primitive (required — components use .fe-skeleton) */
+/* Skeleton primitive */
 .fe-skeleton {
   background: var(--fe-skeleton);
   position: relative;
@@ -349,7 +360,7 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   min-height: 100svh;
 }
 
-/* Sidebar active — force brand lime over shadcn sidebar-primary */
+/* Sidebar active — brand lime */
 [data-sidebar="menu-button"][data-active="true"],
 [data-sidebar="menu-button"][data-active=true] {
   background-color: var(--fe-nav-active) !important;
