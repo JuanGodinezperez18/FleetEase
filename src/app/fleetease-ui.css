@@ -9,11 +9,12 @@
   --fe-dark-border: rgba(255, 255, 255, 0.09);
   --fe-dark-shell-glow: rgba(215, 255, 63, 0.055);
   --fe-dark-surface-rgb: 14, 17, 23;
-  --fe-light-bg: #f6f7f2;
+  /* Light palette: clean white (not gray-green) so lime & charts pop */
+  --fe-light-bg: #fafafa;
   --fe-light-surface: #ffffff;
-  --fe-light-main: #f0f1ec;
-  --fe-light-border: rgba(8, 10, 15, 0.12);
-  --fe-light-shell-glow: rgba(180, 209, 0, 0.1);
+  --fe-light-main: #ffffff;
+  --fe-light-border: rgba(8, 10, 15, 0.1);
+  --fe-light-shell-glow: rgba(215, 255, 63, 0.08);
   --fe-light-surface-rgb: 255, 255, 255;
   --fe-lime-text: #5c6d08;
   --fe-link: var(--fe-lime);
@@ -101,39 +102,43 @@
   --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+/* Clean white light theme — relief from border + shadow, not gray fills */
 .light {
   --fe-shell-glow: var(--fe-light-shell-glow);
   --fe-surface-rgb: var(--fe-light-surface-rgb);
-  --fe-border: rgba(8, 10, 15, 0.12);
-  --fe-border-strong: rgba(8, 10, 15, 0.18);
-  --fe-bg: var(--fe-light-bg);
-  --fe-surface: var(--fe-light-surface);
-  --fe-main: var(--fe-light-main);
+  --fe-border: rgba(8, 10, 15, 0.1);
+  --fe-border-strong: rgba(8, 10, 15, 0.16);
+  --fe-bg: #fafafa;
+  --fe-surface: #ffffff;
+  --fe-main: #ffffff;
   --fe-text: #0a0c12;
-  --fe-text-secondary: rgba(8, 10, 15, 0.72);
-  --fe-text-muted: rgba(8, 10, 15, 0.55);
-  --fe-text-faint: rgba(8, 10, 15, 0.42);
-  --fe-hover: rgba(8, 10, 15, 0.06);
-  --fe-hover-strong: rgba(8, 10, 15, 0.1);
-  --fe-menu-bg: var(--fe-light-surface);
+  --fe-text-secondary: rgba(8, 10, 15, 0.7);
+  --fe-text-muted: rgba(8, 10, 15, 0.52);
+  --fe-text-faint: rgba(8, 10, 15, 0.4);
+  --fe-hover: rgba(8, 10, 15, 0.04);
+  --fe-hover-strong: rgba(8, 10, 15, 0.07);
+  --fe-menu-bg: #ffffff;
   --fe-menu-text: #0a0c12;
-  --fe-input-bg: #f3f4ef;
+  --fe-input-bg: #ffffff;
   --fe-input-border: rgba(8, 10, 15, 0.14);
   --fe-input-text: #0a0c12;
   --fe-input-placeholder: rgba(8, 10, 15, 0.35);
-  --fe-skeleton: rgba(8, 10, 15, 0.06);
+  --fe-skeleton: rgba(8, 10, 15, 0.05);
   --fe-link: var(--fe-lime-text);
-  --fe-panel: rgba(255, 255, 255, 0.96);
-  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.18);
-  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.14);
-  --fe-overlay: rgba(8, 10, 15, 0.45);
-  --fe-nav-active: rgba(215, 255, 63, 0.35);
-  --fe-nav-active-strong: rgba(215, 255, 63, 0.55);
+  --fe-panel: #ffffff;
+  --fe-shadow-sm: 0 4px 16px rgba(8, 10, 15, 0.06);
+  --fe-shadow-md: 0 10px 28px rgba(8, 10, 15, 0.08);
+  --fe-shadow-dialog: 0 24px 80px rgba(8, 10, 15, 0.14);
+  --fe-shadow-menu: 0 18px 50px rgba(8, 10, 15, 0.1);
+  --fe-overlay: rgba(8, 10, 15, 0.4);
+  --fe-nav-active: rgba(215, 255, 63, 0.28);
+  --fe-nav-active-strong: rgba(215, 255, 63, 0.42);
   --fe-nav-active-text: #080a0f;
-  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.1);
-  --fe-focus-ring: rgba(92, 109, 8, 0.35);
-  --fe-control-bg: #eef0e8;
-  --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.06);
+  --fe-skeleton-shimmer: rgba(8, 10, 15, 0.08);
+  --fe-focus-ring: rgba(92, 109, 8, 0.28);
+  /* White controls + visible border (no muddy gray fill) */
+  --fe-control-bg: #ffffff;
+  --fe-control-shadow: 0 1px 2px rgba(8, 10, 15, 0.05);
 }
 
 /* --------------------------------------------------------------------------
@@ -176,7 +181,7 @@
 
 /*
  * White-opacity borders/backgrounds were written for dark chrome.
- * On light cards they disappear; map them to control tokens app-wide.
+ * Map to clean white controls + border, not gray fills.
  */
 .light [class*="border-white/"]:not(.fe-landing *),
 .light [class*="border-white\["]:not(.fe-landing *) {
@@ -195,7 +200,6 @@
   border-color: var(--fe-border-strong) !important;
 }
 
-/* Selects / native controls sitting on white cards */
 .light select,
 .light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 .light textarea {
@@ -261,7 +265,6 @@
 .fe-border-subtle { border-color: var(--fe-border); }
 .fe-text-secondary { color: var(--fe-text-secondary); }
 
-/* Soft control utility — modules can opt in without hardcoding white opacity */
 .fe-control {
   border: 1px solid var(--fe-border-strong);
   background-color: var(--fe-control-bg);
@@ -303,12 +306,11 @@
 .light .fe-landing [class*="text-[var(--fe-ink)"] {
   color: #080a0f !important;
 }
-/* Landing keeps pure white borders/surfaces — do not apply light bridges inside */
 .fe-landing [class*="border-white"],
 .light .fe-landing [class*="border-white"],
 .fe-landing [class*="bg-white"],
 .light .fe-landing [class*="bg-white"] {
-  /* restore dark-chrome look on marketing pages */
+  /* landing stays dark-chrome */
 }
 
 #fe-boot {
