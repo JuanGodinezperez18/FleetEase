@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { InfoTip } from '@/components/ui/info-tip';
 import { Loader2, Camera, X, Car, User, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client, Vehicle } from '@/types';
@@ -82,7 +83,6 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       .map((log) => log.vehicleId)
   ), [vehicleAssignmentLogs]);
 
-  /** Vehículos disponibles en la fecha de asignación (registro <= fecha). */
   const availableVehicles = useMemo(() => rawVehicles.filter((v: Vehicle) =>
     !v.isDeleted &&
     v.status === 'active' &&
@@ -92,7 +92,6 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     (!assignedAt || !v.createdAt || isDateOnOrAfter(assignedAt, v.createdAt))
   ), [rawVehicles, activeAssignmentVehicleIds, assignedAt]);
 
-  /** Clientes disponibles en la fecha de asignación (registro <= fecha). */
   const activeClients = useMemo(() => clients.filter((c: Client) =>
     !c.isDeleted &&
     !activeAssignmentClientIds.has(c.id) &&
@@ -122,7 +121,6 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     return clients.find((c: Client) => c.id === selectedClientId) || null;
   }, [clients, selectedClientId]);
 
-  // Si cambia la fecha y el vehículo/cliente elegido queda fuera del rango, se limpia la selección.
   useEffect(() => {
     if (!assignedAt) return;
 
@@ -147,8 +145,6 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
     }
   }, [assignedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Precarga el último kilometraje conocido del vehículo. La BD también lo valida
-  // al guardar, pero el usuario debe verlo y poder corregirlo hacia arriba.
   useEffect(() => {
     let cancelled = false;
     const loadLatestMileage = async () => {
@@ -283,7 +279,21 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField control={form.control} name="assignedAt" render={({ field }) => (
           <FormItem>
-            <FormLabel>Fecha de asignación</FormLabel>
+            <div className="flex items-center justify-between gap-2">
+              <FormLabel className="mb-0">Fecha de asignación</FormLabel>
+              <InfoTip title="Fecha de asignación" label="Ayuda sobre la fecha">
+                <p>
+                  Debe ser igual o posterior a la fecha de registro del vehículo y del cliente.
+                  Los listados se filtran según esta fecha.
+                </p>
+                {minAssignableDateHint ? (
+                  <p className="mt-1.5">
+                    Mínimo sugerido con la selección actual:{' '}
+                    <span className="font-medium text-[var(--fe-text)]">{minAssignableDateHint}</span>
+                  </p>
+                ) : null}
+              </InfoTip>
+            </div>
             <FormControl>
               <Input
                 type="date"
@@ -292,10 +302,6 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
                 {...field}
               />
             </FormControl>
-            <p className="text-xs text-muted-foreground">
-              Debe ser igual o posterior a la fecha de registro del vehículo y del cliente.
-              {minAssignableDateHint ? ` Mínimo sugerido según la selección actual: ${minAssignableDateHint}.` : ' Los listados de vehículo y cliente se filtran según esta fecha.'}
-            </p>
             <FormMessage />
           </FormItem>
         )} />
@@ -309,9 +315,9 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
             </Select>
             <FormMessage />
             {assignedAt && activeClients.length === 0 && !selectedClientVehicle && (
-              <p className="text-xs text-muted-foreground">No hay clientes registrados en o antes de la fecha de asignación seleccionada.</p>
+              <p className="text-xs text-muted-foreground">No hay clientes registrados en o antes de la fecha seleccionada.</p>
             )}
-            {selectedClientVehicle && <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><div><p className="font-medium text-foreground">Este cliente ya tiene vehículo</p><p className="text-muted-foreground">{selectedClientVehicle.plate} · {selectedClientVehicle.make} {selectedClientVehicle.model}</p><p className="mt-1 text-xs text-muted-foreground">{selectedClientActiveCredit ? 'Está protegido por un crédito activo. Debe liquidarse o cancelarse antes de liberar la unidad.' : 'Primero debes desasignar esta unidad para poder asignarle otra.'}</p></div></div></div>}
+            {selectedClientVehicle && <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm"><div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><div><p className="font-medium text-foreground">Este cliente ya tiene vehículo</p><p className="text-muted-foreground">{selectedClientVehicle.plate} · {selectedClientVehicle.make} {selectedClientVehicle.model}</p><p className="mt-1 text-xs text-muted-foreground">{selectedClientActiveCredit ? 'Protegido por crédito activo.' : 'Desasigna la unidad actual antes de asignar otra.'}</p></div></div></div>}
           </FormItem>
         )} />
 
@@ -326,7 +332,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
             {availableVehicles.length === 0 && !selectedClientVehicle && (
               <p className="text-xs text-muted-foreground">
                 {assignedAt
-                  ? 'No hay vehículos disponibles registrados en o antes de la fecha de asignación seleccionada.'
+                  ? 'No hay vehículos disponibles en o antes de esa fecha.'
                   : 'No hay vehículos disponibles para asignar.'}
               </p>
             )}
@@ -337,8 +343,8 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
           <FormField control={form.control} name="odometerReading" render={({ field }) => (
             <FormItem>
               <FormLabel>Kilometraje (odómetro)</FormLabel>
-              <FormControl><Input type="number" min={latestMileage ?? 0} placeholder={mileageLoading ? 'Consultando último kilometraje...' : 'Ej. 45000'} {...field} /></FormControl>
-              {latestMileage != null && <p className="text-xs text-muted-foreground">Último kilometraje conocido: <span className="font-medium text-foreground">{latestMileage.toLocaleString()} km</span></p>}
+              <FormControl><Input type="number" min={latestMileage ?? 0} placeholder={mileageLoading ? 'Consultando…' : 'Ej. 45000'} {...field} /></FormControl>
+              {latestMileage != null && <p className="text-xs text-muted-foreground">Último: <span className="font-medium text-foreground">{latestMileage.toLocaleString()} km</span></p>}
               <FormMessage />
             </FormItem>
           )} />
@@ -352,7 +358,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
         </div>
 
         <FormField control={form.control} name="conditionNotes" render={({ field }) => (
-          <FormItem><FormLabel>Notas de condición del vehículo</FormLabel><FormControl><Textarea placeholder="Rayones, golpes, detalles a la entrega..." {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Notas de condición</FormLabel><FormControl><Textarea placeholder="Rayones, golpes…" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
 
         <div><Label className="mb-2 block">Fotos de entrega</Label><div className="grid grid-cols-2 gap-3">{PHOTO_VIEWS.map(({ key, label }) => <div key={key} className="border rounded-lg p-3 text-center space-y-2"><p className="text-xs text-muted-foreground">{label}</p>{photos[key] ? <div className="relative"><img src={URL.createObjectURL(photos[key]!)} alt={label} className="w-full h-24 object-cover rounded" /><button type="button" onClick={() => handlePhotoChange(key, null)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"><X className="h-3 w-3" /></button></div> : <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed rounded cursor-pointer hover:bg-muted/50"><Camera className="h-5 w-5 text-muted-foreground" /><input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handlePhotoChange(key, e.target.files?.[0] || null)} /></label>}</div>)}</div></div>
