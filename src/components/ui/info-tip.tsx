@@ -52,7 +52,8 @@ export function InfoTip({
             "inline-flex shrink-0 items-center justify-center rounded-full",
             "border border-[var(--fe-border)] bg-[var(--fe-control-bg)]",
             "text-[var(--fe-text-muted)] shadow-[var(--fe-control-shadow)]",
-            "transition-colors hover:border-[var(--fe-border-strong)]",
+            "transition-[colors,transform] duration-150 ease-out active:scale-[0.97] touch-manipulation",
+            "hover:border-[var(--fe-border-strong)]",
             "hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-focus-ring)]",
             className
