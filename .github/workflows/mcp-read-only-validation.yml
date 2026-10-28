@@ -36,7 +36,7 @@ jobs:
         run: test -f package-lock.json
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Type check
         run: npm run type-check
