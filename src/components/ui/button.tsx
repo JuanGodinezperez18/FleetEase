@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--fe-radius-sm)] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-focus-ring)] focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--fe-radius-sm)] text-sm font-medium transition-[colors,transform] duration-150 ease-out active:scale-[0.97] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-focus-ring)] focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -21,7 +21,7 @@ const buttonVariants = cva(
         ghost:
           "border border-[var(--fe-border)] bg-[var(--fe-control-bg)] text-[var(--fe-text-secondary)] shadow-[var(--fe-control-shadow)] hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)]",
         link:
-          "text-[var(--fe-link)] underline-offset-4 hover:underline",
+          "text-[var(--fe-link)] underline-offset-4 hover:underline active:scale-100",
       },
       size: {
         default: "h-11 px-4 py-2",
