@@ -28,7 +28,7 @@ export function ModuleDateFilterBar({ className = "", onDateChange }: ModuleDate
 
   return (
     <div
-      className={`w-full rounded-2xl border border-white/[0.08] bg-white/[0.025] p-1 sm:w-auto [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-white/60 ${className}`}
+      className={`w-full rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-control-bg)] p-1 shadow-[var(--fe-control-shadow)] sm:w-auto ${className}`}
     >
       <DashboardDateFilter onDateChange={handleChange} />
     </div>
