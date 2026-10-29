@@ -86,8 +86,9 @@ CREATE POLICY supplier_purchase_items_delete ON public.supplier_purchase_items
       AND (p.company_id = public.auth_user_company_id() OR public.auth_user_role() = 'super_admin')
   ));
 
--- Allocations are company-scoped. This mirrors the current production policy;
--- relationship integrity is enforced separately by the existing financial RPCs.
+-- Allocations are company-scoped. This mirrors the current production policy.
+-- Cross-reference integrity is intentionally outside this parity migration and
+-- requires a separate data/call-site review before tightening existing behavior.
 DROP POLICY IF EXISTS supplier_purchase_allocations_select ON public.supplier_purchase_allocations;
 CREATE POLICY supplier_purchase_allocations_select ON public.supplier_purchase_allocations
   FOR SELECT TO authenticated
