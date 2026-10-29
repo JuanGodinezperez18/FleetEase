@@ -37,7 +37,7 @@
 - Revoke table privileges from `anon`; grant the required CRUD privileges to `authenticated`, still subject to RLS.
 - Add SELECT/INSERT/UPDATE/DELETE policies scoped by company.
 - For `supplier_purchase_items`, derive company scope through the parent purchase.
-- For `supplier_purchase_allocations`, validate both the purchase and linked financial record belong to the declared company.
+- For `supplier_purchase_allocations`, reproduce the current production tenant policy based on `company_id`; relationship-integrity checks are out of scope for this parity migration because they could hide malformed existing rows and require a separate data audit.
 - Test/verification: inspect the complete migration, compare policy patterns with existing migrations, and run the repository's SQL/static and CI checks if an executable workspace is available. Live two-tenant verification remains required before release.
 
 ### Task 2: Remove a misleading credential example
