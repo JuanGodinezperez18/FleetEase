@@ -23,7 +23,7 @@
 
 - A user cannot select or mutate another company's supplier purchases or accounts payable.
 - Supplier purchase items inherit authorization from their parent purchase.
-- Allocations cannot associate a purchase and financial record belonging to different companies.
+- Allocation rows are scoped by their declared company; cross-reference integrity is explicitly deferred to a separate review.
 - Super-admin access remains compatible with the existing `auth_user_role()` / `auth_user_company_id()` helpers.
 - Public documentation contains no realistic-looking API key that might be mistaken for a real credential.
 
