@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
-  BarChart3,
   Check,
   CircleDollarSign,
   MapPin,
@@ -45,37 +44,6 @@ export const metadata: Metadata = {
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]";
-
-const features = [
-  {
-    number: "01",
-    title: "Rentabilidad por vehículo",
-    description:
-      "Deja de administrar la flotilla a ciegas. Visualiza ingresos, costos y margen de cada unidad en un solo lugar.",
-    icon: CircleDollarSign,
-  },
-  {
-    number: "02",
-    title: "Mantenimiento antes del problema",
-    description:
-      "Controla kilometraje, servicios y vencimientos para reducir paros inesperados y gastos que no estaban en el plan.",
-    icon: Wrench,
-  },
-  {
-    number: "03",
-    title: "Operación bajo control",
-    description:
-      "Clientes, vehículos, asignaciones, créditos y movimientos conectados en una operación clara y trazable.",
-    icon: Activity,
-  },
-  {
-    number: "04",
-    title: "Decisiones con datos",
-    description:
-      "Convierte la información operativa en indicadores que te dicen dónde estás ganando dinero y dónde lo estás perdiendo.",
-    icon: BarChart3,
-  },
-];
 
 export default function LandingPage() {
   return (
