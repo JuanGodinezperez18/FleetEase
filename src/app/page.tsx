@@ -9,7 +9,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
-import { LandingMotionBand } from "@/components/landing/landing-motion-band";
+import { LandingDomainStrip } from "@/components/landing/landing-motion-band";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingPricing } from "@/components/landing/landing-pricing";
@@ -121,7 +121,7 @@ export default function LandingPage() {
             <HeroDashboard />
           </section>
 
-          <LandingMotionBand />
+          <LandingDomainStrip />
 
           <LandingProductShowcase />
 
