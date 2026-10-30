@@ -15,8 +15,8 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingPricing } from "@/components/landing/landing-pricing";
 import { LandingStickyCta } from "@/components/landing/landing-sticky-cta";
-import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { LandingHowItWorks } from "@/components/landing/landing-how-it-works";
+import { LandingProductShowcase } from "@/components/landing/landing-product-showcase";
 import { HeroDashboard } from "@/components/landing/hero-dashboard";
 import { LandingJsonLd } from "@/components/landing/landing-json-ld";
 import { WhatsAppWidget } from "@/components/landing/whatsapp-widget";
@@ -155,43 +155,7 @@ export default function LandingPage() {
 
           <LandingMotionBand />
 
-          <LandingSocialProof />
-
-          <section
-            id="producto"
-            aria-labelledby="producto-title"
-            className="mx-auto max-w-[1240px] scroll-mt-[var(--header-h)] px-5 py-16 lg:px-8 lg:py-24"
-          >
-            <div className="max-w-xl">
-              <h2
-                id="producto-title"
-                className="text-3xl font-semibold tracking-[-0.04em] sm:text-5xl"
-              >
-                Menos hojas de cálculo. Más control.
-              </h2>
-              <p className="mt-5 text-[16px] leading-7 text-white/55">
-                FleetEase reúne la información operativa de tu flotilla en un solo sistema.
-              </p>
-              <Link
-                href="/registro"
-                className={`mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[var(--fe-lime)] ${focusRing}`}
-              >
-                Conocer FleetEase <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2">
-              {features.map((feature) => (
-                <article
-                  key={feature.number}
-                  className="rounded-[22px] border border-white/[0.08] bg-white/[0.03] p-6"
-                >
-                  <feature.icon className="h-5 w-5 text-white/55" />
-                  <h3 className="mt-6 text-xl font-semibold">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/55">{feature.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <LandingProductShowcase />
 
           <LandingHowItWorks />
 
