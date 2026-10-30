@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Check,
   CircleDollarSign,
+  Facebook,
+  Instagram,
   MapPin,
   Wrench,
 } from "lucide-react";
@@ -288,6 +290,14 @@ export default function LandingPage() {
                 <Link href="/cancelaciones" className={`hover:text-white ${focusRing}`}>
                   Cancelaciones
                 </Link>
+              </nav>
+              <nav className="flex items-center gap-3" aria-label="Redes sociales de FleetEase">
+                <a href="https://www.facebook.com/share/1PwgGWzKRU/" target="_blank" rel="noopener noreferrer" aria-label="FleetEase en Facebook (abre en una pestaña nueva)" className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-[var(--fe-lime)]/50 hover:text-[var(--fe-lime)] ${focusRing}`}>
+                  <Facebook className="h-4 w-4" aria-hidden="true" />
+                </a>
+                <a href="https://www.instagram.com/fleeteasemx/" target="_blank" rel="noopener noreferrer" aria-label="FleetEase en Instagram (abre en una pestaña nueva)" className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-[var(--fe-lime)]/50 hover:text-[var(--fe-lime)] ${focusRing}`}>
+                  <Instagram className="h-4 w-4" aria-hidden="true" />
+                </a>
               </nav>
             </div>
             <div className="border-t border-white/[0.07] pt-6">
