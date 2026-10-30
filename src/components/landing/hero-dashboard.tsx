@@ -69,9 +69,9 @@ export function HeroDashboard() {
                 <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">
                   Vista general
                 </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-white sm:text-2xl">
+                <p className="mt-2 text-xl font-semibold tracking-[-0.035em] text-white sm:text-2xl">
                   Tu operación, conectada.
-                </h2>
+                </p>
               </div>
               <span className="text-[10px] text-white/35">Vista ilustrativa</span>
             </div>
