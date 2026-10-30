@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       to: recipient,
       subject: requestType === "vehicle_management"
         ? `Solicitud de administración de vehículos FleetEase — ${fleetSize || "sin flotilla especificada"}`
-        : `Nuevo prospecto de ventas FleetEase — ${fleetSize} vehículo(s)`,
+        : `Nuevo prospecto de ventas FleetEase — ${fleetSize || "sin flotilla especificada"}`,
       text: `Nueva solicitud comercial FleetEase\nNombre: ${name}\nCorreo: ${email}\nEmpresa: ${company || "No especificada"}\nVehículos: ${fleetSize || "No especificado"}\nInterés: ${interest}\n\nNecesidades / dudas:\n${message}`,
       html: `<h2>Nueva solicitud comercial FleetEase</h2><p><b>Nombre:</b> ${safe.name}</p><p><b>Correo:</b> ${safe.email}</p><p><b>Empresa:</b> ${safe.company}</p><p><b>Vehículos:</b> ${safe.fleetSize}</p><p><b>Interés:</b> ${safe.interest}</p><hr /><p><b>Necesidades / dudas:</b></p><p>${safe.message}</p>`,
     });
