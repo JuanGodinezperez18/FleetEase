@@ -7,7 +7,7 @@ const domains = [
   "Rentabilidad",
 ] as const;
 
-export function LandingMotionBand() {
+export function LandingDomainStrip() {
   return (
     <section
       aria-label="Áreas de gestión de FleetEase"
