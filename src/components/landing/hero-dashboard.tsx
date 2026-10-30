@@ -25,8 +25,7 @@ const workstreams = [
 export function HeroDashboard() {
   return (
     <div className="relative mx-auto w-full max-w-[650px]" aria-hidden="true">
-      <div className="absolute -inset-5 -z-10 bg-[radial-gradient(ellipse_at_55%_45%,rgba(215,255,63,0.09),transparent_68%)]" />
-      <div className="overflow-hidden border border-white/[0.14] bg-[#0e1117] shadow-[0_32px_90px_rgba(0,0,0,0.42)]">
+      <div className="overflow-hidden border border-white/[0.14] bg-[var(--fe-dark-surface)] shadow-[0_32px_90px_rgba(0,0,0,0.42)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.1] px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
             <span className="flex h-8 w-8 items-center justify-center bg-[var(--fe-lime)] text-sm font-black tracking-tight text-[var(--fe-ink)]">
@@ -81,20 +80,16 @@ export function HeroDashboard() {
               {workstreams.map((item, index) => (
                 <div
                   key={item.label}
-                  className="grid gap-2 border border-white/[0.09] bg-white/[0.018] p-3.5 sm:grid-cols-[92px_1fr] sm:items-center sm:gap-4 sm:p-4"
+                  className="grid gap-2 border border-white/[0.09] bg-white/[0.018] p-3.5 sm:grid-cols-[28px_1fr] sm:items-center sm:gap-4 sm:p-4"
                 >
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[var(--fe-lime)]">
-                    {item.label}
-                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-white/30">0{index + 1}</span>
                   <div>
-                    <p className="text-xs font-semibold text-white sm:text-sm">{item.title}</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-[var(--fe-lime)]">{item.label}</p>
+                    <p className="mt-1 text-xs font-semibold text-white sm:text-sm">{item.title}</p>
                     <p className="mt-1 text-[10px] leading-4 text-white/45 sm:text-xs">
                       {item.description}
                     </p>
                   </div>
-                  <span className="hidden text-[10px] tabular-nums text-white/25 sm:col-start-1 sm:row-start-1 sm:justify-self-end">
-                    0{index + 1}
-                  </span>
                 </div>
               ))}
             </div>
