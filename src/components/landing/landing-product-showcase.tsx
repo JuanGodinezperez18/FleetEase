@@ -46,10 +46,10 @@ export function LandingProductShowcase() {
             FleetEase reúne la operación diaria y sus números para que puedas revisar qué ocurre con cada unidad y actuar con información más clara.
           </p>
           <Link
-            href="/registro"
-            className="mt-8 inline-flex min-h-11 items-center border-b border-[var(--fe-lime)] pb-1 text-sm font-semibold text-[var(--fe-lime)] transition-colors hover:border-white hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-4 focus-visible:ring-offset-[#0b0e13]"
+            href="#pricing"
+            className="mt-8 inline-flex min-h-11 items-center border-b border-[var(--fe-lime)] pb-1 text-sm font-semibold text-[var(--fe-lime)] transition-colors hover:border-white hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--fe-dark-main)]"
           >
-            Explorar FleetEase
+            Comparar planes
           </Link>
         </div>
 
