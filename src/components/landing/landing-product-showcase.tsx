@@ -29,7 +29,7 @@ export function LandingProductShowcase() {
     <section
       id="producto"
       aria-labelledby="producto-title"
-      className="scroll-mt-[var(--header-h)] border-y border-white/[0.08] bg-[#0b0e13]"
+      className="scroll-mt-[var(--header-h)] border-y border-white/[0.08] bg-[var(--fe-dark-main)]"
     >
       <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20 lg:px-8 lg:py-24">
         <div className="flex flex-col items-start">
