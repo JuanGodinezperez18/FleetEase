@@ -57,7 +57,6 @@ export function UnreadNotificationsCard() {
       .map((n) => (readOverrides.has(n.id) ? { ...n, isRead: true } : n))
       .filter((n) => !n.isRead)
       .sort((a, b) => {
-        // Prioridad por urgencia, luego fecha
         const urg = (b.urgencyScore || 0) - (a.urgencyScore || 0);
         if (urg !== 0) return urg;
         const da = new Date(a.date || 0).getTime();
@@ -137,8 +136,8 @@ export function UnreadNotificationsCard() {
 
   return (
     <div className="flex h-full min-h-[240px] flex-col overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#0e1117] shadow-[0_12px_40px_rgba(0,0,0,.2)]">
-      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-3">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex flex-col gap-2 border-b border-white/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.08] text-[#d7ff3f]">
             <Bell className="h-4 w-4" strokeWidth={1.75} />
           </div>
@@ -151,7 +150,7 @@ export function UnreadNotificationsCard() {
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center justify-end gap-1">
           {unread.length > 0 && (
             <Button
               type="button"
@@ -177,7 +176,7 @@ export function UnreadNotificationsCard() {
         </div>
       </div>
 
-      <div className="flex-1 space-y-1 overflow-y-auto p-2">
+      <div className="flex-1 space-y-1 overflow-y-auto p-2 pb-20 sm:pb-2">
         {!currentUser ? (
           <p className="px-3 py-8 text-center text-sm text-white/35">Inicia sesión para ver avisos.</p>
         ) : unread.length === 0 ? (
