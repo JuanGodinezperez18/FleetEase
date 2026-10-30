@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal } from "@/components/landing/landing-reveal";
 
 const pillars = [
   {
@@ -53,7 +54,7 @@ export function LandingProductShowcase() {
           </Link>
         </div>
 
-        <div className="border-t border-white/[0.14]">
+        <Reveal delay={0.06} className="border-t border-white/[0.14]">
           {pillars.map((pillar) => (
             <article
               key={pillar.number}
@@ -85,7 +86,7 @@ export function LandingProductShowcase() {
               </div>
             </article>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
