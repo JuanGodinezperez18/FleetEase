@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Eye, EyeOff, GripVertical, Save, X, Filter, AreaChart, Loader2, BarChart3, PieChart, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AVAILABLE_KPIS, CHART_WIDGETS, IconMap } from '@/types/dashboard';
+import { AVAILABLE_KPIS, CHART_WIDGETS, IconMap, DEFAULT_WIDGET_SIZE } from '@/types/dashboard';
 import type { DashboardWidget } from '@/types/dashboard';
 import { toast } from 'sonner';
 import { dashboardService } from '@/lib/dashboard-service';
@@ -36,6 +36,12 @@ type AvailableWidget = {
   size?: DashboardWidget['size'];
 };
 
+const SIZE_OPTIONS: Array<{ id: NonNullable<DashboardWidget['size']>; label: string }> = [
+  { id: 'small', label: 'S' },
+  { id: 'medium', label: 'M' },
+  { id: 'large', label: 'L' },
+];
+
 function normalizeDashboardWidgets(items: DashboardWidget[]): DashboardWidget[] {
   const seen = new Set<string>();
   return items
@@ -44,7 +50,14 @@ function normalizeDashboardWidgets(items: DashboardWidget[]): DashboardWidget[] 
       seen.add(widget.id);
       return true;
     })
-    .map((widget, index) => ({ ...widget, order: index }));
+    .map((widget, index) => ({
+      ...widget,
+      order: index,
+      size:
+        widget.size ??
+        DEFAULT_WIDGET_SIZE[widget.id] ??
+        (widget.type === 'chart' ? 'medium' : 'small'),
+    }));
 }
 
 export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave }: DashboardConfiguratorProps) {
@@ -59,7 +72,6 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { setWidgets(normalizeDashboardWidgets(currentWidgets)); }, [currentWidgets]);
 
-  // Lock body scroll while the sheet is open (mobile).
   useEffect(() => {
     if (!isOpen) return;
     const prev = document.body.style.overflow;
@@ -100,6 +112,10 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     }
     const item = availableWidgets.find(w => w.id === widgetId);
     if (item) {
+      const defaultSize =
+        item.size ??
+        DEFAULT_WIDGET_SIZE[item.id] ??
+        (item.type === 'chart' ? 'medium' : 'small');
       setWidgets(normalizeDashboardWidgets([...widgets, {
         id: item.id,
         type: item.type,
@@ -108,9 +124,13 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
         dataKey: item.dataKey ?? item.id,
         enabled: true,
         order: widgets.length,
-        ...(item.size ? { size: item.size } : {}),
+        size: defaultSize,
       }]));
     }
+  };
+
+  const handleSizeChange = (widgetId: string, size: NonNullable<DashboardWidget['size']>) => {
+    setWidgets(prev => prev.map(w => (w.id === widgetId ? { ...w, size } : w)));
   };
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
@@ -129,7 +149,6 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
   };
   const handleDragEnd = () => { setDraggedId(null); setOverId(null); };
 
-  // Touch-friendly alternative to HTML5 drag-and-drop for enabled widgets.
   const handleMoveWidget = (widgetId: string, direction: -1 | 1) => {
     const ordered = [...widgets].sort((a, b) => a.order - b.order);
     const enabledIndexes = ordered.map((widget, index) => widget.enabled ? index : -1).filter(index => index >= 0);
@@ -180,7 +199,6 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
           >
             <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#d7ff3f]/[0.06] blur-[90px]" />
 
-            {/* pt accounts for notch / status bar when sheet is full-height on mobile */}
             <div className="relative flex shrink-0 items-center justify-between border-b border-white/[0.07] px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:py-4 sm:pt-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.07]">
@@ -188,7 +206,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                 </div>
                 <div className="min-w-0">
                   <h2 id="dashboard-config-title" className="truncate text-base font-semibold tracking-[-0.02em] sm:text-lg">Personalizar dashboard</h2>
-                  <p className="mt-0.5 text-[11px] text-white/35">Elige qué ves; usa las flechas o arrastra para ordenar.</p>
+                  <p className="mt-0.5 text-[11px] text-white/55">Orden, visibilidad y tamaño (S/M/L) de cada tarjeta.</p>
                 </div>
               </div>
               <button type="button" onClick={onClose} className="ml-3 rounded-xl p-2 text-white/35 transition-colors hover:bg-white/[0.05] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/40" aria-label="Cerrar personalización">
@@ -198,11 +216,11 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
 
             <div className="relative shrink-0 border-b border-white/[0.07] px-3 py-3 sm:px-6 sm:py-4">
               <div className="mb-2.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
                   <Filter className="h-3.5 w-3.5 text-[#d7ff3f]" />
                   Categoría
                 </div>
-                <span className="text-[10px] text-white/25">{enabledCount} activos</span>
+                <span className="text-[10px] text-white/40">{enabledCount} activos</span>
               </div>
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
                 {categories.map(cat => {
@@ -213,7 +231,7 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        'shrink-0 rounded-xl border px-3 py-1.5 text-[11px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/30',
+                        'min-h-11 shrink-0 rounded-xl border px-3 py-2 text-[11px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#d7ff3f]/30',
                         selectedCategory === cat
                           ? 'border-[#d7ff3f]/30 bg-[#d7ff3f]/10 text-[#d7ff3f]'
                           : 'border-white/[0.07] bg-white/[0.025] text-white/40 hover:border-white/[0.13] hover:bg-white/[0.045] hover:text-white/70'
@@ -235,6 +253,10 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                   const enabledIndex = enabledOrder.findIndex(entry => entry.id === item.id);
                   const canMoveUp = isEnabled && enabledIndex > 0;
                   const canMoveDown = isEnabled && enabledIndex >= 0 && enabledIndex < enabledOrder.length - 1;
+                  const currentSize =
+                    widget?.size ??
+                    DEFAULT_WIDGET_SIZE[item.id] ??
+                    (isChart ? 'medium' : 'small');
                   const Icon = isChart ? (item.id === 'finance-summary-chart' ? BarChart3 : PieChart) : (item.icon ? IconMap[item.icon as keyof typeof IconMap] : AreaChart);
                   return (
                     <div
@@ -245,42 +267,68 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
                       onDrop={e => handleDrop(e, item.id)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        'group flex items-center gap-3 rounded-2xl border p-3 transition-all',
+                        'group flex flex-col gap-2 rounded-2xl border p-3 transition-all',
                         isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.035]' : 'border-white/[0.06] bg-white/[0.018] hover:border-white/[0.11] hover:bg-white/[0.03]',
                         draggedId === item.id && 'scale-[0.98] opacity-40',
                         overId === item.id && 'border-dashed border-[#d7ff3f]/60'
                       )}
                     >
-                      {isEnabled && (
-                        <>
-                          <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-white/20 transition-colors group-hover:text-white/40 active:cursor-grabbing sm:block" aria-hidden="true" />
-                          <div className="flex shrink-0 flex-col gap-1 sm:hidden">
-                            <button type="button" onClick={() => handleMoveWidget(item.id, -1)} disabled={!canMoveUp} aria-label={`Mover ${item.type === 'metric' ? item.label : item.title} hacia arriba`} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </button>
-                            <button type="button" onClick={() => handleMoveWidget(item.id, 1)} disabled={!canMoveDown} aria-label={`Mover ${item.type === 'metric' ? item.label : item.title} hacia abajo`} className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border', isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.07]' : 'border-white/[0.07] bg-white/[0.03]')}>
-                        <Icon className={cn('h-4 w-4', isEnabled ? 'text-[#d7ff3f]' : 'text-white/30')} />
-                      </div>
-                      <button type="button" onClick={() => handleToggleWidget(item.id)} className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#d7ff3f]/30">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <span className="block truncate text-xs font-semibold text-white/80">{item.type === 'metric' ? item.label : item.title}</span>
-                            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-white/30">
-                              {isChart && <AreaChart className="h-3 w-3" />}
-                              {isChart ? 'Gráfico interactivo' : categoryTranslations[item.category]}
+                      <div className="flex items-center gap-3">
+                        {isEnabled && (
+                          <>
+                            <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-white/20 transition-colors group-hover:text-white/40 active:cursor-grabbing sm:block" aria-hidden="true" />
+                            <div className="flex shrink-0 flex-col gap-1 sm:hidden">
+                              <button type="button" onClick={() => handleMoveWidget(item.id, -1)} disabled={!canMoveUp} aria-label={`Mover hacia arriba`} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button type="button" onClick={() => handleMoveWidget(item.id, 1)} disabled={!canMoveDown} aria-label={`Mover hacia abajo`} className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/[0.08] text-white/60 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border', isEnabled ? 'border-[#d7ff3f]/12 bg-[#d7ff3f]/[0.07]' : 'border-white/[0.07] bg-white/[0.03]')}>
+                          <Icon className={cn('h-4 w-4', isEnabled ? 'text-[#d7ff3f]' : 'text-white/30')} />
+                        </div>
+                        <button type="button" onClick={() => handleToggleWidget(item.id)} className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#d7ff3f]/30">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <span className="block truncate text-xs font-semibold text-white/80">{item.type === 'metric' ? item.label : item.title}</span>
+                              <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-white/40">
+                                {isChart && <AreaChart className="h-3 w-3" />}
+                                {isChart ? 'Gráfico interactivo' : categoryTranslations[item.category]}
+                              </span>
+                            </div>
+                            <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition-colors', isEnabled ? 'border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.06]' : 'border-white/[0.06] bg-white/[0.02]')}>
+                              {isEnabled ? <Eye className="h-3.5 w-3.5 text-[#d7ff3f]" /> : <EyeOff className="h-3.5 w-3.5 text-white/25" />}
                             </span>
                           </div>
-                          <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors', isEnabled ? 'border-[#d7ff3f]/15 bg-[#d7ff3f]/[0.06]' : 'border-white/[0.06] bg-white/[0.02]')}>
-                            {isEnabled ? <Eye className="h-3.5 w-3.5 text-[#d7ff3f]" /> : <EyeOff className="h-3.5 w-3.5 text-white/25" />}
-                          </span>
+                        </button>
+                      </div>
+
+                      {isEnabled && (
+                        <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2" role="group" aria-label="Tamaño de tarjeta">
+                          <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">Tamaño</span>
+                          <div className="inline-flex rounded-lg border border-white/[0.08] bg-black/20 p-0.5">
+                            {SIZE_OPTIONS.map(opt => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleSizeChange(item.id, opt.id)}
+                                aria-pressed={currentSize === opt.id}
+                                className={cn(
+                                  'min-h-11 min-w-11 rounded-md px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40',
+                                  currentSize === opt.id
+                                    ? 'bg-[#d7ff3f]/15 text-[#d7ff3f]'
+                                    : 'text-white/45 hover:text-white/75'
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </button>
+                      )}
                     </div>
                   );
                 })}
@@ -288,8 +336,8 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
             </div>
 
             <div className="relative flex shrink-0 flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
-              <div className="text-[10px] text-white/30">
-                <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> elementos visibles
+              <div className="text-[10px] text-white/40">
+                <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> visibles · S = 1 col · L = ancho
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-11 w-full rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white sm:w-auto">
@@ -306,7 +354,5 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
     </AnimatePresence>
   );
 
-  // Portal to body so the sheet sits above the sticky app header (z-30)
-  // and is not trapped by overflow/stacking contexts in the shell.
   return createPortal(overlay, document.body);
 }
