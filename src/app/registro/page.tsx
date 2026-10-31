@@ -61,6 +61,9 @@ export default function RegisterPage() {
   });
 
   const updateField = (field: keyof RegisterData, value: string) => setData(prev => ({ ...prev, [field]: value }));
+  const emailError = data.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())
+    ? 'Ingresa un correo electrónico válido.'
+    : null;
   const phoneError = data.phone ? getPhoneValidationError(data.phone) : null;
   const passwordError = data.password ? getPasswordValidationError(data.password) : null;
   const confirmPasswordError = data.confirmPassword && data.password !== data.confirmPassword
@@ -72,8 +75,17 @@ export default function RegisterPage() {
   );
 
   const handleNextStep = () => {
-    if (step === 1 && data.name.trim() && data.email.trim() && data.companyName.trim()) setStep(2);
-    else if (step === 2) {
+    if (step === 1) {
+      if (!data.companyName.trim() || !data.name.trim()) {
+        toast.error('Completa el nombre de tu empresa y tu nombre completo.');
+        return;
+      }
+      if (!data.email.trim() || emailError) {
+        toast.error(emailError || 'Ingresa tu correo electrónico.');
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
       if (phoneError || !data.phone.trim()) { toast.error(phoneError || 'Ingresa tu número telefónico.'); return; }
       if (passwordError || !data.password) { toast.error(passwordError || 'Ingresa una contraseña.'); return; }
       if (confirmPasswordError || !data.confirmPassword) { toast.error(confirmPasswordError || 'Confirma tu contraseña.'); return; }
@@ -165,11 +177,11 @@ export default function RegisterPage() {
               <motion.div key={step} custom={step} variants={stepVariants} initial="enter" animate="center" exit="exit" className="space-y-5">
                 {step === 1 && <>
                   <div className="grid gap-5 md:grid-cols-2">
-                    <div className="space-y-2"><Label htmlFor="companyName" className="text-xs font-medium text-white/55">Nombre de tu empresa</Label><div className="relative"><Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="companyName" placeholder="Ej: Transportes Rodríguez" value={data.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15" autoFocus /></div></div>
-                    <div className="space-y-2"><Label htmlFor="name" className="text-xs font-medium text-white/55">Tu nombre completo</Label><div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="name" placeholder="Ej: Juan Pérez" value={data.name} onChange={e => updateField('name', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
+                    <div className="space-y-2"><Label htmlFor="companyName" className="text-xs font-medium text-white/55">Nombre de tu empresa <span className="text-red-400">*</span></Label><div className="relative"><Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="companyName" required aria-required="true" placeholder="Ej: Transportes Rodríguez" value={data.companyName} onChange={e => updateField('companyName', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25 focus-visible:border-[#d7ff3f]/40 focus-visible:ring-[#d7ff3f]/15" autoFocus /></div></div>
+                    <div className="space-y-2"><Label htmlFor="name" className="text-xs font-medium text-white/55">Tu nombre completo <span className="text-red-400">*</span></Label><div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="name" required aria-required="true" placeholder="Ej: Juan Pérez" value={data.name} onChange={e => updateField('name', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" /></div></div>
                   </div>
 
-                  <div className="space-y-2"><Label htmlFor="email" className="text-xs font-medium text-white/55">Correo electrónico</Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="email" type="email" placeholder="tu@empresa.com" value={data.email} onChange={e => updateField('email', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" autoComplete="new-email" /></div></div>
+                  <div className="space-y-2"><Label htmlFor="email" className="text-xs font-medium text-white/55">Correo electrónico <span className="text-red-400">*</span></Label><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" /><Input id="email" type="email" required aria-required="true" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? "email-error" : undefined} placeholder="tu@empresa.com" value={data.email} onChange={e => updateField('email', e.target.value)} className="h-11 rounded-xl border-white/10 bg-white/[0.04] pl-10 text-white placeholder:text-white/25" autoComplete="email" /></div>{emailError && <p id="email-error" role="alert" className="text-xs text-red-400">{emailError}</p>}</div>
 
                   <div className="space-y-3">
                     <div className="flex items-end justify-between gap-3"><Label className="text-xs font-medium text-white/55">Selecciona tu plan</Label><span className="text-[10px] uppercase tracking-wider text-white/25">Puedes cambiar después</span></div>
@@ -177,7 +189,7 @@ export default function RegisterPage() {
                       {(Object.values(plans) as any[]).map((plan: any) => {
                         const isFree = plan.id === 'free';
                         const selected = data.selectedPlan === plan.id;
-                        return <motion.div key={plan.id} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative min-w-0 w-full cursor-pointer rounded-2xl border p-3 sm:p-4 transition-all ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
+                        return <motion.button type="button" key={plan.id} aria-pressed={selected} aria-label={`Seleccionar plan ${plan.name}`} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }} onClick={() => setData(prev => ({ ...prev, selectedPlan: plan.id }))} className={`relative min-w-0 w-full cursor-pointer rounded-2xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a0f] sm:p-4 ${selected ? 'border-[#d7ff3f]/70 bg-[#d7ff3f]/[0.07] shadow-[0_0_30px_rgba(215,255,63,.07)]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'} ${isFree ? 'ring-1 ring-[#d7ff3f]/15' : ''}`}>
                           {isFree && <div className="absolute -top-2.5 left-4 flex items-center gap-1 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]"><Sparkles className="h-3 w-3" /> Gratis para siempre</div>}
                           {plan.popular && <div className="absolute -top-2.5 right-4 rounded-full bg-[#d7ff3f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#080a0f]">Más popular</div>}
                           <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] p-1.5 sm:p-2 text-[#d7ff3f]">{isFree ? <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" /> : plan.id === 'starter' ? <Zap className="h-5 w-5" /> : plan.id === 'pro' ? <TrendingUp className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</div><div className="min-w-0"><p className="font-semibold text-white">{plan.name}</p><p className="text-sm leading-5 text-white/40 sm:truncate">{plan.description}</p></div></div>
@@ -185,12 +197,12 @@ export default function RegisterPage() {
                           </div>
                           <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] sm:text-xs text-white/45"><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxVehicles === -1 ? 'Vehículos ilimitados' : `Hasta ${plan.maxVehicles} vehículos`}</span><span className="text-white/15">•</span><CheckCircle className="h-3.5 w-3.5 text-[#d7ff3f]" /><span>{plan.maxUsers === -1 ? 'Usuarios ilimitados' : `${plan.maxUsers} usuario${plan.maxUsers > 1 ? 's' : ''}`}</span>{isFree && <><span className="text-white/15">•</span><span className="font-semibold text-[#d7ff3f]">No requiere tarjeta</span></>}</div>
                           {selected && <div className="absolute right-2.5 top-2.5 sm:right-3 sm:top-3"><CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-[#d7ff3f]" /></div>}
-                        </motion.div>;
+                        </motion.button>;
                       })}
                     </div>
                   </div>
 
-                  <Button onClick={handleNextStep} className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!data.name || !data.email || !data.companyName}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  <Button onClick={handleNextStep} className="h-11 w-full rounded-xl bg-[#d7ff3f] font-semibold text-[#080a0f] hover:bg-[#e0ff5c]" disabled={!data.name.trim() || !data.email.trim() || Boolean(emailError) || !data.companyName.trim()}>Continuar <ArrowRight className="ml-2 h-4 w-4" /></Button>
                 </>}
 
                 {step === 2 && <>

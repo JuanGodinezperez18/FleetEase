@@ -3,20 +3,21 @@ import Link from "next/link";
 import {
   Activity,
   ArrowRight,
-  BarChart3,
   Check,
   CircleDollarSign,
+  Facebook,
+  Instagram,
   MapPin,
   Wrench,
 } from "lucide-react";
 import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
-import { LandingMotionBand } from "@/components/landing/landing-motion-band";
+import { LandingDomainStrip } from "@/components/landing/landing-domain-strip";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingPricing } from "@/components/landing/landing-pricing";
 import { LandingStickyCta } from "@/components/landing/landing-sticky-cta";
-import { LandingSocialProof } from "@/components/landing/landing-social-proof";
 import { LandingHowItWorks } from "@/components/landing/landing-how-it-works";
+import { LandingProductShowcase } from "@/components/landing/landing-product-showcase";
 import { HeroDashboard } from "@/components/landing/hero-dashboard";
 import { LandingJsonLd } from "@/components/landing/landing-json-ld";
 import { WhatsAppWidget } from "@/components/landing/whatsapp-widget";
@@ -45,37 +46,6 @@ export const metadata: Metadata = {
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]";
-
-const features = [
-  {
-    number: "01",
-    title: "Rentabilidad por vehículo",
-    description:
-      "Deja de administrar la flotilla a ciegas. Visualiza ingresos, costos y margen de cada unidad en un solo lugar.",
-    icon: CircleDollarSign,
-  },
-  {
-    number: "02",
-    title: "Mantenimiento antes del problema",
-    description:
-      "Controla kilometraje, servicios y vencimientos para reducir paros inesperados y gastos que no estaban en el plan.",
-    icon: Wrench,
-  },
-  {
-    number: "03",
-    title: "Operación bajo control",
-    description:
-      "Clientes, vehículos, asignaciones, créditos y movimientos conectados en una operación clara y trazable.",
-    icon: Activity,
-  },
-  {
-    number: "04",
-    title: "Decisiones con datos",
-    description:
-      "Convierte la información operativa en indicadores que te dicen dónde estás ganando dinero y dónde lo estás perdiendo.",
-    icon: BarChart3,
-  },
-];
 
 export default function LandingPage() {
   return (
@@ -153,45 +123,9 @@ export default function LandingPage() {
             <HeroDashboard />
           </section>
 
-          <LandingMotionBand />
+          <LandingDomainStrip />
 
-          <LandingSocialProof />
-
-          <section
-            id="producto"
-            aria-labelledby="producto-title"
-            className="mx-auto max-w-[1240px] scroll-mt-[var(--header-h)] px-5 py-16 lg:px-8 lg:py-24"
-          >
-            <div className="max-w-xl">
-              <h2
-                id="producto-title"
-                className="text-3xl font-semibold tracking-[-0.04em] sm:text-5xl"
-              >
-                Menos hojas de cálculo. Más control.
-              </h2>
-              <p className="mt-5 text-[16px] leading-7 text-white/55">
-                FleetEase reúne la información operativa de tu flotilla en un solo sistema.
-              </p>
-              <Link
-                href="/registro"
-                className={`mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[var(--fe-lime)] ${focusRing}`}
-              >
-                Conocer FleetEase <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2">
-              {features.map((feature) => (
-                <article
-                  key={feature.number}
-                  className="rounded-[22px] border border-white/[0.08] bg-white/[0.03] p-6"
-                >
-                  <feature.icon className="h-5 w-5 text-white/55" />
-                  <h3 className="mt-6 text-xl font-semibold">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/55">{feature.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <LandingProductShowcase />
 
           <LandingHowItWorks />
 
@@ -356,6 +290,14 @@ export default function LandingPage() {
                 <Link href="/cancelaciones" className={`hover:text-white ${focusRing}`}>
                   Cancelaciones
                 </Link>
+              </nav>
+              <nav className="flex items-center gap-3" aria-label="Redes sociales de FleetEase">
+                <a href="https://www.facebook.com/share/1PwgGWzKRU/" target="_blank" rel="noopener noreferrer" aria-label="FleetEase en Facebook (abre en una pestaña nueva)" className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-[var(--fe-lime)]/50 hover:text-[var(--fe-lime)] ${focusRing}`}>
+                  <Facebook className="h-4 w-4" aria-hidden="true" />
+                </a>
+                <a href="https://www.instagram.com/fleeteasemx/" target="_blank" rel="noopener noreferrer" aria-label="FleetEase en Instagram (abre en una pestaña nueva)" className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:border-[var(--fe-lime)]/50 hover:text-[var(--fe-lime)] ${focusRing}`}>
+                  <Instagram className="h-4 w-4" aria-hidden="true" />
+                </a>
               </nav>
             </div>
             <div className="border-t border-white/[0.07] pt-6">

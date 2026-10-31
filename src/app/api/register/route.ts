@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     if (selectedPlan === 'free') {
       return NextResponse.json({
         success: true,
-        message: 'Cuenta creada. Tu plan Free está activo para siempre con todas las funciones operativas (hasta 3 vehículos).',
+        message: 'Cuenta creada. Tu plan Free está activo para siempre con todas las funciones operativas (hasta 1 vehículo y 1 usuario).',
         userId: authData.user.id,
         companyId: company.id,
         plan: initialPlan,
