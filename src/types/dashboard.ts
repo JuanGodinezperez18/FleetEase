@@ -102,13 +102,14 @@ export interface DashboardWidget {
   size?: 'small' | 'medium' | 'large';
 }
 
+/** Default chart strip — finance first (full width), rest medium for denser scan. */
 export const CHART_WIDGETS: DashboardWidget[] = [
-  { id: 'finance-summary-chart', type: 'chart', title: 'Resumen Financiero', category: 'FINANZAS', dataKey: 'finance-summary-chart', enabled: true, order: 8, size: 'large' },
-  { id: 'fleet-status-chart', type: 'chart', title: 'Estado de la Flota', category: 'FLOTA', dataKey: 'fleet-status-chart', enabled: true, order: 9, size: 'large' },
-  { id: 'credit-portfolio-chart', type: 'chart', title: 'Cartera de Créditos', category: 'CREDITOS', dataKey: 'credit-portfolio-chart', enabled: true, order: 10, size: 'large' },
-  { id: 'maintenance-chart', type: 'chart', title: 'Salud de Mantenimiento', category: 'KILOMETRAJE', dataKey: 'maintenance-chart', enabled: true, order: 11, size: 'large' },
-  { id: 'fines-chart', type: 'chart', title: 'Multas de la Flota', category: 'MULTAS', dataKey: 'fines-chart', enabled: true, order: 12, size: 'large' },
-  { id: 'client-risk-chart', type: 'chart', title: 'Riesgo de Clientes', category: 'CLIENTES', dataKey: 'client-risk-chart', enabled: true, order: 13, size: 'large' },
+  { id: 'finance-summary-chart', type: 'chart', title: 'Resumen Financiero', category: 'FINANZAS', dataKey: 'finance-summary-chart', enabled: true, order: 5, size: 'large' },
+  { id: 'fleet-status-chart', type: 'chart', title: 'Estado de la Flota', category: 'FLOTA', dataKey: 'fleet-status-chart', enabled: true, order: 6, size: 'medium' },
+  { id: 'credit-portfolio-chart', type: 'chart', title: 'Cartera de Créditos', category: 'CREDITOS', dataKey: 'credit-portfolio-chart', enabled: true, order: 7, size: 'medium' },
+  { id: 'maintenance-chart', type: 'chart', title: 'Salud de Mantenimiento', category: 'KILOMETRAJE', dataKey: 'maintenance-chart', enabled: true, order: 8, size: 'medium' },
+  { id: 'fines-chart', type: 'chart', title: 'Multas de la Flota', category: 'MULTAS', dataKey: 'fines-chart', enabled: true, order: 9, size: 'medium' },
+  { id: 'client-risk-chart', type: 'chart', title: 'Riesgo de Clientes', category: 'CLIENTES', dataKey: 'client-risk-chart', enabled: true, order: 10, size: 'medium' },
 ];
 
 export interface UserDashboardConfig {
@@ -122,17 +123,38 @@ export interface UserDashboardConfig {
   dashboardVersion?: number;
 }
 
+/**
+ * Default layout (v3 density):
+ * 1. Operational alert strip (notifications large)
+ * 2. Four compact KPIs (small) — cash, fleet, clients, credits
+ * 3. Primary chart (finance large) + secondary charts (medium)
+ */
 export const DEFAULT_DASHBOARD_CONFIG: Omit<UserDashboardConfig, 'userId' | 'companyId'> = {
   layout: 'grid',
   theme: 'system',
   widgets: [
     { id: 'unread-notifications', type: 'metric', title: 'Notificaciones sin leer', category: 'SISTEMA', dataKey: 'unread-notifications', enabled: true, order: 0, size: 'large' },
-    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 1 },
-    { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'totalActive', enabled: true, order: 1 },
-    { id: 'total-clients', type: 'metric', title: 'Clientes Activos', category: 'CLIENTES', dataKey: 'totalActiveClients', enabled: true, order: 2 },
-    { id: 'active-credits', type: 'metric', title: 'Créditos Activos', category: 'CREDITOS', dataKey: 'totalActiveCredits', enabled: true, order: 3 },
-    ...CHART_WIDGETS.map((widget, index) => ({ ...widget, order: 4 + index })),
+    { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'monthNetCashFlow', enabled: true, order: 1, size: 'small' },
+    { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'totalActive', enabled: true, order: 2, size: 'small' },
+    { id: 'total-clients', type: 'metric', title: 'Clientes Activos', category: 'CLIENTES', dataKey: 'totalActiveClients', enabled: true, order: 3, size: 'small' },
+    { id: 'active-credits', type: 'metric', title: 'Créditos Activos', category: 'CREDITOS', dataKey: 'totalActiveCredits', enabled: true, order: 4, size: 'small' },
+    ...CHART_WIDGETS,
   ],
+};
+
+/** Suggested size when a widget has none (migration / new add). */
+export const DEFAULT_WIDGET_SIZE: Record<string, NonNullable<DashboardWidget['size']>> = {
+  'unread-notifications': 'large',
+  'cash-flow-month': 'small',
+  'total-vehicles': 'small',
+  'total-clients': 'small',
+  'active-credits': 'small',
+  'finance-summary-chart': 'large',
+  'fleet-status-chart': 'medium',
+  'credit-portfolio-chart': 'medium',
+  'maintenance-chart': 'medium',
+  'fines-chart': 'medium',
+  'client-risk-chart': 'medium',
 };
 
 export interface BaseKPIData { value: string | number; loading?: boolean; error?: string; }
