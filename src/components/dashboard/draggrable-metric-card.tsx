@@ -61,9 +61,10 @@ function MetricCardSkeleton() {
  * Canonical KPI card for the Dashboard grid.
  * Tokens (keep in sync across the system):
  * - radius: rounded-[20px]
- * - title: text-[10px] uppercase tracking-[0.14em] text-white/35
- * - value: text-[32px] sm:text-[34px] font-heading tracking-[-0.04em]
- * - icon box: h-10 w-10, lime border/bg, strokeWidth 1.75
+ * - title: .fe-metric-title (token color, AA contrast)
+ * - value: .fe-metric-value
+ * - icon box: h-10 w-10 (40px), lime border/bg, strokeWidth 1.75
+ * - grip: .fe-metric-grip min 44×44
  * - sparkline height: 32
  */
 function DraggableMetricCardBase({
@@ -127,7 +128,7 @@ function DraggableMetricCardBase({
       <div className="relative flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]/80" />
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fe-lime)]/80" />
             <p className="fe-metric-title truncate">
               {widget.title}
             </p>
@@ -135,7 +136,7 @@ function DraggableMetricCardBase({
 
           <h3 className={cn(
             "fe-metric-value font-heading sm:text-[34px]",
-            isNegativeMoney ? "text-rose-400" : "text-white"
+            isNegativeMoney ? "text-rose-400" : undefined
           )} aria-live="polite">
             {displayValue}
           </h3>
@@ -155,7 +156,7 @@ function DraggableMetricCardBase({
                 {kpiData.trend ? <TrendingUp className="h-3 w-3" strokeWidth={1.8} /> : <TrendingDown className="h-3 w-3" strokeWidth={1.8} />}
                 <span>{Math.abs(changePercent).toFixed(1)}%</span>
               </div>
-              <span className="text-[10px] text-white/25">vs período anterior</span>
+              <span className="text-[10px] text-[color:var(--fe-text-faint)]">vs período anterior</span>
             </div>
           )}
 
@@ -172,18 +173,18 @@ function DraggableMetricCardBase({
           )}
         </div>
 
-        <div className="flex shrink-0 items-start gap-2">
-          <div className="fe-metric-icon transition-transform duration-200 group-hover:scale-105">
+        <div className="flex shrink-0 items-start gap-1">
+          <div className="fe-metric-icon">
             <IconComponent className="h-5 w-5" aria-hidden="true" strokeWidth={1.75} />
           </div>
           <button
             type="button"
             {...handleProps}
-            className="rounded-lg p-1.5 text-white/20 transition hover:bg-white/[0.05] hover:text-white/50 active:cursor-grabbing"
+            className="fe-metric-grip"
             aria-label="Arrastrar para reordenar métrica"
             tabIndex={0}
           >
-            <GripHorizontal className="h-4 w-4" strokeWidth={1.75} />
+            <GripHorizontal className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
       </div>
