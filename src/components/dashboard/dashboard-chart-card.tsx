@@ -65,7 +65,7 @@ function renderActiveShape(props: any) {
   );
 }
 
-/** Tooltip con contraste correcto en tema claro y oscuro (evita texto negro sobre fondo oscuro). */
+/** Tooltip con contraste correcto en tema claro y oscuro. */
 function ChartTooltip({
   active,
   payload,
@@ -97,6 +97,16 @@ function ChartTooltip({
     </div>
   );
 }
+
+/** Palette shared by series fills and legend swatches — never diverge. */
+const SERIES_COLORS = {
+  finance: ['#34d399', '#fb7185', '#60a5fa'], // ingresos / gastos / neto
+  fines: ['#f59e0b', '#34d399'], // pendientes / pagadas
+  fleet: ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8'],
+  credit: ['#d7ff3f', '#f59e0b'],
+  maintenance: ['#d7ff3f', '#f59e0b', '#ef4444'],
+  clientRisk: ['#d7ff3f', '#f59e0b', '#ef4444'],
+} as const;
 
 export function DashboardChartCard({
   widget,
@@ -134,6 +144,7 @@ export function DashboardChartCard({
           kind: 'bar' as const,
           icon: BarChart3,
           description: 'Ingresos, gastos e ingreso neto del período seleccionado',
+          colors: SERIES_COLORS.finance as readonly string[],
           data: [
             { name: 'Ingresos', value: income },
             { name: 'Gastos', value: expenses },
@@ -145,6 +156,7 @@ export function DashboardChartCard({
           kind: 'pie' as const,
           icon: Car,
           description: 'Distribución por asignación de cliente y estado operativo',
+          colors: SERIES_COLORS.fleet as readonly string[],
           data: [
             { name: 'Rentados', value: rentedVehicles },
             { name: 'Disponibles', value: availableVehicles },
@@ -157,6 +169,7 @@ export function DashboardChartCard({
           kind: 'pie' as const,
           icon: CreditCard,
           description: 'Capital recuperado frente al saldo todavía pendiente',
+          colors: SERIES_COLORS.credit as readonly string[],
           data: [
             { name: 'Recuperado', value: recovered },
             { name: 'Pendiente', value: pending },
@@ -167,6 +180,7 @@ export function DashboardChartCard({
           kind: 'pie' as const,
           icon: Activity,
           description: 'Estado de mantenimiento calculado con el kilometraje de la flota',
+          colors: SERIES_COLORS.maintenance as readonly string[],
           data: [
             { name: 'Al día', value: healthyMaintenance },
             { name: 'Próximo', value: soonMaintenance },
@@ -178,6 +192,7 @@ export function DashboardChartCard({
           kind: 'bar' as const,
           icon: ShieldAlert,
           description: `${totalFines} multas registradas: pendientes y pagadas`,
+          colors: SERIES_COLORS.fines as readonly string[],
           data: [
             { name: 'Pendientes', value: pendingFines },
             { name: 'Pagadas', value: paidFines },
@@ -188,6 +203,7 @@ export function DashboardChartCard({
           kind: 'pie' as const,
           icon: Users,
           description: 'Clientes sin deuda, con deuda y deuda crítica',
+          colors: SERIES_COLORS.clientRisk as readonly string[],
           data: [
             { name: 'Sin deuda', value: healthyClients },
             { name: 'Deuda', value: debtNonCritical },
@@ -224,24 +240,14 @@ export function DashboardChartCard({
   const Icon = chart.icon;
   const isMoney =
     widget.dataKey === 'finance-summary-chart' || widget.dataKey === 'credit-portfolio-chart';
-
-  const pieLabels =
-    widget.dataKey === 'fleet-status-chart'
-      ? ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8']
-      : widget.dataKey === 'credit-portfolio-chart'
-        ? ['#d7ff3f', '#f59e0b']
-        : ['#d7ff3f', '#f59e0b', '#ef4444'];
+  const seriesColors = chart.colors;
 
   const chartKey = `${widget.dataKey}-${chart.data.map(d => d.value).join('-')}`;
 
   const activeItem =
     activeIndex !== undefined && chart.data[activeIndex] ? chart.data[activeIndex] : null;
   const centerValue = activeItem ? activeItem.value : total;
-  const centerLabel = activeItem
-    ? activeItem.name
-    : isMoney
-      ? 'total'
-      : 'total';
+  const centerLabel = activeItem ? activeItem.name : 'total';
 
   return (
     <article
@@ -257,7 +263,7 @@ export function DashboardChartCard({
       className={cn(
         'group relative min-h-[292px] min-w-0 overflow-hidden rounded-[18px] border border-black/[0.08] bg-white p-3 text-[#0a0c12] shadow-[0_6px_22px_rgba(8,10,15,.05)] sm:p-5',
         'transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-black/[0.14] hover:shadow-[0_10px_28px_rgba(8,10,15,.08)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f7f2]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f7f2]',
         'dark:border-white/[0.08] dark:bg-[#0d1016] dark:text-white dark:shadow-[0_12px_40px_rgba(0,0,0,.18)] dark:hover:border-white/[0.15] dark:hover:shadow-[0_18px_48px_rgba(0,0,0,.28)] dark:focus-visible:ring-offset-[#080a0f]',
         onClick && 'cursor-pointer'
       )}
@@ -265,26 +271,26 @@ export function DashboardChartCard({
       <div className="mb-3 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f]" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/40 dark:text-white/35">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fe-lime)]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/55">
               Analítica
             </p>
           </div>
           <h3 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#0a0c12] dark:text-white">
             {widget.title}
           </h3>
-          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-black/45 dark:text-white/40">
+          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-black/55 dark:text-white/55">
             {chart.description}
             {widget.dataKey === 'fleet-status-chart' && (
-              <span className="mt-0.5 block text-[11px] text-black/35 dark:text-white/30">
+              <span className="mt-0.5 block text-[11px] text-black/45 dark:text-white/45">
                 Toca un segmento o la leyenda para ver el detalle.
               </span>
             )}
           </p>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] transition-all duration-200 group-hover:border-[#d7ff3f]/35 group-hover:bg-[#d7ff3f]/[0.1] group-hover:scale-105 dark:border-white/[0.07] dark:bg-white/[0.025] dark:group-hover:border-[#d7ff3f]/25 dark:group-hover:bg-[#d7ff3f]/[0.08]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] transition-all duration-200 group-hover:border-[var(--fe-lime)]/35 group-hover:bg-[var(--fe-lime)]/[0.1] group-hover:scale-105 dark:border-white/[0.07] dark:bg-white/[0.025] dark:group-hover:border-[var(--fe-lime)]/25 dark:group-hover:bg-[var(--fe-lime)]/[0.08]">
           <Icon
-            className="h-[17px] w-[17px] text-black/50 transition-colors duration-200 group-hover:text-[#5c6d08] dark:text-white/55 dark:group-hover:text-[#d7ff3f]"
+            className="h-[17px] w-[17px] text-black/50 transition-colors duration-200 group-hover:text-[#5c6d08] dark:text-white/55 dark:group-hover:text-[var(--fe-lime)]"
             strokeWidth={1.7}
           />
         </div>
@@ -308,12 +314,12 @@ export function DashboardChartCard({
             >
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.45 }}
+                tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.55 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.3 }}
+                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.45 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={value => (isMoney ? moneyText(Number(value)) : String(value))}
@@ -322,18 +328,19 @@ export function DashboardChartCard({
               <Bar
                 dataKey="value"
                 radius={[6, 6, 2, 2]}
-                fill="#d7ff3f"
                 isAnimationActive
                 animationDuration={900}
                 animationEasing="ease-out"
                 animationBegin={80}
                 maxBarSize={52}
-                activeBar={{
-                  fill: '#c4eb2a',
-                  stroke: '#a8c91f',
-                  strokeWidth: 1.5,
-                }}
-              />
+              >
+                {chart.data.map((item, index) => (
+                  <Cell
+                    key={item.name}
+                    fill={seriesColors[index % seriesColors.length]}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -368,7 +375,7 @@ export function DashboardChartCard({
                   {chart.data.map((item, index) => (
                     <Cell
                       key={item.name}
-                      fill={pieLabels[index % pieLabels.length]}
+                      fill={seriesColors[index % seriesColors.length]}
                       style={{
                         cursor: onSegmentClick || chart.kind === 'pie' ? 'pointer' : 'default',
                         outline: 'none',
@@ -382,12 +389,11 @@ export function DashboardChartCard({
                 <Tooltip content={<ChartTooltip isMoney={isMoney} />} />
               </PieChart>
             </ResponsiveContainer>
-            {/* Centro: solo número + etiqueta corta, sin solaparse con el tooltip */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6">
               <span className="font-heading text-[clamp(1.25rem,5vw,1.75rem)] font-semibold tabular-nums tracking-tight text-[#0a0c12] dark:text-white">
                 {isMoney ? moneyText(centerValue) : centerValue}
               </span>
-              <span className="mt-0.5 max-w-[100px] truncate text-center text-[10px] font-medium uppercase tracking-[0.12em] text-black/40 dark:text-white/45">
+              <span className="mt-0.5 max-w-[100px] truncate text-center text-[10px] font-medium uppercase tracking-[0.12em] text-black/50 dark:text-white/55">
                 {centerLabel}
               </span>
             </div>
@@ -396,10 +402,11 @@ export function DashboardChartCard({
       </div>
 
       {hasData && (
-        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1.5 border-t border-black/[0.06] pt-3 text-[11px] text-black/50 dark:border-white/[0.05] dark:text-white/45">
+        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1.5 border-t border-black/[0.06] pt-3 text-[11px] text-black/55 dark:border-white/[0.05] dark:text-white/55">
           {chart.data.map((item, index) => {
             const isActive = activeIndex === index;
             const isDimmed = chart.kind === 'pie' && activeIndex !== undefined && !isActive;
+            const swatch = seriesColors[index % seriesColors.length];
             return (
               <button
                 key={item.name}
@@ -409,7 +416,7 @@ export function DashboardChartCard({
                   if (chart.kind === 'pie') onLegendToggle(index, item.name);
                 }}
                 className={cn(
-                  'flex min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-all duration-150',
+                  'flex min-h-11 min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5 transition-all duration-150',
                   chart.kind === 'pie' &&
                     'cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
                   isActive && 'bg-black/[0.06] dark:bg-white/[0.1]',
@@ -417,8 +424,9 @@ export function DashboardChartCard({
                 )}
               >
                 <span
-                  className="h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ background: pieLabels[index % pieLabels.length] }}
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: swatch }}
+                  aria-hidden
                 />
                 <span>{item.name}</span>
                 <strong
