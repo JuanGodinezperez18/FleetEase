@@ -27,9 +27,10 @@
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
   --fe-text: #ffffff;
-  --fe-text-secondary: rgba(255, 255, 255, 0.65);
-  --fe-text-muted: rgba(255, 255, 255, 0.60);
-  --fe-text-faint: rgba(255, 255, 255, 0.55);
+  --fe-text-secondary: rgba(255, 255, 255, 0.72);
+  --fe-text-muted: rgba(255, 255, 255, 0.68);
+  /* Raised from 0.55 → ~0.72 effective for 10px metadata (WCAG AA ≥4.5) */
+  --fe-text-faint: rgba(255, 255, 255, 0.72);
   --fe-hover: rgba(255, 255, 255, 0.06);
   --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-panel: rgba(14, 17, 23, 0.95);
@@ -43,7 +44,7 @@
   --fe-input-bg: rgba(255, 255, 255, 0.035);
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
-  --fe-input-placeholder: rgba(255, 255, 255, 0.3);
+  --fe-input-placeholder: rgba(255, 255, 255, 0.45);
   --fe-control-bg: rgba(255, 255, 255, 0.045);
   --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --fe-radius-sm: 10px;
@@ -84,9 +85,9 @@
   --fe-surface: var(--fe-dark-surface);
   --fe-main: var(--fe-dark-main);
   --fe-text: #ffffff;
-  --fe-text-secondary: rgba(255, 255, 255, 0.65);
-  --fe-text-muted: rgba(255, 255, 255, 0.60);
-  --fe-text-faint: rgba(255, 255, 255, 0.55);
+  --fe-text-secondary: rgba(255, 255, 255, 0.72);
+  --fe-text-muted: rgba(255, 255, 255, 0.68);
+  --fe-text-faint: rgba(255, 255, 255, 0.72);
   --fe-hover: rgba(255, 255, 255, 0.06);
   --fe-hover-strong: rgba(255, 255, 255, 0.1);
   --fe-menu-bg: var(--fe-dark-surface);
@@ -94,6 +95,7 @@
   --fe-input-bg: rgba(255, 255, 255, 0.035);
   --fe-input-border: rgba(255, 255, 255, 0.08);
   --fe-input-text: #ffffff;
+  --fe-input-placeholder: rgba(255, 255, 255, 0.45);
   --fe-panel: rgba(14, 17, 23, 0.95);
   --fe-control-bg: rgba(255, 255, 255, 0.045);
   --fe-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -108,9 +110,10 @@
   --fe-surface: #ffffff;
   --fe-main: #ffffff;
   --fe-text: #0a0c12;
-  --fe-text-secondary: rgba(8, 10, 15, 0.7);
-  --fe-text-muted: rgba(8, 10, 15, 0.52);
-  --fe-text-faint: rgba(8, 10, 15, 0.4);
+  --fe-text-secondary: rgba(8, 10, 15, 0.78);
+  --fe-text-muted: rgba(8, 10, 15, 0.62);
+  /* Raised from 0.40 → 0.62 for 10px metadata (WCAG AA ≥4.5 on #fafafa) */
+  --fe-text-faint: rgba(8, 10, 15, 0.62);
   --fe-hover: rgba(8, 10, 15, 0.04);
   --fe-hover-strong: rgba(8, 10, 15, 0.07);
   --fe-menu-bg: #ffffff;
@@ -118,7 +121,7 @@
   --fe-input-bg: #ffffff;
   --fe-input-border: rgba(8, 10, 15, 0.14);
   --fe-input-text: #0a0c12;
-  --fe-input-placeholder: rgba(8, 10, 15, 0.35);
+  --fe-input-placeholder: rgba(8, 10, 15, 0.45);
   --fe-skeleton: rgba(8, 10, 15, 0.05);
   --fe-link: var(--fe-lime-text);
   --fe-panel: #ffffff;
@@ -200,6 +203,7 @@
   padding: 1.25rem 1.35rem;
   box-shadow: var(--fe-shadow-sm);
   transition: border-color var(--fe-motion-base), box-shadow var(--fe-motion-base), transform var(--fe-motion-fast);
+  min-height: 7.5rem; /* equalize sibling card heights */
 }
 .fe-metric-title {
   font-size: 10px;
@@ -215,6 +219,8 @@
   letter-spacing: -0.04em;
   color: var(--fe-text);
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .fe-metric-description {
   font-size: 12px;
@@ -223,7 +229,7 @@
 }
 .fe-metric-icon {
   display: flex;
-  height: 2.5rem;
+  height: 2.5rem; /* 40px */
   width: 2.5rem;
   flex-shrink: 0;
   align-items: center;
@@ -239,6 +245,27 @@
   color: var(--fe-lime-text);
 }
 .fe-metric-divider { border-color: var(--fe-border); }
+
+/* Grip / reorder control — WCAG 2.5.5 target size */
+.fe-metric-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: var(--fe-radius-sm);
+  color: var(--fe-text-faint);
+  background: transparent;
+  border: none;
+  cursor: grab;
+  transition: background-color var(--fe-motion-fast), color var(--fe-motion-fast);
+}
+.fe-metric-grip:hover {
+  background: var(--fe-hover);
+  color: var(--fe-text-secondary);
+}
+.fe-metric-grip:active { cursor: grabbing; }
 
 /* Page shell */
 .fe-page-shell {
@@ -259,11 +286,11 @@
   background-color: var(--fe-control-bg);
   color: var(--fe-text);
   box-shadow: var(--fe-control-shadow);
+  min-height: var(--fe-control-height);
 }
 
 /* --------------------------------------------------------------------------
-   Module page header — used by Multas, Alertas, Créditos, Ingresos, etc.
-   Was documented in DESIGN.md but never defined → titles looked broken.
+   Module page header
    -------------------------------------------------------------------------- */
 .fe-module-header {
   display: flex;
@@ -403,7 +430,7 @@
 #fe-boot p {
   margin: 0.15rem 0 1.25rem;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.72);
 }
 #fe-boot .fe-boot-bar {
   width: 120px;
@@ -452,9 +479,6 @@ html[data-fe-boot-hidden="true"] #fe-boot {
 @keyframes fe-skeleton-shimmer {
   100% { transform: translateX(100%); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .fe-skeleton::after { animation: none; }
-}
 
 .fe-surface-bg {
   background-color: var(--fe-surface);
@@ -486,6 +510,9 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   color: var(--fe-lime-text) !important;
 }
 
+/* --------------------------------------------------------------------------
+   prefers-reduced-motion — dashboard + boot + metric motion
+   -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .fe-landing *,
   .fe-landing *::before,
@@ -493,5 +520,32 @@ html[data-fe-boot-hidden="true"] #fe-boot {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .fe-skeleton::after {
+    animation: none !important;
+  }
+
+  #fe-boot .fe-boot-bar i,
+  #fe-boot * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .fe-metric-card,
+  .fe-metric-icon,
+  .fe-metric-grip {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Global kill-switch for remaining dashboard motion */
+  .fe-app-shell *,
+  .fe-app-shell *::before,
+  .fe-app-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

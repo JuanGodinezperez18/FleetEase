@@ -6,6 +6,7 @@ import { DraggableMetricCard } from '@/components/dashboard/draggrable-metric-ca
 import { UnreadNotificationsCard } from '@/components/dashboard/unread-notifications-card';
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import type { DashboardWidget, MetricKPIData, KPIConfig } from '@/types/dashboard';
+import { cn } from '@/lib/utils';
 
 interface KpiGridProps {
   enabledWidgets: DashboardWidget[];
@@ -36,6 +37,19 @@ const fleetSegmentActionMap: Record<string, string> = {
   Mantenimiento: 'maintenance-overdue',
 };
 
+/** Map DashboardWidget.size → grid col-span (already persisted by configurator). */
+function sizeClass(size?: DashboardWidget['size'], isChart?: boolean): string {
+  if (isChart) {
+    // Charts default to full-width on xl; size can still narrow on md+
+    if (size === 'small') return 'min-w-0 md:col-span-1 xl:col-span-2';
+    if (size === 'medium') return 'min-w-0 md:col-span-2 xl:col-span-2';
+    return 'min-w-0 md:col-span-2 xl:col-span-4'; // large | undefined
+  }
+  if (size === 'large') return 'min-w-0 md:col-span-2 xl:col-span-2';
+  if (size === 'small') return 'min-w-0';
+  return 'min-w-0'; // medium | undefined → 1 col
+}
+
 export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenConfig }: KpiGridProps) {
   const isEmpty = enabledWidgets.length === 0;
   const alwaysInteractive = new Set(['total-clients', 'total-vehicles', 'vehicles-rented']);
@@ -55,7 +69,10 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
           {enabledWidgets.map(widget => {
             if (widget.id === 'unread-notifications') {
               return (
-                <div key={widget.id} className="min-w-0 md:col-span-2 xl:col-span-2">
+                <div
+                  key={widget.id}
+                  className={cn(sizeClass(widget.size ?? 'large'))}
+                >
                   <UnreadNotificationsCard />
                 </div>
               );
@@ -85,7 +102,7 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
                     : undefined;
 
               return (
-                <div key={widget.id} className="min-w-0 md:col-span-2 xl:col-span-4">
+                <div key={widget.id} className={sizeClass(widget.size, true)}>
                   <DashboardChartCard
                     widget={widget}
                     allKPIs={allKPIs as Record<string, MetricKPIData>}
@@ -100,13 +117,14 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
             const kpiData = allKPIs[widget.id as keyof typeof allKPIs];
             const isInteractive = Boolean(kpiConfig?.isInteractive || alwaysInteractive.has(widget.id));
             return (
-              <DraggableMetricCard
-                key={widget.id}
-                widget={widget}
-                kpiData={kpiData as MetricKPIData}
-                kpiConfig={kpiConfig}
-                onClick={isInteractive ? () => onKpiClick(widget) : undefined}
-              />
+              <div key={widget.id} className={sizeClass(widget.size)}>
+                <DraggableMetricCard
+                  widget={widget}
+                  kpiData={kpiData as MetricKPIData}
+                  kpiConfig={kpiConfig}
+                  onClick={isInteractive ? () => onKpiClick(widget) : undefined}
+                />
+              </div>
             );
           })}
         </div>
