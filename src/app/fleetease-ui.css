@@ -212,15 +212,18 @@
   text-transform: uppercase;
   color: var(--fe-text-faint);
 }
+/* KPI value: never break mid-number; fluid size for long amounts on narrow cards */
 .fe-metric-value {
-  font-size: 32px;
+  font-size: clamp(1.35rem, 4.2vw + 0.55rem, 2.125rem); /* ~22px → 34px */
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.05;
   letter-spacing: -0.04em;
   color: var(--fe-text);
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .fe-metric-description {
   font-size: 12px;
@@ -229,8 +232,8 @@
 }
 .fe-metric-icon {
   display: flex;
-  height: 2.5rem; /* 40px */
-  width: 2.5rem;
+  height: 2.25rem; /* 36px — slightly tighter */
+  width: 2.25rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -245,27 +248,6 @@
   color: var(--fe-lime-text);
 }
 .fe-metric-divider { border-color: var(--fe-border); }
-
-/* Grip / reorder control — WCAG 2.5.5 target size */
-.fe-metric-grip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border-radius: var(--fe-radius-sm);
-  color: var(--fe-text-faint);
-  background: transparent;
-  border: none;
-  cursor: grab;
-  transition: background-color var(--fe-motion-fast), color var(--fe-motion-fast);
-}
-.fe-metric-grip:hover {
-  background: var(--fe-hover);
-  color: var(--fe-text-secondary);
-}
-.fe-metric-grip:active { cursor: grabbing; }
 
 /* Page shell */
 .fe-page-shell {
@@ -533,8 +515,7 @@ html[data-fe-boot-hidden="true"] #fe-boot {
   }
 
   .fe-metric-card,
-  .fe-metric-icon,
-  .fe-metric-grip {
+  .fe-metric-icon {
     transition: none !important;
     animation: none !important;
   }
