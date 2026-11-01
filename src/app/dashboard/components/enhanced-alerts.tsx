@@ -4,5 +4,4 @@
 export {
   EnhancedAlerts,
   type EnhancedAlertsProps,
-  type AlertItem,
 } from '@/components/dashboard/components/enhanced-alerts';
