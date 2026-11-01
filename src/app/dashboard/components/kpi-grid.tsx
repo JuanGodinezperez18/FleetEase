@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, HTMLAttributes, ReactNode, Ref } from 'react';
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
 import { EmptyState } from '@/components/common/empty-state';
 import { Settings } from 'lucide-react';
 import { DraggableMetricCard } from '@/components/dashboard/draggrable-metric-card';
@@ -73,6 +73,9 @@ function sizeClass(size?: DashboardWidget['size'], isChart?: boolean): string {
   return 'min-w-0 col-span-1';
 }
 
+/** Drag listeners/attributes for the card surface — no ref (ref stays on the shell). */
+type DragHandleProps = Omit<HTMLAttributes<HTMLElement>, 'ref'>;
+
 function SortableWidgetShell({
   id,
   className,
@@ -80,9 +83,7 @@ function SortableWidgetShell({
 }: {
   id: string;
   className?: string;
-  children: (
-    handleProps: HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement> }
-  ) => ReactNode;
+  children: (handleProps: DragHandleProps) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -95,12 +96,12 @@ function SortableWidgetShell({
     opacity: isDragging ? 0.92 : undefined,
   };
 
-  // Listeners only — transform lives on the outer shell to avoid double-offset.
+  // Listeners only — transform + ref live on the outer shell (avoids double-offset and ref mismatch).
   // TouchSensor delay (220ms) keeps vertical scroll usable on mobile/tablet.
-  const handleProps = {
+  const handleProps: DragHandleProps = {
     ...attributes,
     ...listeners,
-  } as HTMLAttributes<HTMLElement>;
+  };
 
   return (
     <div
