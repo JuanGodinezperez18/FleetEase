@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { Activity, BarChart3, Car, CreditCard, ShieldAlert, Users } from 'lucide-react';
 import {
   Bar,
@@ -98,14 +99,29 @@ function ChartTooltip({
   );
 }
 
-/** Palette shared by series fills and legend swatches — never diverge. */
-const SERIES_COLORS = {
-  finance: ['#34d399', '#fb7185', '#60a5fa'], // ingresos / gastos / neto
-  fines: ['#f59e0b', '#34d399'], // pendientes / pagadas
-  fleet: ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8'],
-  credit: ['#d7ff3f', '#f59e0b'],
-  maintenance: ['#d7ff3f', '#f59e0b', '#ef4444'],
-  clientRisk: ['#d7ff3f', '#f59e0b', '#ef4444'],
+/**
+ * Palette shared by series fills and legend swatches — never diverge.
+ * Light variants replace pure brand lime (#d7ff3f) and cyan (#22d3ee)
+ * which fail WCAG 1.4.11 on white card surfaces (1.15:1 and 1.81:1).
+ * Light lime uses --fe-lime-text (#5c6d08, ~5.5:1); cyan uses teal-700.
+ */
+const SERIES_COLORS_BY_THEME = {
+  dark: {
+    finance: ['#34d399', '#fb7185', '#60a5fa'], // ingresos / gastos / neto
+    fines: ['#f59e0b', '#34d399'], // pendientes / pagadas
+    fleet: ['#22d3ee', '#d7ff3f', '#f59e0b', '#94a3b8'],
+    credit: ['#d7ff3f', '#f59e0b'],
+    maintenance: ['#d7ff3f', '#f59e0b', '#ef4444'],
+    clientRisk: ['#d7ff3f', '#f59e0b', '#ef4444'],
+  },
+  light: {
+    finance: ['#059669', '#e11d48', '#2563eb'], // deeper emerald / rose / blue
+    fines: ['#d97706', '#059669'], // amber-600 / emerald-600
+    fleet: ['#0e7490', '#5c6d08', '#d97706', '#64748b'], // teal-700 / lime-text / amber-600 / slate
+    credit: ['#5c6d08', '#d97706'],
+    maintenance: ['#5c6d08', '#d97706', '#dc2626'],
+    clientRisk: ['#5c6d08', '#d97706', '#dc2626'],
+  },
 } as const;
 
 export function DashboardChartCard({
@@ -114,6 +130,10 @@ export function DashboardChartCard({
   onClick,
   onSegmentClick,
 }: DashboardChartCardProps) {
+  const { resolvedTheme } = useTheme();
+  const themeKey = resolvedTheme === 'light' ? 'light' : 'dark';
+  const SERIES_COLORS = SERIES_COLORS_BY_THEME[themeKey];
+
   const income = valueOf(allKPIs, 'income-month');
   const expenses = valueOf(allKPIs, 'expenses-month');
   const net = valueOf(allKPIs, 'net-income');
@@ -242,7 +262,7 @@ export function DashboardChartCard({
     widget.dataKey === 'finance-summary-chart' || widget.dataKey === 'credit-portfolio-chart';
   const seriesColors = chart.colors;
 
-  const chartKey = `${widget.dataKey}-${chart.data.map(d => d.value).join('-')}`;
+  const chartKey = `${widget.dataKey}-${themeKey}-${chart.data.map(d => d.value).join('-')}`;
 
   const activeItem =
     activeIndex !== undefined && chart.data[activeIndex] ? chart.data[activeIndex] : null;
@@ -279,10 +299,10 @@ export function DashboardChartCard({
           <h3 className="truncate font-heading text-[15px] font-semibold tracking-[-0.02em] text-[#0a0c12] dark:text-white">
             {widget.title}
           </h3>
-          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-black/55 dark:text-white/55">
+          <p className="mt-1 max-w-[42rem] text-xs leading-5 text-[var(--fe-text-muted)]">
             {chart.description}
             {widget.dataKey === 'fleet-status-chart' && (
-              <span className="mt-0.5 block text-[11px] text-black/45 dark:text-white/45">
+              <span className="mt-0.5 block text-[11px] text-[var(--fe-text-muted)]">
                 Toca un segmento o la leyenda para ver el detalle.
               </span>
             )}
@@ -314,12 +334,12 @@ export function DashboardChartCard({
             >
               <XAxis
                 dataKey="name"
-                tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.55 }}
+                tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.65 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.45 }}
+                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.6 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={value => (isMoney ? moneyText(Number(value)) : String(value))}
@@ -402,7 +422,7 @@ export function DashboardChartCard({
       </div>
 
       {hasData && (
-        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1.5 border-t border-black/[0.06] pt-3 text-[11px] text-black/55 dark:border-white/[0.05] dark:text-white/55">
+        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1.5 border-t border-black/[0.06] pt-3 text-[11px] text-[var(--fe-text-muted)] dark:border-white/[0.05]">
           {chart.data.map((item, index) => {
             const isActive = activeIndex === index;
             const isDimmed = chart.kind === 'pie' && activeIndex !== undefined && !isActive;
