@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties, HTMLAttributes, ReactNode, Ref } from 'react';
 import { EmptyState } from '@/components/common/empty-state';
 import { Settings } from 'lucide-react';
 import { DraggableMetricCard } from '@/components/dashboard/draggrable-metric-card';
@@ -80,14 +81,14 @@ function SortableWidgetShell({
   id: string;
   className?: string;
   children: (
-    handleProps: React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }
-  ) => React.ReactNode;
+    handleProps: HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement> }
+  ) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
 
-  const style: React.CSSProperties = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 20 : undefined,
@@ -99,7 +100,7 @@ function SortableWidgetShell({
   const handleProps = {
     ...attributes,
     ...listeners,
-  } as React.HTMLAttributes<HTMLElement>;
+  } as HTMLAttributes<HTMLElement>;
 
   return (
     <div
@@ -192,7 +193,7 @@ export function KpiGrid({
                     ? (segmentName: string) => {
                         const map: Record<string, string> = {
                           Vencido: 'maintenance-overdue',
-                          Próximo: 'maintenance-soon',
+                          'Próximo': 'maintenance-soon',
                         };
                         const kpiId = map[segmentName];
                         if (kpiId) onKpiClick({ ...widget, id: kpiId } as DashboardWidget);
