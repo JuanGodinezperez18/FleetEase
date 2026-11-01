@@ -71,11 +71,11 @@ export function FloatingActionButton({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[2px] dark:bg-black/40"
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[3px] dark:bg-black/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.18 }}
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
@@ -83,13 +83,13 @@ export function FloatingActionButton({
       </AnimatePresence>
 
       <div
-        className={`fixed z-50 flex flex-col items-end gap-3 bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] ${className}`}
+        className={`fixed z-50 flex flex-col items-end gap-2.5 bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] right-[max(1.25rem,env(safe-area-inset-right,0px))] ${className}`}
         data-fab-root
       >
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="mb-1 flex flex-col items-end gap-2.5"
+              className="mb-1 flex flex-col items-end gap-2"
               data-fab-actions
               role="menu"
               aria-label="Acciones rápidas"
@@ -98,10 +98,10 @@ export function FloatingActionButton({
               exit="closed"
               variants={{
                 open: {
-                  transition: { staggerChildren: 0.06, delayChildren: 0.04 },
+                  transition: { staggerChildren: 0.05, delayChildren: 0.03 },
                 },
                 closed: {
-                  transition: { staggerChildren: 0.04, staggerDirection: -1 },
+                  transition: { staggerChildren: 0.03, staggerDirection: -1 },
                 },
               }}
             >
@@ -112,7 +112,7 @@ export function FloatingActionButton({
                     key={action.action}
                     type="button"
                     role="menuitem"
-                    className="group flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-[var(--fe-surface,#fff)] px-4 py-3 text-sm font-medium text-foreground shadow-[0_8px_28px_rgba(0,0,0,0.12)] backdrop-blur-md transition-colors hover:border-[#d7ff3f]/40 hover:bg-[#d7ff3f]/10 dark:border-white/10 dark:bg-[#0e1117]/95 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45)] dark:hover:border-[#d7ff3f]/35"
+                    className="group flex items-center gap-3 rounded-2xl border border-[color:var(--fe-border)] bg-[var(--fe-surface)] px-3.5 py-2.5 text-sm font-medium text-[var(--fe-text)] shadow-[var(--fe-shadow-md)] backdrop-blur-md transition-colors hover:border-[color:var(--fe-lime)]/45 hover:bg-[color:var(--fe-lime)]/10"
                     onClick={() => handleActionClick(action.action)}
                     variants={{
                       open: {
@@ -122,17 +122,17 @@ export function FloatingActionButton({
                         transition: { type: 'spring', stiffness: 420, damping: 28 },
                       },
                       closed: {
-                        y: 16,
+                        y: 12,
                         opacity: 0,
-                        scale: 0.92,
-                        transition: { duration: 0.15 },
+                        scale: 0.94,
+                        transition: { duration: 0.12 },
                       },
                     }}
-                    whileHover={{ scale: 1.03, x: -2 }}
+                    whileHover={{ scale: 1.02, x: -2 }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d7ff3f]/15 text-[#5a6b00] transition-colors group-hover:bg-[#d7ff3f]/30 dark:text-[#d7ff3f]">
-                      <Icon className="h-4.5 w-4.5" strokeWidth={1.9} aria-hidden="true" />
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color:var(--fe-lime)]/15 text-[color:var(--fe-lime-text,#5c6d08)] dark:text-[color:var(--fe-lime)]">
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.9} aria-hidden="true" />
                     </span>
                     <span className="whitespace-nowrap pr-1">{action.label}</span>
                   </motion.button>
@@ -141,7 +141,7 @@ export function FloatingActionButton({
 
               {filteredActions.length === 0 && (
                 <motion.div
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-xs text-black/55 shadow-xl dark:border-white/10 dark:bg-[#0e1117]/95 dark:text-white/55"
+                  className="rounded-2xl border border-[color:var(--fe-border)] bg-[var(--fe-surface)] px-4 py-3 text-xs text-[var(--fe-text-muted)] shadow-[var(--fe-shadow-md)]"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
@@ -153,32 +153,19 @@ export function FloatingActionButton({
           )}
         </AnimatePresence>
 
+        {/* Main FAB — brand squircle, no infinite pulse (audit: limited motion) */}
         <motion.button
           type="button"
-          className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d7ff3f] text-[#080a0f] shadow-[0_10px_30px_rgba(215,255,63,.22)] transition-shadow duration-200 hover:shadow-[0_14px_40px_rgba(215,255,63,.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          className="relative flex h-14 w-14 items-center justify-center rounded-[18px] bg-[var(--fe-lime,#d7ff3f)] text-[var(--fe-ink,#080a0f)] shadow-[0_8px_28px_rgba(215,255,63,0.28)] ring-1 ring-black/5 transition-shadow duration-200 hover:shadow-[0_12px_36px_rgba(215,255,63,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-bg)] dark:ring-white/10"
           onClick={() => setIsOpen((open) => !open)}
-          whileHover={{ scale: 1.06 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.94 }}
-          animate={{
-            rotate: isOpen ? 45 : 0,
-            boxShadow: isOpen
-              ? '0 8px 24px rgba(215,255,63,0.15)'
-              : '0 10px 30px rgba(215,255,63,0.22)',
-          }}
+          animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ type: 'spring', stiffness: 380, damping: 22 }}
           aria-expanded={isOpen}
           aria-label={isOpen ? 'Cerrar menú de acciones rápidas' : 'Abrir menú de acciones rápidas'}
           aria-haspopup="menu"
         >
-          {/* Soft pulse when closed */}
-          {!isOpen && (
-            <motion.span
-              className="pointer-events-none absolute inset-0 rounded-2xl bg-[#d7ff3f]"
-              animate={{ scale: [1, 1.18, 1], opacity: [0.35, 0, 0.35] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-              aria-hidden="true"
-            />
-          )}
           <span className="relative z-[1]">
             {isOpen ? (
               <X className="h-6 w-6" strokeWidth={2.2} aria-hidden="true" />
@@ -189,7 +176,7 @@ export function FloatingActionButton({
 
           {!isOpen && urgentActionsCount > 0 && (
             <motion.span
-              className="absolute -right-1 -top-1 z-[2] flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-white dark:ring-[#080a0f]"
+              className="absolute -right-1 -top-1 z-[2] flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d6d] px-1 text-xs font-bold text-white ring-2 ring-[var(--fe-bg)]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}

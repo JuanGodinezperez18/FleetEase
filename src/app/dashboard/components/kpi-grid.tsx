@@ -7,13 +7,30 @@ import { UnreadNotificationsCard } from '@/components/dashboard/unread-notificat
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import type { DashboardWidget, MetricKPIData, KPIConfig } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface KpiGridProps {
   enabledWidgets: DashboardWidget[];
   kpiMap: Record<string, KPIConfig>;
   allKPIs: Record<string, any>;
   onKpiClick: (widget: DashboardWidget) => void;
-  onDragEnd: (event: any) => void;
+  onDragEnd: (event: DragEndEvent) => void;
   onOpenConfig?: () => void;
 }
 
@@ -37,46 +54,127 @@ const fleetSegmentActionMap: Record<string, string> = {
   Mantenimiento: 'maintenance-overdue',
 };
 
-/** Map DashboardWidget.size → grid col-span (already persisted by configurator). */
+/**
+ * Map DashboardWidget.size → grid col-span.
+ * Dense packing (`grid-flow-dense`) fills holes left by larger spans.
+ * Tablet (md): 2 cols · Desktop (lg): 3 · XL: 4.
+ */
 function sizeClass(size?: DashboardWidget['size'], isChart?: boolean): string {
   if (isChart) {
-    // Charts default to full-width on xl; size can still narrow on md+
-    if (size === 'small') return 'min-w-0 md:col-span-1 xl:col-span-2';
-    if (size === 'medium') return 'min-w-0 md:col-span-2 xl:col-span-2';
-    return 'min-w-0 md:col-span-2 xl:col-span-4'; // large | undefined
+    // Charts: prefer 2 cols so they sit beside a metric instead of leaving a void.
+    if (size === 'small') return 'min-w-0 col-span-1';
+    if (size === 'large') return 'min-w-0 col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-2';
+    // medium | default
+    return 'min-w-0 col-span-1 md:col-span-2';
   }
-  if (size === 'large') return 'min-w-0 md:col-span-2 xl:col-span-2';
-  if (size === 'small') return 'min-w-0';
-  return 'min-w-0'; // medium | undefined → 1 col
+  if (size === 'large') return 'min-w-0 col-span-1 md:col-span-2';
+  // small | medium | undefined → single cell (fills residual holes via dense)
+  return 'min-w-0 col-span-1';
 }
 
-export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenConfig }: KpiGridProps) {
+function SortableWidgetShell({
+  id,
+  className,
+  children,
+}: {
+  id: string;
+  className?: string;
+  children: (
+    handleProps: React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }
+  ) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.92 : undefined,
+  };
+
+  // Listeners only — transform lives on the outer shell to avoid double-offset.
+  // TouchSensor delay (220ms) keeps vertical scroll usable on mobile/tablet.
+  const handleProps = {
+    ...attributes,
+    ...listeners,
+  } as React.HTMLAttributes<HTMLElement>;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(className, isDragging && 'relative z-20')}
+      data-dragging={isDragging ? 'true' : undefined}
+    >
+      {children(handleProps)}
+    </div>
+  );
+}
+
+export function KpiGrid({
+  enabledWidgets,
+  kpiMap,
+  allKPIs,
+  onKpiClick,
+  onDragEnd,
+  onOpenConfig,
+}: KpiGridProps) {
   const isEmpty = enabledWidgets.length === 0;
   const alwaysInteractive = new Set(['total-clients', 'total-vehicles', 'vehicles-rented']);
 
+  // Pointer: small distance so desktop drag feels immediate.
+  // Touch: 220ms delay + 8px tolerance → vertical scroll still works; long-press starts drag.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 220, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const sortableIds = enabledWidgets.map(w => w.id);
+
+  if (isEmpty) {
+    return (
+      <EmptyState
+        icon={Settings}
+        title="No tienes KPIs configurados"
+        description="Personaliza tu dashboard agregando los indicadores que más te interesen."
+        actionLabel="Configurar Dashboard"
+        onAction={onOpenConfig}
+      />
+    );
+  }
+
   return (
-    <>
-      {isEmpty ? (
-        <EmptyState
-          icon={Settings}
-          title="No tienes KPIs configurados"
-          description="Personaliza tu dashboard agregando los indicadores que más te interesen."
-          actionLabel="Configurar Dashboard"
-          onAction={onOpenConfig}
-        />
-      ) : (
-        <div className="min-w-0 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
+        <div
+          className={cn(
+            'min-w-0 grid grid-flow-dense gap-3 sm:gap-4',
+            // 1 → 2 → 3 → 4 columns; dense fills holes left by multi-span charts
+            'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+          )}
+        >
           {enabledWidgets.map(widget => {
             if (widget.id === 'unread-notifications') {
               return (
-                <div
+                <SortableWidgetShell
                   key={widget.id}
-                  className={cn(sizeClass(widget.size ?? 'large'))}
+                  id={widget.id}
+                  className={sizeClass(widget.size ?? 'large')}
                 >
-                  <UnreadNotificationsCard />
-                </div>
+                  {() => <UnreadNotificationsCard />}
+                </SortableWidgetShell>
               );
             }
+
             if (widget.type === 'chart') {
               const actionId = chartActionMap[widget.id];
               const chartAction = actionId
@@ -102,33 +200,51 @@ export function KpiGrid({ enabledWidgets, kpiMap, allKPIs, onKpiClick, onOpenCon
                     : undefined;
 
               return (
-                <div key={widget.id} className={sizeClass(widget.size, true)}>
-                  <DashboardChartCard
-                    widget={widget}
-                    allKPIs={allKPIs as Record<string, MetricKPIData>}
-                    onClick={chartAction ? () => onKpiClick(chartAction) : undefined}
-                    onSegmentClick={handleSegmentClick}
-                  />
-                </div>
+                <SortableWidgetShell
+                  key={widget.id}
+                  id={widget.id}
+                  className={sizeClass(widget.size, true)}
+                >
+                  {handleProps => (
+                    <div {...handleProps} className="h-full touch-manipulation">
+                      <DashboardChartCard
+                        widget={widget}
+                        allKPIs={allKPIs as Record<string, MetricKPIData>}
+                        onClick={chartAction ? () => onKpiClick(chartAction) : undefined}
+                        onSegmentClick={handleSegmentClick}
+                      />
+                    </div>
+                  )}
+                </SortableWidgetShell>
               );
             }
 
             const kpiConfig = kpiMap[widget.id];
             const kpiData = allKPIs[widget.id as keyof typeof allKPIs];
-            const isInteractive = Boolean(kpiConfig?.isInteractive || alwaysInteractive.has(widget.id));
+            const isInteractive = Boolean(
+              kpiConfig?.isInteractive || alwaysInteractive.has(widget.id)
+            );
+
             return (
-              <div key={widget.id} className={sizeClass(widget.size)}>
-                <DraggableMetricCard
-                  widget={widget}
-                  kpiData={kpiData as MetricKPIData}
-                  kpiConfig={kpiConfig}
-                  onClick={isInteractive ? () => onKpiClick(widget) : undefined}
-                />
-              </div>
+              <SortableWidgetShell
+                key={widget.id}
+                id={widget.id}
+                className={sizeClass(widget.size)}
+              >
+                {handleProps => (
+                  <DraggableMetricCard
+                    widget={widget}
+                    kpiData={kpiData as MetricKPIData}
+                    kpiConfig={kpiConfig}
+                    onClick={isInteractive ? () => onKpiClick(widget) : undefined}
+                    handleProps={handleProps}
+                  />
+                )}
+              </SortableWidgetShell>
             );
           })}
         </div>
-      )}
-    </>
+      </SortableContext>
+    </DndContext>
   );
 }
