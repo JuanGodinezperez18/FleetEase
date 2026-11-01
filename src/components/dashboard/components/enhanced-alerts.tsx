@@ -14,7 +14,7 @@ import { getNotificationLink } from '@/lib/notification-utils';
 import Link from 'next/link';
 
 
-interface EnhancedAlertsProps {
+export interface EnhancedAlertsProps {
   criticalAlerts: AnalyzedNotification[];
   importantAlerts: AnalyzedNotification[];
 }
