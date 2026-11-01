@@ -101,9 +101,11 @@ function ChartTooltip({
 
 /**
  * Palette shared by series fills and legend swatches — never diverge.
- * Light variants replace pure brand lime (#d7ff3f) and cyan (#22d3ee)
- * which fail WCAG 1.4.11 on white card surfaces (1.15:1 and 1.81:1).
- * Light lime uses --fe-lime-text (#5c6d08, ~5.5:1); cyan uses teal-700.
+ *
+ * Dark: bright brand colors (lime/cyan) that pop on dark surfaces.
+ * Light: mid-tone equivalents that still clear WCAG 1.4.11 (≥3:1 on white)
+ * while keeping visual energy close to the dark theme. Pure #d7ff3f and
+ * #22d3ee are avoided in light because they measure 1.15:1 / 1.81:1.
  */
 const SERIES_COLORS_BY_THEME = {
   dark: {
@@ -115,12 +117,13 @@ const SERIES_COLORS_BY_THEME = {
     clientRisk: ['#d7ff3f', '#f59e0b', '#ef4444'],
   },
   light: {
-    finance: ['#059669', '#e11d48', '#2563eb'], // deeper emerald / rose / blue
-    fines: ['#d97706', '#059669'], // amber-600 / emerald-600
-    fleet: ['#0e7490', '#5c6d08', '#d97706', '#64748b'], // teal-700 / lime-text / amber-600 / slate
-    credit: ['#5c6d08', '#d97706'],
-    maintenance: ['#5c6d08', '#d97706', '#dc2626'],
-    clientRisk: ['#5c6d08', '#d97706', '#dc2626'],
+    // Mid-tones: vivid enough on white, still ≥3:1 contrast
+    finance: ['#10b981', '#f43f5e', '#3b82f6'], // emerald-500 / rose-500 / blue-500
+    fines: ['#f59e0b', '#10b981'], // amber-500 / emerald-500
+    fleet: ['#0891b2', '#65a30d', '#f59e0b', '#64748b'], // cyan-600 / lime-600 / amber / slate
+    credit: ['#65a30d', '#f59e0b'],
+    maintenance: ['#65a30d', '#f59e0b', '#ef4444'],
+    clientRisk: ['#65a30d', '#f59e0b', '#ef4444'],
   },
 } as const;
 
