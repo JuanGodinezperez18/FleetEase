@@ -31,12 +31,13 @@ type GetVehicleColumnsProps = {
   partners: Partner[];
 };
 
+// Token-based menu styles — works in both dark and light (Phase 0 WCAG)
 const menuContentClass =
-  'min-w-[200px] rounded-xl border border-white/10 bg-[#0e1117] p-1.5 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] z-[80]';
+  'min-w-[200px] rounded-xl border border-[var(--fe-border)] bg-[var(--fe-menu-bg)] p-1.5 text-[var(--fe-menu-text)] shadow-[var(--fe-shadow-menu)] z-[80]';
 const menuItemClass =
-  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-white/80 focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white';
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-[var(--fe-text-secondary)] focus:bg-[var(--fe-hover)] focus:text-[var(--fe-text)] data-[highlighted]:bg-[var(--fe-hover)] data-[highlighted]:text-[var(--fe-text)]';
 const menuItemDangerClass =
-  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-rose-400 focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
+  'cursor-pointer rounded-lg px-2.5 py-2.5 text-sm text-[var(--fe-danger)] focus:bg-rose-500/15 focus:text-rose-300 data-[highlighted]:bg-rose-500/15 data-[highlighted]:text-rose-300';
 
 export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partners }: GetVehicleColumnsProps): ColumnDef<VehicleWithMetrics>[] => {
   const clientMap = new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`]));
@@ -48,8 +49,8 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
       header: ({ column }) => <DataTableColumnHeader column={column} title="Placa / Marca" />,
       cell: ({ row }) => (
         <div>
-            <div className="font-medium text-white/90">{row.original.plate}</div>
-            <div className="text-xs text-white/40">{row.original.make} {row.original.model} ({row.original.year})</div>
+            <div className="font-medium text-[var(--fe-text)]">{row.original.plate}</div>
+            <div className="text-xs text-[var(--fe-text-muted)]">{row.original.make} {row.original.model} ({row.original.year})</div>
         </div>
       ),
       enableColumnFilter: true,
@@ -62,7 +63,7 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
         return (
           <div className="flex flex-col gap-1">
             <PerformanceBadge level={performanceRating} />
-            <span className="text-xs font-mono text-white/50">
+            <span className="text-xs font-mono text-[var(--fe-text-muted)]">
               {formatCurrency(netProfit || 0)}
             </span>
           </div>
@@ -104,13 +105,13 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
     {
       accessorKey: "clientId",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Conductor" />,
-      cell: ({ row }) => clientMap.get(row.getValue("clientId")) || <span className="text-white/35">No asignado</span>,
+      cell: ({ row }) => clientMap.get(row.getValue("clientId")) || <span className="text-[var(--fe-text-faint)]">No asignado</span>,
       enableColumnFilter: true,
     },
     {
       accessorKey: "partnerId",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Socio" />,
-      cell: ({ row }) => partnerMap.get(row.getValue("partnerId")) || <span className="text-white/35">Interno</span>,
+      cell: ({ row }) => partnerMap.get(row.getValue("partnerId")) || <span className="text-[var(--fe-text-faint)]">Interno</span>,
       enableColumnFilter: true,
     },
     {
@@ -121,34 +122,34 @@ export const getVehicleColumns = ({ onEdit, onDelete, onNavigate, clients, partn
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-11 w-11 rounded-xl p-0 text-white/50 hover:bg-white/[0.06] hover:text-white">
+              <Button variant="ghost" className="h-11 w-11 rounded-xl p-0 text-[var(--fe-text-muted)] hover:bg-[var(--fe-hover)] hover:text-[var(--fe-text)]">
                 <span className="sr-only">Abrir menú</span>
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className={menuContentClass} sideOffset={6}>
-              <DropdownMenuLabel className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+              <DropdownMenuLabel className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fe-text-faint)]">
                 Acciones
               </DropdownMenuLabel>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}`)}>
-                <Eye className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                <Eye className="mr-2.5 h-4 w-4 text-[var(--fe-text-muted)]" strokeWidth={1.75} />
                 Ver detalles
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/documents`)}>
-                <FileText className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                <FileText className="mr-2.5 h-4 w-4 text-[var(--fe-text-muted)]" strokeWidth={1.75} />
                 Documentos
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/${vehicle.id}/transactions`)}>
-                <DollarSign className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                <DollarSign className="mr-2.5 h-4 w-4 text-[var(--fe-text-muted)]" strokeWidth={1.75} />
                 Transacciones
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemClass} onSelect={() => onNavigate(`/dashboard/vehicles/assignments?vehicleId=${vehicle.id}`)}>
-                <Users className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                <Users className="mr-2.5 h-4 w-4 text-[var(--fe-text-muted)]" strokeWidth={1.75} />
                 Asignaciones
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="my-1.5 bg-white/10" />
+              <DropdownMenuSeparator className="my-1.5 bg-[var(--fe-border)]" />
               <DropdownMenuItem className={menuItemClass} onSelect={() => onEdit(vehicle)}>
-                <Edit className="mr-2.5 h-4 w-4 text-white/50" strokeWidth={1.75} />
+                <Edit className="mr-2.5 h-4 w-4 text-[var(--fe-text-muted)]" strokeWidth={1.75} />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem className={menuItemDangerClass} onSelect={() => onDelete(vehicle.id)}>
