@@ -4,7 +4,13 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IconMap, type KPIConfig, type MetricKPIData } from '@/types/dashboard';
+import {
+  IconMap,
+  type KPIConfig,
+  type MetricKPIData,
+  type KPISeverity,
+  type TrendPolarity,
+} from '@/types/dashboard';
 import type { DashboardWidget } from '@/types/dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkline } from '@/components/ui/sparkline';
@@ -56,6 +62,68 @@ const MONETARY_KPI_IDS = new Set([
   'total-partner-balance', 'avg-partner-balance', 'monto-pendiente-multas',
 ]);
 
+/** Resolve presentation severity from config + live value (presentation only). */
+function resolveSeverity(
+  config: KPIConfig | undefined,
+  numericValue: number
+): KPISeverity {
+  const base = config?.severity ?? 'neutral';
+  if (base === 'neutral' || base === 'info') return base;
+
+  const threshold = config?.criticalThreshold;
+  const isActive = Number.isFinite(numericValue) && (
+    threshold === undefined ? numericValue !== 0 : numericValue >= threshold
+  );
+
+  if (!isActive) return 'neutral';
+
+  // Escalate to critical when threshold is met and base is already danger
+  if (threshold !== undefined && numericValue >= threshold && base === 'danger') {
+    return 'critical';
+  }
+  return base;
+}
+
+/** Trend badge color from declared polarity (F-08). */
+function isTrendPositive(
+  trendUp: boolean,
+  polarity: TrendPolarity | undefined
+): boolean {
+  if (!polarity || polarity === 'upIsGood') return trendUp;
+  return !trendUp; // downIsGood: rising is bad
+}
+
+const SEVERITY_STYLES: Record<
+  KPISeverity,
+  { bar: string; card: string; spark: 'green' | 'red' | 'lime' | 'amber' }
+> = {
+  neutral: {
+    bar: 'bg-transparent',
+    card: '',
+    spark: 'lime',
+  },
+  info: {
+    bar: 'bg-[var(--fe-info)]',
+    card: 'border-[color-mix(in_srgb,var(--fe-info)_28%,transparent)]',
+    spark: 'lime',
+  },
+  warning: {
+    bar: 'bg-[var(--fe-warning)]',
+    card: 'border-[color-mix(in_srgb,var(--fe-warning)_32%,transparent)] bg-[color-mix(in_srgb,var(--fe-warning)_4%,var(--fe-surface))]',
+    spark: 'amber',
+  },
+  danger: {
+    bar: 'bg-[var(--fe-danger)]',
+    card: 'border-[color-mix(in_srgb,var(--fe-danger)_36%,transparent)] bg-[color-mix(in_srgb,var(--fe-danger)_5%,var(--fe-surface))]',
+    spark: 'red',
+  },
+  critical: {
+    bar: 'bg-[var(--fe-danger)]',
+    card: 'border-[color-mix(in_srgb,var(--fe-danger)_48%,transparent)] bg-[color-mix(in_srgb,var(--fe-danger)_8%,var(--fe-surface))] shadow-[0_0_0_1px_color-mix(in_srgb,var(--fe-danger)_20%,transparent)]',
+    spark: 'red',
+  },
+};
+
 function MetricCardSkeleton() {
   return (
     <div className="fe-metric-card">
@@ -76,6 +144,7 @@ function MetricCardSkeleton() {
  * - Full content width (no grip column)
  * - Drag: entire card via handleProps (dnd-kit listeners)
  * - Value never wraps mid-number
+ * - Severity bar + trendPolarity (Phase 1 triage)
  */
 function DraggableMetricCardBase({
   widget,
@@ -117,14 +186,28 @@ function DraggableMetricCardBase({
       : undefined
   );
 
+  const severity = resolveSeverity(kpiConfig, Number.isFinite(rawNumericValue) ? rawNumericValue : 0);
+  const severityStyle = SEVERITY_STYLES[severity];
+  const polarity = kpiConfig?.trendPolarity;
+  const trendUp = kpiData?.trend === true;
+  const trendIsGood =
+    kpiData?.trend !== undefined ? isTrendPositive(trendUp, polarity) : undefined;
+
   const sparkColor =
-    kpiData?.trend === true ? 'green' : kpiData?.trend === false ? 'red' : 'lime';
+    severity !== 'neutral'
+      ? severityStyle.spark
+      : trendIsGood === true
+        ? 'green'
+        : trendIsGood === false
+          ? 'red'
+          : 'lime';
 
   const isDraggable = Boolean(handleProps);
 
   return (
     <article
       data-interactive={onClick ? 'true' : 'false'}
+      data-severity={severity}
       {...handleProps}
       onClick={onClick}
       onKeyDown={(e) => {
@@ -136,13 +219,22 @@ function DraggableMetricCardBase({
       }}
       tabIndex={onClick || isDraggable ? 0 : undefined}
       role={onClick ? 'button' : 'article'}
-      aria-label={`${widget.title}: ${displayValue}${isDraggable ? '. Mantén pulsado para reordenar.' : ''}`}
+      aria-label={`${widget.title}: ${displayValue}${severity !== 'neutral' ? ` · ${severity}` : ''}${isDraggable ? '. Mantén pulsado para reordenar.' : ''}`}
       className={cn(
-        'fe-metric-card',
+        'fe-metric-card relative overflow-hidden',
+        severityStyle.card,
         (onClick || isDraggable) && 'cursor-pointer active:translate-y-0',
         isDraggable && 'cursor-grab active:cursor-grabbing touch-manipulation'
       )}
     >
+      {/* Severity bar — pre-attentive triage cue (Gestalt figure-ground) */}
+      {severity !== 'neutral' && (
+        <span
+          aria-hidden
+          className={cn('absolute inset-y-0 left-0 w-[3px] rounded-l-[20px]', severityStyle.bar)}
+        />
+      )}
+
       {/* Icon — top-right float so the value uses full width */}
       <div className="fe-metric-icon absolute right-3.5 top-3.5 z-[1]">
         <IconComponent className="h-5 w-5" aria-hidden="true" strokeWidth={1.75} />
@@ -150,14 +242,22 @@ function DraggableMetricCardBase({
 
       <div className="relative min-w-0 pr-12">
         <div className="mb-3 flex items-center gap-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fe-lime)]/80" />
+          {/* Decorative dot only when neutral; severity bar replaces it for anomalies */}
+          {severity === 'neutral' ? (
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fe-lime)]/80" />
+          ) : (
+            <span
+              className={cn('h-1.5 w-1.5 shrink-0 rounded-full', severityStyle.bar)}
+              aria-hidden
+            />
+          )}
           <p className="fe-metric-title truncate">{widget.title}</p>
         </div>
 
         <h3
           className={cn(
             'fe-metric-value font-heading',
-            isNegativeMoney && 'text-rose-400'
+            (isNegativeMoney || severity === 'critical' || severity === 'danger') && 'text-rose-400'
           )}
           aria-live="polite"
         >
@@ -173,12 +273,12 @@ function DraggableMetricCardBase({
             <div
               className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold',
-                kpiData.trend
+                trendIsGood
                   ? 'border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300'
                   : 'border-rose-400/15 bg-rose-400/[0.07] text-rose-300'
               )}
             >
-              {kpiData.trend ? (
+              {trendUp ? (
                 <TrendingUp className="h-3 w-3" strokeWidth={1.8} />
               ) : (
                 <TrendingDown className="h-3 w-3" strokeWidth={1.8} />
