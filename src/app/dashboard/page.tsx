@@ -111,6 +111,7 @@ export default function DashboardPage() {
     handleDragEnd,
     handleDateChange,
     handleKpiClick,
+    handleCloseListModal,
     handleIncomeSubmit,
     handleExpenseSubmit,
     handleCreditSubmit,
@@ -394,7 +395,7 @@ export default function DashboardPage() {
           {activeModal === 'clients' && (
             <ClientListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               clients={modalData.data}
             />
@@ -402,7 +403,7 @@ export default function DashboardPage() {
           {activeModal === 'licenses' && (
             <LicenseExpiringModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               clients={modalData.data}
             />
@@ -410,7 +411,7 @@ export default function DashboardPage() {
           {activeModal === 'insurance' && (
             <InsuranceExpiringModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               vehicles={modalData.data}
             />
@@ -418,7 +419,7 @@ export default function DashboardPage() {
           {activeModal === 'vehicles' && (
             <VehicleListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               vehicles={modalData.data}
             />
@@ -426,14 +427,14 @@ export default function DashboardPage() {
           {activeModal === 'partners' && (
             <PartnerBalancesModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               balances={modalData.data}
             />
           )}
           {activeModal === 'credits' && (
             <CreditListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               credits={modalData.data}
             />
@@ -441,7 +442,7 @@ export default function DashboardPage() {
           {activeModal === 'incomes' && (
             <IncomeListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               incomes={modalData.data}
             />
@@ -449,7 +450,7 @@ export default function DashboardPage() {
           {activeModal === 'expenses' && (
             <ExpenseListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               expenses={modalData.data}
             />
@@ -457,7 +458,7 @@ export default function DashboardPage() {
           {activeModal === 'multas' && (
             <MultaVehiclesListModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               vehicles={modalData.data}
             />
@@ -465,7 +466,7 @@ export default function DashboardPage() {
           {activeModal === 'vehicle-profitability' && (
             <VehicleProfitabilityModal
               isOpen={true}
-              onClose={() => setActiveModal(null)}
+              onClose={handleCloseListModal}
               title={modalData.title}
               vehicles={modalData.data}
             />

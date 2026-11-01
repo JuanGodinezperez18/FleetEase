@@ -1,8 +1,9 @@
 // src/app/dashboard/hooks/use-dashboard-page.ts
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-provider';
 import { useDashboardConfig, useSaveWidgetOrder } from '@/hooks/use-dashboard-config';
 import { useDashboardKPIs } from '@/hooks/use-dashboard-kpis';
@@ -28,6 +29,9 @@ import { arrayMove } from '@dnd-kit/sortable';
 import type { DateFilterPreset } from '../types';
 import { usePerformanceMonitor } from '@/hooks/use-performance-monitor';
 
+/** Query param used for shareable / refreshable KPI detail modals (Phase 4). */
+const KPI_QUERY_PARAM = 'kpi';
+
 export type QuickActionModal =
   | 'expense'
   | 'income'
@@ -44,8 +48,27 @@ export function useDashboardPage() {
   const { mountTime, renderCount } = usePerformanceMonitor();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const data = useDashboardData();
   const modals = useDashboardModals();
+
+  /** Write or clear ?kpi= without a full navigation (shareable / refreshable). */
+  const setKpiQueryParam = useCallback(
+    (kpiId: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (kpiId) {
+        params.set(KPI_QUERY_PARAM, kpiId);
+      } else {
+        params.delete(KPI_QUERY_PARAM);
+      }
+      const qs = params.toString();
+      const href = qs ? `${pathname}?${qs}` : pathname;
+      router.replace(href, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
   const actions = useDashboardActions({
     addIncome: data.dataContext?.addIncome,
     addExpense: data.dataContext?.addExpense,
@@ -242,10 +265,48 @@ export function useDashboardPage() {
   const handleKpiClick = React.useCallback(
     (widget: DashboardWidget) => {
       const action = kpiActions[widget.id];
-      if (action) action();
+      if (!action) return;
+      action();
+      // Persist modal state in the URL so share / refresh restores the detail view.
+      setKpiQueryParam(widget.id);
     },
-    [kpiActions]
+    [kpiActions, setKpiQueryParam]
   );
+
+  /** Close list modal and clear ?kpi= from the URL. */
+  const handleCloseListModal = React.useCallback(() => {
+    modals.handleCloseListModal();
+    if (searchParams.get(KPI_QUERY_PARAM)) {
+      setKpiQueryParam(null);
+    }
+  }, [modals, searchParams, setKpiQueryParam]);
+
+  // Restore modal from ?kpi= on first load / external navigation (share link, refresh).
+  // Wait until the KPI payload exists so the modal is not empty.
+  const restoredKpiRef = useRef<string | null>(null);
+  useEffect(() => {
+    const kpiId = searchParams.get(KPI_QUERY_PARAM);
+    if (!kpiId) {
+      restoredKpiRef.current = null;
+      return;
+    }
+    // Modal already open — keep ref in sync and stop.
+    if (modals.activeModal) {
+      restoredKpiRef.current = kpiId;
+      return;
+    }
+    // Already attempted restore for this id in this session (e.g. user closed it).
+    if (restoredKpiRef.current === kpiId) return;
+
+    const action = kpiActions[kpiId];
+    if (!action) return;
+    // Wait for KPI data so details are available.
+    if (allKPIs[kpiId] === undefined) return;
+
+    action();
+    restoredKpiRef.current = kpiId;
+  }, [searchParams, kpiActions, allKPIs, modals.activeModal]);
+
   const handleDateChange = React.useCallback((range: DateRange | undefined) => {
     if (!range?.from) return;
     setCustomDateRange(range);
@@ -312,6 +373,7 @@ export function useDashboardPage() {
     handleDateChange,
     handleDragEnd,
     handleKpiClick,
+    handleCloseListModal,
     handleIncomeSubmit: actions.handleIncomeSubmit,
     handleExpenseSubmit: actions.handleExpenseSubmit,
     handleCreditSubmit: actions.handleCreditSubmit,
