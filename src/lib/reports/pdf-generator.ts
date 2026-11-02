@@ -1,6 +1,7 @@
 import type jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
+import type { ExcludedFinancialRecord } from '@/lib/financial-metrics';
 
 export type KpiFormat = 'currency' | 'number' | 'percent' | 'text';
 
@@ -40,7 +41,12 @@ export interface ReportData {
   kpis?: ReportKpi[];
   alertDetails?: AlertDetails;
   income?: number;
+  operatingIncome?: number;
+  vehicleSales?: number;
   expenses?: number;
+  operatingExpenses?: number;
+  vehicleSalesCost?: number;
+  vehicleSalesCostDetails?: Array<{ vehicleId: string; vehicleName: string; plate: string; acquisitionCost: number }>;
   netProfit?: number;
   profitMargin?: number;
   transactionsCount?: number;
@@ -53,6 +59,7 @@ export interface ReportData {
   partners?: Partner[];
   partnerMetrics?: Array<{ partner: Partner; totalIncome: number; totalExpenses: number; netBalance: number; activeVehicles: number }>;
   records?: FinancialRecord[];
+  excludedRecords?: ExcludedFinancialRecord[];
 }
 
 const BRAND = {
@@ -616,6 +623,47 @@ export class PDFReportGenerator {
   }
 
   private addFinancialReport(data: ReportData) {
+    if (data.income !== undefined && data.expenses !== undefined && data.netProfit !== undefined) {
+      this.ensureSpace(72);
+      this.addSectionTitle('Conciliación de rentabilidad');
+      const reconciliationRows: string[][] = [];
+      if (data.operatingIncome !== undefined) reconciliationRows.push(['Ingresos operativos', this.formatCurrency(data.operatingIncome)]);
+      if (data.vehicleSales !== undefined) reconciliationRows.push(['Ventas financiadas', this.formatCurrency(data.vehicleSales)]);
+      reconciliationRows.push(['Ingresos totales', this.formatCurrency(data.income)]);
+      if (data.operatingExpenses !== undefined) reconciliationRows.push(['Gastos operativos', this.formatCurrency(data.operatingExpenses)]);
+      if (data.vehicleSalesCost !== undefined) reconciliationRows.push(['Costo de vehículos vendidos', this.formatCurrency(data.vehicleSalesCost)]);
+      reconciliationRows.push(['Gastos y costos totales', this.formatCurrency(data.expenses)]);
+      reconciliationRows.push(['Beneficio neto', this.formatCurrency(data.netProfit)]);
+      this.autoTable(this.doc, {
+        startY: this.currentY,
+        head: [['Concepto', 'Monto']],
+        body: reconciliationRows,
+        ...this.tableTheme(),
+      });
+      this.currentY = (this.doc as any).lastAutoTable.finalY + 4;
+      this.doc.setFontSize(7);
+      this.doc.setTextColor(...BRAND.muted);
+      this.doc.text('El costo de vehículos vendidos es un ajuste de rentabilidad basado en el costo de adquisición; no es un movimiento de efectivo.', this.margin, this.currentY);
+      this.currentY += 8;
+    }
+
+    if (data.vehicleSalesCost !== undefined) {
+      this.ensureSpace(45);
+      this.addSectionTitle('Detalle del costo de vehículos vendidos');
+      this.autoTable(this.doc, {
+        startY: this.currentY,
+        head: [['Vehículo', 'Placa', 'Costo de adquisición']],
+        body: (data.vehicleSalesCostDetails || []).map(detail => [
+          detail.vehicleName,
+          detail.plate,
+          this.formatCurrency(detail.acquisitionCost),
+        ]),
+        foot: [['Total costo de ventas', '', this.formatCurrency(data.vehicleSalesCost)]],
+        ...this.tableTheme(),
+      });
+      this.currentY = (this.doc as any).lastAutoTable.finalY + 8;
+    }
+
     if (data.records && data.records.length > 0) {
       this.ensureSpace(40);
       this.addSectionTitle('Movimientos recientes');
@@ -635,6 +683,24 @@ export class PDFReportGenerator {
               String(cellData.cell.raw) === 'Ingreso' ? BRAND.emerald : BRAND.rose;
           }
         },
+      });
+      this.currentY = (this.doc as any).lastAutoTable.finalY + 8;
+    }
+
+    if (data.excludedRecords && data.excludedRecords.length > 0) {
+      this.ensureSpace(45);
+      this.addSectionTitle('Movimientos excluidos de rentabilidad');
+      this.autoTable(this.doc, {
+        startY: this.currentY,
+        head: [['Fecha', 'Tipo', 'Concepto', 'Monto', 'Motivo de exclusión']],
+        body: data.excludedRecords.slice(0, 25).map(({ record, reason }) => [
+          fmtDate(new Date(record.date)),
+          record.type === 'income' ? 'Ingreso' : record.type === 'expense' ? 'Gasto' : 'Pago',
+          (record.description || record.category || '-').slice(0, 30),
+          this.formatCurrency(record.amount),
+          reason,
+        ]),
+        ...this.tableTheme(),
       });
       this.currentY = (this.doc as any).lastAutoTable.finalY + 8;
     }
