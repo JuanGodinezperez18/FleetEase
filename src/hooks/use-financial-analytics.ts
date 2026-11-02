@@ -9,6 +9,10 @@ import { infallibleNormalizeDate } from '@/lib/date-utils';
 import {
   filterRecordsByDateRange,
   calculateProfitMargin,
+  calculateFinancialReconciliation,
+  isDepositRefundRecord,
+  type VehicleSalesCostDetail,
+  type ExcludedFinancialRecord,
   calculateAvgTransactionValue,
   sumRentalIncome,
   sumVehicleSales,
@@ -59,12 +63,16 @@ export type FinancialAnalytics = {
   creditRecovered: number;
   todayIncome: number;
   totalExpenses: number;
+  reconciledExpenses: number;
   todayExpenses: number;
+  vehicleSalesCostDetails: VehicleSalesCostDetail[];
+  includedRecords: FinancialRecord[];
+  excludedRecords: ExcludedFinancialRecord[];
   netProfit: number;
   profitMargin: number;
   avgTransactionValue: number;
   avgRevenuePerClient: number;
-  monthlyGrowth: { income: number; profit: number; expenses: number };
+  monthlyGrowth: { income: number; profit: number; expenses: number; reconciledExpenses: number };
   cashFlowAnalysis: MonthlyCashFlow[];
   expenseCategories: { name: string; value: number }[];
   incomeCategories: { name: string; value: number }[];
@@ -86,9 +94,9 @@ export const useFinancialAnalytics = (
       totalIncome: 0, operationalIncome: 0, vehicleSales: 0, vehicleSalesCost: 0, vehicleSalesGrossProfit: 0,
       customerCollections: 0, creditCollections: 0, securityDeposits: 0, partnerPayments: 0, supplierPayments: 0, otherPayments: 0,
       cashInflow: 0, cashOutflow: 0, netCashFlow: 0, creditGranted: 0, creditRecovered: 0,
-      todayIncome: 0, totalExpenses: 0, todayExpenses: 0, netProfit: 0, profitMargin: 0,
+      todayIncome: 0, totalExpenses: 0, reconciledExpenses: 0, todayExpenses: 0, vehicleSalesCostDetails: [], includedRecords: [], excludedRecords: [], netProfit: 0, profitMargin: 0,
       avgTransactionValue: 0, avgRevenuePerClient: 0,
-      monthlyGrowth: { income: 0, profit: 0, expenses: 0 }, cashFlowAnalysis: [],
+      monthlyGrowth: { income: 0, profit: 0, expenses: 0, reconciledExpenses: 0 }, cashFlowAnalysis: [],
       expenseCategories: [], incomeCategories: [], topClients: [], topVehicles: [], profitabilityAnalysis: [],
     };
 
@@ -98,17 +106,27 @@ export const useFinancialAnalytics = (
     const todayRecords = filterRecordsByDateRange(filteredRecords, { from: startOfDay(now), to: endOfDay(now) });
     const depositCategoryIds = categoryIdsByAffects(financialCategories, 'security_deposit');
     const refundDepositCategoryIds = new Set((financialCategories ?? []).filter(cat => cat.type === 'expense' && cat.name.trim().toLowerCase() === 'devolución de depósito').map(cat => cat.id));
-    const isDepositRefund = (r: FinancialRecord) => r.type === 'expense' && (r.category === 'Devolución de Depósito' || (!!r.categoryId && refundDepositCategoryIds.has(r.categoryId)));
+    const isDepositRefund = (r: FinancialRecord) => isDepositRefundRecord(r, refundDepositCategoryIds);
     const categoryMap = new Map<string, string>();
     financialCategories?.forEach(cat => categoryMap.set(cat.id, cat.name));
 
-    const operationalIncome = sumRentalIncome(filteredRecords, depositCategoryIds);
+    const reconciliation = calculateFinancialReconciliation(
+      filteredRecords,
+      vehicles,
+      depositCategoryIds,
+      refundDepositCategoryIds,
+    );
+    const operationalIncome = reconciliation.operationalIncome;
     const todayOperationalIncome = sumRentalIncome(todayRecords, depositCategoryIds);
-    const vehicleSales = sumVehicleSales(filteredRecords);
+    const vehicleSales = reconciliation.vehicleSales;
     const todayVehicleSales = sumVehicleSales(todayRecords);
-    const vehicleSalesCost = sumVehicleSalesCost(filteredRecords, vehicles);
+    const vehicleSalesCost = reconciliation.vehicleSalesCost;
+    const vehicleSalesCostDetails = reconciliation.vehicleSalesCostDetails;
+    const includedRecords = reconciliation.includedRecords;
+    const excludedRecords = reconciliation.excludedRecords;
     const vehicleSalesGrossProfit = vehicleSales - vehicleSalesCost;
-    const totalExpenses = sumExpense(filteredRecords.filter(r => !isDepositRefund(r)));
+    const totalExpenses = reconciliation.operatingExpenses;
+    const reconciledExpenses = reconciliation.totalExpenses;
     const todayExpenses = sumExpense(todayRecords.filter(r => !isDepositRefund(r)));
 
     const securityDeposits = filteredRecords
@@ -130,14 +148,14 @@ export const useFinancialAnalytics = (
     const supplierPayments = cashFlow.supplierPayments;
     const otherPayments = cashFlow.otherPayments;
 
-    const totalIncome = operationalIncome + vehicleSales;
+    const totalIncome = reconciliation.totalIncome;
     // Un pago de multa es una cobranza de efectivo de un cliente: aumenta caja,
     // pero no es ingreso operativo ni utilidad. La salida a la autoridad se registra
     // por separado como gasto/pago cuando la empresa liquida la multa.
     const { cashInflow, cashOutflow, netCashFlow } = cashFlow;
     const creditRecovered = creditCollections;
-    const netProfit = operationalIncome + vehicleSalesGrossProfit - totalExpenses;
-    const profitMargin = calculateProfitMargin(totalIncome, vehicleSalesCost + totalExpenses);
+    const netProfit = reconciliation.netProfit;
+    const profitMargin = reconciliation.profitMargin;
 
     const expenseCategoriesMap: Record<string, number> = {};
     const incomeCategoriesMap: Record<string, number> = {};
@@ -155,7 +173,7 @@ export const useFinancialAnalytics = (
           clientsWithRevenueInPeriod.add(record.clientId);
         }
         if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + amount;
-      } else if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '') && record.category !== 'Depósito en Garantía') {
+      } else if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '') && record.category !== 'Depósito en Garantía' && record.category !== 'Multa') {
         const categoryName = normalizeFinancialCategory(record, categoryMap) || 'Sin Categoría';
         const amount = Number(record.amount || 0);
         incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + amount;
@@ -184,7 +202,7 @@ export const useFinancialAnalytics = (
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
       const clientRecords = recordsByClient.get(client.id) || [];
       const revenue = clientRecords
-        .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía')
+        .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía' && r.category !== 'Multa')
         .reduce((sum, r) => sum + Number(r.amount || 0), 0);
       const operatingExpenses = clientRecords
         .filter(r => r.type === 'expense')
@@ -237,12 +255,13 @@ export const useFinancialAnalytics = (
     const prevMonthOperationalIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
     const prevMonthVehicleSales = sumVehicleSales(prevMonthRecords);
     const prevMonthIncome = prevMonthOperationalIncome + prevMonthVehicleSales;
-    const prevMonthVehicleSalesCost = sumVehicleSalesCost(prevMonthRecords, vehicles);
     const prevMonthExpenses = sumExpense(prevMonthRecords.filter(r => !isDepositRefund(r)));
-    const prevMonthProfit = prevMonthOperationalIncome + (prevMonthVehicleSales - prevMonthVehicleSalesCost) - prevMonthExpenses;
+    const prevMonthReconciliation = calculateFinancialReconciliation(prevMonthRecords, vehicles, depositCategoryIds, refundDepositCategoryIds);
+    const prevMonthProfit = prevMonthReconciliation.netProfit;
     const monthlyGrowth = {
       income: calculateChange(totalIncome, prevMonthIncome),
       expenses: calculateChange(totalExpenses, prevMonthExpenses),
+      reconciledExpenses: calculateChange(reconciledExpenses, prevMonthReconciliation.totalExpenses),
       profit: calculateChange(netProfit, prevMonthProfit),
     };
 
@@ -256,10 +275,10 @@ export const useFinancialAnalytics = (
     const topVehicles = Object.entries(vehicleValueMap).map(([id, netValue]) => ({ id, name: vehicleMap.get(id) || 'Vehículo Desconocido', netValue })).sort((a,b) => b.netValue - a.netValue).slice(0, 10);
 
     return {
-      totalIncome, operationalIncome, vehicleSales, vehicleSalesCost, vehicleSalesGrossProfit,
+      totalIncome, operationalIncome, vehicleSales, vehicleSalesCost, vehicleSalesCostDetails, includedRecords, excludedRecords, vehicleSalesGrossProfit,
       customerCollections, creditCollections, securityDeposits, partnerPayments, supplierPayments, otherPayments,
       cashInflow, cashOutflow, netCashFlow, creditGranted, creditRecovered,
-      todayIncome: todayOperationalIncome + todayVehicleSales, totalExpenses, todayExpenses,
+      todayIncome: todayOperationalIncome + todayVehicleSales, totalExpenses, reconciledExpenses, todayExpenses,
       netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth,
       cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis,
     };
