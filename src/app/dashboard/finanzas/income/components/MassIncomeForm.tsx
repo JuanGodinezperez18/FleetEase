@@ -29,12 +29,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
 import { createFinancialRecord } from '@/lib/financial-rpc';
 import { toSbFinancialRecord } from '@/lib/domain-mappers';
+import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const formSchema = z.object({
   companyId: z.string().min(1, 'Selecciona una compañía'),
   categoryId: z.string().min(1, 'Selecciona una categoría'),
   description: z.string().optional(),
-  date: z.string().min(1, 'Fecha es requerida'),
+  date: z.string().min(1, 'Fecha es requerida').refine(isFinancialDateNotInFuture, { message: 'La fecha no puede ser futura' }),
   paymentMethod: z.string().min(1, 'Método de pago es requerido'),
 });
 
