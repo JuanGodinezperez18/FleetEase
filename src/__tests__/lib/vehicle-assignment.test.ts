@@ -11,6 +11,10 @@ import {
   buildAssignmentLogPayload,
   findOpenAssignments,
   checkVehicleAssignmentAvailability,
+  isDateOnOrAfter,
+  getBusinessDateKey,
+  isAssignmentDateInFuture,
+  isHistoricalAssignmentDate,
 } from '@/lib/vehicle-assignment';
 import type { AssignmentLogLike } from '@/lib/vehicle-assignment';
 
@@ -161,5 +165,32 @@ describe('buildAssignmentLogPayload', () => {
     const before = Date.now();
     const result = buildAssignmentLogPayload(baseInput);
     expect(new Date(result.assignedAt).getTime()).toBeGreaterThanOrEqual(before);
+  });
+});
+
+
+describe('assignment date rules', () => {
+  const now = new Date('2026-11-02T09:00:00-06:00');
+
+  it('uses the Monterrey calendar date rather than timestamp ordering', () => {
+    expect(getBusinessDateKey(now)).toBe('2026-11-02');
+    expect(isAssignmentDateInFuture('2026-11-02T12:00:00-06:00', now)).toBe(false);
+    expect(isAssignmentDateInFuture('2026-11-02', now)).toBe(false);
+  });
+
+  it('rejects an assignment on a future Monterrey calendar date', () => {
+    expect(isAssignmentDateInFuture('2026-11-03T00:00:00-06:00', now)).toBe(true);
+    expect(isAssignmentDateInFuture('2026-11-03', now)).toBe(true);
+  });
+
+  it('identifies historical assignments by calendar day', () => {
+    expect(isHistoricalAssignmentDate('2026-11-01T23:59:00-06:00', now)).toBe(true);
+    expect(isHistoricalAssignmentDate('2026-11-01', now)).toBe(true);
+    expect(isHistoricalAssignmentDate('2026-11-02T00:01:00-06:00', now)).toBe(false);
+  });
+
+  it('compares assignment and entity creation dates inclusively', () => {
+    expect(isDateOnOrAfter('2026-11-02', '2026-11-02')).toBe(true);
+    expect(isDateOnOrAfter('2026-11-01', '2026-11-02')).toBe(false);
   });
 });
