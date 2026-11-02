@@ -130,7 +130,7 @@ temp/
 # ======================
 # DATABASE BACKUPS (if generated locally)
 # ======================
-*.sql
+# Keep *.sql trackable: Supabase migrations are source-controlled application code.
 *.sqlite
 *.db
 /backups/
