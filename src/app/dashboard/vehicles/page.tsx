@@ -200,7 +200,10 @@ export default function VehiclesPage() {
       setVehicleToDelete(null);
     } catch (error) {
       console.error('Error al eliminar el vehículo:', error);
-      toast.error('Error al eliminar el vehículo', { id: toastId });
+      toast.error('Error al eliminar el vehículo', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'No se pudo eliminar el vehículo.',
+      });
     } finally {
       setIsSubmitting(false);
     }
