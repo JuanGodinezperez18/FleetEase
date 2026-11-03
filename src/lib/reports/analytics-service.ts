@@ -1,5 +1,5 @@
-import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog } from '@/types';
-import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange, calculateFinancialReportMetrics } from '@/lib/financial-metrics';
+import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog, FinancialCategory } from '@/types';
+import { sumPayment, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange, calculateFinancialReportMetrics } from '@/lib/financial-metrics';
 import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
@@ -46,7 +46,7 @@ export class ReportAnalyticsService {
     financialRecords: FinancialRecord[],
     dateRange?: { from: Date; to: Date },
     assignmentLogs: VehicleAssignmentLog[] = [],
-    financialCategories: import('@/types').FinancialCategory[] = [],
+    financialCategories: FinancialCategory[] = [],
   ): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
     const scopedRecords = dateRange
@@ -66,14 +66,9 @@ export class ReportAnalyticsService {
       const totalExpenses = financialMetrics.totalExpenses;
       const netProfit = financialMetrics.netProfit;
       const profitability = financialMetrics.profitMargin;
-      const profitTransactions = vehicleRecords.filter(r =>
-        !r.isDeleted && (
-          (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY && r.category !== 'Multa') ||
-          (r.type === 'expense' && r.category !== 'Devolución de Depósito')
-        )
-      );
+      const profitTransactionsCount = financialMetrics.transactionsCount;
       const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
-      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactions.length };
+      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactionsCount };
     }).sort((a, b) => b.netProfit - a.netProfit);
   }
 
