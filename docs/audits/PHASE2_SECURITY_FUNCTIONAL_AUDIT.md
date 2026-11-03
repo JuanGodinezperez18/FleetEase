@@ -125,3 +125,25 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 - No modificar producción, ejecutar migraciones, crear datos QA ni usar credenciales durante una revisión estática.
 - Cada cambio de estado debe actualizar esta matriz en el mismo PR que cierra el hallazgo, incluyendo commit, PR, pruebas y estado de workflows.
 - Si existe conflicto entre un PDF/informe anterior y esta sección, prevalece esta sección para el estado C1–C5 a partir del 2026-11-03.
+
+
+### Seguimiento de implementación C1 — 2026-11-03
+
+**Estado: implementación en rama de PR; NO CERRADO.**
+
+- Rama de trabajo: `fix/audit-c1-financial-reconciliation`, creada desde `master`.
+- Se añadió `calculateFinancialReportMetrics` en `src/lib/financial-metrics.ts` como fuente canónica de ingresos, gastos, costo de ventas financiadas, utilidad, margen y categorías del reporte.
+- El cálculo excluye depósitos en garantía, devoluciones de depósitos, multas cobradas, pagos/cobranzas y notas de cancelación de crédito; reconoce ventas financiadas una sola vez y agrega el costo del vehículo vendido una sola vez.
+- El resumen financiero del módulo Reportes, las categorías exportadas y las comparaciones contra el periodo anterior consumen la función canónica.
+- Las métricas por vehículo consumen la misma función, incluyendo venta financiada y su costo cuando el movimiento está asociado al vehículo.
+- El detalle de Excel ahora distingue movimientos de tipo `payment` como **Pago** (antes se etiquetaban erróneamente como Gasto); el PDF/Excel aclaran que los movimientos recientes pueden incluir depósitos y pagos que no forman parte de la utilidad.
+- Se añadieron pruebas unitarias de conciliación para renta, venta financiada, costo de venta, depósitos, devoluciones, multas, pagos y registros eliminados.
+
+**Validación pendiente antes de cerrar C1:**
+- Ejecutar el quality gate/CI sobre el HEAD final del PR y corregir cualquier fallo.
+- Revisar la cobertura de casos de categorías de depósito/devolución identificadas por ID, registros sin vehículo y vehículos vendidos con varios movimientos.
+- Verificar que los totales de categorías sumen exactamente los totales del resumen y que `netProfit === totalIncome - totalExpenses`.
+- Confirmar que los totales por vehículo se reconcilien con el subconjunto de movimientos asociados a vehículos; cualquier movimiento sin vehículo debe permanecer en el total general y no asignarse artificialmente.
+- Revisar expresamente el reporte por socio: la inversión de adquisición de vehículos de renta debe mostrarse separada del gasto operativo y no mezclarse con el resultado consolidado. Este punto sigue abierto hasta completar esa revisión.
+- Validación local no ejecutada desde esta sesión; no afirmar que tests o workflows han pasado hasta tener evidencia de CI.
+
