@@ -237,8 +237,9 @@ export default function ReportsPageImproved() {
           kpis: [
             { label: 'Socios analizados', value: partnerMetrics.length, format: 'number' },
             { label: 'Ingresos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalIncome, 0), format: 'currency' },
-            { label: 'Gastos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
-            { label: 'Balance neto de socios', value: partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0), format: 'currency' },
+            { label: 'Gastos operativos asociados', value: partnerMetrics.reduce((sum, m) => sum + m.totalExpenses, 0), format: 'currency' },
+            { label: 'Inversión en vehículos de renta', value: partnerMetrics.reduce((sum, m) => sum + m.rentalVehicleInvestment, 0), format: 'currency' },
+            { label: 'Utilidad neta de socios', value: partnerMetrics.reduce((sum, m) => sum + m.netBalance, 0), format: 'currency' },
           ],
         };
       default:
@@ -498,14 +499,15 @@ export default function ReportsPageImproved() {
                 <ChartPanel title="Ingresos y gastos por vehículo">
                   {vehicleMetrics.length === 0 ? <EmptyChart message="No hay movimientos asociados a vehículos en este periodo." /> : (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses, inversion: m.rentalVehicleInvestment }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
                         <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
                         <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
                         <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
                         <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                         <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
-                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos operativos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="inversion" name="Inversión en vehículos de renta" fill="#38bdf8" radius={[5, 5, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -793,7 +795,7 @@ export default function ReportsPageImproved() {
                     primary: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(),
                     secondary: `${m.activeVehicles} vehículos activos · ${m.transactionsCount} movimientos`,
                     value: formatCurrency(m.netBalance),
-                    meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)}`,
+                    meta: `Ingresos ${formatCurrency(m.totalIncome)} · Gastos ${formatCurrency(m.totalExpenses)} · Inversión ${formatCurrency(m.rentalVehicleInvestment)}`,
                     positive: m.netBalance >= 0,
                   }))}
                 />
