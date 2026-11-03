@@ -152,3 +152,6 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 ### Actualización de alcance C1 — PR #129
 
 La implementación del PR #129 amplió el uso de la función canónica también al reporte por socio. Los reportes por socio calculan ingresos, gastos y utilidad con `calculateFinancialReportMetrics`; la inversión de adquisición de vehículos de renta se presenta en un campo separado y no se suma a los gastos operativos ni se resta de la utilidad del periodo del reporte. El helper de rentabilidad compartido por otras pantallas conserva su semántica histórica para evitar cambios colaterales. C1 continúa abierto hasta CI verde, revisión funcional de PDF/Excel y conciliación de los casos sin vehículo.
+
+
+La atribución por socio mantiene una excepción de alcance explícita dentro de la misma función canónica: `vehicle_admin_fee` se conserva como ingreso de empresa en el reporte general, pero se excluye del ingreso atribuible al socio. Esta distinción no cambia la contabilidad consolidada; evita asignar al socio un ingreso que corresponde a la empresa. La prueba unitaria documenta ambos resultados.
