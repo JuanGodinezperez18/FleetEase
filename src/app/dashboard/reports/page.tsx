@@ -44,6 +44,7 @@ import {
   Area,
 } from 'recharts';
 import { ReportAnalyticsService } from '@/lib/reports/analytics-service';
+import { calculateFinancialReportMetrics } from '@/lib/financial-metrics';
 import { useFinancialAnalytics } from '@/hooks/use-financial-analytics';
 import { generatePDFReport, downloadPDF } from '@/lib/reports/pdf-generator';
 import { generateExcelReport, downloadExcel } from '@/lib/reports/excel-generator';
@@ -84,14 +85,19 @@ export default function ReportsPageImproved() {
 
   const financialSummary = useMemo(() => {
     if (!dateRange?.from || !dateRange.to) return null;
+    const periodRecords = ReportAnalyticsService.filterRecordsByDateRange(
+      financialRecords,
+      { from: startOfDay(dateRange.from!), to: endOfDay(dateRange.to!) }
+    );
+    const canonical = calculateFinancialReportMetrics(periodRecords, vehicles, financialCategories);
     return {
-      income: financialAnalytics.totalIncome,
-      expenses: financialAnalytics.totalExpenses,
-      netProfit: financialAnalytics.netProfit,
-      profitMargin: financialAnalytics.profitMargin,
-      transactionsCount: ReportAnalyticsService.filterRecordsByDateRange(financialRecords, { from: startOfDay(dateRange.from!), to: endOfDay(dateRange.to!) }).length,
-      expensesByCategory: Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
-      incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
+      income: canonical.totalIncome,
+      expenses: canonical.totalExpenses,
+      netProfit: canonical.netProfit,
+      profitMargin: canonical.profitMargin,
+      transactionsCount: canonical.transactionsCount,
+      expensesByCategory: canonical.expensesByCategory,
+      incomeByCategory: canonical.incomeByCategory,
       incomeChange: financialAnalytics.monthlyGrowth.income,
       expensesChange: financialAnalytics.monthlyGrowth.expenses,
       profitChange: financialAnalytics.monthlyGrowth.profit,
@@ -104,9 +110,10 @@ export default function ReportsPageImproved() {
       vehicles,
       financialRecords,
       { from: dateRange.from, to: dateRange.to },
-      vehicleAssignmentLogs
+      vehicleAssignmentLogs,
+      financialCategories
     );
-  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs]);
+  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs, financialCategories]);
 
   const clientsWithBalances = useMemo(() => {
     const balanceMap = new Map(clientBalances.map(cb => [cb.id, cb.balance]));
