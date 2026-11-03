@@ -499,7 +499,7 @@ export default function ReportsPageImproved() {
                 <ChartPanel title="Ingresos y gastos por vehículo">
                   {vehicleMetrics.length === 0 ? <EmptyChart message="No hay movimientos asociados a vehículos en este periodo." /> : (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses, inversion: m.rentalVehicleInvestment }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                      <BarChart data={vehicleMetrics.slice(0, 8).map(m => ({ name: m.vehicle.alias || m.vehicle.plate || m.vehicle.id, ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
                         <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
                         <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
@@ -507,7 +507,6 @@ export default function ReportsPageImproved() {
                         <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                         <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
                         <Bar dataKey="gastos" name="Gastos operativos" fill="#fb7185" radius={[5, 5, 0, 0]} />
-                      <Bar dataKey="inversion" name="Inversión en vehículos de renta" fill="#38bdf8" radius={[5, 5, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -560,13 +559,14 @@ export default function ReportsPageImproved() {
                 <ChartPanel title="Ingresos y gastos por socio">
                   {partnerMetrics.length === 0 ? <EmptyChart message="No hay socios con información disponible." /> : (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                      <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses, inversion: m.rentalVehicleInvestment }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
                         <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
                         <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
                         <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
                         <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
-                        <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="gastos" name="Gastos operativos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                        <Bar dataKey="inversion" name="Inversión en vehículos de renta" fill="#38bdf8" radius={[5, 5, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -677,7 +677,8 @@ export default function ReportsPageImproved() {
                       <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={TOOLTIP_STYLE} />
                       <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
                       <Bar dataKey="ingresos" name="Ingresos" fill="#a3e635" radius={[5, 5, 0, 0]} />
-                      <Bar dataKey="gastos" name="Gastos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="gastos" name="Gastos operativos" fill="#fb7185" radius={[5, 5, 0, 0]} />
+                      <Bar dataKey="inversion" name="Inversión en vehículos de renta" fill="#38bdf8" radius={[5, 5, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>}
                 </ChartPanel>
