@@ -241,17 +241,18 @@ function DraggableMetricCardBase({
       </div>
 
       <div className="relative min-w-0 pr-12">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-start gap-2">
           {/* Decorative dot only when neutral; severity bar replaces it for anomalies */}
           {severity === 'neutral' ? (
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fe-lime)]/80" />
+            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--fe-lime)]/80" />
           ) : (
             <span
-              className={cn('h-1.5 w-1.5 shrink-0 rounded-full', severityStyle.bar)}
+              className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', severityStyle.bar)}
               aria-hidden
             />
           )}
-          <p className="fe-metric-title truncate">{widget.title}</p>
+          {/* CSS .fe-metric-title handles 2-line clamp — no hard truncate class */}
+          <p className="fe-metric-title" title={widget.title}>{widget.title}</p>
         </div>
 
         <h3
@@ -260,12 +261,13 @@ function DraggableMetricCardBase({
             (isNegativeMoney || severity === 'critical' || severity === 'danger') && 'text-rose-400'
           )}
           aria-live="polite"
+          title={displayValue}
         >
           {displayValue}
         </h3>
 
         {kpiData?.subtitle && (
-          <p className="fe-metric-description mt-2">{kpiData.subtitle}</p>
+          <p className="fe-metric-description mt-2" title={kpiData.subtitle}>{kpiData.subtitle}</p>
         )}
 
         {kpiData?.trend !== undefined && changePercent !== undefined && (
