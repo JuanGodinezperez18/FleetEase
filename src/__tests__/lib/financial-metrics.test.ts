@@ -281,6 +281,7 @@ describe('financial-metrics', () => {
         makeRecord({ id: 'active-income', amount: 1000 }),
         makeRecord({ id: 'deleted-income', amount: 9000, isDeleted: true }),
         makeRecord({ id: 'deleted-expense', type: 'expense', amount: 4000, isDeleted: true }),
+        makeRecord({ id: 'credit-cancellation', type: 'expense', amount: 600, sourceRecordType: 'credit_cancellation_note' }),
       ];
       const result = calculateFinancialReportMetrics(records, [], []);
       expect(result.totalIncome).toBe(1000);
