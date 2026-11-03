@@ -92,12 +92,12 @@ export class ExcelReportGenerator {
       summaryData.push(['RESUMEN FINANCIERO']);
       summaryData.push(['']);
 
-      if (data.income !== undefined) {
-        summaryData.push(['Ingresos Totales', data.income]);
-      }
-      if (data.expenses !== undefined) {
-        summaryData.push(['Gastos Totales', data.expenses]);
-      }
+      if (data.operatingIncome !== undefined) summaryData.push(['Ingresos Operativos', data.operatingIncome]);
+      if (data.vehicleSales !== undefined) summaryData.push(['Ventas Financiadas', data.vehicleSales]);
+      if (data.income !== undefined) summaryData.push(['Ingresos Totales', data.income]);
+      if (data.operatingExpenses !== undefined) summaryData.push(['Gastos Operativos', data.operatingExpenses]);
+      if (data.vehicleSalesCost !== undefined) summaryData.push(['Costo de Vehículos Vendidos', data.vehicleSalesCost]);
+      if (data.expenses !== undefined) summaryData.push(['Gastos y Costos Totales', data.expenses]);
       if (data.netProfit !== undefined) {
         summaryData.push(['Beneficio Neto', data.netProfit]);
       }
@@ -227,6 +227,43 @@ export class ExcelReportGenerator {
         { wch: 15 },
       ];
       this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Transacciones');
+    }
+
+    if (data.excludedRecords && data.excludedRecords.length > 0) {
+      const excludedData: (string | number)[][] = [
+        ['Movimientos excluidos de rentabilidad'],
+        ['Se muestran para trazabilidad; no se suman al ingreso/gasto usado para calcular el beneficio.'],
+        ['Fecha', 'Tipo', 'Categoria', 'Descripcion', 'Monto', 'Motivo de exclusión'],
+      ];
+      data.excludedRecords.forEach(({ record, reason }) => {
+        excludedData.push([
+          format(new Date(record.date), 'dd/MM/yyyy'),
+          record.type === 'income' ? 'Ingreso' : record.type === 'expense' ? 'Gasto' : 'Pago',
+          record.category || 'N/A',
+          record.description || '',
+          record.amount,
+          reason,
+        ]);
+      });
+      const worksheet = this.xlsx.utils.aoa_to_sheet(excludedData);
+      worksheet['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 38 }, { wch: 15 }, { wch: 68 }];
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Movimientos excluidos');
+    }
+
+    if (data.vehicleSalesCost !== undefined) {
+      const costData: (string | number)[][] = [
+        ['Costo de vehículos vendidos (ajuste de rentabilidad)'],
+        ['Este costo se reconoce en el beneficio neto y no representa un movimiento de efectivo.'],
+        ['Vehículo', 'Placa', 'ID de vehículo', 'Costo de adquisición'],
+      ];
+      (data.vehicleSalesCostDetails || []).forEach(detail => {
+        costData.push([detail.vehicleName, detail.plate, detail.vehicleId, detail.acquisitionCost]);
+      });
+      costData.push(['']);
+      costData.push(['Total costo de vehículos vendidos', '', '', data.vehicleSalesCost]);
+      const worksheet = this.xlsx.utils.aoa_to_sheet(costData);
+      worksheet['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 38 }, { wch: 22 }];
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Costo de ventas');
     }
   }
 

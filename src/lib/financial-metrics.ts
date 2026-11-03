@@ -274,18 +274,41 @@ export const sumVehicleSales = (records: FinancialRecord[]): number =>
  * Cada vehículo vendido se contabiliza una sola vez para evitar duplicar
  * el costo si existen varios registros relacionados con la operación.
  */
-export const sumVehicleSalesCost = (records: FinancialRecord[], vehicles: Vehicle[]): number => {
+export interface VehicleSalesCostDetail {
+  vehicleId: string;
+  vehicleName: string;
+  plate: string;
+  acquisitionCost: number;
+}
+
+/** Detail supporting the cost-of-sales adjustment; each financed vehicle is counted once. */
+export const getVehicleSalesCostBreakdown = (
+  records: FinancialRecord[],
+  vehicles: Vehicle[]
+): VehicleSalesCostDetail[] => {
   const soldVehicleIds = new Set(
     records
       .filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true && r.vehicleId)
       .map(r => r.vehicleId as string)
   );
   const vehicleById = new Map(vehicles.map(v => [v.id, v]));
-  return Array.from(soldVehicleIds).reduce(
-    (sum, vehicleId) => sum + (Number(vehicleById.get(vehicleId)?.cost) || 0),
-    0
-  );
+
+  return Array.from(soldVehicleIds).map(vehicleId => {
+    const vehicle = vehicleById.get(vehicleId);
+    const vehicleName = vehicle
+      ? vehicle.alias || `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || vehicleId
+      : 'Vehículo no encontrado';
+    return {
+      vehicleId,
+      vehicleName,
+      plate: vehicle?.plate || 'N/A',
+      acquisitionCost: Number(vehicle?.cost) || 0,
+    };
+  }).sort((a, b) => a.vehicleName.localeCompare(b.vehicleName, 'es'));
 };
+
+export const sumVehicleSalesCost = (records: FinancialRecord[], vehicles: Vehicle[]): number =>
+  getVehicleSalesCostBreakdown(records, vehicles).reduce((sum, detail) => sum + detail.acquisitionCost, 0);
 
 export interface PartnerProfitability {
   rentalIncome: number;
@@ -371,6 +394,100 @@ export const calculateProfitMargin = (income: number, expenses: number): number 
   const net = income - expenses;
   if (income > 0) return (net / income) * 100;
   return net === 0 ? 0 : -100;
+};
+
+export const isDepositRefundRecord = (
+  record: FinancialRecord,
+  refundDepositCategoryIds?: Set<string>
+): boolean => record.type === 'expense' && (
+  record.category === 'Devolución de Depósito' ||
+  (!!record.categoryId && !!refundDepositCategoryIds?.has(record.categoryId))
+);
+
+export interface ExcludedFinancialRecord {
+  record: FinancialRecord;
+  reason: string;
+}
+
+export interface FinancialReconciliation {
+  operationalIncome: number;
+  vehicleSales: number;
+  totalIncome: number;
+  operatingExpenses: number;
+  vehicleSalesCost: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  vehicleSalesCostDetails: VehicleSalesCostDetail[];
+  includedRecords: FinancialRecord[];
+  excludedRecords: ExcludedFinancialRecord[];
+}
+
+/** Explains why a record is visible in the period but excluded from profitability. */
+export const getFinancialRecordExclusionReason = (
+  record: FinancialRecord,
+  depositCategoryIds?: Set<string>,
+  refundDepositCategoryIds?: Set<string>
+): string | null => {
+  if (!isActiveRecord(record)) return 'Registro eliminado o inactivo';
+  if (record.type === 'income') {
+    if (record.creditGranted === true) return null;
+    if (record.category === SECURITY_DEPOSIT_CATEGORY || (!!record.categoryId && !!depositCategoryIds?.has(record.categoryId))) {
+      return 'Depósito en garantía: se excluye de ingresos por ser un pasivo reembolsable.';
+    }
+    if (record.category === 'Multa') return 'Multa: no se considera ingreso operativo en la rentabilidad.';
+    return null;
+  }
+  if (record.type === 'expense') {
+    if (isDepositRefundRecord(record, refundDepositCategoryIds)) {
+      return 'Devolución de depósito: se excluye de gastos operativos.';
+    }
+    return null;
+  }
+  return 'Cobro o pago: se presenta en flujo de efectivo y no vuelve a sumar ingreso/gasto de rentabilidad.';
+};
+
+/**
+ * Canonical period reconciliation for reports: total income less operating
+ * expenses and the acquisition cost of vehicles sold on financed contracts.
+ * Vehicle sales cost is an adjustment, not a cash movement in financial_records.
+ */
+export const calculateFinancialReconciliation = (
+  records: FinancialRecord[],
+  vehicles: Vehicle[],
+  depositCategoryIds?: Set<string>,
+  refundDepositCategoryIds?: Set<string>
+): FinancialReconciliation => {
+  const activeRecords = records.filter(isActiveRecord);
+  const excludedRecords = activeRecords.flatMap(record => {
+    const reason = getFinancialRecordExclusionReason(record, depositCategoryIds, refundDepositCategoryIds);
+    return reason ? [{ record, reason }] : [];
+  });
+  const includedRecords = activeRecords.filter(record =>
+    getFinancialRecordExclusionReason(record, depositCategoryIds, refundDepositCategoryIds) === null
+  );
+  const operationalIncome = sumRentalIncome(activeRecords, depositCategoryIds);
+  const vehicleSales = sumVehicleSales(activeRecords);
+  const vehicleSalesCostDetails = getVehicleSalesCostBreakdown(activeRecords, vehicles);
+  const vehicleSalesCost = vehicleSalesCostDetails.reduce((sum, detail) => sum + detail.acquisitionCost, 0);
+  const operatingExpenses = sumExpense(activeRecords.filter(record => !isDepositRefundRecord(record, refundDepositCategoryIds)));
+  const totalIncome = operationalIncome + vehicleSales;
+  const totalExpenses = operatingExpenses + vehicleSalesCost;
+  const netProfit = totalIncome - totalExpenses;
+
+  return {
+    operationalIncome,
+    vehicleSales,
+    totalIncome,
+    operatingExpenses,
+    vehicleSalesCost,
+    totalExpenses,
+    netProfit,
+    profitMargin: calculateProfitMargin(totalIncome, totalExpenses),
+    vehicleSalesCostDetails,
+    includedRecords,
+    excludedRecords,
+  };
 };
 
 export const calculateAvgTransactionValue = (records: FinancialRecord[]): number => {
