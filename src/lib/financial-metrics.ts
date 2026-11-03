@@ -404,11 +404,16 @@ export const calculateFinancialReportMetrics = (
       )
       .map(category => category.id)
   );
+  const categoryNameById = new Map(categories.map(category => [category.id, category.name]));
+  const getCategoryName = (record: FinancialRecord) =>
+    ((record.categoryId && categoryNameById.get(record.categoryId)) || record.category || '').trim().toLocaleLowerCase('es-MX');
   const isDepositRefund = (record: FinancialRecord) =>
     isExpense(record) && (
-      record.category?.trim().toLocaleLowerCase('es-MX') === 'devolución de depósito' ||
+      getCategoryName(record) === 'devolución de depósito' ||
       (!!record.categoryId && refundDepositCategoryIds.has(record.categoryId))
     );
+  const isPartnerDistribution = (record: FinancialRecord) =>
+    ['pago a socio', 'pago de socio', 'abono a socio', 'comisión socio', 'comision socio'].includes(getCategoryName(record));
   const eligibleIncome = activeRecords.filter(record =>
     isIncome(record) &&
     !record.creditGranted &&
@@ -420,7 +425,7 @@ export const calculateFinancialReportMetrics = (
     isIncome(record) && record.creditGranted === true
   );
   const eligibleExpenses = activeRecords.filter(record =>
-    isExpense(record) && !isDepositRefund(record) && !isCreditCancellationNote(record)
+    isExpense(record) && !isDepositRefund(record) && !isPartnerDistribution(record) && !isCreditCancellationNote(record)
   );
 
   const operationalIncome = sumAmount(eligibleIncome);
@@ -430,7 +435,6 @@ export const calculateFinancialReportMetrics = (
   const totalIncome = operationalIncome + vehicleSales;
   const totalExpenses = operatingExpenses + vehicleSalesCost;
 
-  const categoryNameById = new Map(categories.map(category => [category.id, category.name]));
   const incomeByCategory: Record<string, number> = {};
   const expensesByCategory: Record<string, number> = {};
 
