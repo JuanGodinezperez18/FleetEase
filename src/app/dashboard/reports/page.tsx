@@ -188,7 +188,6 @@ export default function ReportsPageImproved() {
             operatingExpenses: financialSummary.operatingExpenses,
             vehicleSalesCost: financialSummary.vehicleSalesCost,
             vehicleSalesCostDetails: financialSummary.vehicleSalesCostDetails,
-            excludedRecords: financialAnalytics.excludedRecords,
             netProfit: financialSummary.netProfit,
             profitMargin: financialSummary.profitMargin,
             transactionsCount: financialSummary.transactionsCount,
