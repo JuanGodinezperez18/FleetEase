@@ -150,9 +150,10 @@ export default function ReportsPageImproved() {
       partners,
       vehicles,
       financialRecords,
-      { from: dateRange.from, to: dateRange.to }
+      { from: dateRange.from, to: dateRange.to },
+      financialCategories
     );
-  }, [partners, vehicles, financialRecords, dateRange]);
+  }, [partners, vehicles, financialRecords, dateRange, financialCategories]);
 
   const monthlyTrends = useMemo(
     () => financialAnalytics.cashFlowAnalysis.slice(-6).map(month => ({
