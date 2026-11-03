@@ -180,3 +180,17 @@ These skills refine the existing product; they do not authorize changes to prote
 
 ## Anti-slop agent rules
 Before creating or reviewing UI, copy, responsive layouts, accessibility, or code comments, read `antislop.md` at the repository root and follow its rules. Resolve the usage mode according to its instructions before work; do not bypass existing project requirements, tests, security boundaries, or business logic.
+
+
+## Auditoría crítica FleetEase — fuente de verdad obligatoria
+
+Antes de modificar código relacionado con auditorías, reportes financieros, borrado, fechas financieras, asignaciones o migraciones, leer `docs/audits/PHASE2_SECURITY_FUNCTIONAL_AUDIT.md`, sección **“Estado vigente de auditoría crítica C1–C5 — 2026-11-03”**. Esa sección es la fuente de verdad para el estado C1–C5 y reemplaza cualquier estado previo de informes/PDFs anteriores.
+
+Estado de referencia (base auditada `d91c346`):
+- C1: abierto; reportes financieros inconsistentes. No asumir corregido.
+- C2: corregido en código/migración; falta confirmar aplicación en producción.
+- C3: parcial; la UI informa errores, pero no verifica cero filas afectadas ni está demostrada la reparación RLS.
+- C4: corregido en código/migración; falta confirmar aplicación en producción.
+- C5: migraciones versionadas; falta conciliar drift de la BD viva.
+- C1 y C3 deben trabajarse en PRs independientes. No tocar producción ni ejecutar migraciones sin autorización explícita.
+- Cualquier PR que cambie el estado de un hallazgo debe actualizar la matriz de auditoría en el mismo PR con evidencia de pruebas y workflows.
