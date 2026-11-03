@@ -83,3 +83,45 @@ En el HEAD `c7fdfdda5bbc36f97fd998398ddc769c4ae47d14`, GitHub Actions terminó c
 Validación local de esta continuación: 6 suites del quality gate, 57 tests, `npm run type-check` y `git diff --check` pasaron. Falta el resultado remoto del nuevo HEAD.
 
 No hay configuración de Aikido en el repositorio, así que no existe un resultado de escaneo Aikido verificable. Las nuevas pruebas no usan una instancia real de Supabase ni envían correos: se necesita una cuenta/proyecto de prueba y credenciales de Resend para validar esas integraciones externas. La PR permanece en borrador hasta obtener esa evidencia y habilitar Aikido.
+
+
+---
+
+# Estado vigente de auditoría crítica C1–C5 — 2026-11-03
+
+> **FUENTE DE VERDAD ACTUAL.** Esta sección reemplaza cualquier estado previo de C1–C5. Antes de trabajar en auditoría, cualquier agente debe leer esta sección y verificar el HEAD de `master`. No usar como estado actual una copia anterior del PDF ni la auditoría original con base `06b6d08`.
+
+## Base y método de reauditoría
+
+- Fecha: 2026-11-03.
+- Revisión de código: `d91c34694ef5c8aa1aec418ab7ca29f5a3b43805` (`d91c346`), 27 commits posteriores a la auditoría original `06b6d08`.
+- Método: auditoría estática; no se ejecutaron pruebas en vivo, no se crearon registros QA-TEST y no se usaron credenciales.
+- Alcance: exclusivamente hallazgos críticos C1–C5 de la auditoría original.
+- Esta actualización conserva explícitamente la distinción entre corrección de código y verificación de producción.
+
+## Matriz vigente C1–C5
+
+| ID | Hallazgo | Veredicto al 2026-11-03 | Evidencia / commits | Criterio para cierre definitivo |
+|---|---|---|---|---|
+| C1 | Los importes centrales de reportes financieros no cuadran | **ABIERTO — NO CORREGIDO** | No hubo cambios en `src/lib/reports`, `src/lib/financial-metrics.ts` ni `src/lib/dashboard-service.ts` entre `06b6d08` y `d91c346`. Se identificaron definiciones distintas en resumen, vehículo y socio; persiste el desfase histórico de $495,000. | Una definición canónica documentada; resumen y tablas conciliables; PDF y Excel con mismos totales; pruebas automatizadas de conciliación y casos límite; CI verde. |
+| C2 | Se aceptaban fechas futuras en ingresos/gastos | **CORREGIDO EN CÓDIGO Y MIGRACIÓN; PRODUCCIÓN PENDIENTE DE CONFIRMACIÓN** | `f36c98a`, PR #122; validador de fecha y trigger sobre `financial_records`. | Confirmar migración aplicada en producción y revisar/corregir el registro histórico con fecha 2027 mediante procedimiento autorizado. |
+| C3 | El borrado fallaba con 403 silencioso | **PARCIAL — ABIERTO** | PR #121, commit `27f2c1c`: la UI ya informa errores; los métodos de borrado no verifican filas afectadas y no hay evidencia de corrección de RLS/GRANTs en la BD viva. | Comprobar filas afectadas, error explícito cuando sean cero, prueba controlada en entorno autorizado y reconciliar RLS/GRANTs de BD viva. No borrar datos reales durante auditoría. |
+| C4 | Doble asignación / fechas de asignación inválidas | **CORREGIDO EN CÓDIGO Y MIGRACIÓN; PRODUCCIÓN PENDIENTE DE CONFIRMACIÓN** | PR #123, commit `852620d` y migración `20261102190000_enforce_vehicle_assignment_history.sql`. | Confirmar migración aplicada en producción; tratar solapamientos históricos sólo con plan separado y aprobación. |
+| C5 | DDL fuera de Git | **CORREGIDO EN REPOSITORIO; DRIFT DE PRODUCCIÓN PENDIENTE** | Commit `4d6df69`; 88 migraciones SQL versionadas en la revisión auditada; regla `*.sql` retirada de `.gitignore`. | Comparar esquema vivo contra migraciones, reconciliar cambios manuales y resolver la duplicidad de migraciones shared-links sin reescribir historial aplicado. |
+
+## Orden de trabajo autorizado
+
+1. **C1 — PR independiente de conciliación financiera.** Base: `master` actualizado. Centralizar las reglas de ingreso, gasto, costo de ventas financiadas, depósitos y exclusiones; hacer que resumen, métricas por vehículo y exportaciones usen la misma fuente de verdad. Preservar las reglas contables de FleetEase: cobranzas de créditos no vuelven a reconocer ventas; depósitos en garantía no son ingreso operativo; pagos a socios no son gasto de rentabilidad; costo de adquisición de vehículos de renta no debe confundirse con gasto operativo; ventas financiadas reconocen ingreso y costo una sola vez. No cambiar el comportamiento de otros módulos sin pruebas y justificación.
+2. **C3 — PR independiente.** Corregir la detección de actualizaciones soft-delete con cero filas y validar permisos/RLS en entorno controlado. No realizar borrados en producción.
+3. **C2/C4/C5 — verificación operativa de producción.** Sólo lectura inicialmente: revisar historial de migraciones y comparar esquema. No ejecutar `db push`, SQL manual ni limpieza de datos sin autorización expresa.
+
+## Reglas obligatorias para agentes
+
+- Leer primero este documento; esta sección fechada 2026-11-03 es la referencia vigente de C1–C5.
+- No reabrir como pendientes C2, C4 o C5 de código sin evidencia nueva; sus verificaciones de producción siguen abiertas.
+- No marcar C3 como corregido: PR #121 sólo resolvió el error silencioso de interfaz.
+- No marcar C1 como corregido hasta que el PR de conciliación esté integrado y cumpla todos los criterios de salida.
+- Mantener C1 y C3 en PRs separados.
+- No modificar producción, ejecutar migraciones, crear datos QA ni usar credenciales durante una revisión estática.
+- Cada cambio de estado debe actualizar esta matriz en el mismo PR que cierra el hallazgo, incluyendo commit, PR, pruebas y estado de workflows.
+- Si existe conflicto entre un PDF/informe anterior y esta sección, prevalece esta sección para el estado C1–C5 a partir del 2026-11-03.
