@@ -36,13 +36,15 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <NativeDateRangePicker date={date} onDateChange={handleDateChange} />
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="min-w-0 w-full sm:w-auto sm:min-w-[240px] sm:flex-1">
+        <NativeDateRangePicker date={date} onDateChange={handleDateChange} />
+      </div>
 
       {currentUser?.role === "superAdmin" && (
         <Select onValueChange={onCompanyChange} defaultValue="all">
-          <SelectTrigger className="w-[220px]" label="Empresa">
-            <Building className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
+          <SelectTrigger className="w-full sm:w-[200px]" label="Empresa">
+            <Building className="mr-2 h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} />
             <SelectValue placeholder="Todas las Empresas" />
           </SelectTrigger>
           <SelectContent>
@@ -57,8 +59,8 @@ export const FinancialAdvancedFilters: React.FC<FinancialAdvancedFiltersProps> =
       )}
 
       <Select onValueChange={onPartnerChange} defaultValue="all">
-        <SelectTrigger className="w-[220px]" label="Socio">
-          <Briefcase className="mr-2 h-4 w-4 text-white/40" strokeWidth={1.75} />
+        <SelectTrigger className="w-full sm:w-[200px]" label="Socio">
+          <Briefcase className="mr-2 h-4 w-4 shrink-0 text-white/40" strokeWidth={1.75} />
           <SelectValue placeholder="Todos los Socios" />
         </SelectTrigger>
         <SelectContent>
