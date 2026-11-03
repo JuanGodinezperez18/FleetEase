@@ -121,7 +121,13 @@ export class ReportAnalyticsService {
     }).sort((a, b) => b.totalPayments - a.totalPayments);
   }
 
-  static calculatePartnerMetrics(partners: Partner[], vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): PartnerMetric[] {
+  static calculatePartnerMetrics(
+    partners: Partner[],
+    vehicles: Vehicle[],
+    financialRecords: FinancialRecord[],
+    dateRange?: { from: Date; to: Date },
+    financialCategories: FinancialCategory[] = [],
+  ): PartnerMetric[] {
     // Index once; preserve getPartnerFinancialRecords semantics, including historical
     // vehicle identity from active partner-linked records outside the report date range.
     const vehiclesByPartner = new Map<string, Vehicle[]>();
@@ -177,15 +183,18 @@ export class ReportAnalyticsService {
       const partnerRecordsInRange = dateRange
         ? filterRecordsByDateRange(relatedRecords, dateRange)
         : relatedRecords;
-
-      const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
-      const totalIncome = profitability.totalIncome;
-      // Para el reporte de resultados, separar la inversión de adquisición
-      // del gasto operativo y de la utilidad del periodo.
-      const totalExpenses = profitability.operatingExpenses + profitability.vehicleSalesCost;
-      const rentalVehicleInvestment = profitability.rentalVehicleAcquisitionCost;
-      const netBalance = profitability.totalIncome - totalExpenses;
-      const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
+      const relatedVehicles = vehicles.filter(vehicle => partnerVehicleIds.has(vehicle.id));
+      const financialMetrics = calculateFinancialReportMetrics(
+        partnerRecordsInRange,
+        relatedVehicles,
+        financialCategories,
+      );
+      const partnerProfitability = calculatePartnerProfitability(relatedVehicles, partnerRecordsInRange);
+      const totalIncome = financialMetrics.totalIncome;
+      const totalExpenses = financialMetrics.totalExpenses;
+      const rentalVehicleInvestment = partnerProfitability.rentalVehicleAcquisitionCost;
+      const netBalance = financialMetrics.netProfit;
+      const transactionsCount = financialMetrics.transactionsCount;
       return { partner, totalIncome, totalExpenses, rentalVehicleInvestment, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
   }
