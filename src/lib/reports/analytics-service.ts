@@ -1,5 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog, FinancialCategory } from '@/types';
-import { sumPayment, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange, calculateFinancialReportMetrics } from '@/lib/financial-metrics';
+import { sumPayment, calculatePartnerProfitability, filterRecordsByDateRange, calculateFinancialReportMetrics } from '@/lib/financial-metrics';
 import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
