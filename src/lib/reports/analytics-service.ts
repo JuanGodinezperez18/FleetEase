@@ -180,9 +180,11 @@ export class ReportAnalyticsService {
 
       const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
       const totalIncome = profitability.totalIncome;
-      const totalExpenses = profitability.totalExpenses;
+      // Para el reporte de resultados, separar la inversión de adquisición
+      // del gasto operativo y de la utilidad del periodo.
+      const totalExpenses = profitability.operatingExpenses + profitability.vehicleSalesCost;
       const rentalVehicleInvestment = profitability.rentalVehicleAcquisitionCost;
-      const netBalance = profitability.netProfit;
+      const netBalance = profitability.totalIncome - totalExpenses;
       const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
       return { partner, totalIncome, totalExpenses, rentalVehicleInvestment, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
