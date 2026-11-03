@@ -367,6 +367,103 @@ export const sumRentalIncome = (
 /** Utilidad operativa de renta/servicios: ingreso operativo menos gastos. */
 export const calculateNetProfit = (records: FinancialRecord[]): number => sumRentalIncome(records) - sumExpense(records);
 
+/**
+ * Fuente canónica para el resultado económico de reportes financieros.
+ *
+ * Ingresos = rentas/servicios operativos + ventas financiadas reconocidas.
+ * Gastos = gastos operativos elegibles + costo de adquisición de vehículos vendidos.
+ * No incluye depósitos en garantía, devoluciones de depósitos, multas cobradas,
+ * pagos/cobranzas ni notas de cancelación de crédito. Las cobranzas de ventas
+ * financiadas no vuelven a reconocer el ingreso.
+ */
+export interface FinancialReportMetrics {
+  operationalIncome: number;
+  vehicleSales: number;
+  vehicleSalesCost: number;
+  totalIncome: number;
+  operatingExpenses: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  transactionsCount: number;
+  incomeByCategory: Record<string, number>;
+  expensesByCategory: Record<string, number>;
+}
+
+export const calculateFinancialReportMetrics = (
+  records: FinancialRecord[],
+  vehicles: Vehicle[],
+  categories: FinancialCategory[] = [],
+): FinancialReportMetrics => {
+  const activeRecords = records.filter(isActiveRecord);
+  const depositCategoryIds = categoryIdsByAffects(categories, 'security_deposit');
+  const refundDepositCategoryIds = new Set(
+    categories
+      .filter(category =>
+        category.type === 'expense' &&
+        category.name.trim().toLocaleLowerCase('es-MX') === 'devolución de depósito'
+      )
+      .map(category => category.id)
+  );
+  const isDepositRefund = (record: FinancialRecord) =>
+    isExpense(record) && (
+      record.category?.trim().toLocaleLowerCase('es-MX') === 'devolución de depósito' ||
+      (!!record.categoryId && refundDepositCategoryIds.has(record.categoryId))
+    );
+  const eligibleIncome = activeRecords.filter(record =>
+    isIncome(record) &&
+    !record.creditGranted &&
+    record.category !== SECURITY_DEPOSIT_CATEGORY &&
+    !(record.categoryId && depositCategoryIds.has(record.categoryId)) &&
+    record.category !== 'Multa'
+  );
+  const financedSales = activeRecords.filter(record =>
+    isIncome(record) && record.creditGranted === true
+  );
+  const eligibleExpenses = activeRecords.filter(record =>
+    isExpense(record) && !isDepositRefund(record) && !isCreditCancellationNote(record)
+  );
+
+  const operationalIncome = sumAmount(eligibleIncome);
+  const vehicleSales = sumAmount(financedSales);
+  const vehicleSalesCost = sumVehicleSalesCost(activeRecords, vehicles);
+  const operatingExpenses = sumAmount(eligibleExpenses);
+  const totalIncome = operationalIncome + vehicleSales;
+  const totalExpenses = operatingExpenses + vehicleSalesCost;
+
+  const categoryNameById = new Map(categories.map(category => [category.id, category.name]));
+  const incomeByCategory: Record<string, number> = {};
+  const expensesByCategory: Record<string, number> = {};
+
+  for (const record of eligibleIncome) {
+    const name = (record.categoryId && categoryNameById.get(record.categoryId)) || record.category || 'Sin Categoría';
+    incomeByCategory[name] = (incomeByCategory[name] || 0) + Number(record.amount || 0);
+  }
+  if (vehicleSales > 0) incomeByCategory['Venta de Vehículo Financiada'] =
+    (incomeByCategory['Venta de Vehículo Financiada'] || 0) + vehicleSales;
+
+  for (const record of eligibleExpenses) {
+    const name = (record.categoryId && categoryNameById.get(record.categoryId)) || record.category || 'Sin Categoría';
+    expensesByCategory[name] = (expensesByCategory[name] || 0) + Number(record.amount || 0);
+  }
+  if (vehicleSalesCost > 0) expensesByCategory['Costo de vehículos vendidos'] = vehicleSalesCost;
+
+  return {
+    operationalIncome,
+    vehicleSales,
+    vehicleSalesCost,
+    totalIncome,
+    operatingExpenses,
+    totalExpenses,
+    netProfit: totalIncome - totalExpenses,
+    profitMargin: calculateProfitMargin(totalIncome, totalExpenses),
+    transactionsCount: eligibleIncome.length + financedSales.length + eligibleExpenses.length,
+    incomeByCategory,
+    expensesByCategory,
+  };
+};
+
+
 export const calculateProfitMargin = (income: number, expenses: number): number => {
   const net = income - expenses;
   if (income > 0) return (net / income) * 100;
