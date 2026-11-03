@@ -1,5 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog } from '@/types';
-import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange, calculateFinancialReportMetrics } from '@/lib/financial-metrics';
 import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
@@ -46,6 +46,7 @@ export class ReportAnalyticsService {
     financialRecords: FinancialRecord[],
     dateRange?: { from: Date; to: Date },
     assignmentLogs: VehicleAssignmentLog[] = [],
+    financialCategories: import('@/types').FinancialCategory[] = [],
   ): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
     const scopedRecords = dateRange
@@ -60,12 +61,17 @@ export class ReportAnalyticsService {
 
     return vehicles.filter(vehicle => !vehicle.isDeleted).map(vehicle => {
       const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
-      const rentalIncome = sumRentalIncome(vehicleRecords);
-      const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
-      const totalExpenses = sumExpense(expenseRecords);
-      const netProfit = calculateNetProfit(vehicleRecords);
-      const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
-      const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
+      const financialMetrics = calculateFinancialReportMetrics(vehicleRecords, [vehicle], financialCategories);
+      const rentalIncome = financialMetrics.totalIncome;
+      const totalExpenses = financialMetrics.totalExpenses;
+      const netProfit = financialMetrics.netProfit;
+      const profitability = financialMetrics.profitMargin;
+      const profitTransactions = vehicleRecords.filter(r =>
+        !r.isDeleted && (
+          (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY && r.category !== 'Multa') ||
+          (r.type === 'expense' && r.category !== 'Devolución de Depósito')
+        )
+      );
       const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
       return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactions.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
