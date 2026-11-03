@@ -188,6 +188,7 @@ export class ReportAnalyticsService {
         partnerRecordsInRange,
         relatedVehicles,
         financialCategories,
+        { excludeVehicleAdminFee: true },
       );
       const partnerProfitability = calculatePartnerProfitability(relatedVehicles, partnerRecordsInRange);
       const totalIncome = financialMetrics.totalIncome;
