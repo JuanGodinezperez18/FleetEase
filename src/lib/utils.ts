@@ -16,6 +16,35 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
+/**
+ * Compact currency for dense KPI cards (tablet / sidebar open).
+ * Avoids mid-digit ellipsis by shortening large magnitudes:
+ *   258950 → $258,950
+ *   1599100 → $1.6M
+ *   -2570 → -$2,570
+ */
+export const formatCurrencyCompact = (value: number): string => {
+  if (typeof value !== 'number' || !isFinite(value)) {
+    return '$0';
+  }
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000) {
+    return `${sign}$${(abs / 1_000_000).toLocaleString('es-MX', {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    })}M`;
+  }
+  if (abs >= 100_000) {
+    // No decimals for six-figure amounts — fits better in narrow cards
+    return `${sign}$${Math.round(abs).toLocaleString('es-MX')}`;
+  }
+  return `${sign}$${abs.toLocaleString('es-MX', {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  })}`;
+};
+
 export const formatNumber = (value: number): string => {
   if (typeof value !== 'number' || !isFinite(value)) {
     return '0';

@@ -6,7 +6,7 @@ import type { PartnerMetric } from '@/hooks/use-partner-analytics';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Briefcase, DollarSign, Award, AlertTriangle } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatCurrencyCompact } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
@@ -192,7 +192,11 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/*
+        Tablet + sidebar: prefer 2 columns until xl so values/titles are not crushed.
+        Mobile: 1 col. Desktop wide: 4 cols.
+      */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <MetricCard
           title="Socios activos"
           value={overallStats.totalPartners}
@@ -202,33 +206,30 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({
 
         <InteractiveMetricCard
           title="Saldo con socios"
-          value={formatCurrency(totalPartnerBalance)}
+          value={formatCurrencyCompact(totalPartnerBalance)}
           description={`${partnerBalances.length} socios con saldo`}
           icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
           onClick={onBalanceCardClick}
           variant={totalPartnerBalance >= 0 ? 'success' : 'danger'}
-          valueClassName="text-[26px] sm:text-[30px]"
         />
 
         <MetricCard
           title="Rentabilidad total"
-          value={formatCurrency(overallStats.totalNetProfit)}
+          value={formatCurrencyCompact(overallStats.totalNetProfit)}
           description="Beneficio neto combinado"
           icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />}
           variant={overallStats.totalNetProfit >= 0 ? 'success' : 'danger'}
-          valueClassName="text-[26px] sm:text-[30px]"
         />
 
         <MetricCard
           title="Mejor rendimiento"
-          value={overallStats.topPerformer?.partnerName || 'Sin comparación'}
+          value={overallStats.topPerformer?.partnerName || 'Sin datos'}
           description={
             overallStats.topPerformer
-              ? `Beneficio: ${formatCurrency(overallStats.topPerformer.netProfit)}`
+              ? `Beneficio: ${formatCurrencyCompact(overallStats.topPerformer.netProfit)}`
               : 'Sin datos suficientes para comparar'
           }
           icon={<Award className="h-5 w-5" strokeWidth={1.75} />}
-          valueClassName="text-[25px] sm:text-[30px]"
         />
       </div>
 

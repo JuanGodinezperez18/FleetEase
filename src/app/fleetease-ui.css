@@ -200,21 +200,36 @@
   border: 1px solid var(--fe-border);
   background: var(--fe-surface);
   color: var(--fe-text);
-  padding: 1.25rem 1.35rem;
+  /* Slightly tighter horizontal padding on narrow viewports so values fit */
+  padding: 1.15rem 1.1rem;
   box-shadow: var(--fe-shadow-sm);
   transition: border-color var(--fe-motion-base), box-shadow var(--fe-motion-base), transform var(--fe-motion-fast);
   min-height: 7.5rem; /* equalize sibling card heights */
 }
+@media (min-width: 640px) {
+  .fe-metric-card {
+    padding: 1.25rem 1.35rem;
+  }
+}
 .fe-metric-title {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em; /* was 0.14em — less aggressive so titles fit */
   text-transform: uppercase;
   color: var(--fe-text-faint);
+  /* Allow up to 2 lines instead of hard single-line truncate */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.35;
+  max-width: 100%;
 }
-/* KPI value: never break mid-number; fluid size for long amounts on narrow cards */
+/* KPI value: scale down more aggressively on tablet; avoid mid-digit ellipsis when possible */
 .fe-metric-value {
-  font-size: clamp(1.35rem, 4.2vw + 0.55rem, 2.125rem); /* ~22px → 34px */
+  font-size: clamp(1.15rem, 2.8vw + 0.55rem, 2.125rem); /* tighter floor for tablet + sidebar */
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.04em;
@@ -229,6 +244,12 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--fe-text-muted);
+  /* Allow description to wrap cleanly instead of overflowing */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 .fe-metric-icon {
   display: flex;
