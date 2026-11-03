@@ -393,6 +393,7 @@ export const calculateFinancialReportMetrics = (
   records: FinancialRecord[],
   vehicles: Vehicle[],
   categories: FinancialCategory[] = [],
+  options: { excludeVehicleAdminFee?: boolean } = {},
 ): FinancialReportMetrics => {
   const activeRecords = records.filter(isActiveRecord);
   const depositCategoryIds = categoryIdsByAffects(categories, 'security_deposit');
@@ -417,6 +418,7 @@ export const calculateFinancialReportMetrics = (
   const eligibleIncome = activeRecords.filter(record =>
     isIncome(record) &&
     !record.creditGranted &&
+    !(options.excludeVehicleAdminFee && record.sourceRecordType === 'vehicle_admin_fee') &&
     record.category !== SECURITY_DEPOSIT_CATEGORY &&
     !(record.categoryId && depositCategoryIds.has(record.categoryId)) &&
     record.category !== 'Multa'
