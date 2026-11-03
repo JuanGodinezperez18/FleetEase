@@ -110,6 +110,15 @@ class RateLimiter {
       };
     }
 
+    // Production must never silently downgrade to per-instance memory storage.
+    // Vercel functions do not share memory, so doing so would multiply limits
+    // across instances and make abuse protection unreliable.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'Distributed rate limiting is required in production. Configure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.'
+      );
+    }
+
     const entry = store.get(key);
 
     // Si no existe o expiró, crear nueva entrada
@@ -271,7 +280,24 @@ export async function checkRateLimit(
   limiter: RateLimiter
 ): Promise<Response | null> {
   const identifier = await getRateLimitIdentifier(request);
-  const result = await limiter.check(identifier);
+  let result: RateLimitResult;
+  try {
+    result = await limiter.check(identifier);
+  } catch (error) {
+    // Fail closed when Redis is unavailable or production is misconfigured.
+    console.error('[RateLimit] Distributed limiter unavailable; request rejected.', error);
+    const { NextResponse } = await import('next/server');
+    return NextResponse.json(
+      { error: 'Protección temporalmente no disponible. Intente de nuevo más tarde.' },
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Retry-After': '60',
+        },
+      }
+    );
+  }
 
   if (result.limited) {
     const { NextResponse } = await import('next/server');
