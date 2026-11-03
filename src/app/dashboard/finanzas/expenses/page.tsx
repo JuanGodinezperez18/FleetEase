@@ -226,10 +226,19 @@ export default function ExpensesPage() {
     const toastId = toast.loading('Eliminando gasto...');
     setIsSubmitting(true);
 
-    await deleteFinancialRecord(recordToDelete.id, () => {
-      toast.success('Gasto eliminado', { id: toastId });
-      handleCloseDeleteDialog();
-    });
+    try {
+      await deleteFinancialRecord(recordToDelete.id, () => {
+        toast.success('Gasto eliminado', { id: toastId });
+        handleCloseDeleteDialog();
+      });
+    } catch (error) {
+      toast.error('Error al eliminar gasto', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'No se pudo eliminar el gasto.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const columns = useMemo(

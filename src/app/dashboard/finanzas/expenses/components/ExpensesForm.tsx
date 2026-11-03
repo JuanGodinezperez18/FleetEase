@@ -24,6 +24,7 @@ import { FormModal } from "@/components/common/form-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PARTNER_PAYMENT_CATEGORY_ID } from "@/contexts/finance-constants";
+import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
 
 const newCategoryValue = "createNewCategory";
 const NONE_SELECT_VALUE = "@none";
@@ -40,7 +41,7 @@ const lineSchema = z.object({
 });
 
 const expenseSchema = z.object({
-  date: z.string().min(1, "La fecha es obligatoria."),
+  date: z.string().min(1, "La fecha es obligatoria.").refine(isFinancialDateNotInFuture, { message: "La fecha no puede ser futura." }),
   clientId: z.preprocess(
     value => value === NONE_SELECT_VALUE ? null : value,
     z.string().uuid().nullable().optional(),

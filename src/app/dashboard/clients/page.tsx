@@ -41,6 +41,7 @@ export default function ClientsPage() {
     clientMetrics,
     addClient,
     updateClient,
+    createVehicleAssignment,
     clientBalances,
     refreshData,
   } = useData();
@@ -255,13 +256,15 @@ export default function ClientsPage() {
           if (error) throw error;
           if (existing && existing.length > 0) throw new Error("Ya existe un cliente con este número de licencia en esta empresa.");
         }
-      const { photoUrl: photoField, ineUrl: ineField, licenseImageUrl: licenseField, ...restOfData } = data;
+      const { photoUrl: photoField, ineUrl: ineField, licenseImageUrl: licenseField, assignedVehicleId: requestedVehicleId, vehicleAssignedAt: requestedVehicleAssignedAt, ...restOfData } = data;
+      const normalizedRequestedVehicleId = requestedVehicleId && requestedVehicleId !== '@none' ? requestedVehicleId : null;
+      let assignmentError: Error | null = null;
       let clientToProcess: Client;
       const filesToUploadAfterCreation: { field: keyof Client; file: File }[] = [];
       if (editingClient) {
         clientToProcess = editingClient;
       } else {
-        const newClientPayload = { ...sanitizeAndFormatData(restOfData), companyId };
+        const newClientPayload = { ...sanitizeAndFormatData(restOfData), companyId, assignedVehicleId: null, vehicleAssignedAt: null };
         clientToProcess = await addClient(newClientPayload as Omit<Client, 'id' | 'isDeleted' | 'createdAt'>);
         if (photoField instanceof File) filesToUploadAfterCreation.push({ field: 'photoUrl', file: photoField });
         if (ineField instanceof File) filesToUploadAfterCreation.push({ field: 'ineUrl', file: ineField });
@@ -293,6 +296,21 @@ export default function ClientsPage() {
         }
         await updateClient(clientToProcess.id, finalPayload);
       }
+    if (!editingClient && normalizedRequestedVehicleId) {
+      try {
+        await createVehicleAssignment({
+          vehicleId: normalizedRequestedVehicleId,
+          clientId: clientToProcess.id,
+          companyId,
+          assignedBy: currentUser?.uid || '',
+          assignedAt: requestedVehicleAssignedAt
+            ? new Date(`${requestedVehicleAssignedAt}T12:00:00`).toISOString()
+            : undefined,
+        });
+      } catch (error) {
+        assignmentError = error instanceof Error ? error : new Error('No se pudo completar la asignación del vehículo.');
+      }
+    }
     if (filesToUploadAfterCreation.length > 0) {
       const folder: StorageFolderPath = 'driver_documents';
       const finalFilePayload: Record<string, string> = {};
@@ -309,7 +327,11 @@ export default function ClientsPage() {
         await updateClient(clientToProcess.id, finalFilePayload as Partial<Client>);
       }
     }
+        await refreshData();
         toast.success(editingClient ? "Cliente Actualizado" : "Cliente Agregado", { id: toastId });
+        if (assignmentError) {
+          toast.error('Cliente creado, pero el vehículo no pudo asignarse', { description: assignmentError.message });
+        }
         await new Promise(resolve => setTimeout(resolve, 100));
         handleCloseModal();
     } catch (error: any) {
