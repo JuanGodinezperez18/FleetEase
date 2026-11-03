@@ -618,7 +618,7 @@ export class PDFReportGenerator {
   private addFinancialReport(data: ReportData) {
     if (data.records && data.records.length > 0) {
       this.ensureSpace(40);
-      this.addSectionTitle('Movimientos recientes');
+      this.addSectionTitle('Movimientos recientes (incluye pagos y depósitos no operativos)');
       this.autoTable(this.doc, {
         startY: this.currentY,
         head: [['Fecha', 'Tipo', 'Descripcion', 'Monto']],
