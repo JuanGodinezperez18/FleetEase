@@ -419,9 +419,9 @@ export const calculateFinancialReportMetrics = (
     isIncome(record) &&
     !record.creditGranted &&
     !(options.excludeVehicleAdminFee && record.sourceRecordType === 'vehicle_admin_fee') &&
-    record.category !== SECURITY_DEPOSIT_CATEGORY &&
+    getCategoryName(record) !== SECURITY_DEPOSIT_CATEGORY.toLocaleLowerCase('es-MX') &&
     !(record.categoryId && depositCategoryIds.has(record.categoryId)) &&
-    record.category !== 'Multa'
+    getCategoryName(record) !== 'multa'
   );
   const financedSales = activeRecords.filter(record =>
     isIncome(record) && record.creditGranted === true
