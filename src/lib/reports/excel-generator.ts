@@ -201,7 +201,7 @@ export class ExcelReportGenerator {
 
     if (data.records && data.records.length > 0) {
       const recordsData: (string | number)[][] = [
-        ['Detalle de Transacciones'],
+        ['Movimientos del periodo (incluye pagos y depósitos; no equivale al resultado de utilidad)'],
         [''],
         ['Fecha', 'Tipo', 'Categoria', 'Descripcion', 'Monto', 'Vehiculo'],
       ];
@@ -209,7 +209,7 @@ export class ExcelReportGenerator {
       data.records.forEach(record => {
         recordsData.push([
           format(new Date(record.date), 'dd/MM/yyyy'),
-          record.type === 'income' ? 'Ingreso' : 'Gasto',
+          record.type === 'income' ? 'Ingreso' : record.type === 'expense' ? 'Gasto' : 'Pago',
           record.category || 'N/A',
           record.description || '',
           record.amount,
