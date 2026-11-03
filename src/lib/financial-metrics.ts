@@ -301,10 +301,9 @@ export interface PartnerProfitability {
 /**
  * Rentabilidad acumulada de un socio.
  *
- * - Vehículos de renta: las rentas generan ingreso, los gastos reducen la
- *   rentabilidad y el costo de adquisición se considera inversión pendiente
- *   de recuperar. Por eso un vehículo nuevo puede mostrar rentabilidad negativa
- *   durante su etapa inicial de recuperación.
+ * - Vehículos de renta: las rentas generan ingreso y los gastos operativos
+ *   reducen la utilidad. El costo de adquisición se informa por separado como
+ *   inversión, no como gasto operativo del periodo.
  * - Vehículos vendidos a crédito: se reconoce la venta una sola vez y se resta
  *   el costo de adquisición para obtener la utilidad de la venta. Los cobros
  *   posteriores del crédito NO vuelven a generar rentabilidad.
@@ -335,7 +334,9 @@ export const calculatePartnerProfitability = (
     activeRecords.filter(r => r.category !== 'Pago a Socio')
   );
   const totalIncome = rentalIncome + vehicleSales;
-  const totalExpenses = operatingExpenses + vehicleSalesCost + rentalVehicleAcquisitionCost;
+  // La inversión de adquisición de vehículos de renta se informa por separado;
+  // no se presenta como gasto operativo ni reduce la utilidad del periodo.
+  const totalExpenses = operatingExpenses + vehicleSalesCost;
 
   return {
     rentalIncome,
