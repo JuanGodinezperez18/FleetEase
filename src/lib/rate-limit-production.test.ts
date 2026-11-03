@@ -4,7 +4,7 @@ describe('RateLimiter production configuration', () => {
   const previousRedisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   afterEach(() => {
-    process.env.NODE_ENV = previousNodeEnv;
+    Object.assign(process.env, { NODE_ENV: previousNodeEnv });
     if (previousRedisUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL;
     else process.env.UPSTASH_REDIS_REST_URL = previousRedisUrl;
     if (previousRedisToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -12,7 +12,7 @@ describe('RateLimiter production configuration', () => {
   });
 
   it('rejects the in-memory fallback in production when Redis is not configured', async () => {
-    process.env.NODE_ENV = 'production';
+    Object.assign(process.env, { NODE_ENV: 'production' });
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -25,7 +25,7 @@ describe('RateLimiter production configuration', () => {
   });
 
   it('rejects partial Upstash configuration instead of falling back to memory', async () => {
-    process.env.NODE_ENV = 'test';
+    Object.assign(process.env, { NODE_ENV: 'test' });
     process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
