@@ -26,11 +26,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency, cn } from "@/lib/utils";
 import { DialogFooter } from "@/components/ui/dialog";
 import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
+import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const newCategoryValue = "createNewCategory";
 
 const createIncomeSchema = (currentUserRole?: string) => z.object({
-  date: z.string().min(1, "La fecha es obligatoria."),
+  date: z.string().min(1, "La fecha es obligatoria.").refine(isFinancialDateNotInFuture, { message: "La fecha no puede ser futura." }),
   description: z.string().trim().min(1, "El concepto es obligatorio."),
   amount: z.coerce.number({ error: "El monto debe ser un número." }).positive("El monto debe ser mayor que cero."),
   clientId: z.string().optional().nullable(),
