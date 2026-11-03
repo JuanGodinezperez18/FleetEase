@@ -110,6 +110,36 @@ export function isDateOnOrAfter(candidate: string, reference: string): boolean {
   }
   return candidateDay >= referenceDay;
 }
+/** Calendar date in the FleetEase operating timezone. */
+export function getBusinessDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Monterrey',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function getAssignmentBusinessDateKey(assignedAt: string): string | null {
+  // Date-only form values are already business calendar dates; do not parse them as UTC.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(assignedAt)) return assignedAt;
+  const assignedDate = new Date(assignedAt);
+  if (!Number.isFinite(assignedDate.getTime())) return null;
+  return getBusinessDateKey(assignedDate);
+}
+
+export function isAssignmentDateInFuture(assignedAt: string, now = new Date()): boolean {
+  const assignedDateKey = getAssignmentBusinessDateKey(assignedAt);
+  return assignedDateKey !== null && assignedDateKey > getBusinessDateKey(now);
+}
+
+export function isHistoricalAssignmentDate(assignedAt: string, now = new Date()): boolean {
+  const assignedDateKey = getAssignmentBusinessDateKey(assignedAt);
+  return assignedDateKey !== null && assignedDateKey < getBusinessDateKey(now);
+}
+
 
 export interface EntityCreationDates {
   vehicleCreatedAt?: string | null;
