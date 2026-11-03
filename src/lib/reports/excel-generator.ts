@@ -329,7 +329,7 @@ export class ExcelReportGenerator {
     const partnerData: (string | number)[][] = [
       ['Analisis de Socios'],
       [''],
-      ['Socio', 'Telefono', 'Email', 'Vehiculos Activos', 'Ingresos', 'Gastos', 'Balance Neto'],
+      ['Socio', 'Telefono', 'Email', 'Vehiculos Activos', 'Ingresos', 'Gastos Operativos', 'Inversion Vehiculos Renta', 'Utilidad Neta'],
     ];
 
     data.partnerMetrics.forEach(metric => {
@@ -340,6 +340,7 @@ export class ExcelReportGenerator {
         metric.activeVehicles,
         metric.totalIncome,
         metric.totalExpenses,
+        metric.rentalVehicleInvestment,
         metric.netBalance,
       ]);
     });
@@ -351,7 +352,7 @@ export class ExcelReportGenerator {
       { wch: 25 },
       { wch: 16 },
       { wch: 15 },
-      { wch: 15 },
+      { wch: 22 },
       { wch: 15 },
     ];
     this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Socios');
