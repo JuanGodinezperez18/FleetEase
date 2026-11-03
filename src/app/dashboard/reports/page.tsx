@@ -670,7 +670,7 @@ export default function ReportsPageImproved() {
                 </ChartPanel>
                 <ChartPanel title="Ingresos y gastos por socio">
                   {partnerMetrics.length === 0 ? <EmptyChart message="No hay datos en el periodo." /> : <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
+                    <BarChart data={partnerMetrics.slice(0, 8).map(m => ({ name: m.partner.name || `${m.partner.firstname} ${m.partner.lastname}`.trim(), ingresos: m.totalIncome, gastos: m.totalExpenses, inversion: m.rentalVehicleInvestment }))} margin={{ top: 8, right: 8, left: 8, bottom: 36 }}>
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                       <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 10 }} angle={-18} textAnchor="end" interval={0} height={54} />
                       <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={82} />
