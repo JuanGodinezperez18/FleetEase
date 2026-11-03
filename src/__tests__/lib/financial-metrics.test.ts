@@ -34,6 +34,7 @@ import {
   categoryIdsByAffects,
   getPaymentCategory,
   calculateCashFlowBreakdown,
+  calculateFinancialReportMetrics,
 } from '@/lib/financial-metrics';
 import type { FinancialRecord, Vehicle, FinancialCategory } from '@/types';
 
@@ -222,6 +223,55 @@ describe('financial-metrics', () => {
       expect(sumIncome([])).toBe(0);
       expect(sumExpense([])).toBe(0);
       expect(sumPayment([])).toBe(0);
+    });
+  });
+
+
+  describe('calculateFinancialReportMetrics', () => {
+    const vehicles = [
+      { id: 'v-sold', cost: 20000 },
+      { id: 'v-rental', cost: 30000 },
+    ] as Vehicle[];
+    const categories = [
+      { id: 'deposit', name: 'Garantía', type: 'income', affects: 'security_deposit' },
+      { id: 'refund', name: 'Devolución de Depósito', type: 'expense', affects: 'operational' },
+    ] as FinancialCategory[];
+
+    it('reconcilia ingreso, gasto y utilidad con ventas financiadas y costo de venta una sola vez', () => {
+      const records = [
+        makeRecord({ id: 'rent', amount: 10000, vehicleId: 'v-rental' }),
+        makeRecord({ id: 'sale', amount: 50000, vehicleId: 'v-sold', creditGranted: true }),
+        makeRecord({ id: 'sale-collection', type: 'payment', amount: 5000, vehicleId: 'v-sold' }),
+        makeRecord({ id: 'expense', type: 'expense', amount: 3000, vehicleId: 'v-rental' }),
+        makeRecord({ id: 'deposit', amount: 7000, categoryId: 'deposit', category: 'Garantía' }),
+        makeRecord({ id: 'refund', type: 'expense', amount: 7000, categoryId: 'refund', category: 'Devolución de Depósito' }),
+        makeRecord({ id: 'fine', amount: 1000, category: 'Multa' }),
+      ];
+      const result = calculateFinancialReportMetrics(records, vehicles, categories);
+      expect(result.totalIncome).toBe(60000);
+      expect(result.totalExpenses).toBe(23000);
+      expect(result.netProfit).toBe(result.totalIncome - result.totalExpenses);
+      expect(result.incomeByCategory).toEqual({
+        Renta: 10000,
+        'Venta de Vehículo Financiada': 50000,
+      });
+      expect(result.expensesByCategory).toEqual({
+        Renta: 3000,
+        'Costo de vehículos vendidos': 20000,
+      });
+      expect(result.transactionsCount).toBe(3);
+    });
+
+    it('excluye soft-deleted y notas de cancelación de crédito', () => {
+      const records = [
+        makeRecord({ id: 'active-income', amount: 1000 }),
+        makeRecord({ id: 'deleted-income', amount: 9000, isDeleted: true }),
+        makeRecord({ id: 'deleted-expense', type: 'expense', amount: 4000, isDeleted: true }),
+      ];
+      const result = calculateFinancialReportMetrics(records, [], []);
+      expect(result.totalIncome).toBe(1000);
+      expect(result.totalExpenses).toBe(0);
+      expect(result.netProfit).toBe(1000);
     });
   });
 
