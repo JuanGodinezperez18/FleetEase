@@ -37,8 +37,8 @@ export interface MetricCardProps {
 /**
  * Design tokens (keep in sync with DraggableMetricCard):
  * - radius: rounded-[20px]
- * - title: text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35
- * - value: text-[32px] sm:text-[34px] font-heading tracking-[-0.04em] tabular-nums
+ * - title: text-[10px] font-semibold uppercase tracking (via .fe-metric-title)
+ * - value: fluid size via .fe-metric-value
  * - icon box: h-10 w-10 rounded-xl lime border/bg
  * - sparkline height: 32
  * - strokeWidth icons: 1.75
@@ -154,11 +154,12 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
         </TooltipProvider>
       )}
 
-      <div className="relative flex items-start justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#d7ff3f] opacity-70 shadow-[0_0_10px_#d7ff3f]" />
-            <p className="fe-metric-title truncate">
+          <div className="mb-3 flex items-start gap-2">
+            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#d7ff3f] opacity-70 shadow-[0_0_10px_#d7ff3f]" />
+            {/* Title uses CSS line-clamp-2 via .fe-metric-title — no hard truncate */}
+            <p className="fe-metric-title" title={title}>
               {title}
             </p>
           </div>
@@ -174,10 +175,11 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
               <div className="flex flex-wrap items-end gap-2">
                 <div
                   className={cn(
-                    'fe-metric-value font-heading sm:text-[34px]',
+                    'fe-metric-value font-heading',
                     VARIANT_CLASSES[variant],
                     valueClassName
                   )}
+                  title={String(value)}
                 >
                   {value}
                 </div>
@@ -185,7 +187,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
               </div>
 
               {description && (
-                <p className="fe-metric-description mt-2 max-w-[90%]">
+                <p className="fe-metric-description mt-2" title={description}>
                   {description}
                 </p>
               )}
@@ -208,7 +210,7 @@ const MetricCardComponent: React.FC<MetricCardProps> = ({
         </div>
 
         {icon && (
-          <div className="fe-metric-icon transition-transform duration-300 group-hover:scale-105">
+          <div className="fe-metric-icon shrink-0 transition-transform duration-300 group-hover:scale-105">
             {icon}
           </div>
         )}
