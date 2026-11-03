@@ -51,7 +51,7 @@ export interface ReportData {
   clients?: Client[];
   clientMetrics?: Array<{ client: Client; totalPayments: number; balance: number; daysSinceLastPayment: number; paymentBehavior: string }>;
   partners?: Partner[];
-  partnerMetrics?: Array<{ partner: Partner; totalIncome: number; totalExpenses: number; netBalance: number; activeVehicles: number }>;
+  partnerMetrics?: Array<{ partner: Partner; totalIncome: number; totalExpenses: number; rentalVehicleInvestment: number; netBalance: number; activeVehicles: number }>;
   records?: FinancialRecord[];
 }
 
@@ -685,12 +685,13 @@ export class PDFReportGenerator {
     this.addSectionTitle('Analisis de socios');
     this.autoTable(this.doc, {
       startY: this.currentY,
-      head: [['Socio', 'Unidades', 'Ingresos', 'Gastos', 'Balance']],
+      head: [['Socio', 'Unidades', 'Ingresos', 'Gastos operativos', 'Inversión renta', 'Utilidad']],
       body: data.partnerMetrics.map(m => [
         `${m.partner.firstname} ${m.partner.lastname}`.slice(0, 28),
         String(m.activeVehicles),
         this.formatCurrency(m.totalIncome),
         this.formatCurrency(m.totalExpenses),
+        this.formatCurrency(m.rentalVehicleInvestment),
         this.formatCurrency(m.netBalance),
       ]),
       ...this.tableTheme(),
