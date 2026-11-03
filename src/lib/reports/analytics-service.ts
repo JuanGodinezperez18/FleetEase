@@ -28,6 +28,7 @@ export interface PartnerMetric {
   partner: Partner;
   totalIncome: number;
   totalExpenses: number;
+  rentalVehicleInvestment: number;
   netBalance: number;
   activeVehicles: number;
   transactionsCount: number;
@@ -180,9 +181,10 @@ export class ReportAnalyticsService {
       const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
       const totalIncome = profitability.totalIncome;
       const totalExpenses = profitability.totalExpenses;
+      const rentalVehicleInvestment = profitability.rentalVehicleAcquisitionCost;
       const netBalance = profitability.netProfit;
       const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
-      return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
+      return { partner, totalIncome, totalExpenses, rentalVehicleInvestment, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
   }
 
