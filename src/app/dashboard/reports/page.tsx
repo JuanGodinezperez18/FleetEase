@@ -23,7 +23,7 @@ import {
   Loader2,
   BarChart3,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, differenceInCalendarDays, subDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -90,6 +90,18 @@ export default function ReportsPageImproved() {
       { from: startOfDay(dateRange.from!), to: endOfDay(dateRange.to!) }
     );
     const canonical = calculateFinancialReportMetrics(periodRecords, vehicles, financialCategories);
+    const periodDays = differenceInCalendarDays(endOfDay(dateRange.to!), startOfDay(dateRange.from!)) + 1;
+    const previousPeriod = calculateFinancialReportMetrics(
+      ReportAnalyticsService.filterRecordsByDateRange(financialRecords, {
+        from: startOfDay(subDays(dateRange.from!, periodDays)),
+        to: endOfDay(subDays(dateRange.from!, 1)),
+      }),
+      vehicles,
+      financialCategories,
+    );
+    const calculateChange = (current: number, previous: number) =>
+      previous === 0 ? (current > 0 ? 100 : current < 0 ? -100 : 0) :
+      ((current - previous) / Math.abs(previous)) * 100;
     return {
       income: canonical.totalIncome,
       expenses: canonical.totalExpenses,
@@ -98,11 +110,11 @@ export default function ReportsPageImproved() {
       transactionsCount: canonical.transactionsCount,
       expensesByCategory: canonical.expensesByCategory,
       incomeByCategory: canonical.incomeByCategory,
-      incomeChange: financialAnalytics.monthlyGrowth.income,
-      expensesChange: financialAnalytics.monthlyGrowth.expenses,
-      profitChange: financialAnalytics.monthlyGrowth.profit,
+      incomeChange: calculateChange(canonical.totalIncome, previousPeriod.totalIncome),
+      expensesChange: calculateChange(canonical.totalExpenses, previousPeriod.totalExpenses),
+      profitChange: calculateChange(canonical.netProfit, previousPeriod.netProfit),
     };
-  }, [financialAnalytics, financialRecords, dateRange]);
+  }, [financialAnalytics, financialRecords, dateRange, vehicles, financialCategories]);
 
   const vehicleMetrics = useMemo(() => {
     if (!dateRange?.from || !dateRange.to) return [];
