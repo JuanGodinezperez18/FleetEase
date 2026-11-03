@@ -16,40 +16,40 @@ import type { AssignmentLogLike } from '@/lib/vehicle-assignment';
 
 describe('findAssignmentAtDate', () => {
   const logs: AssignmentLogLike[] = [
-    { id: 'log-1', vehicleId: 'v-1', clientId: 'client-a', assignedAt: '2026-01-01T00:00:00.000Z', unassignedAt: '2026-03-01T00:00:00.000Z' },
-    { id: 'log-2', vehicleId: 'v-1', clientId: 'client-b', assignedAt: '2026-03-01T00:00:00.000Z', unassignedAt: '2026-06-01T00:00:00.000Z' },
+    { id: 'log-1', vehicleId: 'v-1', clientId: 'client-a', assignedAt: '2026-01-01T00:00:00.000Z', unassignedAt: '2026-03-01' },
+    { id: 'log-2', vehicleId: 'v-1', clientId: 'client-b', assignedAt: '2026-03-01', unassignedAt: '2026-06-01T00:00:00.000Z' },
     { id: 'log-3', vehicleId: 'v-1', clientId: 'client-c', assignedAt: '2026-06-01T00:00:00.000Z', unassignedAt: null },
   ];
 
   it('caso de uso central (multas): encuentra qué cliente tenía el vehículo en una fecha dentro de un rango cerrado', () => {
-    const result = findAssignmentAtDate(logs, 'v-1', '2026-04-15T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-1', '2026-04-15');
     expect(result?.clientId).toBe('client-b');
   });
 
   it('encuentra la asignación activa (unassignedAt=null) para una fecha posterior a su inicio', () => {
-    const result = findAssignmentAtDate(logs, 'v-1', '2026-08-01T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-1', '2026-08-01');
     expect(result?.clientId).toBe('client-c');
   });
 
   it('devuelve null si la fecha es anterior a cualquier asignación registrada', () => {
-    const result = findAssignmentAtDate(logs, 'v-1', '2025-12-01T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-1', '2025-12-01');
     expect(result).toBeNull();
   });
 
   it('devuelve null si no hay asignaciones para ese vehículo', () => {
-    const result = findAssignmentAtDate(logs, 'v-999', '2026-04-15T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-999', '2026-04-15');
     expect(result).toBeNull();
   });
 
   it('la fecha exacta de assignedAt SÍ cuenta como cubierta (límite inclusivo de inicio)', () => {
-    const result = findAssignmentAtDate(logs, 'v-1', '2026-03-01T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-1', '2026-03-01');
     expect(result?.clientId).toBe('client-b');
   });
 
   it('la fecha exacta de unassignedAt NO cuenta como cubierta por esa asignación (límite exclusivo de fin)', () => {
     // A las 2026-03-01T00:00:00.000Z log-1 ya terminó (unassignedAt),
     // así que esa fecha exacta debe resolver a log-2, no a log-1.
-    const result = findAssignmentAtDate(logs, 'v-1', '2026-03-01T00:00:00.000Z');
+    const result = findAssignmentAtDate(logs, 'v-1', '2026-03-01');
     expect(result?.id).toBe('log-2');
   });
 
@@ -58,7 +58,7 @@ describe('findAssignmentAtDate', () => {
       { id: 'old', vehicleId: 'v-1', clientId: 'client-a', assignedAt: '2026-01-01T00:00:00.000Z', unassignedAt: null },
       { id: 'new', vehicleId: 'v-1', clientId: 'client-b', assignedAt: '2026-02-01T00:00:00.000Z', unassignedAt: null },
     ];
-    const result = findAssignmentAtDate(overlapping, 'v-1', '2026-03-01T00:00:00.000Z');
+    const result = findAssignmentAtDate(overlapping, 'v-1', '2026-03-01');
     expect(result?.id).toBe('new');
   });
 });
