@@ -262,6 +262,20 @@ describe('financial-metrics', () => {
       expect(result.transactionsCount).toBe(3);
     });
 
+    it('excluye distribuciones a socios de los gastos que reducen utilidad', () => {
+      const records = [
+        makeRecord({ id: 'income', amount: 5000 }),
+        makeRecord({ id: 'partner-payment', type: 'expense', amount: 2000, category: 'Pago a Socio' }),
+        makeRecord({ id: 'partner-payment-alias', type: 'expense', amount: 1000, category: 'Abono a Socio' }),
+        makeRecord({ id: 'operating-expense', type: 'expense', amount: 500, category: 'Mantenimiento' }),
+      ];
+      const result = calculateFinancialReportMetrics(records, [], []);
+      expect(result.totalIncome).toBe(5000);
+      expect(result.totalExpenses).toBe(500);
+      expect(result.netProfit).toBe(4500);
+      expect(result.expensesByCategory).toEqual({ Mantenimiento: 500 });
+    });
+
     it('excluye soft-deleted y notas de cancelación de crédito', () => {
       const records = [
         makeRecord({ id: 'active-income', amount: 1000 }),
