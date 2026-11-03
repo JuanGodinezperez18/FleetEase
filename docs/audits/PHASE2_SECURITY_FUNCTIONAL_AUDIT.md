@@ -144,6 +144,11 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 - Revisar la cobertura de casos de categorías de depósito/devolución identificadas por ID, registros sin vehículo y vehículos vendidos con varios movimientos.
 - Verificar que los totales de categorías sumen exactamente los totales del resumen y que `netProfit === totalIncome - totalExpenses`.
 - Confirmar que los totales por vehículo se reconcilien con el subconjunto de movimientos asociados a vehículos; cualquier movimiento sin vehículo debe permanecer en el total general y no asignarse artificialmente.
-- Revisar expresamente el reporte por socio: la inversión de adquisición de vehículos de renta debe mostrarse separada del gasto operativo y no mezclarse con el resultado consolidado. Este punto sigue abierto hasta completar esa revisión.
+- El reporte por socio ahora consume `calculateFinancialReportMetrics` y muestra `Inversión en vehículos de renta` en una columna/KPI separado de gastos operativos y utilidad. La inversión se obtiene del cálculo de rentabilidad del socio sin alterar el helper compartido que consumen otras pantallas. Falta validar esta separación con CI y revisión de exportaciones.
 - Validación local no ejecutada desde esta sesión; no afirmar que tests o workflows han pasado hasta tener evidencia de CI.
 
+
+
+### Actualización de alcance C1 — PR #129
+
+La implementación del PR #129 amplió el uso de la función canónica también al reporte por socio. Los reportes por socio calculan ingresos, gastos y utilidad con `calculateFinancialReportMetrics`; la inversión de adquisición de vehículos de renta se presenta en un campo separado y no se suma a los gastos operativos ni se resta de la utilidad del periodo del reporte. El helper de rentabilidad compartido por otras pantallas conserva su semántica histórica para evitar cambios colaterales. C1 continúa abierto hasta CI verde, revisión funcional de PDF/Excel y conciliación de los casos sin vehículo.
