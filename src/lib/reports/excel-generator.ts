@@ -352,7 +352,8 @@ export class ExcelReportGenerator {
       { wch: 25 },
       { wch: 16 },
       { wch: 15 },
-      { wch: 22 },
+      { wch: 18 },
+      { wch: 24 },
       { wch: 15 },
     ];
     this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Analisis Socios');
