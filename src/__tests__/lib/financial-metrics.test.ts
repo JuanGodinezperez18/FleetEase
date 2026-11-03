@@ -262,6 +262,17 @@ describe('financial-metrics', () => {
       expect(result.transactionsCount).toBe(3);
     });
 
+    it('permite excluir vehicle_admin_fee sólo en el alcance del socio', () => {
+      const records = [
+        makeRecord({ id: 'rent', amount: 1000 }),
+        makeRecord({ id: 'admin-fee', amount: 250, sourceRecordType: 'vehicle_admin_fee' }),
+      ];
+      const companyMetrics = calculateFinancialReportMetrics(records, [], []);
+      const partnerMetrics = calculateFinancialReportMetrics(records, [], [], { excludeVehicleAdminFee: true });
+      expect(companyMetrics.totalIncome).toBe(1250);
+      expect(partnerMetrics.totalIncome).toBe(1000);
+    });
+
     it('excluye distribuciones a socios de los gastos que reducen utilidad', () => {
       const records = [
         makeRecord({ id: 'income', amount: 5000 }),
