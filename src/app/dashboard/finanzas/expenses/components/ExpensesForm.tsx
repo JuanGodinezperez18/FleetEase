@@ -372,7 +372,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
           {currentUser?.role === "superAdmin" && <FormField control={control} name="companyId" render={({ field }) => <FormItem><FormLabel>Empresa</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""} disabled={isSubmitting || isEditing || (!!selectedClientId && selectedClientId !== NONE_SELECT_VALUE)}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar empresa..." /></SelectTrigger></FormControl><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+            <FormField control={control} name="date" render={({ field }) => <FormItem><FormLabel>Fecha del gasto</FormLabel><FormControl><Input type="date" lang="es-MX" title="Formato día/mes/año" {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
             <FormField control={control} name="clientId" render={({ field }) => <FormItem><FormLabel>Cliente (opcional)</FormLabel><Select onValueChange={v => field.onChange(v === NONE_SELECT_VALUE ? null : v)} value={field.value ?? NONE_SELECT_VALUE} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="-- Ninguno --" /></SelectTrigger></FormControl><SelectContent><SelectItem value={NONE_SELECT_VALUE}>-- Ninguno --</SelectItem>{activeClients.map(c => <SelectItem key={c.id} value={c.id}>{c.firstname} {c.lastname}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
           </div>
 
@@ -463,7 +463,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
 
           <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (fotos / PDFs)</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value || []} disabled={isSubmitting} accept="image/*,application/pdf" folder="financial_receipts" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="sticky bottom-0 z-10 -mx-1 mt-2 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-[var(--fe-surface)] px-1 pt-4 pb-1 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isEditing ? "Actualizar gasto" : "Registrar gasto"}</Button>
           </div>

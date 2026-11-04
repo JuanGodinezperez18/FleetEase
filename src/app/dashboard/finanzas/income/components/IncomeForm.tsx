@@ -328,7 +328,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
           )}
 
           <FormField control={form.control} name="date" render={({ field }) => (
-            <FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" {...field} disabled={isSubmitting} className="rounded-lg" /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel>Fecha</FormLabel><FormControl><Input type="date" lang="es-MX" title="Formato día/mes/año" {...field} disabled={isSubmitting} className="rounded-lg" /></FormControl><FormMessage /></FormItem>
           )} />
 
           <FormField control={form.control} name="categoryId" render={({ field }) => (
@@ -415,7 +415,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
             );
           })()}
 
-          <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || (isWeeklyRent && !!selectedClientId && !assignedVehicle?.id)}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : <><Check className="mr-2 h-4 w-4" />Registrar ingreso</>}</Button></DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 -mx-1 mt-2 border-t border-[var(--fe-border)] bg-[var(--fe-surface)] px-1 pt-4 pb-1"><Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button><Button type="submit" disabled={isSubmitting || (isWeeklyRent && !!selectedClientId && !assignedVehicle?.id)}>{isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : <><Check className="mr-2 h-4 w-4" />Registrar ingreso</>}</Button></DialogFooter>
         </form>
       </Form>
 

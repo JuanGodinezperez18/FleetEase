@@ -210,8 +210,8 @@ export default function MultasPage() {
           else setIsFormOpen(true);
         }}
       >
-        <DialogContent className="w-full max-w-full h-[100dvh] max-h-[100dvh] overflow-y-auto rounded-none sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
-          <DialogHeader>
+        <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-3 overflow-hidden rounded-none p-4 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg sm:p-6">
+          <DialogHeader className="shrink-0 space-y-1 pr-8">
             <DialogTitle className="font-heading text-white">
               {selectedMulta ? "Editar multa" : "Registrar multa"}
             </DialogTitle>
@@ -221,7 +221,9 @@ export default function MultasPage() {
                 : "Registra una multa y asígnala al cliente responsable"}
             </DialogDescription>
           </DialogHeader>
-          <MultaForm multa={selectedMulta} onClose={handleCloseForm} />
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+            <MultaForm multa={selectedMulta} onClose={handleCloseForm} />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -305,6 +305,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
           <Input
             id="fechaInfraccion"
             type="date"
+            lang="es-MX"
             max={today}
             {...register("fechaInfraccion", {
               required: "La fecha es requerida",
@@ -312,7 +313,9 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
             })}
             onFocus={e => e.currentTarget.select()}
             className={inputClass}
+            title="Formato día/mes/año"
           />
+          <p className="text-[11px] text-[var(--fe-text-muted)]">Formato: día / mes / año</p>
           {errors.fechaInfraccion && (
             <p className="text-xs text-[var(--fe-danger)]">{errors.fechaInfraccion.message}</p>
           )}
@@ -426,7 +429,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
       {currentStatus === "pagada" && multa?.status === "pagada" && (
         <div className="space-y-2">
           <Label className={labelClass}>Fecha de pago</Label>
-          <Input type="date" value={multa.fechaPago || ""} disabled className={inputClass} />
+          <Input type="date" lang="es-MX" value={multa.fechaPago || ""} disabled className={inputClass} title="Formato día/mes/año" />
         </div>
       )}
 
@@ -443,7 +446,7 @@ export function MultaForm({ multa, onClose }: MultaFormProps) {
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="sticky bottom-0 z-10 -mx-1 mt-4 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-[var(--fe-surface)] px-1 pt-4 pb-1 sm:flex-row sm:justify-end">
         <Button
           type="button"
           variant="outline"

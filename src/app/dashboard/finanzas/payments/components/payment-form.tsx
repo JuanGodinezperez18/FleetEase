@@ -359,7 +359,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-white/50">Fecha del pago <span className="text-white/30">(filtra facturas y entidades)</span></Label>
                     <Input
-                      type="date"
+                      type="date" lang="es-MX" title="Formato día/mes/año"
                       value={date}
                       onChange={e => setDate(e.target.value)}
                       className="border-white/10 bg-white/[0.03] text-white"
@@ -606,7 +606,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                     </div>
                   )}
 
-                  <div className="md:col-span-2 flex justify-end pt-1">
+                  <div className="md:col-span-2 sticky bottom-0 z-10 -mx-1 flex justify-end border-t border-[var(--fe-border)] bg-[var(--fe-surface)] px-1 pt-3 pb-1">
                     <Button
                       onClick={savePayment}
                       disabled={saving}
