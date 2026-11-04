@@ -158,8 +158,8 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
+          await loadProfile(data.session.user.id, false);
           if (mounted) finishLoading();
-          void loadProfile(data.session.user.id, false);
         } else if (mounted) {
           clearCachedProfile();
           setCurrentUser(null);

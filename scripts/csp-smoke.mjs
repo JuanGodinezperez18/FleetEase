@@ -38,6 +38,9 @@ try {
     const session = { access_token: token, refresh_token: 'test-refresh', expires_at: expires, expires_in: 3600, token_type: 'bearer', user };
     const response = await fetch(`${baseURL}/dashboard/messages`, { headers: { Cookie: `sb-ci-placeholder-auth-token=base64-${encode(session)}` }, redirect: 'manual', signal: AbortSignal.timeout(10000) });
     assert.equal(response.status, 200);
+    const profileResponse = await fetch(`${baseURL}/api/auth/profile`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal(profileResponse.status, 200);
+    assert.equal((await profileResponse.json()).profile.id, user.id);
     const policy = response.headers.get('content-security-policy');
     const nonce = policy.match(/'nonce-([^']+)'/)[1];
     assert.ok(response.headers.get('cache-control').includes('no-store'));
@@ -56,13 +59,17 @@ try {
     assert.equal(request.method(), 'GET', 'Fixture must never write');
     await route.fulfill({ json: fixtureResponse(new URL(request.url()), request.headers().accept ?? '') });
   });
+  await context.route('**/api/stripe/status', route => route.fulfill({ json: { success: true, plan: 'enterprise', maxVehicles: 100, maxUsers: 100, vehicleCount: 0, subscription: null } }));
+  await context.addInitScript(() => {
+    window.__cspViolations = [];
+    document.addEventListener('securitypolicyviolation', event => {
+      window.__cspViolations.push({ directive: event.effectiveDirective, blockedURI: event.blockedURI });
+    });
+  });
   const page = await context.newPage();
   page.on('pageerror', error => console.error('Browser page error:', error.message));
   page.on('console', message => { if (message.type() === 'error') console.error('Browser console error:', message.text()); });
-  const violations = [];
-  page.on('console', message => {
-    if (/Refused to execute|Executing inline script violates/i.test(message.text())) violations.push(message.text());
-  });
+
   const publicResponse = await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
   console.log('Public HTML loaded');
   assert.equal(publicResponse.status(), 200);
@@ -92,11 +99,13 @@ try {
   }
   await page.getByRole('tab', { name: 'Socios', exact: true }).click();
   assert.equal(await page.getByRole('tab', { name: 'Socios', exact: true }).getAttribute('data-state'), 'active');
+  assert.equal(new URL(page.url()).pathname, '/dashboard/messages', 'Cold session boot must not redirect the user away');
   assert.equal(await page.getByRole('tab', { name: 'Usuarios', exact: true }).count(), 0);
   assert.equal(await page.locator('a[href="/dashboard/reports/history"]').count(), 0);
   const inlineNonces = await page.locator('script:not([src])').evaluateAll(scripts => scripts.map(script => script.nonce));
   assert.ok(inlineNonces.length > 0);
   assert.ok(inlineNonces.every(value => value === nonce), 'All inline scripts, including Next/theme/boot scripts, need the response nonce');
+  const violations = await page.evaluate(() => window.__cspViolations.filter(event => event.directive.startsWith('script-src')));
   assert.deepEqual(violations, [], 'Trusted scripts must hydrate without CSP violations');
   await page.evaluate(() => {
     const script = document.createElement('script');

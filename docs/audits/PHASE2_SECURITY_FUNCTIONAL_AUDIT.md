@@ -156,3 +156,11 @@ Estas excepciones se limitan al tooling de este snapshot; no permiten procesar r
 - Sin migraciones, SQL, cambios de datos ni modificaciones de producción. El estado de C1–C5 no cambia por esta remediación.
 
 **Puerta de salida:** revisar CI/preview sobre el HEAD exacto del PR, confirmar el smoke de Chrome y conservar abiertos los fallos de regresión preexistentes y las excepciones de tooling descritas. No fusionar automáticamente.
+
+### Seguimiento del smoke protegido y arranque sin caché
+
+En `6c7e6e4`, [quality gate](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919075503) y [MCP](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919075328) pasaron. El diagnóstico de suite completa en Node 22 reportó **311 tests aprobados y 4 fallos**, todos en auth-persistence; el caso financiero de límite de fecha que falla localmente sí pasó en ese runner (diferencia dependiente del entorno, no se modifica su fórmula).
+
+El [smoke con diagnósticos](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919703783) confirmó una carrera de arranque preexistente en `auth-provider-supabase.tsx`: sin perfil cacheado, se llamaba a `finishLoading()` antes de completar `loadProfile()`. El layout veía una sesión provisionalmente anónima, navegaba a login y luego al dashboard, abandonando `/dashboard/messages`. Se corrige esperando el perfil antes de liberar loading, preservando la ruta solicitada. Si el endpoint rechaza el perfil, el estado termina anónimo. Se conservan el límite de arranque y la validación del servidor.
+
+La prueba `src/__tests__/contexts/auth-boot.test.tsx` falló con la implementación anterior y pasa con la corrección (**2 tests**). Se añade al quality gate. El smoke consulta eventos reales `securitypolicyviolation` en lugar de confundir errores MIME de scripts exclusivos de Vercel con violaciones CSP; Stripe status se simula en el navegador, sin claves ni llamadas financieras reales. La nueva ejecución de Chrome sigue siendo la puerta para acreditar la hidratación protegida y el bloqueo de inyección.
