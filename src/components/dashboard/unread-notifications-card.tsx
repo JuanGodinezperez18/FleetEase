@@ -27,6 +27,17 @@ const TYPE_LABELS: Record<string, string> = {
   announcement: "Aviso",
 };
 
+
+/** Strip UUID-like tokens from notification copy (legacy cron messages). */
+function sanitizeNotificationMessage(message: string | undefined | null): string {
+  if (!message) return "";
+  return message
+    .replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/gi, "")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function UnreadNotificationsCard() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -203,7 +214,7 @@ export function UnreadNotificationsCard() {
                 </p>
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/25" strokeWidth={1.75} />
               </div>
-              <p className="line-clamp-2 text-xs text-white/55">{n.message}</p>
+              <p className="line-clamp-2 text-xs text-white/55">{sanitizeNotificationMessage(n.message)}</p>
               <p className="text-[10px] text-white/30">
                 {n.date
                   ? formatDistanceToNow(new Date(n.date), { addSuffix: true, locale: es })
