@@ -14,7 +14,7 @@ import {
   WalletCards,
   ArrowDownToLine,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/utils";
 import Link from "next/link";
 import {
   AreaChart,
@@ -602,11 +602,11 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
 
       <motion.div
         variants={fadeInUp}
-        className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6"
       >
         <MetricCard
           title="Ingresos"
-          value={formatCurrency(totalIncome)}
+          value={formatCurrencyCompact(totalIncome)}
           description={
             monthlyGrowth.income !== undefined
               ? `Crec. ${monthlyGrowth.income > 0 ? "+" : ""}${monthlyGrowth.income.toFixed(1)}%`
@@ -618,20 +618,20 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
         />
         <MetricCard
           title="Ventas financiadas"
-          value={formatCurrency(analytics.vehicleSales)}
+          value={formatCurrencyCompact(analytics.vehicleSales)}
           description="Reconocidas, no cobradas"
           icon={<Car className="h-5 w-5" strokeWidth={1.75} />}
         />
         <MetricCard
           title="Gastos"
-          value={formatCurrency(totalExpenses)}
+          value={formatCurrencyCompact(totalExpenses)}
           description="Período filtrado"
           icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />}
           variant="danger"
         />
         <MetricCard
           title="Utilidad"
-          value={formatCurrency(netProfit)}
+          value={formatCurrencyCompact(netProfit)}
           description={
             monthlyGrowth.profit !== undefined
               ? `Crec. ${monthlyGrowth.profit > 0 ? "+" : ""}${monthlyGrowth.profit.toFixed(1)}%`
@@ -643,8 +643,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ analytic
         />
         <MetricCard
           title="Flujo de efectivo"
-          value={formatCurrency(analytics.netCashFlow)}
-          description={`In ${formatCurrency(analytics.cashInflow)} · Out ${formatCurrency(
+          value={formatCurrencyCompact(analytics.netCashFlow)}
+          description={`In ${formatCurrencyCompact(analytics.cashInflow)} · Out ${formatCurrencyCompact(
             analytics.cashOutflow
           )}`}
           icon={<ArrowDownToLine className="h-5 w-5" strokeWidth={1.75} />}
