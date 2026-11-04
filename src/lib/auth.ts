@@ -50,7 +50,7 @@ export async function signOut():Promise<void>{
   // FleetEase has used both supabase-js localStorage and @supabase/ssr cookie
   // storage. Sign out both stores so neither can restore a previous account.
   let serverLogoutFailed = false;
-  if (isBrowser()) {
+  if (typeof window !== 'undefined') {
     try {
       const response = await fetch('/api/logout', {
         method: 'POST',
