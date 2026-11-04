@@ -46,6 +46,20 @@ La corrección calcula los spans de cada fila para 1, 2, 3 y 4 columnas, mantien
 
 Se extrajeron de la aplicación cuatro capturas QA: vehículos, finanzas, mantenimiento y rentabilidad. La entrega incluye WebP 1440 × 900 y variantes de 960 y 640 px, además de poster WebP 1280 × 720. Respetar los límites de `asset-requirements.md` (150 KB por captura, 100 KB para poster).
 
+Los 13 archivos WebP están versionados en `public/media/landing/` en el mismo PR. Se verificó la integridad de cada imagen, sus dimensiones y su peso. Las capturas maestras pesan de 67,666 a 79,992 bytes; el poster pesa 57,988 bytes. Desde la aplicación se referencian como `/media/landing/product-finance.webp`, etc., sin el prefijo `public`.
+
+| Archivo | Dimensiones |
+|---|---|
+| `product-finance.webp` | 1440 × 900 |
+| `product-vehicles.webp` | 1440 × 900 |
+| `product-maintenance.webp` | 1440 × 900 |
+| `product-profitability.webp` | 1440 × 900 |
+| Variantes `-960.webp` de cada captura | 960 × 600 |
+| Variantes `-640.webp` de cada captura | 640 × 400 |
+| `product-demo-poster.webp` | 1280 × 720 |
+
+La subida de archivos no modifica los componentes de la landing. Su integración visual y la elección del hero siguen pendientes.
+
 Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio. Renovar la captura del dashboard y decidir el hero después de validar el PR en Preview. El poster es un candidato para el video futuro; no se grabó ni se integró video en esta tarea. No publicar un reproductor sin el video real.
 
 ## Validación
