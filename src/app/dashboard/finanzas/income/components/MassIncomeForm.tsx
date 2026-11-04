@@ -353,7 +353,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
               <FormItem>
                 <FormLabel>Fecha</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" lang="es-MX" title="Formato día/mes/año" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
