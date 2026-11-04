@@ -193,6 +193,17 @@
   color: var(--fe-input-text);
 }
 
+.fe-dashboard-widget { grid-column: span 1; }
+@media (min-width: 768px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-md, 1); }
+}
+@media (min-width: 1024px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-lg, 1); }
+}
+@media (min-width: 1280px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-xl, 1); }
+}
+
 .fe-metric-card {
   position: relative;
   overflow: hidden;

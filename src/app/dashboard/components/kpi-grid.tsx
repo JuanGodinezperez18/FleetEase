@@ -8,6 +8,7 @@ import { UnreadNotificationsCard } from '@/components/dashboard/unread-notificat
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import type { DashboardWidget, MetricKPIData, KPIConfig } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
+import { getDashboardSpans } from '@/lib/dashboard-layout';
 import {
   DndContext,
   closestCenter,
@@ -55,34 +56,18 @@ const fleetSegmentActionMap: Record<string, string> = {
   Mantenimiento: 'maintenance-overdue',
 };
 
-/**
- * Map DashboardWidget.size → grid col-span.
- * Dense packing (`grid-flow-dense`) fills holes left by larger spans.
- * Tablet (md): 2 cols · Desktop (lg): 3 · XL: 4.
- */
-function sizeClass(size?: DashboardWidget['size'], isChart?: boolean): string {
-  if (isChart) {
-    // Charts: prefer 2 cols so they sit beside a metric instead of leaving a void.
-    if (size === 'small') return 'min-w-0 col-span-1';
-    if (size === 'large') return 'min-w-0 col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-2';
-    // medium | default
-    return 'min-w-0 col-span-1 md:col-span-2';
-  }
-  if (size === 'large') return 'min-w-0 col-span-1 md:col-span-2';
-  // small | medium | undefined → single cell (fills residual holes via dense)
-  return 'min-w-0 col-span-1';
-}
-
 /** Drag listeners/attributes for the card surface — no ref (ref stays on the shell). */
 type DragHandleProps = Omit<HTMLAttributes<HTMLElement>, 'ref'>;
 
 function SortableWidgetShell({
   id,
   className,
+  layoutStyle,
   children,
 }: {
   id: string;
   className?: string;
+  layoutStyle?: CSSProperties;
   children: (handleProps: DragHandleProps) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -90,6 +75,7 @@ function SortableWidgetShell({
   });
 
   const style: CSSProperties = {
+    ...layoutStyle,
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 20 : undefined,
@@ -141,6 +127,10 @@ export function KpiGrid({
   );
 
   const sortableIds = enabledWidgets.map(w => w.id);
+  const tabletSpans = getDashboardSpans(enabledWidgets, 2);
+  const desktopSpans = getDashboardSpans(enabledWidgets, 3);
+  const wideSpans = getDashboardSpans(enabledWidgets, 4);
+  const shellClass = 'fe-dashboard-widget min-w-0 h-full [&>article]:h-full';
 
   if (isEmpty) {
     return (
@@ -159,18 +149,23 @@ export function KpiGrid({
       <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
         <div
           className={cn(
-            'min-w-0 grid grid-flow-dense gap-3 sm:gap-4',
-            // 1 → 2 → 3 → 4 columns; dense fills holes left by multi-span charts
+            'min-w-0 grid gap-3 sm:gap-4',
             'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           )}
         >
-          {enabledWidgets.map(widget => {
+          {enabledWidgets.map((widget, index) => {
+            const layoutStyle = {
+              '--widget-span-md': tabletSpans[index],
+              '--widget-span-lg': desktopSpans[index],
+              '--widget-span-xl': wideSpans[index],
+            } as CSSProperties;
             if (widget.id === 'unread-notifications') {
               return (
                 <SortableWidgetShell
                   key={widget.id}
                   id={widget.id}
-                  className={sizeClass(widget.size ?? 'large')}
+                  className={shellClass}
+                  layoutStyle={layoutStyle}
                 >
                   {() => <UnreadNotificationsCard />}
                 </SortableWidgetShell>
@@ -205,10 +200,11 @@ export function KpiGrid({
                 <SortableWidgetShell
                   key={widget.id}
                   id={widget.id}
-                  className={sizeClass(widget.size, true)}
+                  className={shellClass}
+                  layoutStyle={layoutStyle}
                 >
                   {handleProps => (
-                    <div {...handleProps} className="h-full touch-manipulation">
+                    <div {...handleProps} className="h-full touch-manipulation [&>article]:h-full">
                       <DashboardChartCard
                         widget={widget}
                         allKPIs={allKPIs as Record<string, MetricKPIData>}
@@ -231,7 +227,8 @@ export function KpiGrid({
               <SortableWidgetShell
                 key={widget.id}
                 id={widget.id}
-                className={sizeClass(widget.size)}
+                className={shellClass}
+                layoutStyle={layoutStyle}
               >
                 {handleProps => (
                   <DraggableMetricCard
