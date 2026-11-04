@@ -47,7 +47,7 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
           )}
         </DialogHeader>
         <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain overscroll-contain pr-2 [scrollbar-gutter:stable] touch-pan-y">
-          <div className="pb-6 sm:pb-4">{children}</div>
+          <div className="pb-24 sm:pb-20">{children}</div>
         </div>
       </DialogContent>
     </Dialog>
