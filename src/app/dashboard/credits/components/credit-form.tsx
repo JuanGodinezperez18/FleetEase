@@ -342,7 +342,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
           </p>
         )}
 
-        <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-transparent pt-4 sm:flex-row sm:justify-end">
+        <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-2 border-t border-white/[0.07] bg-[var(--fe-surface)]/95 px-1 pt-4 pb-1 backdrop-blur supports-[backdrop-filter]:bg-[var(--fe-surface)]/90 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
