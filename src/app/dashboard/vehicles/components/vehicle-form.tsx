@@ -277,7 +277,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
               </section>
             </div>
           </div>
-          <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-transparent pt-4 sm:flex-row sm:justify-end">
+          <div className="sticky bottom-0 z-10 -mx-1 flex flex-col-reverse gap-2 border-t border-[var(--fe-border)] bg-[var(--fe-surface)]/95 px-1 pt-4 pb-1 backdrop-blur supports-[backdrop-filter]:bg-[var(--fe-surface)]/90 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="h-11 w-full rounded-xl border-[var(--fe-border)] bg-[var(--fe-hover)] fe-text-secondary hover:bg-[var(--fe-hover-strong)] hover:text-[var(--fe-text)] sm:h-10 sm:w-auto">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl bg-[var(--fe-lime)] text-[var(--fe-ink)] hover:bg-[var(--fe-lime)]/90 sm:h-10 sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

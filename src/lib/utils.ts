@@ -35,14 +35,14 @@ export const formatCurrencyCompact = (value: number): string => {
       minimumFractionDigits: 0,
     })}M`;
   }
-  if (abs >= 100_000) {
-    // No decimals for six-figure amounts — fits better in narrow cards
-    return `${sign}$${Math.round(abs).toLocaleString('es-MX')}`;
+  if (abs >= 10_000) {
+    // Compact from 10k so KPI cards on tablet with sidebar do not ellipsis mid-digit
+    return `${sign}$${(abs / 1_000).toLocaleString('es-MX', {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    })}k`;
   }
-  return `${sign}$${abs.toLocaleString('es-MX', {
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  })}`;
+  return formatCurrency(value);
 };
 
 export const formatNumber = (value: number): string => {
