@@ -58,9 +58,9 @@ Los 13 archivos WebP están versionados en `public/media/landing/` en el mismo P
 | Variantes `-640.webp` de cada captura | 640 × 400 |
 | `product-demo-poster.webp` | 1280 × 720 |
 
-La subida de archivos no modifica los componentes de la landing. Su integración visual y la elección del hero siguen pendientes.
+La landing utiliza ahora `product-profitability` en el hero y `product-vehicles`, `product-finance` y `product-maintenance` en sus tres bloques de producto. El componente compartido sirve los WebP precomprimidos mediante `picture`/`srcset`, con dimensiones intrínsecas para reservar espacio y tamaños adaptados a cada bloque. Sólo el hero carga de inmediato con prioridad alta; los otros tres recursos usan carga diferida. Cada captura identifica sus datos como demostración y abre la imagen maestra en una pestaña nueva para consultar los detalles.
 
-Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio. Renovar la captura del dashboard y decidir el hero después de validar el PR en Preview. El poster es un candidato para el video futuro; no se grabó ni se integró video en esta tarea. No publicar un reproductor sin el video real.
+Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio. La imagen principal muestra la pantalla real de rentabilidad y no representa el nuevo orden del dashboard. Renovar la captura del dashboard después de validar el PR en Preview. El poster es un candidato para el video futuro; no se grabó ni se integró video en esta tarea. No publicar un reproductor sin el video real.
 
 ## Validación
 

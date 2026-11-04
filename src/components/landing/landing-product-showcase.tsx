@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/landing/landing-reveal";
+import { LandingProductImage } from "@/components/landing/landing-product-image";
 
 const pillars = [
   {
@@ -8,6 +9,8 @@ const pillars = [
     description:
       "Organiza vehículos, clientes, asignaciones, socios y cobranza. Consulta la información de tu operación sin depender de archivos dispersos.",
     details: ["Vehículos y clientes", "Asignaciones y rentas", "Seguimiento de cobranza"],
+    screen: "vehicles",
+    alt: "Vista de vehículos de FleetEase con unidades QA, estados y rendimiento de la flotilla.",
   },
   {
     number: "02",
@@ -15,6 +18,8 @@ const pillars = [
     description:
       "Registra ingresos, gastos y pagos para entender cómo se comporta cada unidad y dónde se concentra el costo.",
     details: ["Ingresos y gastos", "Pagos y créditos", "Rentabilidad por vehículo"],
+    screen: "finance",
+    alt: "Análisis financiero de FleetEase con ingresos, gastos, utilidad y conciliación de una cuenta QA.",
   },
   {
     number: "03",
@@ -22,6 +27,8 @@ const pillars = [
     description:
       "Da seguimiento a servicios, kilometraje y vencimientos para mantener visible lo que requiere atención.",
     details: ["Servicios y kilometraje", "Documentos y vencimientos", "Alertas de seguimiento"],
+    screen: "maintenance",
+    alt: "Control de kilometraje de FleetEase con servicios urgentes, próximos mantenimientos y calendario de unidades QA.",
   },
 ] as const;
 
@@ -32,7 +39,7 @@ export function LandingProductShowcase() {
       aria-labelledby="producto-title"
       className="scroll-mt-[var(--header-h)] border-y border-white/[0.08] bg-[var(--fe-dark-main)]"
     >
-      <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20 lg:px-8 lg:py-24">
+      <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 lg:gap-14 lg:px-8 lg:py-24">
         <div className="flex flex-col items-start">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--fe-lime)]">
             Una operación conectada
@@ -58,13 +65,13 @@ export function LandingProductShowcase() {
           {pillars.map((pillar) => (
             <article
               key={pillar.number}
-              className="grid gap-4 border-b border-white/[0.14] py-7 sm:grid-cols-[52px_1fr] sm:gap-6 sm:py-8"
+              className="grid min-w-0 gap-6 border-b border-white/[0.14] py-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-center lg:gap-12 lg:py-10"
             >
-              <span className="pt-1 font-mono text-xs tabular-nums text-[var(--fe-lime)]">
-                {pillar.number}
-              </span>
-              <div className="grid gap-5 lg:grid-cols-[1fr_0.82fr] lg:gap-8">
-                <div>
+              <div className="min-w-0">
+                <span className="font-mono text-xs tabular-nums text-[var(--fe-lime)]">
+                  {pillar.number}
+                </span>
+                <div className="mt-3">
                   <h3 className="text-xl font-semibold tracking-[-0.025em] text-white sm:text-2xl">
                     {pillar.title}
                   </h3>
@@ -72,7 +79,7 @@ export function LandingProductShowcase() {
                     {pillar.description}
                   </p>
                 </div>
-                <ul className="grid content-start gap-2 text-xs leading-5 text-white/55 sm:grid-cols-2 lg:grid-cols-1">
+                <ul className="mt-5 grid content-start gap-2 text-xs leading-5 text-white/60 sm:grid-cols-2 lg:grid-cols-1">
                   {pillar.details.map((detail) => (
                     <li key={detail} className="flex items-start gap-2">
                       <span
@@ -84,6 +91,11 @@ export function LandingProductShowcase() {
                   ))}
                 </ul>
               </div>
+              <LandingProductImage
+                screen={pillar.screen}
+                alt={pillar.alt}
+                sizes="(min-width: 1280px) 720px, (min-width: 1024px) 60vw, calc(100vw - 40px)"
+              />
             </article>
           ))}
         </Reveal>
