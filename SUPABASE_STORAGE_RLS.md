@@ -1,6 +1,6 @@
 # FleetEase — Supabase Storage: inventario y RLS
 
-Este documento refleja el inventario esperado por los endpoints de FleetEase. La definición ejecutable vive en `supabase/migrations/20261016160000_private_company_storage.sql`; los buckets no deben crearse desde una API route.
+Este documento refleja el inventario esperado por los endpoints de FleetEase. La definición ejecutable vive en `supabase/migrations/20261104190000_reconcile_storage_buckets_and_tenant_policies.sql`; los buckets no deben crearse desde una API route.
 
 ## Inventario canónico
 
