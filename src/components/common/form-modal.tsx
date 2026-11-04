@@ -10,9 +10,11 @@ interface FormModalProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  /** Optional actions rendered outside the scroll area so they never cover fields */
+  footer?: React.ReactNode;
 }
 
-export function FormModal({ isOpen, onClose, title, description, children }: FormModalProps) {
+export function FormModal({ isOpen, onClose, title, description, children, footer }: FormModalProps) {
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -47,8 +49,14 @@ export function FormModal({ isOpen, onClose, title, description, children }: For
           )}
         </DialogHeader>
         <div className="h-0 min-h-0 flex-1 overflow-y-auto overscroll-y-contain overscroll-contain pr-2 [scrollbar-gutter:stable] touch-pan-y">
-          <div className="pb-24 sm:pb-20">{children}</div>
+          {/* Extra bottom padding so sticky form footers (legacy) never cover last fields */}
+          <div className={footer ? "pb-2" : "pb-24 sm:pb-20"}>{children}</div>
         </div>
+        {footer ? (
+          <div className="shrink-0 border-t border-[var(--fe-border)] bg-[var(--fe-surface)] pt-3 pb-1">
+            {footer}
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

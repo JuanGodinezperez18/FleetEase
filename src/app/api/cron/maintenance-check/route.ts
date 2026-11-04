@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
             allNotifications.push({
               uid: adminId,
               type: 'vehicle_maintenance_due',
-              message: `Mantenimiento vencido para el vehiculo ${vehicle.plate} (${vehicle.company_id}). Requiere atencion inmediata.`,
+              message: `Mantenimiento vencido para el vehiculo ${vehicle.plate}. Requiere atencion inmediata.`,
               date: new Date().toISOString(),
               is_read: false,
               company_id: vehicle.company_id,
