@@ -83,3 +83,37 @@ En el HEAD `c7fdfdda5bbc36f97fd998398ddc769c4ae47d14`, GitHub Actions terminó c
 Validación local de esta continuación: 6 suites del quality gate, 57 tests, `npm run type-check` y `git diff --check` pasaron. Falta el resultado remoto del nuevo HEAD.
 
 No hay configuración de Aikido en el repositorio, así que no existe un resultado de escaneo Aikido verificable. Las nuevas pruebas no usan una instancia real de Supabase ni envían correos: se necesita una cuenta/proyecto de prueba y credenciales de Resend para validar esas integraciones externas. La PR permanece en borrador hasta obtener esa evidencia y habilitar Aikido.
+
+
+---
+
+# Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
+
+> **Esta sección sustituye el estado anterior de C1 y la referencia a PR #129.** La sección del 2026-11-03 se conserva como historial de la reauditoría, no como estado actual de implementación. Para el estado operativo, verificar siempre el HEAD actual de `master` y los PRs enlazados.
+
+## Evidencia de integración
+
+- Base actual consultada para esta actualización: `master` en `73125a88dd9eb688a7e9c7b23362ff3779981991` (2026-11-04).
+- **PR #124** — [fix: make financial reports reconcile from their detail](https://github.com/JuanGodinezperez18/FleetEase/pull/124) — integrado el 2026-11-03 mediante merge commit `27fe0b37d526b38503547b52ddb24fe4725c52e3`.
+- La implementación integrada usa `calculateFinancialReconciliation` en `src/lib/financial-metrics.ts` como cálculo de conciliación de reportes, con desglose del costo de vehículos vendidos, movimientos incluidos/excluidos y motivos de exclusión.
+- El PR #129 propuso un segundo cálculo canónico (`calculateFinancialReportMetrics`) y cambios solapados en los mismos reportes/exports. Su rama divergió de `master` (33 commits por delante y 24 por detrás al revisarla) y no debe integrarse completa ni usarse como fuente de verdad. La rama conserva ideas/cambios que podrían evaluarse por separado, pero requieren adaptación a las APIs ya integradas por #124.
+
+## Matriz operativa actual
+
+| ID | Estado actual | Pendiente para cierre definitivo |
+|---|---|---|
+| C1 | **Implementación integrada por PR #124; validación funcional pendiente.** No declarar cerrado sólo por el merge. | Probar con un conjunto de datos representativo y autorizado que el desfase histórico de $495,000 desaparezca; verificar igualdad entre detalle, resumen, métricas por vehículo, PDF y Excel; confirmar `netProfit = totalIncome - totalExpenses` y revisar movimientos incluidos/excluidos. |
+| C2 | **Corregido en código/migración; confirmación de producción pendiente.** PR #122. | Verificar, sólo lectura inicialmente, que la migración esté aplicada y revisar el registro futuro identificado por la auditoría. No modificar datos reales sin autorización. |
+| C3 | **Parcial y abierto.** PR #121 mejoró el aviso de error, pero falta demostrar filas afectadas y corregir/confirmar permisos RLS/GRANTs. | Comprobar `.select('id', { count: 'exact' })` en las operaciones pertinentes, tratar cero filas como fallo explícito y validar en entorno controlado. |
+| C4 | **Corregido en código/migración; confirmación de producción pendiente.** PR #123 y migración `20261102190000_enforce_vehicle_assignment_history.sql`. | Confirmar aplicación de migración y revisar solapamientos históricos mediante consulta de sólo lectura. |
+| C5 | **Migraciones versionadas; drift de BD viva pendiente.** | Comparar esquema e historial de migraciones; investigar duplicidad de migraciones shared-links sin reescribir migraciones ya aplicadas. |
+
+## Reglas de ejecución
+
+1. No reintroducir `calculateFinancialReportMetrics` como segundo motor de cálculo sin demostrar que no duplica ni contradice `calculateFinancialReconciliation`.
+2. Toda mejora rescatada del PR #129 debe adaptarse a la implementación integrada por #124 y llegar en un PR nuevo, pequeño y con pruebas específicas. No rebasar ni fusionar el PR #129 completo.
+3. C1 sólo se cierra con evidencia funcional sobre datos autorizados y conciliación entre todas las salidas; CI verde por sí solo no prueba que el desfase de $495,000 haya desaparecido.
+4. C2, C4 y C5 requieren confirmación de estado de producción; no ejecutar migraciones ni SQL de escritura durante la revisión.
+5. C3 se mantiene independiente de C1. No realizar borrados reales durante pruebas de auditoría.
+6. Cada cambio de estado debe incluir PR, commit, pruebas ejecutadas y enlace/resultado de workflows. Si una prueba no se ejecutó, indicarlo expresamente.
+7. No utilizar credenciales de producción ni modificar producción sin autorización explícita.

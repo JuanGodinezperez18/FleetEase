@@ -180,3 +180,15 @@ These skills refine the existing product; they do not authorize changes to prote
 
 ## Anti-slop agent rules
 Before creating or reviewing UI, copy, responsive layouts, accessibility, or code comments, read `antislop.md` at the repository root and follow its rules. Resolve the usage mode according to its instructions before work; do not bypass existing project requirements, tests, security boundaries, or business logic.
+
+
+## Fuente obligatoria de auditoría vigente
+
+Antes de trabajar en reportes financieros, borrado, fechas financieras, asignaciones o migraciones, leer la sección **“Estado vigente C1–C5 — actualización posterior al PR #124”** en `docs/audits/PHASE2_SECURITY_FUNCTIONAL_AUDIT.md`. Esa sección prevalece sobre la matriz histórica del 2026-11-03.
+
+- C1 tiene implementación integrada por PR #124; su validación funcional y la conciliación del desfase histórico de $495,000 siguen pendientes. No crear un segundo motor de cálculo sin revisar `calculateFinancialReconciliation`.
+- C2 y C4 tienen corrección de código/migración; falta confirmar producción.
+- C3 sigue parcial y abierto; comprobar filas afectadas y permisos.
+- C5 tiene migraciones versionadas; falta reconciliar drift de la BD viva.
+- No ejecutar migraciones, SQL de escritura ni cambios en producción sin autorización expresa.
+- Cada PR que cambie estos estados debe actualizar la matriz con evidencia verificable.
