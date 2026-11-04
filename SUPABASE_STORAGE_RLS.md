@@ -1,6 +1,6 @@
 # FleetEase — Supabase Storage: inventario y RLS
 
-Este documento refleja el inventario esperado por los endpoints de FleetEase. La definición ejecutable vive en `supabase/migrations/20261104190000_reconcile_storage_buckets_and_tenant_policies.sql`; los buckets no deben crearse desde una API route.
+Este documento refleja el inventario esperado por los endpoints de FleetEase. La definición ejecutable vive en `supabase/migrations/20261016160000_private_company_storage.sql`; los buckets no deben crearse desde una API route.
 
 ## Inventario canónico
 
@@ -35,7 +35,7 @@ Sólo `company-logos` y `vehicle-images` son públicos por decisión de producto
 
 ## Estado de reconciliación
 
-La auditoría en vivo detectó que la base consultada tenía seis buckets y políticas para cinco buckets, mientras que el código contemplaba doce. La migración indicada arriba incorpora los buckets faltantes, conserva públicos únicamente los dos buckets de medios no sensibles y agrega políticas tenant-scoped a los siete buckets nuevos.
+La auditoría en vivo detectó que la base consultada tenía seis buckets y políticas para cinco buckets, mientras que el código contemplaba doce. La migración indicada arriba provisiona el inventario canónico, conserva públicos únicamente los dos buckets de medios no sensibles y agrega políticas tenant-scoped a los siete buckets que no tenían políticas en la base consultada. También preserva las políticas especializadas ya existentes para `documents`, `vehicle-images`, `company-logos`, `inspection-images` y `seguimientos`.
 
 **Estado de la migración en este PR: pendiente de aplicación controlada.** El cambio de código deja de crear buckets al vuelo; por tanto, aplicar la migración antes de desplegar los cambios de API en producción. No se ejecutó DDL ni se modificó Storage en producción durante esta rama.
 
