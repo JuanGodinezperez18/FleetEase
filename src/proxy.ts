@@ -89,6 +89,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/images/') ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/fonts/') ||
+    /^\/media\/landing\/product-(?:(?:finance|vehicles|maintenance|profitability)(?:-(?:640|960))?|demo-poster)\.webp$/.test(pathname) ||
     /^\/[^/]+\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf|json|webmanifest|txt|xml|pdf)$/i.test(pathname);
 
   if (pathname.startsWith('/api/') || isPublicStaticAsset) {

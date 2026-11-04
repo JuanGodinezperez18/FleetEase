@@ -60,6 +60,8 @@ Los 13 archivos WebP están versionados en `public/media/landing/` en el mismo P
 
 La landing utiliza ahora `product-profitability` en el hero y `product-vehicles`, `product-finance` y `product-maintenance` en sus tres bloques de producto. El componente compartido sirve los WebP precomprimidos mediante `picture`/`srcset`, con dimensiones intrínsecas para reservar espacio y tamaños adaptados a cada bloque. Sólo el hero carga de inmediato con prioridad alta; los otros tres recursos usan carga diferida. Cada captura identifica sus datos como demostración y abre la imagen maestra en una pestaña nueva para consultar los detalles.
 
+La comprobación en Preview detectó que `src/proxy.ts` redirigía estas imágenes al login. Se añadió una excepción exacta para los 13 nombres WebP públicos; no se habilita genéricamente `/media` ni se omite autenticación por tener una extensión de imagen. Las pruebas verifican el acceso anónimo a esos recursos y mantienen protegidas las rutas privadas similares.
+
 Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio. La imagen principal muestra la pantalla real de rentabilidad y no representa el nuevo orden del dashboard. Renovar la captura del dashboard después de validar el PR en Preview. El poster es un candidato para el video futuro; no se grabó ni se integró video en esta tarea. No publicar un reproductor sin el video real.
 
 ## Validación
@@ -67,7 +69,8 @@ Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio
 - Prueba de empaquetado: combinaciones de S/M/L y 1 a 4 columnas, filas completas y orden preservado.
 - TypeScript: verificado sin errores.
 - Build con variables públicas existentes de Supabase: verificado.
-- Suite completa: 314 pruebas pasan, 5 fallan. Los mismos cinco fallos se reprodujeron en el checkout limpio `9ddae5a`: uno en `financial-metrics.test.ts` (límite inclusivo de fecha) y cuatro en `auth-persistence.test.ts` (almacenamiento simulado). No se modifican fórmulas ni autenticación en este PR.
+- Suite completa tras conectar imágenes: 331 pruebas pasan, 5 fallan. Los mismos cinco fallos se reprodujeron en el checkout limpio `9ddae5a`: uno en `financial-metrics.test.ts` (límite inclusivo de fecha) y cuatro en `auth-persistence.test.ts` (almacenamiento simulado). No se modifican fórmulas ni autorización de rutas privadas en este PR.
+- Pruebas específicas de proxy y dashboard: 58 correctas, incluyendo acceso anónimo a los 13 WebP y protección de rutas privadas con apariencia de imagen.
 - `npm ci` falla en la base por entradas faltantes de `ajv`/`json-schema-traverse` en el lockfile. Para verificar se usó `npm install --package-lock=false --ignore-scripts`; no se cambia el lockfile.
 - Pendiente: validación visual del cambio y del preset en Preview, móvil/tablet/escritorio, arrastre y recarga. No declarar el ajuste validado en producción antes de integrar y comprobarlo.
 
