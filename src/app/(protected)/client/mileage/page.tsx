@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { FormModal } from '@/components/common/form-modal';
-import MileageLogForm, { type MileageLogFormValues } from '@/app/dashboard/mileage/components/mileage-log-form';
+import MileageLogForm, { type MileageLogFormValues } from '@/app/(protected)/dashboard/mileage/components/mileage-log-form';
 import { ResponsiveTable } from '@/components/common/ResponsiveTable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

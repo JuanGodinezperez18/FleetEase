@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import type { Partner } from '@/types';
-import type { PartnerWithMetrics } from '@/app/dashboard/partners/page';
+import type { PartnerWithMetrics } from '@/app/(protected)/dashboard/partners/page';
 import { useDebouncedValue } from './use-debounced-value';
 
 export interface PartnerSearchFilters {

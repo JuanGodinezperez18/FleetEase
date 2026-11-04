@@ -192,3 +192,14 @@ Antes de trabajar en reportes financieros, borrado, fechas financieras, asignaci
 - C5 tiene migraciones versionadas; falta reconciliar drift de la BD viva.
 - No ejecutar migraciones, SQL de escritura ni cambios en producción sin autorización expresa.
 - Cada PR que cambie estos estados debe actualizar la matriz con evidencia verificable.
+
+
+## Rutas y seguimiento B-1–B-5 (2026-11-04)
+
+La sección **“Estado B-1–B-5 — informe consolidado”** de `docs/audits/PHASE2_SECURITY_FUNCTIONAL_AUDIT.md` identifica los cinco hallazgos bajos del informe cerrado el 2026-11-03. No confundirlos con B1–B4 del informe del 2026-10-30.
+
+- Los portales viven físicamente en `src/app/(protected)/{dashboard,client,partner,oauth}`; sus URLs no cambian.
+- Las páginas públicas viven en `src/app/(public)`. Su documento raíz permanece estático; no añadir `headers()`/`cookies()` al documento público compartido.
+- El documento raíz protegido lee el nonce inyectado por `src/proxy.ts`. Todo script propio nuevo debe recibir ese nonce; mantener `Cache-Control: private, no-store` y comprobar hidratación con `scripts/csp-smoke.mjs`.
+- Navegar entre documentos raíz público/protegido recarga la página completa. No fusionar ambos documentos sin revisar CSP, scripts de arranque y caché.
+- Historial de reportes y mensajería interna/push no están disponibles; no reintroducir enlaces/acciones simulados antes de implementar y validar su persistencia.

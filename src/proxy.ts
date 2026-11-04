@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -17,22 +18,24 @@ function applySecurityHeaders(response: NextResponse, contentSecurityPolicy: str
     response.headers.set(key, value);
   }
   response.headers.set('Content-Security-Policy', contentSecurityPolicy);
+  if (contentSecurityPolicy.includes("'nonce-")) {
+    response.headers.set('Cache-Control', 'private, no-store');
+  }
   return response;
 }
 
 function buildCsp(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
 
-  // NOTE: Nonces are intentionally NOT used here.
-  // The marketing/landing HTML is statically prerendered and CDN-cached.
-  // A per-request nonce in the CSP header cannot match script tags baked into
-  // that HTML, so React never hydrates and #fe-boot never hides.
-  // 'self' + explicit third-party hosts + 'unsafe-inline' for Next/theme boot scripts.
+  const protectedHtml = /^\/(dashboard|partner|client|oauth)(?:\/|$)/.test(request.nextUrl.pathname);
+  const nonce = protectedHtml ? randomBytes(24).toString('base64') : undefined;
+  const inlineScripts = nonce ? `'nonce-${nonce}'` : "'unsafe-inline'";
+
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com" + (isDev ? " 'unsafe-eval'" : ""),
+    `script-src 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com` + (isDev ? " 'unsafe-eval'" : ""),
     "script-src-attr 'none'",
-    "script-src-elem 'self' 'unsafe-inline' https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com",
+    `script-src-elem 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com`,
     "style-src 'self' 'unsafe-inline'",
     "style-src-attr 'unsafe-inline'",
     "style-src-elem 'self' 'unsafe-inline'",
@@ -53,6 +56,8 @@ function buildCsp(request: NextRequest) {
 
   const contentSecurityPolicy = cspHeader;
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete('x-nonce');
+  if (nonce) requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   return { requestHeaders, contentSecurityPolicy };

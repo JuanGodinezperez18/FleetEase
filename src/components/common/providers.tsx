@@ -11,7 +11,7 @@ import { ToastProvider } from "@/contexts/toast-provider";
 import { SplashScreenWrapper } from "@/components/splash/splash-screen-wrapper";
 import { retryQuery, retryDelayQuery } from "@/lib/query-resilience";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   const [queryClient] = React.useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -32,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
+        nonce={nonce}
         attribute="class"
         defaultTheme="dark"
         enableSystem

@@ -72,7 +72,7 @@ function buildPath(pathname: string, searchParams: ReturnType<typeof useSearchPa
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
-export function GoogleAnalytics() {
+export function GoogleAnalytics({ nonce }: { nonce?: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const analyticsEnabledRef = useRef(false);
@@ -125,7 +125,7 @@ export function GoogleAnalytics() {
   return (
     <>
       {/* Consent Mode v2: denegado por defecto hasta que el usuario acepte analytics */}
-      <Script id="ga4-consent-default" strategy="beforeInteractive">
+      <Script nonce={nonce} id="ga4-consent-default" strategy="beforeInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
@@ -139,10 +139,11 @@ export function GoogleAnalytics() {
         `}
       </Script>
       <Script
+        nonce={nonce}
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
         strategy="afterInteractive"
       />
-      <Script id="ga4-js-init" strategy="afterInteractive">
+      <Script nonce={nonce} id="ga4-js-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

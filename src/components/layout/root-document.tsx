@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
 import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
-import "./globals.css";
-import "./fleetease-ui.css";
-import "./landing-text.css";
+import "@/app/globals.css";
+import "@/app/fleetease-ui.css";
+import "@/app/landing-text.css";
 import "@/components/ui/search.css";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieBanner } from "@/components/cookie-consent/cookie-banner";
@@ -150,20 +150,20 @@ const bootFailsafeScript = `
 })();
 `;
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootDocument({ children, nonce }: Readonly<{ children: React.ReactNode; nonce?: string }>) {
   return (
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className="dark">
       <head>
-        <Script id="fleetease-theme-init" strategy="beforeInteractive">
+        <Script nonce={nonce} id="fleetease-theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
-        <Script id="fleetease-legacy-sw-cleanup" strategy="beforeInteractive">
+        <Script nonce={nonce} id="fleetease-legacy-sw-cleanup" strategy="beforeInteractive">
           {legacySwCleanupScript}
         </Script>
-        <Script id="fleetease-boot-failsafe" strategy="beforeInteractive">
+        <Script nonce={nonce} id="fleetease-boot-failsafe" strategy="beforeInteractive">
           {bootFailsafeScript}
         </Script>
-        <Script id="cookie-consent-visibility" strategy="beforeInteractive">
+        <Script nonce={nonce} id="cookie-consent-visibility" strategy="beforeInteractive">
           {`
             (function() {
               try {
@@ -184,7 +184,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             })();
           `}
         </Script>
-        <Script id="pwa-install-capture" strategy="beforeInteractive">
+        <Script nonce={nonce} id="pwa-install-capture" strategy="beforeInteractive">
           {`
             window.addEventListener('beforeinstallprompt', function(event) {
               event.preventDefault();
@@ -195,6 +195,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Script>
         {adsenseClientId ? (
           <Script
+            nonce={nonce}
             id="adsense-init"
             async
             strategy="afterInteractive"
@@ -214,7 +215,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <div className="fe-boot-bar"><i /></div>
         </div>
         <GlobalErrorBoundary>
-          <Providers>
+          <Providers nonce={nonce}>
             <BootSplashHandoff />
             <OfflineIndicator />
             {children}
@@ -222,7 +223,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Toaster />
             <CookieBanner />
             <Suspense fallback={null}>
-              <GoogleAnalytics />
+              <GoogleAnalytics nonce={nonce} />
             </Suspense>
             <Analytics />
             <SpeedInsights />

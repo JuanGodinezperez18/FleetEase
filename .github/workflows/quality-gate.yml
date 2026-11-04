@@ -27,6 +27,27 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - name: Fail on high or critical production advisories
         run: npm audit --omit=dev --audit-level=high
+      - name: Inventory all dependencies including development tooling
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > dependency-audit.json
+          audit_status=$?
+          node -e "const a=require('./dependency-audit.json'); if(a.error || !a.metadata) process.exit(1); console.log(JSON.stringify(a.metadata.vulnerabilities))"
+          report_status=$?
+          if [ "$report_status" -ne 0 ] || [ "$audit_status" -gt 1 ]; then
+            echo "::error::Dependency inventory could not be obtained."
+            exit 1
+          fi
+      - name: Upload dependency inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: dependency-audit.json
+          if-no-files-found: error
+
 
   quality:
     runs-on: ubuntu-latest

@@ -117,3 +117,42 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 5. C3 se mantiene independiente de C1. No realizar borrados reales durante pruebas de auditoría.
 6. Cada cambio de estado debe incluir PR, commit, pruebas ejecutadas y enlace/resultado de workflows. Si una prueba no se ejecutó, indicarlo expresamente.
 7. No utilizar credenciales de producción ni modificar producción sin autorización explícita.
+
+---
+
+# Estado B-1–B-5 — informe consolidado (2026-11-04)
+
+**Fuente:** `FleetEase_Informe_Auditoria.pdf`, cierre 2026-11-03, sección 5.3. Los IDs de esta sección **no corresponden a B1–B4 del informe del 2026-10-30**, que describía otros problemas. Base inspeccionada: `master` `9ddae5ac` (incluye PR #134). Rama: `fix/audit-low-findings-b1-b5`.
+
+| ID | Causa confirmada | Corrección y evidencia | Estado |
+|---|---|---|---|
+| B-1 | Sidebar enlazaba `/dashboard/reports/history`, ruta inexistente, sin historial persistente | Retirado el enlace y su import de icono. `/dashboard/reports` se conserva; no se fabrica un historial sin datos | Corregido en rama; pendiente CI/preview |
+| B-2 | `sendInternalMessage` resolvía con un toast “Función no implementada”; UI mostraba éxito después. `users` era una lista vacía y el envío push carecía de Authorization | Retirada la pestaña Usuarios, las ramas internas/push del compositor y el método simulado del contrato/proveedor. Se conservan plantillas y vista previa/compartir de clientes y socios. Las APIs de notificación existentes no se modifican | Corregido por retirada de acción no disponible; mensajería interna/push sigue como capacidad futura |
+| B-3 | Guía con mocks/instrucciones obsoletos y roadmap con capacidades completadas sin evidencia y métricas no medidas | Reescritos `TESTING_GUIDE.md` y `ROADMAP-FUTURAS-MEJORAS.md` con estados, archivos de evidencia, comandos reales y límites. AGENTS registra las nuevas ubicaciones y fuente de auditoría | Corregido documentalmente en rama |
+| B-4 | Avisos de dependencias de desarrollo; conteos del informe ya desactualizados | `npm audit fix --legacy-peer-deps --ignore-scripts` sin force actualizó 3 paquetes compatibles. Runtime: **0** avisos. Inventario completo: **26** (23 moderados, 3 bajos), con excepciones de tooling abajo. Se conserva gate bloqueante de runtime y se añade artefacto completo + política trimestral en `docs/DEPENDENCY_MAINTENANCE.md` | Tratado con excepciones explícitas; no declarar cero vulnerabilidades de desarrollo |
+| B-5 | Proxy permitía scripts inline sin nonce para compatibilidad con HTML público estático; raíz común impedía aislar render dinámico | Grupos `(public)` y `(protected)` separan documentos raíz sin cambiar URLs. Raíz protegida dinámica lee nonce aleatorio de 24 bytes generado en proxy, propagado a Next Script/tema/GA. `script-src` y `script-src-elem` sin unsafe-inline en portales; respuestas privadas no-store. Raíz pública sin headers/cookies y landing estática | Corregido en rama; contrato y HTML probados; hidratación de navegador pendiente de CI |
+
+## B-4: excepciones verificadas, exposición y reevaluación
+
+Medición local del 2026-11-04, Node 24.22.1/npm 11.9.0; CI usa Node 22. `npm audit --omit=dev --json` reportó cero avisos; `npm audit --json` reportó 26, agrupados por tres causas transitivas. Los números de severidad históricos de otras secciones no sustituyen este snapshot.
+
+| Advisory / causa | Cadena y exposición | Decisión |
+|---|---|---|
+| [deepmerge prototype poisoning](https://github.com/advisories/GHSA-gcqx-w48m-w2h4), bajo | `jest-config` → deepmerge; configuración de pruebas del repositorio, sin entrada de usuarios del SaaS | No aceptar el downgrade sugerido a Jest 25. Reevaluar al publicar upstream una versión compatible corregida |
+| [glob AbortSignal cancellation](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), moderado | Jest/reporters y tooling de cobertura; glob de archivos de pruebas | Mantener el toolchain compatible y límites de tiempo de CI. No forzar glob 14 sobre consumidores de otra versión mayor |
+| [minimatch amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249), moderado | ESLint/typescript-eslint y glob/test-exclude; patrones fijos del repositorio | No aceptar downgrade de eslint-config-next a 15 ni override minimatch 11 incompatible. Revisar siguiente release de los consumidores |
+
+Estas excepciones se limitan al tooling de este snapshot; no permiten procesar repositorios/patrones no confiables como parte del SaaS. Política de revisión trimestral y reevaluación anticipada al salir un parche en `docs/DEPENDENCY_MAINTENANCE.md`. El inventario completo en CI es informativo; sus errores de obtención sí fallan el paso.
+
+## Validación local y límites
+
+- Pruebas nuevas de CSP: se observaron **5 fallos esperados antes de implementar**; luego pasan las **37 pruebas** de middleware (nonce por petición, políticas pública/protegida, roles y sustitución de nonce suministrado por el cliente).
+- Quality gate existente: **8 suites / 66 tests pasan**.
+- Suite Jest completa: **29 suites pasan, 2 fallan; 310 tests pasan y 5 fallan**. Reproducidos los mismos 5 fallos en checkout intacto de `master` `9ddae5ac`: cuatro de `src/__tests__/lib/auth-persistence.test.ts` (mock global localStorage sin almacenamiento real) y uno de `src/__tests__/lib/financial-metrics.test.ts` (`filterRecordsByDateRange`, límite final). No se alteraron las fórmulas ni estos tests para ocultarlos.
+- Type-check pasa. Build de producción pasa; `/` y páginas públicas siguen estáticas, portales dinámicos. Persisten las dos advertencias Tailwind preexistentes de `duration-[var(--fe-motion-*)]`.
+- `node scripts/csp-smoke.mjs --http-only`: HTML protegido con **8 scripts inline cuyo nonce coincide**, autenticación con fixtures aislados de Supabase, cache no-store y respuesta pública sin nonce. No hay datos, mensajes ni escrituras reales.
+- Chromium local no pudo iniciar por restricción del entorno (`socket() failed: Operation not permitted`). No declarar hidratación de navegador aprobada. `scripts/csp-smoke.mjs` se añade al workflow E2E para comprobar arranque, tema, interacción con pestañas, ausencia de acciones retiradas y rechazo de script inyectado en Chrome de CI.
+- La separación de documentos raíz produce recarga completa al cruzar entre zona pública y portales; la navegación dentro de cada zona permanece con App Router. Revisar login/logout y preview antes de fusionar.
+- Sin migraciones, SQL, cambios de datos ni modificaciones de producción. El estado de C1–C5 no cambia por esta remediación.
+
+**Puerta de salida:** revisar CI/preview sobre el HEAD exacto del PR, confirmar el smoke de Chrome y conservar abiertos los fallos de regresión preexistentes y las excepciones de tooling descritas. No fusionar automáticamente.

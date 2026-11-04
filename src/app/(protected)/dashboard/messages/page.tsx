@@ -7,7 +7,7 @@ import { Send, Users, Briefcase } from 'lucide-react';
 import { MessageSender } from './components/message-sender';
 
 export default function MessagesPage() {
-  const { clients, partners, vehicles, companies, users, clientMetrics } = useData();
+  const { clients, partners, vehicles, companies, clientMetrics } = useData();
 
   const clientOptions = useMemo(() =>
     clients.filter(c => !c.isDeleted && c.status === 'active').map(c => ({
@@ -20,12 +20,6 @@ export default function MessagesPage() {
       value: p.id,
       label: p.name,
     })), [partners]);
-
-  const userOptions = useMemo(() =>
-    users.filter(u => !u.isDeleted).map(u => ({
-      value: u.uid,
-      label: u.name,
-    })), [users]);
 
   return (
     <div className="fe-page-shell space-y-5 sm:space-y-6">
@@ -42,7 +36,7 @@ export default function MessagesPage() {
               Mensajería
             </h1>
             <p className="mt-1 text-sm text-[var(--fe-text-muted)]">
-              Comunicaciones personalizadas a clientes, socios y usuarios
+              Comunicaciones personalizadas a clientes y socios
             </p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[color:var(--fe-lime)]/15 bg-[var(--fe-lime)]/[0.08] text-[var(--fe-lime)]">
@@ -53,16 +47,14 @@ export default function MessagesPage() {
         <section className="fe-panel-bg overflow-hidden rounded-[14px] shadow-[0_18px_50px_rgba(0,0,0,.16)]">
           <div className="p-4 sm:p-5">
             <Tabs defaultValue="clients">
-              <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-[16px] border border-[color:var(--fe-border)] bg-[var(--fe-bg)] p-1">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-[16px] border border-[color:var(--fe-border)] bg-[var(--fe-bg)] p-1">
                 <TabsTrigger value="clients" className="rounded-xl text-xs text-[var(--fe-text-secondary)] data-[state=active]:bg-[var(--fe-lime)] data-[state=active]:text-[var(--fe-ink)]">
                   <Users className="mr-1.5 h-4 w-4" strokeWidth={1.75} />Clientes
                 </TabsTrigger>
                 <TabsTrigger value="partners" className="rounded-xl text-xs text-[var(--fe-text-secondary)] data-[state=active]:bg-[var(--fe-lime)] data-[state=active]:text-[var(--fe-ink)]">
                   <Briefcase className="mr-1.5 h-4 w-4" strokeWidth={1.75} />Socios
                 </TabsTrigger>
-                <TabsTrigger value="users" className="rounded-xl text-xs text-[var(--fe-text-secondary)] data-[state=active]:bg-[var(--fe-lime)] data-[state=active]:text-[var(--fe-ink)]">
-                  <Users className="mr-1.5 h-4 w-4" strokeWidth={1.75} />Usuarios
-                </TabsTrigger>
+
               </TabsList>
               <TabsContent value="clients" className="pt-4">
                 <MessageSender
@@ -86,17 +78,7 @@ export default function MessagesPage() {
                   clientMetrics={clientMetrics}
                 />
               </TabsContent>
-              <TabsContent value="users" className="pt-4">
-                <MessageSender
-                  type="usuario"
-                  options={userOptions}
-                  allClients={clients}
-                  allPartners={partners}
-                  allVehicles={vehicles}
-                  allCompanies={companies}
-                  clientMetrics={clientMetrics}
-                />
-              </TabsContent>
+
             </Tabs>
           </div>
         </section>

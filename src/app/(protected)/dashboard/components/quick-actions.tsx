@@ -27,13 +27,13 @@ interface QuickActionsProps {
 }
 
 // The floating action must use the exact same canonical forms as the module pages.
-const ExpensesForm = dynamic(() => import('@/app/dashboard/finanzas/expenses/components/ExpensesFormMultiLine').then(mod => mod.ExpensesForm), { ssr: false });
-const IncomeForm = dynamic(() => import('@/app/dashboard/finanzas/income/components/IncomeForm'), { ssr: false });
-const CreditForm = dynamic(() => import('@/app/dashboard/credits/components/credit-form').then(mod => mod.CreditForm), { ssr: false });
-const ClientForm = dynamic(() => import('@/app/dashboard/clients/components/client-form').then(mod => mod.ClientForm), { ssr: false });
-const VehicleForm = dynamic(() => import('@/app/dashboard/vehicles/components/vehicle-form').then(mod => mod.VehicleForm), { ssr: false });
-const MileageLogForm = dynamic(() => import('@/app/dashboard/mileage/components/mileage-log-form'), { ssr: false });
-const PaymentForm = dynamic(() => import('@/app/dashboard/finanzas/payments/components/payment-form').then(m => m.PaymentForm), { ssr: false });
+const ExpensesForm = dynamic(() => import('@/app/(protected)/dashboard/finanzas/expenses/components/ExpensesFormMultiLine').then(mod => mod.ExpensesForm), { ssr: false });
+const IncomeForm = dynamic(() => import('@/app/(protected)/dashboard/finanzas/income/components/IncomeForm'), { ssr: false });
+const CreditForm = dynamic(() => import('@/app/(protected)/dashboard/credits/components/credit-form').then(mod => mod.CreditForm), { ssr: false });
+const ClientForm = dynamic(() => import('@/app/(protected)/dashboard/clients/components/client-form').then(mod => mod.ClientForm), { ssr: false });
+const VehicleForm = dynamic(() => import('@/app/(protected)/dashboard/vehicles/components/vehicle-form').then(mod => mod.VehicleForm), { ssr: false });
+const MileageLogForm = dynamic(() => import('@/app/(protected)/dashboard/mileage/components/mileage-log-form'), { ssr: false });
+const PaymentForm = dynamic(() => import('@/app/(protected)/dashboard/finanzas/payments/components/payment-form').then(m => m.PaymentForm), { ssr: false });
 
 export function QuickActions({
   quickActionModal,

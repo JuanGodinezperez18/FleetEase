@@ -3,7 +3,7 @@
  *
  * Los headers estáticos se conservan aquí como referencia reutilizable.
  * El Content-Security-Policy NO se define en este archivo: en producción
- * debe generarse por request en /proxy.ts para incluir un nonce único.
+ * se genera en src/proxy.ts: nonce por petición de portal y política pública compatible con HTML estático.
  */
 
 import type { NextConfig } from 'next';

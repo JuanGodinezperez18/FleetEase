@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useData } from '@/hooks/use-data';
 import type { Client, Partner, VehicleWithMileage, MessageTemplate } from '@/types';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { Send, Eye, Trash2, Save, Loader2, Bell, BellOff } from 'lucide-react';
+import { Send, Eye, Trash2, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { sanitizeUserInput } from '@/lib/validators';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,11 +16,9 @@ import { formatDate } from '@/lib/date-utils';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/auth-provider';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type MultiSelectOption = { value: string; label: string; role?: string };
-type RecipientType = 'cliente' | 'socio' | 'usuario';
+type RecipientType = 'cliente' | 'socio';
 interface MessagePreview { recipientName: string; message: string; }
 
 const ETIQUETAS_CLIENTES = [
@@ -39,12 +37,6 @@ const ETIQUETAS_SOCIOS = [
   { key: 'vehiculos', label: 'Vehículos', description: 'Número de vehículos' },
   { key: 'ingresos', label: 'Ingresos totales', description: 'Total de ingresos' },
   { key: 'gastos', label: 'Gastos totales', description: 'Total de gastos' },
-];
-
-const ETIQUETAS_USUARIOS = [
-  { key: 'nombre', label: 'Nombre del usuario', description: 'Nombre completo del usuario' },
-  { key: 'email', label: 'Email', description: 'Correo electrónico' },
-  { key: 'rol', label: 'Rol', description: 'Rol del usuario en el sistema' },
 ];
 
 const ETIQUETAS_GLOBALES = [
@@ -124,7 +116,7 @@ export function MessageSender({
   allCompanies: any[];
   clientMetrics: any[];
 }) {
-  const { messageTemplates, addMessageTemplate, updateMessageTemplate, deleteMessageTemplate, sendInternalMessage } = useData();
+  const { messageTemplates, addMessageTemplate, updateMessageTemplate, deleteMessageTemplate } = useData();
   const { currentUser } = useAuth();
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [message, setMessage] = useState('');
@@ -132,10 +124,6 @@ export function MessageSender({
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [messagePreviews, setMessagePreviews] = useState<MessagePreview[]>([]);
-  const [isSending, setIsSending] = useState(false);
-  const [sendPushNotification, setSendPushNotification] = useState(false);
-  const [notificationTitle, setNotificationTitle] = useState('');
-  const [pushPriority, setPushPriority] = useState<'normal' | 'high'>('normal');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const messageStats = useMemo(() => {
@@ -151,8 +139,8 @@ export function MessageSender({
 
   const etiquetas = useMemo(() => {
     const base =
-      type === 'cliente' ? ETIQUETAS_CLIENTES : type === 'socio' ? ETIQUETAS_SOCIOS : ETIQUETAS_USUARIOS;
-    return type !== 'usuario' ? [...base, ...ETIQUETAS_GLOBALES] : base;
+      type === 'cliente' ? ETIQUETAS_CLIENTES : ETIQUETAS_SOCIOS;
+    return [...base, ...ETIQUETAS_GLOBALES];
   }, [type]);
 
   const handleTagClick = useCallback(
@@ -232,60 +220,6 @@ export function MessageSender({
   );
 
   const generatePreview = useCallback(async () => {
-    if (type === 'usuario' && sendPushNotification) {
-      if (!message.trim() || !notificationTitle.trim()) {
-        toast.error('Mensaje y título son obligatorios');
-        return;
-      }
-      setIsSending(true);
-      try {
-        const response = await fetch('/api/notifications/broadcast', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: sanitizeUserInput(notificationTitle),
-            message: sanitizeUserInput(message),
-            recipientType: 'specific',
-            selectedUsers: selectedRecipients,
-            sendPush: true,
-            priority: pushPriority,
-            senderName: currentUser?.name || currentUser?.email,
-            companyId: currentUser?.companyId,
-          }),
-        });
-        if (!response.ok) throw new Error('Error');
-        const data = await response.json();
-        toast.success(`Notificación enviada a ${data.recipientCount} usuario(s)`);
-        setSelectedRecipients([]);
-        setMessage('');
-        setNotificationTitle('');
-      } catch {
-        toast.error('Error al enviar notificaciones');
-      } finally {
-        setIsSending(false);
-      }
-      return;
-    }
-
-    if (type === 'usuario') {
-      if (!message.trim()) {
-        toast.error('El mensaje no puede estar vacío');
-        return;
-      }
-      setIsSending(true);
-      try {
-        await sendInternalMessage(selectedRecipients, 'Mensaje del Administrador', sanitizeUserInput(message));
-        toast.success('Mensajes internos enviados');
-        setSelectedRecipients([]);
-        setMessage('');
-      } catch {
-        toast.error('Error al enviar');
-      } finally {
-        setIsSending(false);
-      }
-      return;
-    }
-
     if (selectedRecipients.length > 100) {
       toast.error('Máximo 100 destinatarios');
       return;
@@ -335,7 +269,7 @@ export function MessageSender({
     setIsPreviewOpen(true);
   }, [
     selectedRecipients, message, type, allClients, allPartners, allVehicles, allCompanies,
-    clientMetrics, currentUser, sendInternalMessage, sendPushNotification, notificationTitle, pushPriority,
+    clientMetrics, currentUser,
   ]);
 
   const handlePreview = () => {
@@ -345,10 +279,6 @@ export function MessageSender({
     }
     if (!message.trim()) {
       toast.error('El mensaje no puede estar vacío');
-      return;
-    }
-    if (sendPushNotification && type === 'usuario' && !notificationTitle.trim()) {
-      toast.error('El título es obligatorio');
       return;
     }
     generatePreview();
@@ -362,9 +292,7 @@ export function MessageSender({
           Compositor
         </h2>
         <p className="text-sm text-white/40">
-          {type === 'usuario'
-            ? 'Mensajes internos o notificaciones push'
-            : 'Mensajes personalizados con etiquetas'}
+          Mensajes personalizados con etiquetas
         </p>
       </div>
 
@@ -381,50 +309,6 @@ export function MessageSender({
         )}
       </div>
 
-      {type === 'usuario' && (
-        <div className="space-y-4 rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="push-notification"
-              checked={sendPushNotification}
-              onCheckedChange={checked => setSendPushNotification(checked as boolean)}
-            />
-            <label htmlFor="push-notification" className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
-              {sendPushNotification ? (
-                <><Bell className="h-4 w-4 text-[#d7ff3f]" strokeWidth={1.75} /> Notificación push</>
-              ) : (
-                <><BellOff className="h-4 w-4" strokeWidth={1.75} /> Mensaje interno</>
-              )}
-            </label>
-          </div>
-          {sendPushNotification && (
-            <div className="space-y-3 border-l-2 border-[#d7ff3f]/40 pl-4">
-              <div className="space-y-2">
-                <label className="text-sm text-white/70">Título *</label>
-                <Input
-                  value={notificationTitle}
-                  onChange={e => setNotificationTitle(e.target.value)}
-                  placeholder="Ej: Actualización importante"
-                  maxLength={50}
-                  className="border-white/10 bg-white/[0.03] text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-white/70">Prioridad</label>
-                <Select value={pushPriority} onValueChange={(v: 'normal' | 'high') => setPushPriority(v)}>
-                  <SelectTrigger className="border-white/10 bg-white/[0.03] text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="space-y-2">
         <label className="text-sm font-medium text-white/70">Mensaje</label>
@@ -454,8 +338,7 @@ export function MessageSender({
         </p>
       </div>
 
-      {!sendPushNotification && type !== 'usuario' && (
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={templateName}
             onChange={e => setTemplateName(e.target.value)}
@@ -471,28 +354,19 @@ export function MessageSender({
             <Save className="mr-2 h-4 w-4" strokeWidth={1.75} />
             {editingTemplate ? 'Actualizar' : 'Guardar'}
           </Button>
-        </div>
-      )}
+      </div>
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           onClick={handlePreview}
-          disabled={selectedRecipients.length === 0 || !message.trim() || isSending}
+          disabled={selectedRecipients.length === 0 || !message.trim()}
           className="min-w-[180px] rounded-xl bg-[#d7ff3f] text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-50"
         >
-          {isSending ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.75} /> Enviando...</>
-          ) : sendPushNotification && type === 'usuario' ? (
-            <><Bell className="mr-2 h-4 w-4" strokeWidth={1.75} /> Enviar push</>
-          ) : type === 'usuario' ? (
-            <><Send className="mr-2 h-4 w-4" strokeWidth={1.75} /> Enviar interno</>
-          ) : (
-            <><Eye className="mr-2 h-4 w-4" strokeWidth={1.75} /> Vista previa</>
-          )}
+          <Eye className="mr-2 h-4 w-4" strokeWidth={1.75} /> Vista previa
         </Button>
       </div>
 
-      {!sendPushNotification && type !== 'usuario' && templatesForType.length > 0 && (
+      {templatesForType.length > 0 && (
         <div className="overflow-hidden rounded-[16px] border border-white/[0.07] bg-white/[0.02]">
           <div className="border-b border-white/[0.06] px-4 py-3">
             <h3 className="font-heading text-sm font-semibold text-white">Plantillas</h3>

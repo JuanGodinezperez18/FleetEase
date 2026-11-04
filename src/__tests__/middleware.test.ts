@@ -15,7 +15,7 @@ jest.mock('next/server', () => {
   return {
     NextResponse: {
       redirect: jest.fn((url: URL) => makeResponse('redirect', url)),
-      next: jest.fn(() => makeResponse('next')),
+      next: jest.fn((options) => ({ ...makeResponse('next'), requestHeaders: options?.request?.headers })),
     },
     NextRequest: class {},
   };
@@ -235,4 +235,33 @@ describe('middleware authentication and role authorization', () => {
       expect.stringContaining("default-src 'self'"),
     );
   });
+  it.each(['/dashboard', '/partner', '/client', '/oauth/consent'])(
+    'uses a fresh script nonce on protected HTML %s', async (path) => {
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+      mockGetProfile.mockResolvedValue({ data: { role: path.startsWith('/partner') ? 'partner' : path.startsWith('/client') ? 'client' : 'admin', is_deleted: false }, error: null });
+      const first = await proxy(buildRequest(path) as any) as any;
+      const second = await proxy(buildRequest(path) as any) as any;
+      const nonce = first.requestHeaders.get('x-nonce');
+      expect(nonce).toMatch(/^[A-Za-z0-9+/]{24,}={0,2}$/);
+      expect(second.requestHeaders.get('x-nonce')).not.toBe(nonce);
+      const csp = first.requestHeaders.get('Content-Security-Policy');
+      const scripts = csp.split('; ').filter((directive: string) => /^script-src(?:-elem)? /.test(directive));
+      expect(scripts).toHaveLength(2);
+      scripts.forEach((directive: string) => {
+        expect(directive).toContain(`'nonce-${nonce}'`);
+        expect(directive).not.toContain("'unsafe-inline'");
+      });
+      expect(first.headers.set).toHaveBeenCalledWith('Content-Security-Policy', csp);
+      expect(first.headers.set).toHaveBeenCalledWith('Cache-Control', 'private, no-store');
+    }
+  );
+
+  it('keeps static public HTML nonce-free and removes a caller-supplied nonce', async () => {
+    const request = buildRequest('/');
+    request.headers.set('x-nonce', 'untrusted');
+    const response = await proxy(request as any) as any;
+    expect(response.requestHeaders.get('x-nonce')).toBeNull();
+    expect(response.requestHeaders.get('Content-Security-Policy')).not.toContain('nonce-');
+  });
+
 });
