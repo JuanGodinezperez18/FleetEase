@@ -20,7 +20,7 @@ import { PlusCircle, Loader2, DollarSign, AlertCircle, Check } from "lucide-reac
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModal } from '@/components/common/form-modal';
 import { Textarea } from "@/components/ui/textarea";
-import { SECURITY_DEPOSIT_CATEGORY, PARTNER_PAYMENT_CATEGORY_ID } from '@/contexts/finance-constants';
+import { SECURITY_DEPOSIT_CATEGORY, isPartnerPaymentCategory } from '@/contexts/finance-constants';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const newCategoryValue = "createNewCategory";
 
-const createIncomeSchema = (currentUserRole?: string) => z.object({
+const createIncomeSchema = (currentUserRole?: string, categories: FinancialCategory[] = []) => z.object({
   date: z.string().min(1, "La fecha es obligatoria.").refine(isFinancialDateNotInFuture, { message: "La fecha no puede ser futura." }),
   description: z.string().trim().min(1, "El concepto es obligatorio."),
   amount: z.coerce.number({ error: "El monto debe ser un número." }).positive("El monto debe ser mayor que cero."),
@@ -45,7 +45,7 @@ const createIncomeSchema = (currentUserRole?: string) => z.object({
   if (currentUserRole === 'superAdmin' && !data.companyId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Como Super Admin, debe seleccionar una empresa.', path: ['companyId'] });
   }
-  const isPartner = data.categoryId === PARTNER_PAYMENT_CATEGORY_ID;
+  const isPartner = isPartnerPaymentCategory(categories.find(category => category.id === data.categoryId));
   if (isPartner && !data.partnerId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Debe seleccionar un socio para esta categoría.', path: ['partnerId'] });
   }
@@ -73,7 +73,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const { currentUser } = useAuth();
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
 
-  const incomeSchema = useMemo(() => createIncomeSchema(currentUser?.role), [currentUser?.role]);
+  const incomeSchema = useMemo(() => createIncomeSchema(currentUser?.role, incomeAndPaymentCategories), [currentUser?.role, incomeAndPaymentCategories]);
   const getInitialFormValues = useCallback((data: Partial<FinancialRecord> | null): IncomeFormValues => {
     const companyId = data?.companyId || currentUser?.companyId || companies[0]?.id || undefined;
     const categoryInfo = data?.categoryId ? incomeAndPaymentCategories.find(c => c.id === data.categoryId) : undefined;
@@ -106,7 +106,6 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const selectedVehicleId = form.watch("vehicleId");
   const paymentMethod = form.watch("paymentMethod");
   const recordType = form.watch("type");
-  const isPartnerPayment = selectedCategoryId === PARTNER_PAYMENT_CATEGORY_ID;
 
   const selectableCategories = useMemo(() => {
     const companyId = selectedCompanyId || currentUser?.companyId || companies[0]?.id;
@@ -115,6 +114,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   }, [incomeAndPaymentCategories, selectedCompanyId, currentUser?.companyId, companies]);
 
   const selectedCategory = useMemo(() => selectableCategories.find(c => c.id === selectedCategoryId), [selectableCategories, selectedCategoryId]);
+  const isPartnerPayment = isPartnerPaymentCategory(selectedCategory);
   const isWeeklyRent = selectedCategory?.name?.trim().toLowerCase() === 'renta semanal';
 
   const paymentMethods = useMemo(() => {
@@ -255,7 +255,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     const categoryInfo = selectableCategories.find(c => c.id === selectedCategoryId);
     if (!categoryInfo) return;
     form.setValue('type', categoryInfo.type as 'income' | 'payment');
-    if (categoryInfo.id === PARTNER_PAYMENT_CATEGORY_ID) {
+    if (isPartnerPaymentCategory(categoryInfo)) {
       form.setValue('clientId', null); form.setValue('partnerId', null); form.setValue('vehicleId', null);
     } else if (['Pago de Crédito', 'Pago Enganche de Crédito', 'Depósito de Crédito'].includes(categoryInfo.name)) {
       form.setValue('partnerId', null);

@@ -1,3 +1,4 @@
+import type { DatabaseUserRole } from '@/lib/roles';
 import type { Json } from '@/lib/supabase-browser';
 
 /**
@@ -11,7 +12,7 @@ import type { Json } from '@/lib/supabase-browser';
 export type TimestampString = string; // ISO 8601 format
 
 // Roles de usuario
-export type UserRole = 'admin' | 'editor' | 'viewer' | 'super_admin' | 'partner' | 'client';
+export type UserRole = DatabaseUserRole;
 
 // Estados de vehículo
 export type VehicleStatus = 'active' | 'inactive' | 'maintenance' | 'sold' | 'rented';

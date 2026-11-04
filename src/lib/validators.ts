@@ -1,60 +1,43 @@
 
 import DOMPurify from 'dompurify';
 import { useState, useCallback } from 'react';
+import { vinSchema } from '@/lib/schemas/vin';
+import { currencySchema, emailSchema, phoneSchema, plateSchema, requiredValueSchema } from '@/lib/schemas/fields';
 
 /**
  * Validadores de input en tiempo real
  */
 export const validators = {
   email: (value: string): string | null => {
-    if (!value) return "Email es requerido";
-    // RFC 5322 compliant email regex (simplified)
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(value) ? null : "Email inválido";
+    const result = emailSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'Email inválido';
   },
 
   phone: (value: string): string | null => {
-    if (!value) return "Teléfono es requerido";
-    const cleaned = value.replace(/\D/g, ''); // \D = non-digit characters
-    if (cleaned.length !== 10) return "Teléfono debe tener 10 dígitos";
-    return null;
+    const result = phoneSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'Teléfono inválido';
   },
 
   plate: (value: string): string | null => {
-    if (!value) return "Placa es requerida";
-    // Formatos mexicanos: ABC-1234, AB-12345, ABC-12-34
-    const patterns = [
-      /^[A-Z]{3}-\d{4}$/,      // ABC-1234
-      /^[A-Z]{2}-\d{5}$/,      // AB-12345
-      /^[A-Z]{3}-\d{2}-\d{2}$/  // ABC-12-34
-    ];
-    const isValid = patterns.some(pattern => pattern.test(value.toUpperCase()));
-    return isValid ? null : "Formato de placa inválido (ej: ABC-1234)";
+    const result = plateSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'Formato de placa inválido';
   },
 
   vin: (value: string): string | null => {
     if (!value) return null; // Opcional
-    const cleaned = value.replace(/s/g, '');
-    if (cleaned.length !== 17) return "VIN debe tener 17 caracteres";
-    return null;
+    const result = vinSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'VIN inválido.';
   },
 
   currency: (value: string | number | undefined): string | null => {
-    if (value === undefined || value === null) return null; // Allow optional
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return "Debe ser un número válido";
-    if (num < 0) return "No puede ser negativo";
-    if (num > 10000000) return "Cantidad demasiado alta";
-    return null;
+    const result = currencySchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'Debe ser un número válido';
   },
 
   required: (value: any): string | null => {
-    if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
-      return "Este campo es requerido";
-    }
-    return null;
+    const result = requiredValueSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'Este campo es requerido';
   },
-
   minLength: (min: number) => (value: string): string | null => {
     if (!value || value.length < min) {
       return `Debe tener al menos ${min} caracteres`;

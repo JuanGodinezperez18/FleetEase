@@ -95,10 +95,11 @@ export async function POST(request: NextRequest) {
       .from(bucketName)
       .upload(fullPath, fileBuffer, { contentType: file.type || 'image/jpeg', upsert: false });
     if (uploadError) return internalError('upload-inspection', uploadError);
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fullPath);
-    return NextResponse.json({ success: true, url: publicUrl, fullPath });
+    const storageUrl = new URL(
+      `/storage/v1/object/authenticated/${bucketName}/${fullPath}`,
+      supabaseUrl,
+    ).toString();
+    return NextResponse.json({ success: true, url: storageUrl, storageRef: { bucket: bucketName, path: fullPath }, fullPath }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error: unknown) {
     if (
       error instanceof Error &&

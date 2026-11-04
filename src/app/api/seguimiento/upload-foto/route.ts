@@ -35,19 +35,11 @@ const seguimientoFieldsSchema = z.object({
   notes: z.string().trim().max(2000).refine(value => !/[<>]/.test(value), 'Caracteres no permitidos.').optional(),
 });
 
-async function ensureBucket(): Promise<void> {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-  if (buckets?.some((b) => b.name === BUCKET_NAME)) return;
-
-  const { error } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: MAX_SIZE_BYTES,
-    allowedMimeTypes: ALLOWED_MIME_TYPES,
-  });
-
-  if (error && !/already exists|duplicate/i.test(error.message)) {
-    throw error;
+async function assertBucketProvisioned(): Promise<void> {
+  const { data: buckets, error } = await getSupabaseAdmin().storage.listBuckets();
+  if (error) throw error;
+  if (!buckets?.some((bucket) => bucket.name === BUCKET_NAME)) {
+    throw new Error(`Storage bucket "${BUCKET_NAME}" is not provisioned. Apply the versioned Storage migration before enabling uploads.`);
   }
 }
 
@@ -125,9 +117,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureBucket();
+      await assertBucketProvisioned();
     } catch (bucketErr) {
-      return internalError('seguimiento/upload-foto ensureBucket', bucketErr);
+      return internalError('seguimiento/upload-foto bucket preflight', bucketErr);
     }
 
     const companyId = vehicle.company_id as string;
@@ -147,31 +139,19 @@ export async function POST(request: NextRequest) {
         .upload(fullPath, fileBuffer, { contentType, upsert: false })
     ).error;
 
-    if (uploadError && /bucket not found/i.test(uploadError.message)) {
-      try {
-        await ensureBucket();
-        uploadError = (
-          await supabaseAdmin.storage
-            .from(BUCKET_NAME)
-            .upload(fullPath, fileBuffer, { contentType, upsert: false })
-        ).error;
-      } catch (retryErr) {
-        return internalError('seguimiento/upload-foto retry', retryErr);
-      }
-    }
-
     if (uploadError) return internalError('seguimiento/upload-foto storage', uploadError);
 
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(fullPath);
+    const storageUrl = new URL(
+      `/storage/v1/object/authenticated/${BUCKET_NAME}/${fullPath}`,
+      supabaseUrl,
+    ).toString();
     const { data: seguimiento, error: seguimientoError } = await supabaseAdmin
       .from('seguimientos')
       .insert({
         vehicle_id: vehicleId,
         client_id: clientId ?? null,
         company_id: vehicle.company_id,
-        photo_url: publicUrl,
+        photo_url: storageUrl,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         speed: speed ? parseFloat(speed) : null,
@@ -183,7 +163,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (seguimientoError) return internalError('seguimiento/upload-foto insert', seguimientoError);
 
-    return NextResponse.json({ success: true, url: publicUrl, seguimiento });
+    return NextResponse.json({ success: true, url: storageUrl, seguimiento });
   } catch (error: unknown) {
     if (
       error instanceof Error &&
