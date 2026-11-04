@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 
 const SIGNED_URL_TTL_MS = 55 * 60 * 1000;
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
