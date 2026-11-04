@@ -8,7 +8,7 @@ import type { User as SupabaseProfile } from '@/types/supabase';
 import type { Json } from '@/lib/supabase-browser';
 import { isJsonObject } from '@/lib/json-guards';
 import type { UserProfile } from '@/types';
-import { signIn, signOut, resetPassword, formatAuthError, setAuthPersistence, restoreSessionOnly, enforceSessionOnlyPersistence, clearAuthPersistence } from '@/lib/auth';
+import { signIn, signOut, resetPassword, formatAuthError, setAuthPersistence, clearAuthPersistence } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 const PROFILE_CACHE_KEY = 'fleetease.auth.profile.v1';
@@ -144,12 +144,10 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initializeSession = async () => {
       try {
-        await restoreSessionOnly();
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
 
         if (data.session?.user) {
-          enforceSessionOnlyPersistence(data.session);
           const cachedProfile = readCachedProfile();
           if (cachedProfile && cachedProfile.uid === data.session.user.id && !cachedProfile.isDeleted) {
             if (mounted) {
@@ -202,7 +200,6 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
         return;
       }
-      enforceSessionOnlyPersistence(session);
       void loadProfile(session.user.id, true);
     });
 

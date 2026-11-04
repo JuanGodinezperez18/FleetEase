@@ -93,9 +93,20 @@ describe('Validators', () => {
   });
 
   describe('vin', () => {
-    it('valida longitud correcta', () => {
+    it('acepta VIN de 17 caracteres y conserva la letra S', () => {
       expect(validators.vin('1HGCM82633A004352')).toBeNull();
-      expect(validators.vin('123')).toBe('VIN debe tener 17 caracteres');
+      expect(validators.vin('1HGCM82633A00435S')).toBeNull();
+    });
+
+    it('normaliza espacios y minúsculas sin eliminar caracteres válidos', () => {
+      expect(validators.vin('1hgcm 82633a00435s')).toBeNull();
+    });
+
+    it('rechaza longitud incorrecta y caracteres prohibidos en VIN', () => {
+      expect(validators.vin('123')).toContain('VIN inválido');
+      expect(validators.vin('1HGCM82633A00435I')).toContain('VIN inválido');
+      expect(validators.vin('1HGCM82633A00435O')).toContain('VIN inválido');
+      expect(validators.vin('1HGCM82633A00435Q')).toContain('VIN inválido');
     });
   });
 

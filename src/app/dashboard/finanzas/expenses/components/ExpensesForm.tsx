@@ -23,7 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FormModal } from "@/components/common/form-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { PARTNER_PAYMENT_CATEGORY_ID } from "@/contexts/finance-constants";
 import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
 
 const newCategoryValue = "createNewCategory";
@@ -296,7 +295,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
 
   const selectableCategories = useMemo(() => {
     const companyId = formCompanyId || currentUser?.companyId;
-    const categories = expenseCategories.filter(cat => cat.type === "expense" && cat.id !== PARTNER_PAYMENT_CATEGORY_ID && (cat.isDefault || cat.companyId === companyId));
+    const categories = expenseCategories.filter(cat => cat.type === "expense" && (cat.isDefault || cat.companyId === companyId));
     const map = new Map<string, FinancialCategory>();
     categories.forEach(cat => { if (!map.has(cat.name) || !cat.isDefault) map.set(cat.name, cat); });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));

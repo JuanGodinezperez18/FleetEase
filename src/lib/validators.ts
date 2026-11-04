@@ -1,6 +1,7 @@
 
 import DOMPurify from 'dompurify';
 import { useState, useCallback } from 'react';
+import { vinSchema } from '@/lib/schemas/vin';
 
 /**
  * Validadores de input en tiempo real
@@ -34,9 +35,8 @@ export const validators = {
 
   vin: (value: string): string | null => {
     if (!value) return null; // Opcional
-    const cleaned = value.replace(/s/g, '');
-    if (cleaned.length !== 17) return "VIN debe tener 17 caracteres";
-    return null;
+    const result = vinSchema.safeParse(value);
+    return result.success ? null : result.error.issues[0]?.message || 'VIN inválido.';
   },
 
   currency: (value: string | number | undefined): string | null => {

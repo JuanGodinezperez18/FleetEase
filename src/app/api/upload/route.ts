@@ -69,20 +69,11 @@ function isSuperAdmin(role: string | null | undefined): boolean {
   return role === 'super_admin' || role === 'superAdmin';
 }
 
-async function ensureBucket(folder: AllowedFolder, bucketName: string): Promise<void> {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-  if (buckets?.some((b) => b.name === bucketName)) return;
-
-  const mimeTypes = ALLOWED_MIME_TYPES[folder];
-  const { error } = await supabaseAdmin.storage.createBucket(bucketName, {
-    public: false,
-    fileSizeLimit: MAX_UPLOAD_BYTES,
-    allowedMimeTypes: mimeTypes.length > 0 ? [...mimeTypes] : undefined,
-  });
-
-  if (error && !/already exists|duplicate/i.test(error.message)) {
-    throw error;
+async function assertBucketProvisioned(bucketName: string): Promise<void> {
+  const { data: buckets, error } = await getSupabaseAdmin().storage.listBuckets();
+  if (error) throw error;
+  if (!buckets?.some((bucket) => bucket.name === bucketName)) {
+    throw new Error(`Storage bucket "${bucketName}" is not provisioned. Apply the versioned Storage migration before enabling uploads.`);
   }
 }
 
@@ -250,9 +241,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureBucket(folder, bucketName);
+      await assertBucketProvisioned(bucketName);
     } catch (bucketErr) {
-      return internalError('API Upload ensureBucket', bucketErr, { bucketName });
+      return internalError('API Upload bucket preflight', bucketErr, { bucketName });
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -263,27 +254,24 @@ export async function POST(request: NextRequest) {
         .upload(fullPath, fileBuffer, { contentType, upsert: false })
     ).error;
 
-    if (uploadError && /bucket not found/i.test(uploadError.message)) {
-      try {
-        await ensureBucket(folder, bucketName);
-        uploadError = (
-          await supabaseAdmin.storage
-            .from(bucketName)
-            .upload(fullPath, fileBuffer, { contentType, upsert: false })
-        ).error;
-      } catch (retryErr) {
-        return internalError('API Upload retry', retryErr, { bucketName });
-      }
-    }
-
     if (uploadError) {
       return internalError('API Upload storage', uploadError, { bucketName, fullPath });
     }
 
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fullPath);
-    return NextResponse.json({ success: true, downloadUrl: publicUrl, fullPath });
+    const storageUrl = new URL(
+      `/storage/v1/object/authenticated/${bucketName}/${fullPath}`,
+      supabaseUrl,
+    ).toString();
+
+    // downloadUrl remains as a compatibility field, but it is now a stable
+    // authenticated object reference, not a public or expiring signed URL.
+    // Consumers resolve it through /api/storage/signed-url at display time.
+    return NextResponse.json({
+      success: true,
+      downloadUrl: storageUrl,
+      storageRef: { bucket: bucketName, path: fullPath },
+      fullPath,
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error: unknown) {
     if (
       error instanceof Error &&

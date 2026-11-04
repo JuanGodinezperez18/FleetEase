@@ -92,7 +92,8 @@ export const phoneSchema = z
   .trim()
   .regex(/^\+?[0-9\s\-().]{7,20}$/, 'Teléfono inválido.')
   .optional();
-export const roleSchema = z.enum(['super_admin', 'admin', 'manager', 'user', 'driver', 'viewer']);
+export const roleSchema = z.enum(DATABASE_USER_ROLES);
+export { vinSchema } from '@/lib/schemas/vin';
 export const isoDateSchema = z
   .string()
   .trim()
