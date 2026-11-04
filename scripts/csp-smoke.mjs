@@ -57,6 +57,8 @@ try {
     await route.fulfill({ json: fixtureResponse(new URL(request.url()), request.headers().accept ?? '') });
   });
   const page = await context.newPage();
+  page.on('pageerror', error => console.error('Browser page error:', error.message));
+  page.on('console', message => { if (message.type() === 'error') console.error('Browser console error:', message.text()); });
   const violations = [];
   page.on('console', message => {
     if (/Refused to execute|Executing inline script violates/i.test(message.text())) violations.push(message.text());
@@ -80,7 +82,14 @@ try {
   const nonce = policy.match(/'nonce-([^']+)'/)[1];
   assert.ok(response.headers()['cache-control'].includes('no-store'));
   assert.ok(!policy.split('; ').find(item => item.startsWith('script-src ')).includes("'unsafe-inline'"));
-  await page.getByRole('tab', { name: 'Clientes', exact: true }).waitFor();
+  try {
+    await page.getByRole('tab', { name: 'Clientes', exact: true }).waitFor();
+  } catch (error) {
+    console.error('Protected page URL:', page.url());
+    console.error('Protected page text:', (await page.locator('body').innerText()).slice(0, 6000));
+    console.error('Protected tab count:', await page.getByRole('tab', { includeHidden: true }).count());
+    throw error;
+  }
   await page.getByRole('tab', { name: 'Socios', exact: true }).click();
   assert.equal(await page.getByRole('tab', { name: 'Socios', exact: true }).getAttribute('data-state'), 'active');
   assert.equal(await page.getByRole('tab', { name: 'Usuarios', exact: true }).count(), 0);
