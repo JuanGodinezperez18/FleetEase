@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, Eye, EyeOff, GripVertical, Save, X, Filter, AreaChart, Loader2, BarChart3, PieChart, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AVAILABLE_KPIS, CHART_WIDGETS, IconMap, DEFAULT_WIDGET_SIZE } from '@/types/dashboard';
+import { AVAILABLE_KPIS, CHART_WIDGETS, IconMap, DEFAULT_WIDGET_SIZE, OPERATION_DASHBOARD_WIDGETS } from '@/types/dashboard';
 import type { DashboardWidget } from '@/types/dashboard';
 import { toast } from 'sonner';
 import { dashboardService } from '@/lib/dashboard-service';
@@ -70,7 +70,9 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { setWidgets(normalizeDashboardWidgets(currentWidgets)); }, [currentWidgets]);
+  useEffect(() => {
+    if (isOpen) setWidgets(normalizeDashboardWidgets(currentWidgets));
+  }, [currentWidgets, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -131,6 +133,15 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
 
   const handleSizeChange = (widgetId: string, size: NonNullable<DashboardWidget['size']>) => {
     setWidgets(prev => prev.map(w => (w.id === widgetId ? { ...w, size } : w)));
+  };
+
+  const handleOperationPreset = () => {
+    const presetIds = new Set(OPERATION_DASHBOARD_WIDGETS.map(widget => widget.id));
+    setWidgets(normalizeDashboardWidgets([
+      ...OPERATION_DASHBOARD_WIDGETS.map(widget => ({ ...widget })),
+      ...widgets.filter(widget => !presetIds.has(widget.id)).map(widget => ({ ...widget, enabled: false })),
+    ]));
+    setSelectedCategory('all');
   };
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
@@ -337,7 +348,8 @@ export function DashboardConfigurator({ isOpen, onClose, currentWidgets, onSave 
 
             <div className="relative flex shrink-0 flex-col gap-3 border-t border-white/[0.07] bg-black/10 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4 sm:pb-4">
               <div className="text-[10px] text-white/40">
-                <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> visibles · S = 1 col · L = ancho
+                <button type="button" onClick={handleOperationPreset} disabled={isSaving} className="mb-2 block min-h-11 rounded-lg border border-white/15 px-3 text-xs font-semibold text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7ff3f]/40">Vista de 13 indicadores</button>
+                <span className="font-semibold text-[#d7ff3f]">{enabledCount}</span> de <span className="font-semibold text-white/55">{availableWidgets.length}</span> visibles · S = 1 columna · M = 2 · L = fila completa. El ancho se adapta al espacio disponible.
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="button" onClick={onClose} variant="outline" disabled={isSaving} className="h-11 w-full rounded-xl border-white/[0.08] bg-white/[0.025] px-4 text-xs text-white/55 hover:bg-white/[0.05] hover:text-white sm:w-auto">

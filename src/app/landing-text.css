@@ -92,11 +92,11 @@
 }
 
 /* Ink on lime CTAs */
-.fe-landing a[class*="bg-[var(--fe-lime)"],
-.fe-landing button[class*="bg-[var(--fe-lime)"],
-.light .fe-landing a[class*="bg-[var(--fe-lime)"],
-.light .fe-landing button[class*="bg-[var(--fe-lime)"],
-.fe-landing [class*="text-[var(--fe-ink)"],
-.light .fe-landing [class*="text-[var(--fe-ink)"] {
+.fe-landing a[class~="bg-[var(--fe-lime)]"],
+.fe-landing button[class~="bg-[var(--fe-lime)]"],
+.light .fe-landing a[class~="bg-[var(--fe-lime)]"],
+.light .fe-landing button[class~="bg-[var(--fe-lime)]"],
+.fe-landing [class~="text-[var(--fe-ink)]"],
+.light .fe-landing [class~="text-[var(--fe-ink)]"] {
   color: #080a0f !important;
 }

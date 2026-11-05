@@ -1,78 +1,19 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-
-const faqs: [string, string][] = [
-  [
-    "¿Para quién es FleetEase?",
-    "Para conductores independientes con un vehículo y para empresas que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores. Controla gastos, mantenimiento, ingresos y rentabilidad en un solo lugar.",
-  ],
-  [
-    "¿Puedo empezar sin pagar?",
-    "Sí. El plan Free es permanente: 1 vehículo y 1 usuario, con las funciones Pro disponibles y sin tarjeta. Incluye anuncios para mantenerlo gratis.",
-  ],
-  [
-    "¿Los planes dependen del número de vehículos?",
-    "Sí. Los planes están pensados para crecer contigo y aumentar la capacidad conforme crece tu flotilla.",
-  ],
-  [
-    "¿FleetEase reemplaza mi GPS?",
-    "No necesariamente. FleetEase está pensado como la capa de gestión de tu operación: centraliza información, costos, mantenimiento y rentabilidad.",
-  ],
-  [
-    "¿FleetEase sirve para control de flotillas en México?",
-    "Sí. FleetEase es un software de gestión de flotillas y renta de vehículos diseñado para operadores en México. Te permite controlar rentabilidad, mantenimiento y operación desde un solo lugar.",
-  ],
-  [
-    "¿Qué incluye el control de mantenimiento de flotillas?",
-    "Puedes registrar servicios, kilometraje, vencimientos de seguros y verificaciones, y recibir alertas antes de que un vehículo se detenga por falta de mantenimiento.",
-  ],
-];
+import { landingFaqs } from '@/config/landing-faq';
 
 export function LandingFaq() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
   return (
-    <section id="faq" className="border-t border-white/[0.07] bg-white/[0.018] scroll-mt-[var(--header-h)]">
-      <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-12 sm:gap-10 sm:py-16 lg:grid-cols-[.65fr_1.35fr] lg:gap-14 lg:px-8 lg:py-24">
+    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-[var(--header-h)] border-y border-[var(--fe-border)] bg-[var(--fe-main)]">
+      <div className="mx-auto grid max-w-[1240px] gap-6 px-5 py-10 sm:py-12 lg:grid-cols-[0.65fr_1.35fr] lg:gap-12 lg:px-8">
+        <h2 id="faq-title" className="text-3xl font-semibold tracking-tight">Antes de empezar.</h2>
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fe-lime)]">FAQ</div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:mt-4 sm:text-4xl">
-            Lo esencial,
-            <br />
-            sin vueltas.
-          </h2>
-        </div>
-        <div>
-          {faqs.map(([q, a], i) => {
-            const isOpen = openFaq === i;
-            return (
-              <div key={q} className="border-b border-white/[0.08] first:border-t">
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="flex min-h-14 w-full items-center justify-between gap-4 rounded-sm py-4 text-left text-sm font-semibold leading-5 text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)] sm:py-5"
-                  aria-expanded={isOpen}
-                >
-                  <span>{q}</span>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-white/50 transition motion-safe:duration-200 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                <div
-                  aria-hidden={!isOpen}
-                  className={`overflow-hidden transition-all motion-safe:duration-200 ${
-                    isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                  }`}
-                >
-                  <p className="pb-5 pr-7 text-sm leading-6 text-white/55 sm:pr-8">{a}</p>
-                </div>
-              </div>
-            );
-          })}
+          {landingFaqs.map(([question,answer]) => (
+            <details key={question} className="group border-b border-[var(--fe-border)] last:border-0">
+              <summary className="min-h-14 cursor-pointer rounded-sm py-4 pr-3 text-base font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--fe-lime)]">{question}</summary>
+              <p className="pb-5 text-base leading-7 text-[var(--fe-text-secondary)]">{answer}</p>
+            </details>
+          ))}
         </div>
       </div>
     </section>

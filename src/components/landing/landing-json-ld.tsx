@@ -1,31 +1,5 @@
 import { plans } from "@/config/plans";
-
-const faqs: [string, string][] = [
-  [
-    "¿Para quién es FleetEase?",
-    "Para conductores independientes con un vehículo y para empresas que administran vehículos de renta, flotillas comerciales o unidades asignadas a conductores. Controla gastos, mantenimiento, ingresos y rentabilidad en un solo lugar.",
-  ],
-  [
-    "¿Puedo empezar sin pagar?",
-    "Sí. El plan Free es permanente: hasta 1 vehículo y 1 usuario, con todas las funciones Pro y sin tarjeta de crédito. Incluye anuncios para mantenerlo gratis.",
-  ],
-  [
-    "¿Los planes dependen del número de vehículos?",
-    "Sí. Los planes están pensados para crecer contigo y aumentar la capacidad conforme crece tu flotilla.",
-  ],
-  [
-    "¿FleetEase reemplaza mi GPS?",
-    "No necesariamente. FleetEase está pensado como la capa de gestión de tu operación: centraliza información, costos, mantenimiento y rentabilidad.",
-  ],
-  [
-    "¿FleetEase sirve para control de flotillas en México?",
-    "Sí. FleetEase es un software de gestión de flotillas y renta de vehículos diseñado para operadores en México. Te permite controlar rentabilidad, mantenimiento y operación desde un solo lugar.",
-  ],
-  [
-    "¿Qué incluye el control de mantenimiento de flotillas?",
-    "Puedes registrar servicios, kilometraje, vencimientos de seguros y verificaciones, y recibir alertas antes de que un vehículo se detenga por falta de mantenimiento.",
-  ],
-];
+import { landingFaqs } from "@/config/landing-faq";
 
 /**
  * Structured data for the landing page.
@@ -95,7 +69,7 @@ export function LandingJsonLd() {
       },
       {
         "@type": "FAQPage",
-        mainEntity: faqs.map(([q, a]) => ({
+        mainEntity: landingFaqs.map(([q, a]) => ({
           "@type": "Question",
           name: q,
           acceptedAnswer: {

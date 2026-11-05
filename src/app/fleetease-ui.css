@@ -193,6 +193,17 @@
   color: var(--fe-input-text);
 }
 
+.fe-dashboard-widget { grid-column: span 1; }
+@media (min-width: 768px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-md, 1); }
+}
+@media (min-width: 1024px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-lg, 1); }
+}
+@media (min-width: 1280px) {
+  .fe-dashboard-widget { grid-column: span var(--widget-span-xl, 1); }
+}
+
 .fe-metric-card {
   position: relative;
   overflow: hidden;
@@ -367,9 +378,37 @@
 
 .fe-landing,
 .light .fe-landing {
+  --fe-text: #ffffff;
+  --fe-text-secondary: rgba(255, 255, 255, 0.72);
+  --fe-text-muted: rgba(255, 255, 255, 0.68);
+  --fe-border: var(--fe-dark-border);
+  --fe-main: var(--fe-dark-main);
+  --fe-surface: var(--fe-dark-surface);
+  --fe-input-bg: rgba(255, 255, 255, 0.035);
   background-color: #080a0f !important;
   color: #ffffff !important;
   color-scheme: dark;
+}
+
+.fe-marketing-link {
+  display: inline-flex;
+  min-height: var(--fe-control-height);
+  align-items: center;
+  color: var(--fe-lime);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  border-radius: var(--fe-radius-sm);
+}
+.fe-marketing-link:focus-visible {
+  outline: 2px solid var(--fe-lime);
+  outline-offset: 4px;
+}
+@keyframes fe-product-change {
+  from { opacity: 0.5; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fe-product-change { animation: fe-product-change var(--fe-motion-base) ease-out; }
 }
 .fe-landing .text-white,
 .fe-landing [class~="text-white"],
@@ -391,12 +430,12 @@
 .light .fe-landing h1, .light .fe-landing h2, .light .fe-landing h3 {
   color: #ffffff !important;
 }
-.fe-landing a[class*="bg-[var(--fe-lime)"],
-.fe-landing button[class*="bg-[var(--fe-lime)"],
-.fe-landing [class*="text-[var(--fe-ink)"],
-.light .fe-landing a[class*="bg-[var(--fe-lime)"],
-.light .fe-landing button[class*="bg-[var(--fe-lime)"],
-.light .fe-landing [class*="text-[var(--fe-ink)"] {
+.fe-landing a[class~="bg-[var(--fe-lime)]"],
+.fe-landing button[class~="bg-[var(--fe-lime)]"],
+.fe-landing [class~="text-[var(--fe-ink)]"],
+.light .fe-landing a[class~="bg-[var(--fe-lime)]"],
+.light .fe-landing button[class~="bg-[var(--fe-lime)]"],
+.light .fe-landing [class~="text-[var(--fe-ink)]"] {
   color: #080a0f !important;
 }
 

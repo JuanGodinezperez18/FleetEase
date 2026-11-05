@@ -187,7 +187,7 @@ export function UnreadNotificationsCard() {
         </div>
       </div>
 
-      <div className="flex-1 space-y-1 overflow-y-auto p-2 pb-20 sm:pb-2">
+      <div className="min-h-0 max-h-[240px] flex-1 space-y-1 overflow-y-auto p-2" tabIndex={0} role="region" aria-label="Notificaciones pendientes">
         {!currentUser ? (
           <p className="px-3 py-8 text-center text-sm text-white/35">Inicia sesión para ver avisos.</p>
         ) : unread.length === 0 ? (
