@@ -18,7 +18,6 @@ const ALLOWED_BUCKETS = new Set([
   'vehicle-images',
   'vehicle-documents',
   'driver-documents',
-  'driver-documents',
   'financial-receipts',
   'general-documents',
   'contract-templates',

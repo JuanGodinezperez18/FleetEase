@@ -1,3 +1,4 @@
+import { DATABASE_USER_ROLES } from '@/lib/roles';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Any authenticated user may manage only their own push subscription.
     const auth = await requireAdmin(request, {
-      allowedRoles: ['admin', 'super_admin', 'editor', 'viewer', 'user', 'partner', 'client'],
+      allowedRoles: [...DATABASE_USER_ROLES],
     });
     if ('error' in auth) return auth.error;
 

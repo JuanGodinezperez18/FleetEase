@@ -1,3 +1,4 @@
+import { DATABASE_USER_ROLES } from '@/lib/roles';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin, supabaseAdmin } from '@/lib/admin-api-auth';
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Authenticated user may change only their own password, unless admin/super_admin.
     const auth = await requireAdmin(request, {
-      allowedRoles: ['admin', 'super_admin', 'editor', 'viewer', 'user', 'partner', 'client'],
+      allowedRoles: [...DATABASE_USER_ROLES],
     });
     if ('error' in auth) return auth.error;
 

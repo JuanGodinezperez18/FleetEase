@@ -1,9 +1,12 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { hardenAuthCookieOptions } from '@/lib/security/cookies';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { apiLimiter, checkRateLimit } from '@/lib/rate-limit';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, apiLimiter, 'ip');
+  if (limited) return limited;
   const cookieStore = await cookies();
   let response = NextResponse.json({ status: 'success', message: 'Sesión cerrada exitosamente' });
 

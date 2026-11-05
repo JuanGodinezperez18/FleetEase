@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/admin-api-auth';
+import { apiLimiter, checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
+  const limited = await checkRateLimit(request, apiLimiter, 'ip');
+  if (limited) return limited;
   const authorization = request.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });

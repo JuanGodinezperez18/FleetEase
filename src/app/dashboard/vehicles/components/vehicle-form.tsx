@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { MultipleFileInput } from "@/components/common/multiple-file-input";
 import { DollarSign, Building, Phone, PlusCircle, Info, Loader2, CalendarPlus, PackagePlus } from "lucide-react";
+import { getBusinessDateKey } from '@/lib/vehicle-assignment';
 import { parseDateForInput } from "@/lib/date-utils";
 import { useAuth } from "@/contexts/auth-provider";
 import { toast } from "sonner";
@@ -43,7 +44,7 @@ const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) 
     return !allVehicles.some(v => v.serialNumber === value && v.id !== editingVehicleId);
   }, { message: "Este número de serie ya está registrado." }),
   status: z.enum(['active', 'inactive', 'maintenance', 'sold', 'rented']),
-  createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= new Date().toISOString().slice(0, 10)), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
+  createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= getBusinessDateKey(new Date())), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
   clientId: z.string().nullable(),
   partnerId: z.string().nullable(),
   cost: z.coerce.number().min(0, "El costo de adquisición no puede ser negativo.").optional(),

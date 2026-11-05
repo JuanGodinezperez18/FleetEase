@@ -1,5 +1,5 @@
-import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog } from '@/types';
-import { sumRentalIncome, sumExpense, sumPayment, calculateNetProfit, calculatePartnerProfitability, calculateProfitMargin, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog, FinancialCategory } from '@/types';
+import { sumPayment, calculateFinancialReconciliation, categoryIdsByAffects, filterRecordsByDateRange } from '@/lib/financial-metrics';
 import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
@@ -46,6 +46,7 @@ export class ReportAnalyticsService {
     financialRecords: FinancialRecord[],
     dateRange?: { from: Date; to: Date },
     assignmentLogs: VehicleAssignmentLog[] = [],
+    financialCategories: FinancialCategory[] = [],
   ): VehicleMetric[] {
     const recordsByVehicle = new Map<string, FinancialRecord[]>();
     const scopedRecords = dateRange
@@ -60,14 +61,12 @@ export class ReportAnalyticsService {
 
     return vehicles.filter(vehicle => !vehicle.isDeleted).map(vehicle => {
       const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
-      const rentalIncome = sumRentalIncome(vehicleRecords);
-      const expenseRecords = vehicleRecords.filter(r => r.type === 'expense');
-      const totalExpenses = sumExpense(expenseRecords);
-      const netProfit = calculateNetProfit(vehicleRecords);
-      const profitability = calculateProfitMargin(rentalIncome, totalExpenses);
-      const profitTransactions = vehicleRecords.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY));
+      const reconciliation = calculateFinancialReconciliation(
+        vehicleRecords, [vehicle], categoryIdsByAffects(financialCategories, 'security_deposit'),
+        new Set(financialCategories.filter(c => c.type === 'expense' && c.name.trim().toLowerCase() === 'devolución de depósito').map(c => c.id)),
+      );
       const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
-      return { vehicle, totalIncome: rentalIncome, totalExpenses, netProfit, profitability, utilizationRate, transactionsCount: profitTransactions.length };
+      return { vehicle, totalIncome: reconciliation.totalIncome, totalExpenses: reconciliation.totalExpenses, netProfit: reconciliation.netProfit, profitability: reconciliation.profitMargin, utilizationRate, transactionsCount: reconciliation.includedRecords.length };
     }).sort((a, b) => b.netProfit - a.netProfit);
   }
 
@@ -119,7 +118,7 @@ export class ReportAnalyticsService {
     }).sort((a, b) => b.totalPayments - a.totalPayments);
   }
 
-  static calculatePartnerMetrics(partners: Partner[], vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }): PartnerMetric[] {
+  static calculatePartnerMetrics(partners: Partner[], vehicles: Vehicle[], financialRecords: FinancialRecord[], dateRange?: { from: Date; to: Date }, financialCategories: FinancialCategory[] = []): PartnerMetric[] {
     // Index once; preserve getPartnerFinancialRecords semantics, including historical
     // vehicle identity from active partner-linked records outside the report date range.
     const vehiclesByPartner = new Map<string, Vehicle[]>();
@@ -176,11 +175,14 @@ export class ReportAnalyticsService {
         ? filterRecordsByDateRange(relatedRecords, dateRange)
         : relatedRecords;
 
-      const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecordsInRange);
+      const profitability = calculateFinancialReconciliation(
+        partnerRecordsInRange, vehicles, categoryIdsByAffects(financialCategories, 'security_deposit'),
+        new Set(financialCategories.filter(c => c.type === 'expense' && c.name.trim().toLowerCase() === 'devolución de depósito').map(c => c.id)),
+      );
       const totalIncome = profitability.totalIncome;
       const totalExpenses = profitability.totalExpenses;
       const netBalance = profitability.netProfit;
-      const transactionsCount = partnerRecordsInRange.filter(r => r.type === 'expense' || (r.type === 'income' && r.category !== SECURITY_DEPOSIT_CATEGORY)).length;
+      const transactionsCount = profitability.includedRecords.length;
       return { partner, totalIncome, totalExpenses, netBalance, activeVehicles, transactionsCount };
     }).sort((a, b) => b.netBalance - a.netBalance);
   }
