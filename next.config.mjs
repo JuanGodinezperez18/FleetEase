@@ -1,8 +1,7 @@
 // next.config.mjs
 // Security headers that do not require a per-request value live here.
-// Content-Security-Policy is generated exclusively in proxy.ts with a fresh
-// nonce per request. Keeping a second static CSP here would create multiple
-// policies that are enforced cumulatively and would break nonce-based scripts.
+// Content-Security-Policy is owned by proxy.ts. See its buildCsp decision
+// for static public HTML; do not add a second policy here.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,

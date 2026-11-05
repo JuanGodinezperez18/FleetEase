@@ -246,7 +246,7 @@ export const healthLimiter = new RateLimiter({
  * if (rateLimitResponse) return rateLimitResponse;
  * ```
  */
-async function getRateLimitIdentifier(request: Request): Promise<string> {
+async function getRateLimitIdentifier(request: Request, scope: 'ip' | 'token' = 'token'): Promise<string> {
   const forwardedFor = request.headers.get('x-forwarded-for')
     ?.split(',')
     .map(value => value.trim())
@@ -258,7 +258,7 @@ async function getRateLimitIdentifier(request: Request): Promise<string> {
   const ipHash = Array.from(new Uint8Array(ipDigest), byte => byte.toString(16).padStart(2, '0')).join('');
 
   const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return `ip:${ipHash}`;
+  if (scope === 'ip' || !authHeader?.startsWith('Bearer ')) return `ip:${ipHash}`;
 
   // Never keep a raw access token (or a truncated token prefix) as the key.
   // Hashing avoids collisions caused by the previous 20-character truncation
@@ -277,9 +277,10 @@ async function getRateLimitIdentifier(request: Request): Promise<string> {
 
 export async function checkRateLimit(
   request: Request,
-  limiter: RateLimiter
+  limiter: RateLimiter,
+  scope: 'ip' | 'token' = 'token',
 ): Promise<Response | null> {
-  const identifier = await getRateLimitIdentifier(request);
+  const identifier = await getRateLimitIdentifier(request, scope);
   let result: RateLimitResult;
   try {
     result = await limiter.check(identifier);

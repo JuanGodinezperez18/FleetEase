@@ -13,6 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './auth-provider-supabase';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { resolveCreditAdministrationCategory } from '@/lib/credit-administration';
+import { softDeleteTenantRecord } from "@/lib/soft-delete";
 import { logger } from '@/lib/logger';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
 import { createFinancialRecord, createExpenseAtomic, updateFinancialRecordMetadata } from '@/lib/financial-rpc';
@@ -34,12 +36,6 @@ export interface DataContextType {
 }
 
 export const DataContext = createContext<DataContextType | undefined>(undefined);
-
-async function resolveCategoryIdByAffects(affects: 'credit_payment' | 'credit_granted' | 'security_deposit' | 'client_balance' | 'partner_balance' | 'driver_payment' | 'none', friendlyName: string): Promise<string> {
-  const { data: category, error } = await supabase.from('financial_categories').select('id').eq('affects', affects).limit(1).maybeSingle();
-  if (error || !category) throw new Error(`No existe una categoría de "${friendlyName}" configurada (affects=${affects}). Créala en Configuración > Categorías Financieras.`);
-  return category.id;
-}
 
 export const CREDIT_GRANTED_CATEGORY = 'Crédito Otorgado';
 export const CLIENT_PAYMENT_CATEGORY = "Abono de Cliente";
@@ -355,7 +351,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo actualizado'); },
     onError: (error) => toast.error('Error al actualizar vehículo', { description: error.message }),
   });
-  const deleteVehicleMutation = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from('vehicles').update({ is_deleted: true }).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo eliminado'); }, onError: (error) => logger.error('Error al eliminar vehículo', error) });
+  const deleteVehicleMutation = useMutation({ mutationFn: async (id: string) => { await softDeleteTenantRecord('vehicles', id, companyIdForFiltering); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['vehicles'] }); toast.success('Vehículo eliminado'); }, onError: (error) => logger.error('Error al eliminar vehículo', error) });
   const addClientMutation = useMutation({ mutationFn: async (data: Partial<DomainClient>) => { const { data: result, error } = await supabase.from('clients').insert(toSbClient(data) as any).select().single(); if (error) throw error; return toDomainClient(result); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente agregado exitosamente'); }, onError: (error) => toast.error('Error al agregar cliente', { description: error.message }) });
   const updateClientMutation = useMutation({ mutationFn: async ({ id, ...data }: Partial<DomainClient> & { id: string }) => { const { error } = await supabase.from('clients').update(toSbClient(data) as any).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente actualizado'); }, onError: (error) => toast.error('Error al actualizar cliente', { description: error.message }) });
   const deleteClientMutation = useMutation({ mutationFn: async (id: string) => { const { error } = await supabase.from('clients').update({ is_deleted: true }).eq('id', id); if (error) throw error; }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); toast.success('Cliente eliminado'); }, onError: (error) => toast.error('Error al eliminar cliente', { description: error.message }) });
@@ -398,6 +394,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const paymentCompanyId = companyId || currentUser.companyId;
       if (!paymentCompanyId) throw new Error('Empresa no disponible para procesar el pago');
       if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero');
+      const paymentCredit = allCredits.find(c => c.id === creditId);
+      const paymentVehicle = allVehicles.find(v => v.id === paymentCredit?.vehicleId);
+      const administrationCategory = resolveCreditAdministrationCategory(allFinancialCategories, paymentCompanyId);
+      if (Number(paymentVehicle?.adminCommission) > 0 && !administrationCategory) {
+        throw new Error("Configura la categoría de gasto Administración de Vehículo antes de registrar el pago de crédito.");
+      }
+
       const { data, error } = await supabase.rpc('process_credit_payment_atomic', {
         p_company_id: paymentCompanyId,
         p_credit_id: creditId,
@@ -415,19 +418,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const vehicle = allVehicles.find(v => v.id === vehicleId);
           const adminFee = Number(vehicle?.adminCommission);
           if (vehicle && Number.isFinite(adminFee) && adminFee > 0) {
-            const adminCat =
-              allFinancialCategories.find(
-                c => c.type === 'expense' && c.name?.toLowerCase().trim() === 'administración de vehículo'
-              ) ||
-              allFinancialCategories.find(
-                c => c.type === 'expense' && /administraci[oó]n/.test((c.name || '').toLowerCase())
-              );
+            const adminCat = administrationCategory;
+            if (!adminCat) throw new Error('Categoría de administración no disponible.');
             await createFinancialRecord(
               toSbFinancialRecord({
                 companyId: paymentCompanyId || vehicle.companyId,
                 type: 'expense',
-                categoryId: adminCat?.id || ('' as any),
-                category: adminCat?.name || 'Administración de Vehículo',
+                categoryId: adminCat.id,
+                category: adminCat.name,
                 amount: adminFee,
                 date: new Date().toISOString().slice(0, 10),
                 description: `Administración del vehículo ${vehicle.alias || vehicle.plate || ''} (pago de crédito)`.trim(),
@@ -558,7 +556,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await refreshData();
   }, [currentUser, queryClient, refreshData]);
 
-  const contextValue: DataContextType = { vehicles, rawVehicles: allVehicles, allVehicles, allClients, clients: allClients, allClientsBase: allClients, partners: allPartners, credits: allCredits, financialRecords: allFinancialRecords, notifications: allNotifications, mileageLogs: allMileageLogs, users: [], vehicleAssignmentLogs: allVehicleAssignmentLogs, companies: rawCompanies, rawCompanies, financialCategories: allFinancialCategories, messageTemplates: allMessageTemplates, messageLogs: [], creditPaymentSchedules: allCreditPaymentSchedules, multas: allMultas, loadingData, selectedCompanyId, setSelectedCompanyId, clientBalances, partnerBalances, vehicleMetrics, clientMetrics, addVehicle: data => addVehicleMutation.mutateAsync(data), updateVehicle: (id, data) => updateVehicleMutation.mutateAsync({ ...data, id }), deleteVehicle: id => deleteVehicleMutation.mutateAsync(id), addClient: data => addClientMutation.mutateAsync(data), updateClient: (id, data) => updateClientMutation.mutateAsync({ ...data, id }), deleteClient: id => deleteClientMutation.mutateAsync(id), addPartner: data => addPartnerMutation.mutateAsync(data), updatePartner: (id, data) => updatePartnerMutation.mutateAsync({ ...data, id }), deletePartner: id => deletePartnerMutation.mutateAsync(id), addCompany: data => addCompanyMutation.mutateAsync(data), updateCompany: (id, data) => updateCompanyMutation.mutateAsync({ ...data, id }), deleteCompany: id => deleteCompanyMutation.mutateAsync(id), addFinancialCategory: data => addFinancialCategoryMutation.mutateAsync(data), updateFinancialCategory: (id, data) => updateFinancialCategoryMutation.mutateAsync({ ...data, id }), deleteFinancialCategory: id => deleteFinancialCategoryMutation.mutateAsync(id), addFinancialRecord: data => addFinancialRecordMutation.mutateAsync(data), updateFinancialRecord: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), deleteFinancialRecord: async (id, onSuccess) => { const { error } = await supabase.from('financial_records').update({ is_deleted: true }).eq('id', id); if (error) throw error; await refreshData(); if (onSuccess) onSuccess(); }, addExpense, updateExpense: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addIncome, updateIncome: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addPayment, updatePayment: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addCredit: data => addCreditMutation.mutateAsync(data), updateCredit: (id, data) => updateCreditMutation.mutateAsync({ ...data, id }), deleteCredit: id => deleteCreditMutation.mutateAsync(id), deactivateCredit: async id => { const { data: credit, error: creditError } = await supabase.from('credits').select('id, vehicle_id, client_id').eq('id', id).single(); if (creditError) throw creditError; if (!credit) throw new Error('Crédito no encontrado'); const { error: creditUpdateError } = await supabase.from('credits').update({ status: 'inactive' }).eq('id', credit.id); if (creditUpdateError) throw creditUpdateError; if (credit.vehicle_id) { const { error: vehicleError } = await supabase.from('vehicles').update({ status: 'active', client_id: null }).eq('id', credit.vehicle_id); if (vehicleError) throw vehicleError; } await refreshData(); }, createCreditWithFinancialRecord, processCreditPayment, cancelCredit: cancelCreditWithAdjustment, cancelCreditWithAdjustment, deleteCreditWithCleanup, createVehicleAssignment, endVehicleAssignment, addMileageLog: async data => { await addMileageLogMutation.mutateAsync(data as any); }, updateMileageLog: (id, data) => updateMileageLogMutation.mutateAsync({ ...data, id }), deleteMileageLog: id => deleteMileageLogMutation.mutateAsync(id), markNotificationAsRead: id => markNotificationAsReadMutation.mutateAsync(id), addMessageTemplate: data => addMessageTemplateMutation.mutateAsync(data), updateMessageTemplate: (id, data) => updateMessageTemplateMutation.mutateAsync({ ...data, id }), deleteMessageTemplate: id => deleteMessageTemplateMutation.mutateAsync(id), sendInternalMessage: async () => { toast.info('Función no implementada'); }, addMulta, updateMulta: async (id, data) => {
+  const contextValue: DataContextType = { vehicles, rawVehicles: allVehicles, allVehicles, allClients, clients: allClients, allClientsBase: allClients, partners: allPartners, credits: allCredits, financialRecords: allFinancialRecords, notifications: allNotifications, mileageLogs: allMileageLogs, users: [], vehicleAssignmentLogs: allVehicleAssignmentLogs, companies: rawCompanies, rawCompanies, financialCategories: allFinancialCategories, messageTemplates: allMessageTemplates, messageLogs: [], creditPaymentSchedules: allCreditPaymentSchedules, multas: allMultas, loadingData, selectedCompanyId, setSelectedCompanyId, clientBalances, partnerBalances, vehicleMetrics, clientMetrics, addVehicle: data => addVehicleMutation.mutateAsync(data), updateVehicle: (id, data) => updateVehicleMutation.mutateAsync({ ...data, id }), deleteVehicle: id => deleteVehicleMutation.mutateAsync(id), addClient: data => addClientMutation.mutateAsync(data), updateClient: (id, data) => updateClientMutation.mutateAsync({ ...data, id }), deleteClient: id => deleteClientMutation.mutateAsync(id), addPartner: data => addPartnerMutation.mutateAsync(data), updatePartner: (id, data) => updatePartnerMutation.mutateAsync({ ...data, id }), deletePartner: id => deletePartnerMutation.mutateAsync(id), addCompany: data => addCompanyMutation.mutateAsync(data), updateCompany: (id, data) => updateCompanyMutation.mutateAsync({ ...data, id }), deleteCompany: id => deleteCompanyMutation.mutateAsync(id), addFinancialCategory: data => addFinancialCategoryMutation.mutateAsync(data), updateFinancialCategory: (id, data) => updateFinancialCategoryMutation.mutateAsync({ ...data, id }), deleteFinancialCategory: id => deleteFinancialCategoryMutation.mutateAsync(id), addFinancialRecord: data => addFinancialRecordMutation.mutateAsync(data), updateFinancialRecord: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), deleteFinancialRecord: async (id, onSuccess) => { await softDeleteTenantRecord('financial_records', id, companyIdForFiltering); await refreshData(); if (onSuccess) onSuccess(); }, addExpense, updateExpense: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addIncome, updateIncome: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addPayment, updatePayment: (id, data) => updateFinancialRecordMutation.mutateAsync({ ...data, id }), addCredit: data => addCreditMutation.mutateAsync(data), updateCredit: (id, data) => updateCreditMutation.mutateAsync({ ...data, id }), deleteCredit: id => deleteCreditMutation.mutateAsync(id), deactivateCredit: async id => { const { data: credit, error: creditError } = await supabase.from('credits').select('id, vehicle_id, client_id').eq('id', id).single(); if (creditError) throw creditError; if (!credit) throw new Error('Crédito no encontrado'); const { error: creditUpdateError } = await supabase.from('credits').update({ status: 'inactive' }).eq('id', credit.id); if (creditUpdateError) throw creditUpdateError; if (credit.vehicle_id) { const { error: vehicleError } = await supabase.from('vehicles').update({ status: 'active', client_id: null }).eq('id', credit.vehicle_id); if (vehicleError) throw vehicleError; } await refreshData(); }, createCreditWithFinancialRecord, processCreditPayment, cancelCredit: cancelCreditWithAdjustment, cancelCreditWithAdjustment, deleteCreditWithCleanup, createVehicleAssignment, endVehicleAssignment, addMileageLog: async data => { await addMileageLogMutation.mutateAsync(data as any); }, updateMileageLog: (id, data) => updateMileageLogMutation.mutateAsync({ ...data, id }), deleteMileageLog: id => deleteMileageLogMutation.mutateAsync(id), markNotificationAsRead: id => markNotificationAsReadMutation.mutateAsync(id), addMessageTemplate: data => addMessageTemplateMutation.mutateAsync(data), updateMessageTemplate: (id, data) => updateMessageTemplateMutation.mutateAsync({ ...data, id }), deleteMessageTemplate: id => deleteMessageTemplateMutation.mutateAsync(id), sendInternalMessage: async () => { throw new Error('La mensajería interna aún no está disponible.'); }, addMulta, updateMulta: async (id, data) => {
       const companyId = data.companyId || currentUser?.companyId;
       if (!companyId) throw new Error('Empresa no disponible para actualizar la multa');
       if (data.status === 'cancelada') {
