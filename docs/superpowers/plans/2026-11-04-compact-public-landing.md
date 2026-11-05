@@ -18,11 +18,11 @@ Anonymous marketing vs private route boundaries; keyboard tabs and mobile menu; 
 
 ## Tasks
 
-- [ ] Public routes: extend middleware tests for six exact public routes and private lookalikes, watch new cases fail, add exact allowlist, rerun.
-- [ ] Compact principal: shared footer/shell, focused screenshot rendering, keyboard accessible product tabs, compact steps preserving `#como-funciona`, plans earlier, four shared FAQ entries and condensed service strip. Verify tabs change content, keyboard and full image link.
-- [ ] Secondary pages: move detailed showcase to Funciones, refocus Soluciones by audience, add administration page with existing contact subject and sitemap entry. Preserve metadata/canonicals.
-- [ ] Motion: remove group reveal, menu opacity/transform with Escape and focus return, reduced motion support, sticky CTA independent final-intersection state. Test sticky suppression through subsequent scroll.
-- [ ] Verification: type check, production build, targeted tests and full suite; source review; preview anonymous navigation and screenshot evidence. Record widths actually observed and pending limitations.
+- [x] Public routes: extend middleware tests for six exact public routes and private lookalikes, watch new cases fail, add exact allowlist, rerun.
+- [x] Compact principal: shared footer/shell, focused screenshot rendering, keyboard accessible product tabs, compact steps preserving `#como-funciona`, plans earlier, four shared FAQ entries and condensed service strip. Verify tabs change content, keyboard and full image link.
+- [x] Secondary pages: move detailed showcase to Funciones, refocus Soluciones by audience, add administration page with existing contact subject and sitemap entry. Preserve metadata/canonicals.
+- [x] Motion: remove group reveal, menu opacity/transform with Escape and focus return, reduced motion support, sticky CTA independent final-intersection state. Test sticky suppression through subsequent scroll.
+- [x] Verification: type check, production build, targeted tests and full suite; source review; preview anonymous navigation and screenshot evidence. Record widths actually observed and pending limitations.
 
 ## Progress
 
@@ -35,3 +35,5 @@ Verification: six new anonymous route cases failed with login redirects before i
 Fresh code review: one important selector collision affecting inactive tabs, corrected using exact class tokens. Verify computed colors in preview. Copy improved to “En qué podemos apoyarte”. Minor deferred: responsive image selection remains based on container width, while focused presentation enlarges the image by 23%; existing source variants remain available and full images can be opened. Browser validation remains necessary.
 
 Preview findings: a duplicate selector in landing-text.css also affected inactive tabs, reproduced by a real computed-style test and corrected. Reflow checks via browser zoom observed 779 and 340 CSS-pixel widths without horizontal overflow. At 779 px the header was crowded: switch desktop navigation at lg (1024) and show all three real plans from md (768). An incoming /#pricing link reached home before its content mounted through the shared splash, leaving scroll at zero: honor the hash once the header/content mounts, with a regression test. No global auth/splash change.
+
+Completed: c98d72e, deployment dpl_3vintNE1im371HX6Ex7mFGPMSs68 READY. Final build and type check pass; 72 targeted tests pass; complete suite 345 pass and the same 5 baseline failures. All four GitHub workflows for c98d72e pass. Final visual checks confirm 3393 px height, pricing Y=1594, readable inactive tabs, incoming pricing anchor at viewport Y=80, and reflow without horizontal overflow at 1363/779/340 CSS px. Details and limitations: ../../landing-redesign/compact-preview-verification-2026-11-04.md. No production deployment or merge.
