@@ -52,6 +52,7 @@ describe('middleware authentication and role authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUser.mockReset();
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     mockGetProfile.mockReset();
     mockCreateServerClient.mockReset();
     mockGetProfile.mockResolvedValue({
@@ -70,12 +71,21 @@ describe('middleware authentication and role authorization', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
 
-  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example'])(
+  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example', '/funciones', '/soluciones', '/software-para-flotillas', '/software-para-renta-de-vehiculos', '/control-de-mantenimiento-de-flotillas', '/administracion-de-vehiculos-monterrey'])(
     'does not make an auth network call for public path %s',
     async (path) => {
       const response = await proxy(buildRequest(path) as any);
       expect(response.type).toBe('next');
       expect(mockCreateServerClient).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['/funciones/privado', '/soluciones-internas', '/administracion-de-vehiculos-monterrey/privado'])(
+    'requires authentication for marketing lookalike %s', async path => {
+      mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+      const response = await proxy(buildRequest(path) as any);
+      expect(response.type).toBe('redirect');
+      expect(new URL(response.url).pathname).toBe('/login');
     },
   );
 

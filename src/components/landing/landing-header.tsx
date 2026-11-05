@@ -1,23 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
 const nav = [
   ["Producto", "#producto"],
-  ["Cómo funciona", "#como-funciona"],
+  ["Funciones", "/funciones"],
   ["Precios", "#pricing"],
-  ["FAQ", "#faq"],
+  ["Soluciones", "/soluciones"],
 ] as const;
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fe-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fe-ink)]";
 
-export function LandingHeader() {
+export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const destination = (href: string) => secondary && href.startsWith('#') ? `/${href}` : href;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [menuOpen]);
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 h-[var(--header-h)] border-b border-white/[0.07] bg-[var(--fe-ink)]/80 backdrop-blur-2xl">
@@ -27,8 +41,8 @@ export function LandingHeader() {
           {nav.map(([label, href]) => (
             <a
               key={label}
-              href={href}
-              className={`rounded-sm text-[13px] font-medium text-white/60 transition hover:text-white ${focusRing}`}
+              href={destination(href)}
+              className={`inline-flex min-h-11 items-center rounded-sm text-[13px] font-medium text-white/60 transition-colors hover:text-white ${focusRing}`}
             >
               {label}
             </a>
@@ -50,6 +64,7 @@ export function LandingHeader() {
           </Link>
         </div>
         <button
+          ref={menuButton}
           type="button"
           className={`flex h-11 w-11 items-center justify-center rounded-lg text-white/80 ${focusRing} md:hidden`}
           onClick={() => setMenuOpen(!menuOpen)}
@@ -64,18 +79,19 @@ export function LandingHeader() {
         {menuOpen && (
           <motion.div
             id="landing-mobile-menu"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/[0.07] bg-[var(--fe-ink)] md:hidden"
+            initial={{ y: reduceMotion ? 0 : -6, opacity: reduceMotion ? 1 : 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: reduceMotion ? 0 : -6, opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.16 }}
+            className="max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-t border-white/[0.07] bg-[var(--fe-ink)] md:hidden"
           >
             <div className="flex flex-col gap-5 px-5 py-6">
               {nav.map(([label, href]) => (
                 <a
                   key={label}
-                  href={href}
+                  href={destination(href)}
                   onClick={() => setMenuOpen(false)}
-                  className={`rounded-sm text-base text-white/70 ${focusRing}`}
+                  className={`inline-flex min-h-11 items-center rounded-sm text-base text-white/70 ${focusRing}`}
                 >
                   {label}
                 </a>

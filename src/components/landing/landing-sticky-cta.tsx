@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
 /**
@@ -11,13 +11,15 @@ import { ArrowRight } from "lucide-react";
  */
 export function LandingStickyCta() {
   const [showStickyCta, setShowStickyCta] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const finalCta = document.getElementById("cta-final");
+    let finalCtaVisible = false;
 
     const onScroll = () => {
       const pastHero = window.scrollY > 520;
-      setShowStickyCta(pastHero);
+      setShowStickyCta(pastHero && !finalCtaVisible);
     };
 
     onScroll();
@@ -27,11 +29,8 @@ export function LandingStickyCta() {
     if (finalCta) {
       observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
-            setShowStickyCta(false);
-          } else if (window.scrollY > 520) {
-            setShowStickyCta(true);
-          }
+          finalCtaVisible = entry.isIntersecting;
+          onScroll();
         },
         { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
       );
@@ -48,10 +47,10 @@ export function LandingStickyCta() {
     <AnimatePresence>
       {showStickyCta && (
         <motion.div
-          initial={{ y: 80, opacity: 0 }}
+          initial={{ y: reduceMotion ? 0 : 12, opacity: reduceMotion ? 1 : 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 380, damping: 32 }}
+          exit={{ y: reduceMotion ? 0 : 12, opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.16 }}
           className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[var(--fe-ink)]/92 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl md:hidden motion-safe:transition-none"
         >
           <Link

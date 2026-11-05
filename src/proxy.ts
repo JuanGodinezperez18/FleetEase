@@ -104,7 +104,8 @@ export async function proxy(req: NextRequest) {
   }
 
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/contacto-ventas', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/s', '/'];
-  const isPublicPath = publicPaths.some(
+  const marketingPages = ['/funciones', '/soluciones', '/software-para-flotillas', '/software-para-renta-de-vehiculos', '/control-de-mantenimiento-de-flotillas', '/administracion-de-vehiculos-monterrey'];
+  const isPublicPath = marketingPages.includes(pathname) || publicPaths.some(
     path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );
 

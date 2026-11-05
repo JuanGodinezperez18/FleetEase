@@ -11,6 +11,7 @@ export function HeroDashboard() {
         screen="profitability"
         alt="FleetEase muestra ingresos, gastos, utilidad y margen por vehículo en una cuenta QA."
         priority
+        focused
         sizes="(min-width: 1280px) 620px, (min-width: 1024px) 52vw, (min-width: 690px) 650px, calc(100vw - 40px)"
       />
       <p className="mt-3 text-xs leading-5 text-white/55">

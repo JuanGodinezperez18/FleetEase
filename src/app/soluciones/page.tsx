@@ -1,135 +1,34 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { PublicMarketingLayout } from '@/components/landing/public-marketing-layout';
 
-const url = "https://www.fleetease.com.mx/soluciones";
-
+const url = 'https://www.fleetease.com.mx/soluciones';
 export const metadata: Metadata = {
-  title: "Soluciones para Flotillas y Renta de Vehículos",
-  description:
-    "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas: operación, costos y rentabilidad en una sola plataforma.",
+  title: 'Soluciones para Flotillas y Renta de Vehículos',
+  description: 'Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas: operación, costos y rentabilidad en una sola plataforma.',
   alternates: { canonical: url },
-  openGraph: {
-    title: "Soluciones para Flotillas y Renta de Vehículos | FleetEase",
-    description:
-      "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas: operación, costos y rentabilidad.",
-    url,
-    siteName: "FleetEase",
-    locale: "es_MX",
-    type: "website",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Soluciones para Flotillas y Renta de Vehículos | FleetEase",
-    description:
-      "Soluciones para renta de vehículos, flotillas comerciales y unidades asignadas.",
-    images: ["/og-image.png"],
-  },
+  openGraph: { title: 'Soluciones para Flotillas y Renta de Vehículos | FleetEase', description: 'Elige el control que necesita tu operación con vehículos.', url, siteName: 'FleetEase', locale: 'es_MX', type: 'website', images: [{ url: '/og-image.png', width: 1200, height: 630 }] },
+  twitter: { card: 'summary_large_image', title: 'Soluciones para Flotillas y Renta de Vehículos | FleetEase', description: 'Control de operación, costos y rentabilidad.', images: ['/og-image.png'] },
 };
 
-const solutions = [
-  [
-    "Gestión de vehículos",
-    "Controla disponibilidad, asignaciones, kilometraje, mantenimiento y documentación.",
-  ],
-  [
-    "Clientes y conductores",
-    "Centraliza expedientes, adeudos, vehículos asignados y seguimiento de cada cliente.",
-  ],
-  [
-    "Créditos y cobranza",
-    "Consulta saldos, pagos, vencimientos y cartera para tomar decisiones a tiempo.",
-  ],
-  [
-    "Mantenimiento",
-    "Recibe alertas y organiza servicios para reducir paros y costos inesperados.",
-  ],
-  [
-    "Finanzas",
-    "Visualiza ingresos, gastos y resultados de tu operación desde un solo lugar.",
-  ],
-  [
-    "Reportes y analítica",
-    "Convierte los datos de tu flotilla en información útil para mejorar la rentabilidad.",
-  ],
+const audiences = [
+  { title: 'Tu primer vehículo', text: 'Si llevas tus cuentas por separado, reúne ingresos, gastos y servicios para conocer el resultado de tu unidad.', details: 'Empieza con el plan Free: 1 vehículo y 1 usuario, sin tarjeta y con anuncios.', href: '/registro', action: 'Crear mi cuenta Free' },
+  { title: 'Vehículos de renta para conductores', text: 'Da seguimiento a asignaciones, rentas, cobranza y créditos. Conserva el historial de cada cliente y los compromisos de cada unidad.', details: 'Revisa también multas, vencimientos y mantenimiento desde la misma operación.', href: '/funciones#vehicles', action: 'Ver el control de rentas' },
+  { title: 'Flotillas y vehículos de socios', text: 'Concentra los gastos de las unidades, sus mantenimientos y el resultado por vehículo para revisar cómo se comporta la flotilla.', details: 'Consulta balances de socios y reportes para dar seguimiento a ingresos y costos.', href: '/funciones#rentabilidad', action: 'Ver rentabilidad por unidad' },
 ];
 
 export default function SolutionsPage() {
   return (
-    <main className="min-h-screen bg-[#080a0f] text-white">
-      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#080a0f]/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <BrandLogo size={36} />
-          <Link
-            href="/registro"
-            className="rounded-full bg-[#d7ff3f] px-5 py-2.5 text-sm font-bold text-[#080a0f]"
-          >
-            Empezar gratis
-          </Link>
+    <PublicMarketingLayout>
+      <div className="mx-auto max-w-[1240px] px-5 py-12 lg:px-8 lg:py-16">
+        <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Control para tu forma de operar.</h1>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--fe-text-secondary)]">Desde una unidad hasta una flotilla de renta: reúne la información que necesitas para administrar tus vehículos.</p>
+        <div className="mt-8">
+          {audiences.map(item => <section key={item.title} className="grid gap-4 border-t border-[var(--fe-border)] py-8 md:grid-cols-[0.7fr_1.3fr] md:gap-12"><h2 className="text-2xl font-semibold tracking-tight">{item.title}</h2><div><p className="text-base leading-7 text-[var(--fe-text-secondary)]">{item.text}</p><p className="mt-3 text-base leading-7 text-[var(--fe-text-secondary)]">{item.details}</p><Link href={item.href} className="fe-marketing-link mt-3">{item.action}</Link></div></section>)}
         </div>
-      </header>
-
-      <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-        <div className="max-w-3xl">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#d7ff3f]">
-            FleetEase
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-            Soluciones para cada tipo de operación con vehículos
-          </h1>
-          <p className="mt-6 text-lg text-white/55 md:text-xl">
-            Una plataforma diseñada para operadores de renta de vehículos que
-            necesitan control, visibilidad y menos trabajo manual.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/registro"
-              className="rounded-xl bg-[#d7ff3f] px-6 py-3 font-semibold text-[#080a0f]"
-            >
-              Probar FleetEase
-            </Link>
-            <Link
-              href="/#pricing"
-              className="rounded-xl border border-white/15 px-6 py-3 font-semibold text-white/80"
-            >
-              Ver precios
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-white/[0.08] bg-white/[0.02]">
-        <div className="mx-auto grid max-w-6xl gap-5 px-6 py-16 md:grid-cols-2 lg:grid-cols-3">
-          {solutions.map(([title, text]) => (
-            <article
-              key={title}
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6"
-            >
-              <h2 className="text-xl font-semibold">{title}</h2>
-              <p className="mt-3 text-white/50">{text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="rounded-3xl border border-[#d7ff3f]/20 bg-[#d7ff3f]/[0.05] p-8 text-center md:p-14">
-          <h2 className="text-3xl font-bold">
-            Deja de administrar tu flotilla a ciegas.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-white/50">
-            Centraliza la operación y conoce qué está pasando con tus vehículos,
-            clientes y dinero. Plan Free permanente, sin tarjeta.
-          </p>
-          <Link
-            href="/registro"
-            className="mt-7 inline-flex rounded-xl bg-[#d7ff3f] px-7 py-3 font-semibold text-[#080a0f]"
-          >
-            Comenzar ahora
-          </Link>
-        </div>
-      </section>
-    </main>
+        <section className="mt-4 rounded-[var(--fe-radius-lg)] bg-[var(--fe-surface)] p-6 sm:p-8"><h2 className="text-2xl font-semibold">¿Buscas que alguien administre tus unidades?</h2><p className="mt-3 text-base leading-7 text-[var(--fe-text-secondary)]">También ofrecemos un servicio de administración de vehículos de renta, exclusivamente en Monterrey, Nuevo León.</p><Link href="/administracion-de-vehiculos-monterrey" className="fe-marketing-link mt-3">Consultar el servicio en Monterrey</Link></section>
+        <Link href="/#pricing" className="fe-marketing-link mt-6">Comparar planes del software</Link>
+      </div>
+    </PublicMarketingLayout>
   );
 }

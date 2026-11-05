@@ -72,8 +72,7 @@ export function LandingPricing() {
               <article
                 key={id}
                 className={[
-                  "group relative flex flex-col rounded-[22px] border p-6 transition-all duration-300 ease-out motion-safe:hover:-translate-y-2",
-                  "hover:shadow-[0_24px_60px_rgba(0,0,0,0.45)]",
+                  "group relative flex flex-col rounded-[22px] border p-6 transition-colors [transition-duration:var(--fe-motion-fast)]",
                   popular
                     ? "border-[var(--fe-lime)]/45 bg-[var(--fe-lime)]/[0.06] hover:border-[var(--fe-lime)]/70 hover:bg-[var(--fe-lime)]/[0.1]"
                     : "border-white/[0.08] bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.055]",
