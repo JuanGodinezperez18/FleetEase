@@ -11,9 +11,19 @@ function fixtureResponse(url, accept = '') {
 module.exports = { user, profile, fixtureResponse };
 
 if (process.env.FLEETEASE_CSP_FIXTURE === '1') {
+  process.env.UPSTASH_REDIS_REST_URL = 'https://csp-redis.example.invalid';
+  process.env.UPSTASH_REDIS_REST_TOKEN = 'csp-fixture-only';
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    if (url.hostname === 'csp-redis.example.invalid') {
+      if (init?.method !== 'POST' || JSON.parse(init.body)[0] !== 'EVAL') {
+        throw new Error('Unexpected Redis fixture request');
+      }
+      return new Response(JSON.stringify({ result: [1, 60000] }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     if (url.hostname !== 'ci-placeholder.supabase.co') return originalFetch(input, init);
     const method = (init?.method ?? input?.method ?? 'GET').toUpperCase();
     if (method !== 'GET' && method !== 'HEAD') throw new Error('CSP fixture rejects writes');

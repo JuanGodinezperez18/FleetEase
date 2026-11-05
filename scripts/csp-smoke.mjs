@@ -31,6 +31,9 @@ try {
   }
   assert.ok(ready, serverLog);
   console.log('CSP fixture server ready');
+  const administrationResponse = await fetch(`${baseURL}/administracion-de-vehiculos-monterrey`);
+  assert.equal(administrationResponse.status, 200, 'The new marketing page must use the public root layout');
+  assert.ok(!administrationResponse.headers.get('content-security-policy').includes('nonce-'));
   if (httpOnly) {
     const expires = Math.floor(Date.now() / 1000) + 3600;
     const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -81,6 +84,11 @@ try {
   const accessToken = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: user.id, exp: expires, aal: 'aal1', amr: [], role: 'authenticated' })}.test-signature`;
   const session = { access_token: accessToken, refresh_token: 'test-refresh', expires_at: expires, expires_in: 3600, token_type: 'bearer', user };
   await context.addCookies([{ name: 'sb-ci-placeholder-auth-token', value: `base64-${encode(session)}`, url: baseURL }]);
+  await context.addInitScript(({ session, origin }) => {
+    if (window.location.origin !== origin) return;
+    window.localStorage.setItem('sb-ci-placeholder-auth-token', JSON.stringify(session));
+    window.localStorage.removeItem('fleetease.auth.profile.v1');
+  }, { session, origin: baseURL });
   const response = await page.goto(`${baseURL}/dashboard/messages`, { waitUntil: 'domcontentloaded' });
   console.log('Protected HTML loaded', page.url());
   assert.equal(response.status(), 200);

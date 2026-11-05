@@ -86,7 +86,7 @@ function NavGroupLabel({ label, collapsed }: { label: string; collapsed: boolean
   );
 }
 
-export type UserRole = "admin" | "editor" | "viewer" | "superAdmin" | "partner" | "client";
+export type UserRole = import('@/lib/roles').AppUserRole;
 
 export interface SubNavItem {
   href: string;

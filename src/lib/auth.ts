@@ -44,7 +44,26 @@ export async function signUp(params:SignUpParams):Promise<AuthResponse>{try{cons
 
 export async function signIn(params:SignInParams):Promise<AuthResponse>;
 export async function signIn(email:string,password:string):Promise<AuthResponse>;
-export async function signIn(paramsOrEmail:SignInParams|string,password?:string):Promise<AuthResponse>{try{const params=typeof paramsOrEmail==='string'?{email:paramsOrEmail,password:password??''}:paramsOrEmail;const {data:authData,error:authError}=await supabase.auth.signInWithPassword({email:params.email,password:params.password});if(authError)return{user:null,error:authError};if(!authData.user||!authData.session?.access_token)return{user:null,error:new Error('Sesión de autenticación no disponible')};const userProfile=await fetchProfileFromApp(authData.session.access_token);if(!userProfile)return{user:null,error:new Error('Perfil de usuario no encontrado')};return{user:userProfile,error:null};}catch(error){return{user:null,error:error instanceof Error?error:new Error('Error desconocido')}}}
+export async function signIn(paramsOrEmail: SignInParams | string, password?: string): Promise<AuthResponse> {
+  try {
+    const params = typeof paramsOrEmail === "string" ? { email: paramsOrEmail, password: password ?? "" } : paramsOrEmail;
+    const rememberMe = typeof window === "undefined" || window.localStorage.getItem("fleetease.auth.persistence.v1") !== "session";
+    const response = await fetch("/api/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin",
+      cache: "no-store", body: JSON.stringify({ ...params, rememberMe }),
+    });
+    const result = await response.json();
+    if (!response.ok) return { user: null, error: new Error(result.error || "No se pudo iniciar sesión") };
+    if (!result.session?.access_token || !result.session?.refresh_token || !result.profile) {
+      return { user: null, error: new Error("Sesión de autenticación no disponible") };
+    }
+    const { error } = await supabase.auth.setSession(result.session);
+    if (error) return { user: null, error };
+    return { user: result.profile, error: null };
+  } catch (error) {
+    return { user: null, error: error instanceof Error ? error : new Error("Error desconocido") };
+  }
+}
 
 export async function signOut():Promise<void>{
   // FleetEase has used both supabase-js localStorage and @supabase/ssr cookie

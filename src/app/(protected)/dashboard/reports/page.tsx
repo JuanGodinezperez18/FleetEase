@@ -112,9 +112,10 @@ export default function ReportsPageImproved() {
       vehicles,
       financialRecords,
       { from: dateRange.from, to: dateRange.to },
-      vehicleAssignmentLogs
+      vehicleAssignmentLogs,
+      financialCategories
     );
-  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs]);
+  }, [vehicles, financialRecords, dateRange, vehicleAssignmentLogs, financialCategories]);
 
   const clientsWithBalances = useMemo(() => {
     const balanceMap = new Map(clientBalances.map(cb => [cb.id, cb.balance]));
@@ -139,9 +140,10 @@ export default function ReportsPageImproved() {
       partners,
       vehicles,
       financialRecords,
-      { from: dateRange.from, to: dateRange.to }
+      { from: dateRange.from, to: dateRange.to },
+      financialCategories
     );
-  }, [partners, vehicles, financialRecords, dateRange]);
+  }, [partners, vehicles, financialRecords, dateRange, financialCategories]);
 
   const monthlyTrends = useMemo(
     () => financialAnalytics.cashFlowAnalysis.slice(-6).map(month => ({

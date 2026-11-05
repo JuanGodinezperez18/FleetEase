@@ -52,6 +52,7 @@ describe('middleware authentication and role authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUser.mockReset();
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     mockGetProfile.mockReset();
     mockCreateServerClient.mockReset();
     mockGetProfile.mockResolvedValue({
@@ -70,12 +71,21 @@ describe('middleware authentication and role authorization', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
 
-  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example'])(
+  it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example', '/funciones', '/soluciones', '/software-para-flotillas', '/software-para-renta-de-vehiculos', '/control-de-mantenimiento-de-flotillas', '/administracion-de-vehiculos-monterrey'])(
     'does not make an auth network call for public path %s',
     async (path) => {
       const response = await proxy(buildRequest(path) as any);
       expect(response.type).toBe('next');
       expect(mockCreateServerClient).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['/funciones/privado', '/soluciones-internas', '/administracion-de-vehiculos-monterrey/privado'])(
+    'requires authentication for marketing lookalike %s', async path => {
+      mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+      const response = await proxy(buildRequest(path) as any);
+      expect(response.type).toBe('redirect');
+      expect(new URL(response.url).pathname).toBe('/login');
     },
   );
 
@@ -100,6 +110,32 @@ describe('middleware authentication and role authorization', () => {
     expect(new URL(response.url).pathname).toBe('/login');
     expect(new URL(response.url).searchParams.get('callbackUrl')).toBe('/dashboard/vehicles');
     expect(mockGetUser).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ...['finance', 'vehicles', 'maintenance', 'profitability'].flatMap(screen =>
+      ['', '-640', '-960'].map(variant => `/media/landing/product-${screen}${variant}.webp`),
+    ),
+    '/media/landing/product-demo-poster.webp',
+  ])('serves public landing image %s to anonymous visitors with security headers', async path => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    const response = await proxy(buildRequest(path) as any);
+    expect(response.type).toBe('next');
+    expect(mockCreateServerClient).not.toHaveBeenCalled();
+    expect(response.headers.set).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
+  });
+
+  it.each([
+    '/dashboard/report.webp',
+    '/media/landing/account.webp',
+    '/media/landing/private/report.webp',
+    '/media/landing/product-finance.webp/extra',
+  ])('keeps authentication for non-public asset-like path %s', async path => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    const response = await proxy(buildRequest(path) as any);
+    expect(response.type).toBe('redirect');
+    expect(new URL(response.url).pathname).toBe('/login');
+    expect(new URL(response.url).searchParams.get('callbackUrl')).toBe(path);
   });
 
   it('fails closed when Supabase cannot validate the user', async () => {

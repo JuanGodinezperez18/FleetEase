@@ -89,6 +89,8 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 
 # Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
 
+> **Seguimiento del 2026-11-05 en rama, sin integración ni escrituras en producción:** [REAUDIT_2026-11-05.md](./REAUDIT_2026-11-05.md). Parte de la pestaña `Re-auditoría 5-nov` del Excel v2 y documenta correcciones, verificaciones de solo lectura y límites. La BD conectada no registra las migraciones de C2, C4 y storage; Upstash sí tiene ambas variables en production/preview. No declarar estos hallazgos cerrados por cambios de código.
+
 > **Esta sección sustituye el estado anterior de C1 y la referencia a PR #129.** La sección del 2026-11-03 se conserva como historial de la reauditoría, no como estado actual de implementación. Para el estado operativo, verificar siempre el HEAD actual de `master` y los PRs enlazados.
 
 ## Evidencia de integración
@@ -174,3 +176,17 @@ La prueba `src/__tests__/contexts/auth-boot.test.tsx` falló con la implementaci
 - [Lighthouse y presupuesto de bundle, ejecución 2266](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41920545411): consultar el resultado final del enlace. El presupuesto de bundle ya pasó al registrar esta evidencia; Lighthouse seguía en ejecución. Las ejecuciones anteriores 2264/2265 también pasaron.
 
 B-1, B-2, B-3 y B-5 tienen remediación de código/documentación y evidencia de regresión en la rama. B-4 queda tratado con las excepciones de tooling descritas, sin vulnerabilidades de runtime en el snapshot medido. El PR #136 permanece en borrador para revisión; no se fusionó ni se cambió producción. Esta evidencia corresponde al SHA de implementación indicado; las actualizaciones posteriores de esta sección sólo documentan resultados y no cambian el comportamiento probado.
+
+### Actualización de PR #136 con master — 2026-11-05
+
+Se integra `master` `284e03ed` (incluye #137 y #138) en la rama de #136, cuyo HEAD previo era `b3e883e7`. No se fusiona el PR a master ni se modifica producción.
+
+- Resueltos los conflictos de `quality-gate.yml`, `next.config.mjs` y `data-provider-supabase.tsx`: se conservan auth-boot y las regresiones de reauditoría, CSP con nonce protegido y política pública estática, borrado lógico con conteo/empresa y prevalidación de administración. Se mantiene la retirada de mensajería simulada.
+- Los cambios recientes de reportes y vehículos se conservan en sus rutas `(protected)`. La nueva página `administracion-de-vehiculos-monterrey` se ubica en `(public)` con idéntico contenido y URL.
+- El smoke HTTP reprodujo **503 en `/api/auth/profile`** al integrar el nuevo rate limiting sin Redis. Se añade simulador Redis exclusivamente al preload de pruebas; no se cambia el fail-closed de producción. El smoke de navegador establece la misma sesión ficticia en cookie y localStorage y deja vacío el perfil cacheado para verificar el arranque en frío.
+- Instalación reproducible aprobada (`npm ci --legacy-peer-deps`); **15 suites / 117 pruebas de los dos grupos de CI aprobadas**. TypeScript y build de producción con credenciales CI ficticias aprobados.
+- Suite completa local: **369 aprobadas y 5 fallidas**, los mismos cuatro casos de auth-persistence/mock localStorage y el límite inclusivo de financial-metrics ya documentados. No se modifican para ocultarlos.
+- Smoke HTTP de CSP aprobado tras el ajuste: página pública nueva 200, perfil simulado 200, scripts inline protegidos con nonce coincidente, no-store y política pública sin nonce.
+- Chromium local no pudo iniciarse por restricciones del entorno (`socket() Operation not permitted`). La validación de hidratación y bloqueo de inyección se ejecuta en el workflow E2E de Chrome de GitHub. No afirmar validación local de navegador ni prueba con cuenta real.
+
+La actualización conserva los límites operativos de #138: migraciones, E2E con cuenta real y persistencia/refresh entre los dos clientes siguen sin cierre por esta resolución de conflictos.

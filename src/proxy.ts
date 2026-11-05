@@ -94,6 +94,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/images/') ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/fonts/') ||
+    /^\/media\/landing\/product-(?:(?:finance|vehicles|maintenance|profitability)(?:-(?:640|960))?|demo-poster)\.webp$/.test(pathname) ||
     /^\/[^/]+\.(?:css|js|mjs|map|png|jpe?g|webp|avif|svg|ico|woff2?|ttf|otf|json|webmanifest|txt|xml|pdf)$/i.test(pathname);
 
   if (pathname.startsWith('/api/') || isPublicStaticAsset) {
@@ -108,7 +109,8 @@ export async function proxy(req: NextRequest) {
   }
 
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/registro', '/contacto-ventas', '/privacidad', '/cookies', '/terminos', '/cancelaciones', '/s', '/'];
-  const isPublicPath = publicPaths.some(
+  const marketingPages = ['/funciones', '/soluciones', '/software-para-flotillas', '/software-para-renta-de-vehiculos', '/control-de-mantenimiento-de-flotillas', '/administracion-de-vehiculos-monterrey'];
+  const isPublicPath = marketingPages.includes(pathname) || publicPaths.some(
     path => pathname === path || (path !== '/' && pathname.startsWith(path + '/'))
   );
 

@@ -133,6 +133,23 @@ export const CHART_WIDGETS: DashboardWidget[] = [
   { id: 'client-risk-chart', type: 'chart', title: 'Riesgo de Clientes', category: 'CLIENTES', dataKey: 'client-risk-chart', enabled: true, order: 10, size: 'medium' },
 ];
 
+/** Optional operational preset; existing saved dashboards stay unchanged. */
+export const OPERATION_DASHBOARD_WIDGETS: DashboardWidget[] = [
+  { id: 'unread-notifications', type: 'metric', title: 'Notificaciones sin leer', category: 'SISTEMA', dataKey: 'unread-notifications', enabled: true, order: 0, size: 'large' },
+  { id: 'cash-flow-month', type: 'metric', title: 'Flujo de Efectivo', category: 'FINANZAS', dataKey: 'cash-flow-month', enabled: true, order: 1, size: 'small' },
+  { id: 'income-month', type: 'metric', title: 'Ingresos', category: 'FINANZAS', dataKey: 'income-month', enabled: true, order: 2, size: 'small' },
+  { id: 'expenses-month', type: 'metric', title: 'Gastos', category: 'FINANZAS', dataKey: 'expenses-month', enabled: true, order: 3, size: 'small' },
+  { id: 'total-vehicles', type: 'metric', title: 'Vehículos Activos', category: 'FLOTA', dataKey: 'total-vehicles', enabled: true, order: 4, size: 'small' },
+  { ...CHART_WIDGETS[0], order: 5, size: 'large' },
+  { ...CHART_WIDGETS[1], order: 6, size: 'medium' },
+  { id: 'vehicle-gross-profitability', type: 'metric', title: 'Rentabilidad por vehículo', category: 'FLOTA', dataKey: 'vehicle-gross-profitability', enabled: true, order: 7, size: 'medium' },
+  { ...CHART_WIDGETS[3], order: 8, size: 'medium' },
+  { ...CHART_WIDGETS[2], order: 9, size: 'medium' },
+  { id: 'licenses-expiring', type: 'metric', title: 'Licencias por Vencer', category: 'CLIENTES', dataKey: 'licenses-expiring', enabled: true, order: 10, size: 'small' },
+  { ...CHART_WIDGETS[4], order: 11, size: 'medium' },
+  { ...CHART_WIDGETS[5], order: 12, size: 'medium' },
+];
+
 export interface UserDashboardConfig {
   userId: string;
   companyId?: string;
