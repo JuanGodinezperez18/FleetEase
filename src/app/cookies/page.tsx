@@ -70,6 +70,14 @@ export default function CookiesPage() {
             </div>
           </section>
 
+          <section>
+            <h2 className="text-lg font-semibold text-white">Responsable y domicilio de contacto</h2>
+            <p>
+              El domicilio completo del responsable está pendiente de confirmación. Esta documentación no debe
+              publicarse en producción hasta completar este dato y validar el contenido legal.
+            </p>
+          </section>
+
           <section className="border-t border-white/10 pt-6 text-sm text-white/45">
             <p>
               Para más detalles consulte nuestro{" "}

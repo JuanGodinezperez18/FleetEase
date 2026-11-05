@@ -79,6 +79,14 @@ export default function CancelacionesPage() {
             </p>
           </section>
 
+          <section>
+            <h2 className="text-lg font-semibold text-white">Domicilio para contacto y reclamaciones</h2>
+            <p>
+              Domicilio completo pendiente de confirmación. Esta documentación no debe publicarse en producción
+              hasta completar este dato y validar el contenido legal.
+            </p>
+          </section>
+
           <section className="border-t border-white/10 pt-6 text-sm text-white/45">
             <p>
               Consulte también el{" "}

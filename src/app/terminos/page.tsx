@@ -104,6 +104,14 @@ export default function TerminosPage() {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-white">Domicilio del responsable</h2>
+            <p>
+              Domicilio completo pendiente de confirmación. Esta documentación no debe publicarse en producción
+              hasta completar este dato y validar el contenido legal.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-white">Contacto</h2>
             <p>
               <a href="mailto:legal@fleetease.com.mx" className="text-[#d7ff3f] hover:underline">
