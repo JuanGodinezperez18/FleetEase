@@ -23,6 +23,12 @@ export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
   const destination = (href: string) => secondary && href.startsWith('#') ? `/${href}` : href;
 
   useEffect(() => {
+    // Public content can mount after the shared splash has consumed the initial hash.
+    const target = document.getElementById(window.location.hash.slice(1));
+    target?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }, []);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -37,7 +43,7 @@ export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
     <header className="fixed left-0 right-0 top-0 z-50 h-[var(--header-h)] border-b border-white/[0.07] bg-[var(--fe-ink)]/80 backdrop-blur-2xl">
       <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between px-5 lg:px-8">
         <BrandLogo size={56} priority className="gap-3.5" />
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Navegación principal">
+        <nav className="hidden items-center gap-8 lg:flex" aria-label="Navegación principal">
           {nav.map(([label, href]) => (
             <a
               key={label}
@@ -48,7 +54,7 @@ export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
             </a>
           ))}
         </nav>
-        <div className="hidden items-center gap-5 md:flex">
+        <div className="hidden items-center gap-5 lg:flex">
           <Link
             href="/login"
             className={`rounded-sm text-[13px] font-medium text-white/60 transition hover:text-white ${focusRing}`}
@@ -66,7 +72,7 @@ export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
         <button
           ref={menuButton}
           type="button"
-          className={`flex h-11 w-11 items-center justify-center rounded-lg text-white/80 ${focusRing} md:hidden`}
+          className={`flex h-11 w-11 items-center justify-center rounded-lg text-white/80 ${focusRing} lg:hidden`}
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={menuOpen}
@@ -83,7 +89,7 @@ export function LandingHeader({ secondary = false }: { secondary?: boolean }) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: reduceMotion ? 0 : -6, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.16 }}
-            className="max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-t border-white/[0.07] bg-[var(--fe-ink)] md:hidden"
+            className="max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-t border-white/[0.07] bg-[var(--fe-ink)] lg:hidden"
           >
             <div className="flex flex-col gap-5 px-5 py-6">
               {nav.map(([label, href]) => (

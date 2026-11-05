@@ -64,7 +64,7 @@ export function LandingPricing() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {ORDER.map((id) => {
             const plan = plans[id];
             const popular = Boolean(plan.popular);
