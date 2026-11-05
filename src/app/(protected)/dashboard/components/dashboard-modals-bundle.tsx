@@ -38,7 +38,7 @@ export const VehicleListModal = dynamic(
 );
 export const PartnerBalancesModal = dynamic(
   () =>
-    import('@/app/dashboard/partners/components/partner-balances-modal').then(mod => ({
+    import('@/app/(protected)/dashboard/partners/components/partner-balances-modal').then(mod => ({
       default: mod.PartnerBalancesModal,
     })),
   { ssr: false }

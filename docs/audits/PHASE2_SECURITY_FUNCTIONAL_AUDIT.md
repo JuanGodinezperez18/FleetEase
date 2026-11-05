@@ -119,3 +119,74 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 5. C3 se mantiene independiente de C1. No realizar borrados reales durante pruebas de auditoría.
 6. Cada cambio de estado debe incluir PR, commit, pruebas ejecutadas y enlace/resultado de workflows. Si una prueba no se ejecutó, indicarlo expresamente.
 7. No utilizar credenciales de producción ni modificar producción sin autorización explícita.
+
+---
+
+# Estado B-1–B-5 — informe consolidado (2026-11-04)
+
+**Fuente:** `FleetEase_Informe_Auditoria.pdf`, cierre 2026-11-03, sección 5.3. Los IDs de esta sección **no corresponden a B1–B4 del informe del 2026-10-30**, que describía otros problemas. Base inspeccionada: `master` `9ddae5ac` (incluye PR #134). Rama: `fix/audit-low-findings-b1-b5`.
+
+| ID | Causa confirmada | Corrección y evidencia | Estado |
+|---|---|---|---|
+| B-1 | Sidebar enlazaba `/dashboard/reports/history`, ruta inexistente, sin historial persistente | Retirado el enlace y su import de icono. `/dashboard/reports` se conserva; no se fabrica un historial sin datos | Corregido y verificado por smoke Chrome en `533c7b7`; revisión de preview pendiente |
+| B-2 | `sendInternalMessage` resolvía con un toast “Función no implementada”; UI mostraba éxito después. `users` era una lista vacía y el envío push carecía de Authorization | Retirada la pestaña Usuarios, las ramas internas/push del compositor y el método simulado del contrato/proveedor. Se conservan plantillas y vista previa/compartir de clientes y socios. Las APIs de notificación existentes no se modifican | Corregido por retirada de acción no disponible; mensajería interna/push sigue como capacidad futura |
+| B-3 | Guía con mocks/instrucciones obsoletos y roadmap con capacidades completadas sin evidencia y métricas no medidas | Reescritos `TESTING_GUIDE.md` y `ROADMAP-FUTURAS-MEJORAS.md` con estados, archivos de evidencia, comandos reales y límites. AGENTS registra las nuevas ubicaciones y fuente de auditoría | Corregido documentalmente en rama |
+| B-4 | Avisos de dependencias de desarrollo; conteos del informe ya desactualizados | `npm audit fix --legacy-peer-deps --ignore-scripts` sin force actualizó 3 paquetes compatibles. Runtime: **0** avisos. Inventario completo: **26** (23 moderados, 3 bajos), con excepciones de tooling abajo. Se conserva gate bloqueante de runtime y se añade artefacto completo + política trimestral en `docs/DEPENDENCY_MAINTENANCE.md` | Tratado con excepciones explícitas; no declarar cero vulnerabilidades de desarrollo |
+| B-5 | Proxy permitía scripts inline sin nonce para compatibilidad con HTML público estático; raíz común impedía aislar render dinámico | Grupos `(public)` y `(protected)` separan documentos raíz sin cambiar URLs. Raíz protegida dinámica lee nonce aleatorio de 24 bytes generado en proxy, propagado a Next Script/tema/GA. `script-src` y `script-src-elem` sin unsafe-inline en portales; respuestas privadas no-store. Raíz pública sin headers/cookies y landing estática | Corregido; contrato, HTML e hidratación Chrome aprobados en `533c7b7`; revisión de preview pendiente |
+
+## B-4: excepciones verificadas, exposición y reevaluación
+
+Medición local del 2026-11-04, Node 24.22.1/npm 11.9.0; CI usa Node 22. `npm audit --omit=dev --json` reportó cero avisos; `npm audit --json` reportó 26, agrupados por tres causas transitivas. Los números de severidad históricos de otras secciones no sustituyen este snapshot.
+
+| Advisory / causa | Cadena y exposición | Decisión |
+|---|---|---|
+| [deepmerge prototype poisoning](https://github.com/advisories/GHSA-gcqx-w48m-w2h4), bajo | `jest-config` → deepmerge; configuración de pruebas del repositorio, sin entrada de usuarios del SaaS | No aceptar el downgrade sugerido a Jest 25. Reevaluar al publicar upstream una versión compatible corregida |
+| [glob AbortSignal cancellation](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4), moderado | Jest/reporters y tooling de cobertura; glob de archivos de pruebas | Mantener el toolchain compatible y límites de tiempo de CI. No forzar glob 14 sobre consumidores de otra versión mayor |
+| [minimatch amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249), moderado | ESLint/typescript-eslint y glob/test-exclude; patrones fijos del repositorio | No aceptar downgrade de eslint-config-next a 15 ni override minimatch 11 incompatible. Revisar siguiente release de los consumidores |
+
+Estas excepciones se limitan al tooling de este snapshot; no permiten procesar repositorios/patrones no confiables como parte del SaaS. Política de revisión trimestral y reevaluación anticipada al salir un parche en `docs/DEPENDENCY_MAINTENANCE.md`. El inventario completo en CI es informativo; sus errores de obtención sí fallan el paso.
+
+## Validación local y límites
+
+- Pruebas nuevas de CSP: se observaron **5 fallos esperados antes de implementar**; luego pasan las **37 pruebas** de middleware (nonce por petición, políticas pública/protegida, roles y sustitución de nonce suministrado por el cliente).
+- Quality gate existente: **8 suites / 66 tests pasan**.
+- Suite Jest completa: **29 suites pasan, 2 fallan; 310 tests pasan y 5 fallan**. Reproducidos los mismos 5 fallos en checkout intacto de `master` `9ddae5ac`: cuatro de `src/__tests__/lib/auth-persistence.test.ts` (mock global localStorage sin almacenamiento real) y uno de `src/__tests__/lib/financial-metrics.test.ts` (`filterRecordsByDateRange`, límite final). No se alteraron las fórmulas ni estos tests para ocultarlos.
+- Type-check pasa. Build de producción pasa; `/` y páginas públicas siguen estáticas, portales dinámicos. Persisten las dos advertencias Tailwind preexistentes de `duration-[var(--fe-motion-*)]`.
+- `node scripts/csp-smoke.mjs --http-only`: HTML protegido con **8 scripts inline cuyo nonce coincide**, autenticación con fixtures aislados de Supabase, cache no-store y respuesta pública sin nonce. No hay datos, mensajes ni escrituras reales.
+- Chromium local no pudo iniciar por restricción del entorno (`socket() failed: Operation not permitted`). No declarar hidratación de navegador aprobada. `scripts/csp-smoke.mjs` se añade al workflow E2E para comprobar arranque, tema, interacción con pestañas, ausencia de acciones retiradas y rechazo de script inyectado en Chrome de CI.
+- La separación de documentos raíz produce recarga completa al cruzar entre zona pública y portales; la navegación dentro de cada zona permanece con App Router. Revisar login/logout y preview antes de fusionar.
+- Sin migraciones, SQL, cambios de datos ni modificaciones de producción. El estado de C1–C5 no cambia por esta remediación.
+
+**Puerta de salida:** revisar CI/preview sobre el HEAD exacto del PR, confirmar el smoke de Chrome y conservar abiertos los fallos de regresión preexistentes y las excepciones de tooling descritas. No fusionar automáticamente.
+
+### Seguimiento del smoke protegido y arranque sin caché
+
+En `6c7e6e4`, [quality gate](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919075503) y [MCP](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919075328) pasaron. El diagnóstico de suite completa en Node 22 reportó **311 tests aprobados y 4 fallos**, todos en auth-persistence; el caso financiero de límite de fecha que falla localmente sí pasó en ese runner (diferencia dependiente del entorno, no se modifica su fórmula).
+
+El [smoke con diagnósticos](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41919703783) confirmó una carrera de arranque preexistente en `auth-provider-supabase.tsx`: sin perfil cacheado, se llamaba a `finishLoading()` antes de completar `loadProfile()`. El layout veía una sesión provisionalmente anónima, navegaba a login y luego al dashboard, abandonando `/dashboard/messages`. Se corrige esperando el perfil antes de liberar loading, preservando la ruta solicitada. Si el endpoint rechaza el perfil, el estado termina anónimo. Se conservan el límite de arranque y la validación del servidor.
+
+La prueba `src/__tests__/contexts/auth-boot.test.tsx` falló con la implementación anterior y pasa con la corrección (**2 tests**). Se añade al quality gate. El smoke consulta eventos reales `securitypolicyviolation` en lugar de confundir errores MIME de scripts exclusivos de Vercel con violaciones CSP; Stripe status se simula en el navegador, sin claves ni llamadas financieras reales. La nueva ejecución de Chrome sigue siendo la puerta para acreditar la hidratación protegida y el bloqueo de inyección.
+
+
+### Evidencia final de código — `533c7b72468ba81c16b96222f353d514decec68d`
+
+- [Quality gate, ejecución 975](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41920545366): aprobado, incluidas **9 suites / 68 pruebas**, TypeScript, build y gate de dependencias de producción.
+- [E2E Chrome, ejecución 254](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41920545465): aprobado. El log confirma hidratación pública y protegida, interacción Clientes/Socios, ausencia de acciones retiradas, nonce coincidente, cache privada y bloqueo de script inline inyectado. Sesión sin caché y servicios simulados; sin escrituras reales.
+- [MCP, ejecución 429](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41920545363): aprobado. Pruebas MCP **27/27** y build pasan. El paso de suite completa sigue siendo diagnóstico: **313 tests pasan, 4 fallan** en auth-persistence por el mock de localStorage ya documentado; el workflow verde no acredita suite completa verde.
+- [Lighthouse y presupuesto de bundle, ejecución 2266](https://github.com/JuanGodinezperez18/FleetEase/actions/runs/41920545411): consultar el resultado final del enlace. El presupuesto de bundle ya pasó al registrar esta evidencia; Lighthouse seguía en ejecución. Las ejecuciones anteriores 2264/2265 también pasaron.
+
+B-1, B-2, B-3 y B-5 tienen remediación de código/documentación y evidencia de regresión en la rama. B-4 queda tratado con las excepciones de tooling descritas, sin vulnerabilidades de runtime en el snapshot medido. El PR #136 permanece en borrador para revisión; no se fusionó ni se cambió producción. Esta evidencia corresponde al SHA de implementación indicado; las actualizaciones posteriores de esta sección sólo documentan resultados y no cambian el comportamiento probado.
+
+### Actualización de PR #136 con master — 2026-11-05
+
+Se integra `master` `284e03ed` (incluye #137 y #138) en la rama de #136, cuyo HEAD previo era `b3e883e7`. No se fusiona el PR a master ni se modifica producción.
+
+- Resueltos los conflictos de `quality-gate.yml`, `next.config.mjs` y `data-provider-supabase.tsx`: se conservan auth-boot y las regresiones de reauditoría, CSP con nonce protegido y política pública estática, borrado lógico con conteo/empresa y prevalidación de administración. Se mantiene la retirada de mensajería simulada.
+- Los cambios recientes de reportes y vehículos se conservan en sus rutas `(protected)`. La nueva página `administracion-de-vehiculos-monterrey` se ubica en `(public)` con idéntico contenido y URL.
+- El smoke HTTP reprodujo **503 en `/api/auth/profile`** al integrar el nuevo rate limiting sin Redis. Se añade simulador Redis exclusivamente al preload de pruebas; no se cambia el fail-closed de producción. El smoke de navegador establece la misma sesión ficticia en cookie y localStorage y deja vacío el perfil cacheado para verificar el arranque en frío.
+- Instalación reproducible aprobada (`npm ci --legacy-peer-deps`); **15 suites / 117 pruebas de los dos grupos de CI aprobadas**. TypeScript y build de producción con credenciales CI ficticias aprobados.
+- Suite completa local: **369 aprobadas y 5 fallidas**, los mismos cuatro casos de auth-persistence/mock localStorage y el límite inclusivo de financial-metrics ya documentados. No se modifican para ocultarlos.
+- Smoke HTTP de CSP aprobado tras el ajuste: página pública nueva 200, perfil simulado 200, scripts inline protegidos con nonce coincidente, no-store y política pública sin nonce.
+- Chromium local no pudo iniciarse por restricciones del entorno (`socket() Operation not permitted`). La validación de hidratación y bloqueo de inyección se ejecuta en el workflow E2E de Chrome de GitHub. No afirmar validación local de navegador ni prueba con cuenta real.
+
+La actualización conserva los límites operativos de #138: migraciones, E2E con cuenta real y persistencia/refresh entre los dos clientes siguen sin cierre por esta resolución de conflictos.

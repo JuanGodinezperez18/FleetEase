@@ -11,7 +11,7 @@ import { ArrowLeft, Car, DollarSign, TrendingDown, TrendingUp } from 'lucide-rea
 import { MetricCard } from '@/components/dashboard/components/MetricCard';
 import { formatCurrency } from '@/lib/utils';
 import { DataTable } from '@/components/common/data-table';
-import { getVehicleColumns } from '@/app/dashboard/vehicles/columns';
+import { getVehicleColumns } from '@/app/(protected)/dashboard/vehicles/columns';
 import type { Vehicle, Partner, Client, FinancialRecord } from '@/types';
 import Link from 'next/link';
 import { calculatePartnerBalance } from '@/contexts/data-provider';

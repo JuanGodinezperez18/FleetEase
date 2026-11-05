@@ -63,3 +63,8 @@ jobs:
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
           E2E_BASE_URL: http://127.0.0.1:3000
+
+      - name: Verify protected CSP and hydration with isolated fixtures
+        run: node scripts/csp-smoke.mjs
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}

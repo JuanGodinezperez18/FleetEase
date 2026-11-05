@@ -18,7 +18,6 @@ import {
   Building,
   Tags,
   AreaChart,
-  History,
   BarChart3,
   MessageSquare,
   ChevronRight,
@@ -146,7 +145,6 @@ export const navItemsBase: NavItem[] = [
     basePath: "/dashboard/reports",
     subItems: [
       { href: "/dashboard/reports", label: "Generar Reporte", icon: BarChart3 },
-      { href: "/dashboard/reports/history", label: "Historial", icon: History },
     ],
   },
   { href: "/dashboard/alerts", label: "Alertas de Negocio", icon: BellIcon, roles: ["admin", "superAdmin", "editor"] },

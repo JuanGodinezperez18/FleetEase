@@ -10,7 +10,7 @@ import { useVehicles } from '@/contexts/providers/vehicles-provider';
 import { useFinances } from '@/contexts/providers/finances-provider';
 import { useAuth } from '@/contexts/auth-provider';
 import { VehicleProfitabilityDashboard } from '@/components/dashboard/vehicle-profitability-dashboard';
-import { DashboardHeader } from '@/app/dashboard/components/dashboard-header';
+import { DashboardHeader } from '@/app/(protected)/dashboard/components/dashboard-header';
 import { Card, CardContent, CardDescription, CardTitle, CardHeader } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
