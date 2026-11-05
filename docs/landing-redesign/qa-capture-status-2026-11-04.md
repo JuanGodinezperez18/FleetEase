@@ -75,3 +75,12 @@ Las capturas corresponden a la aplicación desplegada, no a un mockup del cambio
 - Pendiente: validación visual del cambio y del preset en Preview, móvil/tablet/escritorio, arrastre y recarga. No declarar el ajuste validado en producción antes de integrar y comprobarlo.
 
 No se fusionó ni desplegó código a producción. La única modificación en la aplicación desplegada es la preparación autorizada de la empresa de pruebas y su selección local de indicadores.
+# Landing compacta: seguimiento del PR #137
+
+Implementación aprobada después de la auditoría visual: principal con explorador por pestañas, precios adelantados y cuatro FAQ compartidas con JSON-LD; detalle en Funciones; Soluciones por tipo de operación; página pública de administración en Monterrey con el formulario existente. Menú y CTA móvil respetan movimiento reducido. Rutas de marketing exactas permiten acceso anónimo; dashboard y rutas similares conservan autenticación.
+
+Preview inicial del cambio `b78197b`: a 1363 × 936 px, altura 3393 px frente a 7178 px (53% menos); precios en Y=1594 frente a Y=5150. Sin desbordamiento horizontal (ancho útil y scrollWidth: 1348). No se afirma una mejora de conversión.
+
+La verificación del color detectó una segunda regla heredada en `landing-text.css` que también coincidía con clases condicionales de Radix. Se corrige con coincidencias de clase exacta y una prueba de estilo que falla antes del cambio y pasa después. Nueva verificación visual pendiente de este ajuste.
+
+Build y TypeScript correctos. Suite completa tras el ajuste: 344 correctas, 5 fallos preexistentes (límite inclusivo en financial-metrics y cuatro casos de auth-persistence). No se modificaron cálculos ni persistencia. La validación de reflujo por zoom se distingue de pruebas físicas de dispositivos.
