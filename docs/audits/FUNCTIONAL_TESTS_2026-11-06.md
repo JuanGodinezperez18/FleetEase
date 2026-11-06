@@ -1,5 +1,21 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## Aplicación autorizada de C3 y prueba en BD real
+
+Con autorización expresa del usuario, se aplicó sin alterar el SQL del PR #140 la migración `soft_delete_tenant_record_rpc`. Supabase la registró como **20261106173252** (archivo original `20261106165829_soft_delete_tenant_record_rpc.sql`). La función existe, `search_path` está vacío, anon carece de EXECUTE y authenticated lo tiene. RLS permanece habilitado en ambas tablas.
+
+En BD real, con rol authenticated y claims del administrador QA, pasaron: borrado ordinario de ingreso (devuelve 1 y la fila queda oculta), rechazo de repetición, empresa ajena, tabla arbitraria, vehículo asignado y pago financiero; borrado de vehículo disponible (devuelve 1 y queda oculto). Se ejecutó todo dentro de una transacción revertida. Se verificó después que el ingreso QA anterior sigue eliminado y el vehículo disponible volvió a su estado original, sin eliminar.
+
+El contrato de la RPC se regeneró desde el esquema vivo y se incorporó únicamente esa entrada a los tipos de Supabase, evitando cambios ajenos por drift. Se retiró el contrato/cast local del helper.
+
+Los cuatro workflows del commit `041c1819` terminaron en success: quality gate #992, E2E #267, MCP #442 y Lighthouse #2283. Su preview READY se probó tras iniciar sesión de forma segura. La cuenta elegida por el usuario tiene rol Super Admin y la empresa seleccionada fue QA FleetEase Demo. Sólo se reactivó el ingreso desechable anterior de $1 mediante operación administrativa acotada por id/empresa/descripción/importe. **El botón Eliminar del preview lo borró correctamente:** en BD quedó `is_deleted=true`; tras recarga desapareció del listado y volvieron **18 ingresos y $45,700**. Esta segunda limpieza sí ocurrió a través de la aplicación corregida, sin limpieza administrativa posterior.
+
+La prueba UI demuestra el flujo con Super Admin; la prueba de BD real con claims del administrador QA demuestra la transición afectada por RLS. No se presenta como E2E con rol admin de empresa. **C3 sigue parcial hasta integrar/desplegar y repetir UI con ese rol, vehículos y reversiones.** El PR #140 todavía no está fusionado; producción conserva el cliente anterior. Los secretos del inicio de sesión no se leyeron ni se guardaron en los artefactos.
+
+Advisors: el aviso de funciones SECURITY DEFINER ejecutables por authenticated pasa de 15 a 16, exclusivamente por la nueva RPC intencional y acotada. No es una auditoría sin avisos. La protección de contraseñas filtradas continúa deshabilitada, sin cambios. La revisión independiente previa comprobó las guardas de pagos/créditos y vehículos protegidos.
+
+Las secciones siguientes conservan el diagnóstico y la secuencia de preparación anterior a esta aplicación.
+
 Base integrada: `ad18f2b90b46d0c455ca22d1a0f6730a748f6d94` (PR #139, documental), posterior al merge de #136 `3f11c7414b4b1056407fa9c8365a4c0a592da56e`. Navegador: `www.fleetease.com.mx`, sesión existente de QA Administrador en QA FleetEase Demo. El usuario autorizó estas pruebas. Las consultas de permisos usaron `SET LOCAL ROLE authenticated` y claims del usuario QA dentro de transacciones; no sustituyen un login ni una llamada REST con JWT real.
 
 ## Resultados en el entorno desplegado
@@ -28,7 +44,7 @@ Se verificó en BD `is_deleted=true`; authenticated ya no ve la fila. En la segu
 
 ## Corrección propuesta de C3
 
-`src/lib/soft-delete.ts` pasa a una RPC acotada; requiere la migración `20261106165829_soft_delete_tenant_record_rpc.sql`. **Esta migración no se aplicó en producción.** El catálogo confirmó que la función nueva todavía no existe allí.
+`src/lib/soft-delete.ts` pasa a una RPC acotada y requiere la migración `20261106165829_soft_delete_tenant_record_rpc.sql`. En la primera prueba la migración aún no estaba aplicada; la actualización superior documenta su aplicación autorizada y las pruebas posteriores.
 
 La operación valida identidad, perfil activo en BD, rol admin/editor/super_admin, empresa explícita, tabla permitida y exactamente una fila. Mantiene SELECT RLS y los filtros de empresa. SECURITY DEFINER es necesario para esta transición porque SELECT RLS rechaza la fila nueva eliminada; la elevación queda limitada a dos UPDATE estáticos, `search_path=''`, revocación de PUBLIC/anon y grant sólo a authenticated. No usa metadatos editables del JWT para decidir permisos.
 
@@ -36,7 +52,7 @@ La rama financiera acepta únicamente ingresos/gastos sin vínculo ni flags de c
 
 Fuente de verdad: `financial_records`, `vehicles`, asignaciones y créditos en BD. Escritores: helper/RPC de borrado ordinario y RPC existentes para pagos/créditos. Consumidores: proveedor de datos, dashboard, ingresos/gastos, reportes y rentabilidad. No se añadió un segundo cálculo. El borrado ordinario se limita a una fila; las reversiones financieras quedan fuera y requieren su prueba integrada.
 
-Antes de desplegar el cliente: revisar/aplicar la migración, regenerar tipos desde el esquema y verificar el contrato. El contrato de RPC está tipado localmente en el helper sin editar tipos generados. Después, desplegar y repetir el borrado desde UI. Mantener el PR en borrador hasta coordinar este orden; fusionar el cliente sin la RPC dejaría el borrado inoperante.
+La migración, la regeneración del contrato y la prueba del botón desde el preview con Super Admin ya están completadas. Sigue pendiente integrar/desplegar el cliente y repetir UI con rol admin de empresa. Los tipos de la RPC proceden del esquema vivo; no queda cast local.
 
 ## Regresión aislada y validación local
 
@@ -53,4 +69,4 @@ El fixture reproduce el 42501 del UPDATE directo y verifica borrado ordinario co
 
 ## Pendientes que no se cierran
 
-C1 (atribución, entidades eliminadas, exports y conciliación histórica), C3 E2E tras migración/despliegue y reversión de pagos, concurrencia de asignaciones, matriz completa de fechas, upload binario y segunda cuenta de empresa, enlaces compartidos de un uso/vencimiento, login nuevo/refresh/logout/reinicio, VIN/placa, atomicidad de administración de crédito y drift global C5. Las tres migraciones aplicadas anteriormente siguen registradas; esta revisión no aplicó una cuarta migración.
+C1 (atribución, entidades eliminadas, exports y conciliación histórica), C3 E2E del cliente nuevo y reversión de pagos, concurrencia de asignaciones, matriz completa de fechas, upload binario y segunda cuenta de empresa, enlaces compartidos de un uso/vencimiento, login nuevo/refresh/logout/reinicio, VIN/placa, atomicidad de administración de crédito y drift global C5. Las tres migraciones anteriores y la cuarta migración de C3 están registradas.

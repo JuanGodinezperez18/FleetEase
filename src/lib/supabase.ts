@@ -2840,6 +2840,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      soft_delete_tenant_record: {
+        Args: { p_company_id: string; p_id: string; p_table: string }
+        Returns: number
+      }
       table_exists: { Args: { tname: string }; Returns: boolean }
       update_financial_payment_atomic: {
         Args: {
