@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, HandCoins, Users, Briefcase, Search, RotateCcw, Pencil, Trash2, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 
@@ -209,14 +210,14 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     if (editing.recordKind === "client") {
       return financialRecords
         .filter(r => !r.isDeleted && r.type === "income" && r.clientId === editing.clientId && r.category !== "Depósito en Garantía")
-        .map(r => ({ id: r.id, label: `${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${new Date(r.date).toLocaleDateString("es-MX")}` }));
+        .map(r => ({ id: r.id, label: `${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${formatDate(r.date)}` }));
     }
     if (editing.recordKind === "supplier") {
       return financialRecords
         .filter(r => !r.isDeleted && r.type === "expense" && supplierByTarget.has(r.id))
         .map(r => ({
           id: r.id,
-          label: `${supplierByTarget.get(r.id) || "Proveedor"} · ${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${new Date(r.date).toLocaleDateString("es-MX")}`,
+          label: `${supplierByTarget.get(r.id) || "Proveedor"} · ${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${formatDate(r.date)}`,
         }));
     }
     return [];
@@ -377,7 +378,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-white/90">{r.entityName}</p>
-                          <p className="mt-0.5 text-xs text-white/40">{new Date(r.date).toLocaleDateString("es-MX")}{r.paymentMethod ? ` · ${r.paymentMethod}` : ""}</p>
+                          <p className="mt-0.5 text-xs text-white/40">{formatDate(r.date)}{r.paymentMethod ? ` · ${r.paymentMethod}` : ""}</p>
                         </div>
                         <span className="font-heading text-base font-semibold tabular-nums text-white">{formatCurrency(Number(r.amount || 0))}</span>
                       </div>
@@ -403,7 +404,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                     <tbody>
                       {paginatedRecords.map(r => (
                         <tr key={r.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                          <td className="whitespace-nowrap p-3 text-white/70">{new Date(r.date).toLocaleDateString("es-MX")}</td>
+                          <td className="whitespace-nowrap p-3 text-white/70">{formatDate(r.date)}</td>
                           <td className="p-3"><span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">{PAYMENT_LABELS[r.recordKind] || "Pago"}</span></td>
                           <td className="p-3 font-medium text-white/90">{r.entityName}</td>
                           <td className="p-3 text-white/55">{r.paymentMethod || "—"}</td>
