@@ -37,7 +37,7 @@ Sólo `company-logos` y `vehicle-images` son públicos por decisión de producto
 
 La auditoría en vivo detectó que la base consultada tenía seis buckets y políticas para cinco buckets, mientras que el código contemplaba doce. La migración indicada arriba provisiona el inventario canónico, conserva públicos únicamente los dos buckets de medios no sensibles y agrega políticas tenant-scoped a los siete buckets que no tenían políticas en la base consultada. También preserva las políticas especializadas ya existentes para `documents`, `vehicle-images`, `company-logos`, `inspection-images` y `seguimientos`.
 
-**Estado de la migración en este PR: pendiente de aplicación controlada.** El cambio de código deja de crear buckets al vuelo; por tanto, aplicar la migración antes de desplegar los cambios de API en producción. No se ejecutó DDL ni se modificó Storage en producción durante esta rama.
+**Estado al 6-nov-2026: aplicada y verificada en catálogo.** Versión registrada: `20261106163500`, nombre `reconcile_storage_buckets_and_tenant_policies`. Se confirmaron 12 buckets (10 privados y los mismos 2 públicos), 28 políticas tenant-scoped nuevas y RLS activo en `storage.objects`. La aplicación fue autorizada por el usuario. No se borraron objetos ni se ampliaron los buckets públicos existentes. Pendientes las pruebas funcionales con dos empresas, subida/lectura real y expiración de URLs firmadas. Detalle en `docs/audits/REAUDIT_2026-11-05.md`.
 
 ## Verificación posterior a la migración
 
