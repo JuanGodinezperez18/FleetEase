@@ -1,5 +1,19 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## C3 — verificación posterior a integración en producción
+
+El PR #140 se fusionó como `a8acefe84f231e4dede0881a79b7cac1987eacaa`. El despliegue de producción `dpl_78vLV9JwSwoGo3GNgCBH3pLqy8vM` pasó a READY con ese commit. Los cuatro workflows del HEAD final `8e4d1bda` aprobaron: quality gate #993, E2E #268, MCP #443 y Lighthouse #2284.
+
+**Borrado de ingreso con admin de empresa, aprobado en producción.** La sesión visible era QA Administrador, rol Administrador, en `www.fleetease.com.mx`. Se reactivó sólo la fila desechable de $1 `e78b3859-d673-46cd-91b9-fa2870ee49e8` con filtros de id/empresa/descripción/importe para repetir el caso original. El botón Eliminar completó el borrado. BD confirmó `is_deleted=true`; tras recarga había cero filas con el marcador, 18 ingresos y $45,700. No se ejecutó limpieza administrativa después del botón.
+
+**Borrado de vehículo con admin de empresa, aprobado en producción.** Se insertó un vehículo nuevo, sin asignación, documentos ni crédito, costo 0, placa `QAC31106`, id `5a412713-1326-4dde-ad20-df966bc5ec59`, sólo en QA FleetEase Demo. El botón Eliminar mostró éxito; BD confirmó `is_deleted=true`. Tras recarga el vehículo no aparecía y el total volvió de 22 a los 21 registros originales (20 activos/rentados). No se eliminó ningún vehículo preexistente. Durante la transición del modal se observó brevemente el nombre `undefined undefined`; no afectó persistencia y queda como observación UX separada.
+
+**Ciclo de pagos de cliente, aprobado en BD real y revertido.** Bajo rol authenticated y claims del admin QA se creó un cargo desechable de $10 mediante `create_financial_record`, se registraron $4 y $6 mediante `create_financial_payment` y se verificó el importe aplicado mediante los vínculos a pagos activos. Secuencia observada: 4 → 10. La RPC de borrado ordinario rechazó el pago. `delete_financial_payment_atomic` retiró el primer pago y el importe aplicado quedó en 6; al retirar el segundo quedó en 0. Todas las aserciones pasaron antes de lanzar deliberadamente `QA_PAYMENT_LIFECYCLE_PASS_ROLLED_BACK`; la transacción completa se revirtió, incluidos cargos, pagos, vínculos y auditoría. Se confirmó cero cargos con el marcador de esa prueba. No equivale a E2E de pagos ni prueba de recálculo de crédito/proveedor.
+
+**Estado C3: parcial, con borrados ordinarios de ingreso/vehículo validados en producción como admin.** Pendientes: edición y borrado de pagos desde UI, recálculo de créditos/parcialidades y proveedor, reversión de multa/depósito, concurrencia y otros roles. La fórmula protegida no se cambió. No se aplicaron migraciones adicionales en esta verificación.
+
+Las secciones siguientes conservan el historial anterior al despliegue y deben leerse con esta actualización como estado vigente.
+
 ## Aplicación autorizada de C3 y prueba en BD real
 
 Con autorización expresa del usuario, se aplicó sin alterar el SQL del PR #140 la migración `soft_delete_tenant_record_rpc`. Supabase la registró como **20261106173252** (archivo original `20261106165829_soft_delete_tenant_record_rpc.sql`). La función existe, `search_path` está vacío, anon carece de EXECUTE y authenticated lo tiene. RLS permanece habilitado en ambas tablas.
