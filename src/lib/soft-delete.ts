@@ -6,13 +6,11 @@ export async function softDeleteTenantRecord(
   companyId: string | null | undefined,
 ): Promise<void> {
   if (!companyId) throw new Error('Selecciona una empresa antes de eliminar.');
-  const { error, count } = await supabase.from(table)
-    .update({ is_deleted: true }, { count: 'exact' })
-    .eq('id', id)
-    .eq('company_id', companyId)
-    .eq('is_deleted', false);
+  const { error, data } = await supabase.rpc('soft_delete_tenant_record', {
+    p_table: table, p_id: id, p_company_id: companyId,
+  });
   if (error) throw error;
-  if (count !== 1) {
+  if (data !== 1) {
     throw new Error('No se pudo eliminar: el registro no existe, ya fue eliminado o no tienes permisos.');
   }
 }
