@@ -89,6 +89,8 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 
 # Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
 
+> **Actualización operativa 6-nov-2026:** las migraciones de C2, C4 y storage M-3/N2 ya se aplicaron con autorización del usuario y se verificaron en catálogo. Versiones: `20261106162226`, `20261106162306` y `20261106163500`. Se confirmaron cuatro triggers activos, índice único válido, 12 buckets (10 privados/2 públicos) y 28 políticas nuevas. Esto sustituye los pendientes de aplicación descritos más abajo; las pruebas funcionales y el resto de hallazgos siguen abiertos. Evidencia y correspondencia con los SQL originales en [REAUDIT_2026-11-05.md](./REAUDIT_2026-11-05.md).
+
 > **Seguimiento del 2026-11-05 en rama, sin integración ni escrituras en producción:** [REAUDIT_2026-11-05.md](./REAUDIT_2026-11-05.md). Parte de la pestaña `Re-auditoría 5-nov` del Excel v2 y documenta correcciones, verificaciones de solo lectura y límites. La BD conectada no registra las migraciones de C2, C4 y storage; Upstash sí tiene ambas variables en production/preview. No declarar estos hallazgos cerrados por cambios de código.
 
 > **Esta sección sustituye el estado anterior de C1 y la referencia a PR #129.** La sección del 2026-11-03 se conserva como historial de la reauditoría, no como estado actual de implementación. Para el estado operativo, verificar siempre el HEAD actual de `master` y los PRs enlazados.
