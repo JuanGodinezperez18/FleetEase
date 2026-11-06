@@ -1,5 +1,29 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## Continuación tras PR #141 — pagos desde UI con administrador QA
+
+Base integrada: PR #141, merge `8b99fd1aa608522d1d8b5aadb3d82d437c34bcc2`. Sesión de producción: QA Administrador. Sólo se utilizó QA FleetEase Demo y registros nuevos desechables.
+
+| Caso | Evidencia real | Resultado |
+|---|---|---|
+| Parcial | Cargo $10, pago UI $4. BD confirma vínculo `client_payment_to_financial_record` y `amount_applied=4`; selector muestra pendiente $6. | Aprobado |
+| Editar importe | UI intentó cambiar $4 a $5. El importe permaneció en $4. La misma RPC bajo authenticated en transacción reproduce `P0001 FINANCIAL_SENSITIVE_FIELDS_IMMUTABLE` en `enforce_financial_record_integrity`. | **Bloqueado, abierto** |
+| Liquidación | Segundo pago UI $6, BD confirma segundo vínculo por $6; historial total $10, dos pagos. | Aprobado |
+| Eliminar parcial | Botón UI elimina lógicamente el pago $4; BD lo confirma y el historial baja a $6. | Aprobado |
+| Eliminar restante | Botón UI elimina lógicamente el pago $6; BD lo confirma. Tras recarga: $0 y cero pagos en esta vista. | Aprobado |
+| Fecha civil | BD `2026-11-06`, selector e historial muestran `5/11/2026` en la zona del navegador. | Fallo de presentación confirmado |
+| Referencia | BD conserva `QA-PAYUI-1106-P1` y `QA-PAYUI-1106-P2`; historial muestra «—» y edición empieza con referencia vacía. | Fallo de lectura confirmado |
+
+**Causas y cambios de esta rama.** El proveedor de datos omitía `reference_code`, `source_record_id/type` y `related_record_id/type` en la proyección de `financial_records`, aunque el mapper y el tipo ya los admiten. Se añaden a la misma consulta, preservando empresa, borrado lógico y paginación. Así la referencia persistida vuelve al historial, búsqueda y formulario de edición. La presentación convertía DATE mediante `new Date('YYYY-MM-DD')`, interpretado como UTC; se usa el helper compartido `formatDate`, que trata fechas civiles como hora local, en historial y selectores de pagos, incluidas compras y vencimientos. No se modifican fechas guardadas, filtros ni fórmulas financieras.
+
+**Bloqueo de edición pendiente.** La RPC especializada intenta modificar `amount`, pero el trigger de integridad prohíbe ese campo al admin incluso dentro de la RPC SECURITY DEFINER. No se retira ni se relaja esa protección en este bloque. Requiere una corrección de BD acotada al flujo atómico y pruebas de permisos, reversión, vínculos y recálculos. Esta rama no corrige ni declara aprobado ese caso. Las referencias de la edición fallida no se persistieron.
+
+**Regresión local:** una prueba ejecuta la consulta real del proveedor contra una respuesta simulada que respeta su proyección y comprueba referencia, trazabilidad y filtros. Otra renderiza el historial con DATE `2026-11-06` en America/Mexico_City. Ambas fallaron antes del cambio por el comportamiento observado y pasan después. Son pruebas con dependencias simuladas, no E2E del cliente corregido. TypeScript y build de producción aprobados (variables CI ficticias). Las dos regresiones pasan en America/Mexico_City y UTC. Lint no pudo ejecutarse: ESLint 9 no encuentra configuración flat y el modo legacy falla por referencia circular del plugin React en la configuración existente; no se presenta como aprobado. Se conserva la suite completa anterior de 369 aprobadas/5 fallidas conocidas, sin afirmar una nueva ejecución completa. Validación CI y preview del nuevo HEAD pendientes al abrir el PR.
+
+**Limpieza:** cargo `be57ebb8-68c2-4778-baf9-73a54ff221f8`, descripción `QA-REAUDIT-20261106-PAYUI`; pagos `4444bdb2-f879-401b-a87a-279ae135b45a` ($4) y `6ab59c10-3f15-430f-8694-19aa6d1e8407` ($6). Ambos pagos quedaron eliminados por sus botones UI. El cargo se retiró mediante `soft_delete_tenant_record` como authenticated QA. Los tres tienen `is_deleted=true`. Se conservaron vínculos y auditoría, sin borrado físico ni cambios persistentes a registros previos. La vista Pagos volvió a su estado inicial tras recarga. No se afirma que los datos históricos de pago en BD sean cero ni se presenta esta prueba como conciliación de todo el cliente.
+
+**C3 continúa parcial:** ahora hay evidencia UI de alta parcial/completa y borrado de pagos ordinarios de cliente. Siguen abiertos edición de importe, reversiones de crédito/proveedor/multa/depósito, concurrencia y otros roles. C1 y C5 conservan sus pendientes. El resto del documento es historial anterior a esta continuación.
+
 ## C3 — verificación posterior a integración en producción
 
 El PR #140 se fusionó como `a8acefe84f231e4dede0881a79b7cac1987eacaa`. El despliegue de producción `dpl_78vLV9JwSwoGo3GNgCBH3pLqy8vM` pasó a READY con ese commit. Los cuatro workflows del HEAD final `8e4d1bda` aprobaron: quality gate #993, E2E #268, MCP #443 y Lighthouse #2284.

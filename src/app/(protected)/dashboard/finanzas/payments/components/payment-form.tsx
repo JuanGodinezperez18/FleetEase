@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2, RotateCcw, ShieldCheck, History } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { formatDate } from "@/lib/date-utils";
 import { PaymentHistoryView } from "../history/components/payment-history-view";
 import { entityExistedOnDate, recordDateOnOrBefore } from "./payment-date-filters";
 
@@ -399,9 +400,9 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                       <Label className="text-white/50">Compra / factura pendiente</Label>
                       <Select value={targetId} onValueChange={v => { setTargetId(v); const p = supplierPayables.find(row => row.id === v); setAmount(p ? p.outstanding.toFixed(2) : ""); }} disabled={!entityId || supplierPayables.length === 0}>
                         <SelectTrigger aria-label="Compra o factura pendiente" className="border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder={supplierPayables.length ? "Seleccionar compra pendiente..." : "No hay compras pendientes"} /></SelectTrigger>
-                        <SelectContent>{supplierPayables.map(row => <SelectItem key={row.id} value={row.id}>{(row.reference || "Compra sin referencia") + " · " + (row.purchaseDate ? new Date(row.purchaseDate).toLocaleDateString("es-MX") : "Sin fecha") + " · Pendiente " + formatCurrency(row.outstanding)}</SelectItem>)}</SelectContent>
+                        <SelectContent>{supplierPayables.map(row => <SelectItem key={row.id} value={row.id}>{(row.reference || "Compra sin referencia") + " · " + (row.purchaseDate ? formatDate(row.purchaseDate) : "Sin fecha") + " · Pendiente " + formatCurrency(row.outstanding)}</SelectItem>)}</SelectContent>
                       </Select>
-                      {selectedSupplierPayable && <p className="text-xs text-white/35">Total de compra: {formatCurrency(selectedSupplierPayable.total)}{selectedSupplierPayable.dueDate ? " · Vence " + new Date(selectedSupplierPayable.dueDate).toLocaleDateString("es-MX") : ""}</p>}
+                      {selectedSupplierPayable && <p className="text-xs text-white/35">Total de compra: {formatCurrency(selectedSupplierPayable.total)}{selectedSupplierPayable.dueDate ? " · Vence " + formatDate(selectedSupplierPayable.dueDate) : ""}</p>}
                     </div>
                   )}
 
@@ -468,7 +469,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                         <SelectContent>
                           {targets.map(r => (
                             <SelectItem key={r.id} value={r.id}>
-                              {r.sourceRecordType === "multa" ? `Multa${r.referenceCode ? ` · Folio ${r.referenceCode}` : ""}` : r.category} · Pendiente {formatCurrency(r.outstanding)} · {new Date(r.date).toLocaleDateString("es-MX")}
+                              {r.sourceRecordType === "multa" ? `Multa${r.referenceCode ? ` · Folio ${r.referenceCode}` : ""}` : r.category} · Pendiente {formatCurrency(r.outstanding)} · {formatDate(r.date)}
                             </SelectItem>
                           ))}
                         </SelectContent>
