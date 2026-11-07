@@ -1,5 +1,20 @@
 # Auditoría Fase 2 — seguimiento de hallazgos
 
+## Continuación posterior a PR #143 — liquidación y cancelación de crédito
+
+PR #143 integrado como `07db9eac19e9f603aeb8300f5f6b0c56e11c3799`. Producción READY `dpl_CLCkmfWm4Sw6BFJVZcXLZLNQFdMj`. Los cuatro workflows del HEAD `3f881753` aprobaron, incluido Lighthouse #2292. La migración de pagos anterior sigue aplicada (`20261106224056`).
+
+**Hallazgo real nuevo, C3/C4:** en Supabase, como authenticated QA Administrador y dentro de una transacción revertida, se creó un crédito temporal de $10, se abonaron $4 y se editaron a $5. El último pago de $5 falló con `23514 CLIENT_ASSIGNMENT_MUST_BE_ENDED_IN_HISTORY` en `finalize_completed_credit_vehicle`: el trigger limpiaba el cliente antes de cerrar `vehicle_assignment_logs`. Toda la transacción se revirtió; no se conservaron crédito, pagos ni cambios al vehículo QA. La UI del preview anterior se inspeccionó con admin QA, sin enviar el formulario de alta; no equivale a una prueba UI de liquidación.
+
+**Corrección preparada, NO aplicada:** `20261107053703_respect_credit_assignment_lifecycle.sql`, creada con CLI. El cierre histórico precede a la liberación de cliente/vehículo en los triggers de liquidación y cancelación/desactivación. La RPC de cancelación cierra primero con su motivo y empresa para conservar el motivo solicitado. Se retiran dos escrituras redundantes de vehículo en ramas de crédito completado de pago/recálculo: sobrescribían `sold` con `active`. El trigger de finalización conserva la autoridad de la entrega por crédito liquidado. Sin cambios a importes, fórmulas protegidas, RLS, permisos externos ni backfill. SECURITY DEFINER mantiene search_path vacío y funciones internas sin EXECUTE para clientes.
+
+**Validación aislada:** `supabase/tests/credit_assignment_lifecycle.sql` reproduce RED con funciones del catálogo vivo y guardas reales de historial, y pasa con el nuevo SQL en PGlite 0.5.15. Cubre abono parcial, edición, eliminación del parcial, liquidación, edición que liquida, conservación de `sold`, cierre de historial y liberación de recursos. Fallo deliberado de auditoría después de liquidar restaura crédito/pago/cuotas/historial/vehículo. Cancelación por RPC tras pago $4 conserva nota de $6 y motivo; rechaza empresa ajena. Desactivación cierra historia. Revisión independiente sin bloqueadores tras corregir pérdida del motivo. Se añade la misma prueba a CI PostgreSQL 17; resultado remoto pendiente en esta actualización.
+
+**Límite explícito:** borrar/reducir un pago de crédito ya completado sigue bloqueado por historial cerrado. El fixture verifica rechazo y rollback, no lo presenta como reversión aprobada. Reabrir una entrega de propiedad requiere tratamiento específico; no se fabrica ni reabre historia en esta corrección. Multas, proveedor en vivo, concurrencia y otras sesiones de roles siguen pendientes. Advisors fue consultado antes del diagnóstico; no hubo DDL ni nuevas migraciones en producción en este bloque.
+
+Fuente de verdad: `financial_records` y `financial_payment_credit_allocations`, RPC y agregados existentes. Escritores: pago/edición/borrado/cancelación y triggers de crédito/asignación. Consumidores: cuotas/saldos, cliente, vehículo e historial de asignaciones. La duplicación encontrada era de liberación/estado del vehículo, no un motor financiero. Se conservan fuente y fórmulas de conciliación existentes.
+
+
 ## Actualización PR #143 — migración aplicada y validación en vivo
 
 Con autorización expresa de Juan se aplicó `scope_atomic_payment_edits` en Supabase, versión `20261106224056` (fuente `20261106214659_scope_atomic_payment_edits.sql`). La preparación descrita debajo es historial anterior a esta aplicación. Los cuatro workflows de `5b3c0a97` aprobaron; el fixture SQL también aprobó en PostgreSQL 17 aislado.
@@ -103,6 +118,8 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 ---
 
 # Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
+
+> **Estado posterior a PR #143:** integrado y producción READY, cuatro workflows aprobados. Nuevo bloqueo real de liquidación por orden de cierre de asignación. Corrección preparada en `20261107053703_respect_credit_assignment_lifecycle.sql`, sin aplicar. Detalle y límites en la actualización al inicio del documento. C3/C4 siguen parciales.
 
 > **Continuación tras PR #142:** producción READY, fecha/referencia y edición de referencia verificadas con admin QA. Garantía UI 3 → 0 → 3 al aplicar/eliminar. Devolución expense omitida de historial y PAYMENT_NOT_FOUND confirmados. Migración `20261106214659_scope_atomic_payment_edits.sql` preparada, **no aplicada**: capacidad privada por transacción para importe y soporte acotado de devoluciones con vínculo. Roles/tenant/rollback probados en SQL aislado; reconciliador de proveedor también. 20/20 regresiones, TypeScript/build aprobados. Cinco movimientos nuevos eliminados lógicamente y recarga en cero. PostgreSQL 17 CI aprobado para `8371c608` (job 128182617017). C3 parcial; faltan aplicación autorizada y UI del cambio. [Evidencia](./FUNCTIONAL_TESTS_2026-11-06.md).
 
