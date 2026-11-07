@@ -1,5 +1,28 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## 7-nov — pruebas por interfaz del PR #145 en preview
+
+Frontend probado: `39bca19e44b6dc75e188cee3788ea95d51efc7ca`, despliegue `dpl_7nvjs95TxtPB6NUBDzPkiv25rjLG` READY. Se restableció Vercel mediante GitHub y se inició sesión segura de FleetEase como **QA Administrador**. El bloqueo de acceso al preview descrito en actualizaciones anteriores queda superado.
+
+| Comprobación | Evidencia observada |
+| --- | --- |
+| Fecha inicial y límite | Formulario Agregar crédito: value y max `2026-11-07`, día de Monterrey durante la prueba. |
+| Vista previa de cuotas | Dos pagos de $5 muestran total $10 y fechas 7/14-nov, empezando en la fecha seleccionada, sin desplazamiento al lunes. No se creó crédito. |
+| Límite nativo de fecha | Introducir 8-nov en el campo con max 7-nov produce `validity.rangeOverflow=true`. Esta observación demuestra la restricción del campo, no una escritura rechazada por RPC ni un mensaje nuevo de esquema. |
+| Fechas civiles del detalle | Crédito QA Cliente 12 `6440dff1-436c-4abd-b9f5-3e6e63f068cb`: inicio 12/09/2026; cuotas 1/2/9 vencen 12/09, 19/09 y 07/11; sus fechas pagadas 13/09, 13/09 y 18/09. Consulta SELECT con filtros de empresa/id confirmó exactamente estos DATE de BD. No se alteró el crédito. |
+| VIN y placa inválidos | En alta: `CORTO` y VIN de 17 terminado en I muestran error VIN; placa `ABC/123` muestra error de formato. |
+| Placa duplicada | `qademo002` muestra «Esta placa ya está registrada», comparando contra QADEMO002. |
+| Formatos admitidos | Placa ` abc-123-a ` y VIN ` 1hgcm82633a00435s ` quedan sin error, ambos aria-invalid=false. Se confirma aceptación visible, no normalización persistida. |
+| Compatibilidad histórica | En edición de QADEMO002, VIN original `QA000000000000002`: sustituir temporalmente por CORTO muestra error; restaurar el original quita el error. Se canceló sin guardar. |
+| Recarga | La sesión QA continúa autenticada y Vehículos conserva «21 en esta vista». |
+
+**Alcance y límites:** todos los formularios se cancelaron. No se pulsó Guardar vehículo/Crear crédito, no se enviaron altas ni ediciones, no se subieron archivos, no se ejecutó SQL de escritura y no hubo transferencias. Esta prueba cubre las validaciones y presentaciones cambiadas en PR #145; no sustituye un ciclo persistente de alta/edición ni pruebas de otros roles, concurrencia o cambio de día real. No se exportan capturas financieras.
+
+**Regresión del código probado:** 14 suites/55 pruebas locales aprobadas (25 nuevas), TypeScript/build aprobados. Cuatro workflows del HEAD: quality #1008, E2E #278, MCP #453, Lighthouse #2299, todos aprobados, incluidos permisos/atomicidad y liquidación/historial en PostgreSQL 17. PR #145 sin fusionar y sin conflictos al verificar. Inventario CI: producción sin vulnerabilidades; tooling 26 avisos, 23 moderados/3 bajos, ninguno alto/crítico.
+
+**Conclusión del alcance:** no se encontraron bloqueadores nuevos en los comportamientos probados del PR #145. C2/M4 avanzan con evidencia UI; el cierre global de la reauditoría conserva pendientes de reportes/exports, reversión tras liquidación, multas/proveedor, concurrencia, roles, Storage/enlaces, sesiones completas/Redis, atomicidad de administración y drift. No marcar C1–C5 cerrados por este bloque.
+
+
 ## 7-nov — continuación posterior a la fusión del PR #144
 
 PR #144 fusionado en `81f7fdf16a4f6d537d744fd9a6a37e62f40960d6`. Este bloque corrige dos defectos observados en sus pruebas de interfaz y conecta validaciones pendientes del formulario real de vehículos. No modifica producción ni requiere migraciones.
