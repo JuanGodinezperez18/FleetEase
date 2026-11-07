@@ -1,5 +1,18 @@
 # Auditoría Fase 2 — seguimiento de hallazgos
 
+## 7-nov — pruebas por interfaz para revisión de fusión del PR #144
+
+**Resultado para este PR: listo para revisión de fusión, sin cerrar C3/C4 globales.** HEAD de código `ade5ec83`, sin conflictos con master; quality #1005, E2E #276, MCP #451 y Lighthouse #2296 aprobados. Preview exacto READY `dpl_23T72QfEnPizWHbgE7opQqiwJa1d`. La prueba interactiva se realizó en www.fleetease.com.mx con sesión QA Administrador y la migración aplicada, usando dos clientes/vehículos nuevos desechables. El frontend de este PR no cambia respecto de producción; su corrección está en las cinco funciones SQL ya aplicadas. No se presenta esta prueba como navegación del hostname del preview.
+
+- Alta por UI de crédito de $10 (2 cuotas de $5) para QA144 Liquidacion: aprobada. Abono $4 desde Pagos, edición a $5 desde historial y segundo pago $5: aprobados. BD confirmó crédito completed, pagado $10, saldo cero, 2 cuotas pagadas, vehículo sold/libre y cero asignaciones abiertas. La tabla de créditos mostró completed/$0 tras volver al módulo y el selector de pagos dejó de ofrecer ese crédito.
+- Alta por UI de otro crédito de $10 para QA144 Cancelacion, abono $4 y cancelación desde su menú con motivo: aprobados. Modal confirmó cliente y vehículo liberados. BD confirmó cancelled, nota de crédito $6, motivo conservado en nota e historial, vehículo active/sin cliente/sin bloqueo. Recarga mostró ambos estados persistidos.
+- Los recursos iniciales se prepararon por SQL como authenticated QA; alta de créditos, pagos, edición y cancelación se hicieron desde UI. No hubo transferencia de dinero.
+
+**Limpieza de fixtures:** clientes `903d1065-59f2-4945-8ff7-16f8c295ae7e` y `e015c82b-bc21-47b9-bd85-4f0e422adb4c`; vehículos `5fef06fa-b7b2-48d4-9443-914ddf2f4e77` y `e765d561-02e4-40ac-92d6-3eef1ba98957`; créditos `760e16db-edfe-4634-b70d-700c802a2031` y `3215b28b-2e56-4585-80af-08d857a8c41b`. Se archivó mediante SQL privilegiado, en una sola transacción y con filtros de empresa/ids, exclusivamente el grafo sintético: clientes, vehículos, créditos, seis registros financieros, cuotas, asignaciones de pagos y kilometrajes nuevos. Sin borrado físico; se conservan historial cerrado y auditoría. Esto es limpieza de fixtures, **no prueba de reversión funcional de crédito completado**. Verificación BD: cero registros financieros activos de esos clientes. Recarga UI volvió a los cuatro créditos originales y cero créditos activos.
+
+**Pendientes fuera del cierre de este PR:** reversión después de liquidación continúa bloqueada con rollback y ya está acotada en el fixture. Se observó en el detalle de crédito que el DATE civil 7-nov se presenta como 6-nov y que la vista previa anuncia primer pago 9-nov mientras las cuotas de BD empiezan el 7-nov; son comportamientos preexistentes en frontend/contrato de alta, no modificados por este SQL. Registrar su seguimiento sin afirmar C2 resuelto. Multas/proveedor, concurrencia y otras sesiones de roles conservan sus pendientes.
+
+
 ## 7-nov — migración PR #144 aplicada y verificada en BD real
 
 Juan autorizó la aplicación. Supabase registró `respect_credit_assignment_lifecycle` como versión `20261107130143` (fuente `20261107053703_respect_credit_assignment_lifecycle.sql`). Preflight: cinco funciones coincidían con el snapshot revisado y las seis tablas conservaban RLS. Los cuatro workflows de `c8bc9e0f` aprobaron: quality #1004, E2E #275, MCP #450 y Lighthouse #2295. PR #144 permanece abierto, sin fusionar.
@@ -131,6 +144,8 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 ---
 
 # Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
+
+> **7-nov, UI del PR #144 aprobada:** alta, abono, edición, liquidación y cancelación parcial con recursos QA nuevos; BD confirma historial/vehículo/nota/motivo. Fixtures archivados lógicamente, recarga vuelve a cuatro créditos originales. Listo para revisión de fusión del alcance de este PR; C3/C4 globales parciales. Detalle al inicio.
 
 > **7-nov, PR #144 aplicado con autorización:** versión Supabase `20261107130143`. Liquidación y cancelación parcial aprobadas por RPC como admin QA en BD real, todo revertido. Permisos y advisors conservados. Cuatro workflows de c8bc9e0f aprobados. Faltan UI y reversión tras liquidación; C3/C4 parciales. Véase evidencia al inicio.
 
