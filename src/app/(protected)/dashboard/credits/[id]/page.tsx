@@ -4,8 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useData } from "@/hooks/use-data";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+
+import { formatDate } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import { DataTable } from "@/components/common/data-table";
@@ -54,7 +54,7 @@ export default function CreditDetailPage() {
     {
       accessorKey: "dueDate",
       header: "Vencimiento",
-      cell: ({ row }) => format(new Date(row.original.dueDate), "PPP", { locale: es }),
+      cell: ({ row }) => formatDate(row.original.dueDate),
     },
     {
       accessorKey: "status",
@@ -117,7 +117,7 @@ export default function CreditDetailPage() {
     {
       accessorKey: "paidDate",
       header: "Fecha pago",
-      cell: ({ row }) => (row.original.paidDate ? format(new Date(row.original.paidDate), "PPP", { locale: es }) : "—"),
+      cell: ({ row }) => (row.original.paidDate ? formatDate(row.original.paidDate) : "—"),
     },
   ];
 
@@ -190,7 +190,7 @@ export default function CreditDetailPage() {
             </div>
             <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[11px] text-white/40">Inicio</p>
-              <p className="mt-0.5 text-sm font-medium text-white/90">{format(new Date(credit.startDate), "PPP", { locale: es })}</p>
+              <p className="mt-0.5 text-sm font-medium text-white/90">{formatDate(credit.startDate)}</p>
             </div>
             <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-3 sm:col-span-2">
               <p className="mb-1.5 text-[11px] text-white/40">Progreso</p>
@@ -232,7 +232,7 @@ export default function CreditDetailPage() {
                   >
                     <div>
                       <p className="font-semibold tabular-nums text-emerald-300">{formatCurrency(payment.amount)}</p>
-                      <p className="text-xs text-white/40">{format(new Date(payment.date), "PPP", { locale: es })}</p>
+                      <p className="text-xs text-white/40">{formatDate(payment.date)}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-white/50">
                       {categoryName}

@@ -1,3 +1,4 @@
+import { getBusinessDateKey } from '@/lib/vehicle-assignment';
 import { supabase } from '@/lib/supabase-browser';
 import { isJsonObject, toJsonObject } from '@/lib/json-guards';
 
@@ -90,7 +91,7 @@ export async function processCreditPaymentAtomic(params: {
     p_credit_id: params.creditId,
     p_client_id: params.clientId,
     p_amount: params.amount,
-    p_payment_date: params.paymentDate ?? new Date().toISOString().slice(0, 10),
+    p_payment_date: params.paymentDate ?? getBusinessDateKey(new Date()),
     ...(params.paymentMethod !== undefined ? { p_payment_method: params.paymentMethod } : {}),
     ...(params.reference !== undefined ? { p_reference: params.reference } : {}),
   });

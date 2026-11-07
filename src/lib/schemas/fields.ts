@@ -5,12 +5,6 @@ const mexicanPhoneDigitsSchema = z
   .transform((value) => value.replace(/\D/g, ''))
   .refine((value) => value.length === 10, 'Teléfono debe tener 10 dígitos');
 
-const platePatterns = [
-  /^[A-Z]{3}-\d{4}$/,
-  /^[A-Z]{2}-\d{5}$/,
-  /^[A-Z]{3}-\d{2}-\d{2}$/,
-];
-
 export const emailSchema = z
   .string()
   .min(1, 'Email es requerido')
@@ -23,10 +17,11 @@ export const phoneSchema = z
 
 export const plateSchema = z
   .string()
-  .min(1, 'Placa es requerida')
+  .trim()
+  .transform(value => value.toUpperCase())
   .refine(
-    (value) => platePatterns.some((pattern) => pattern.test(value.toUpperCase())),
-    'Formato de placa inválido (ej: ABC-1234)',
+    value => /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value) && /^[A-Z0-9]{3,10}$/.test(value.replace(/-/g, '')),
+    'La placa debe contener de 3 a 10 letras o números, con guiones opcionales.',
   );
 
 export const currencySchema = z.preprocess(
