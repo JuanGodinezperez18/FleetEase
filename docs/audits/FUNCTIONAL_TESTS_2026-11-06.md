@@ -1,5 +1,18 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## 7-nov — migración PR #144 aplicada y verificada en BD real
+
+Juan autorizó la aplicación. Supabase registró `respect_credit_assignment_lifecycle` como versión `20261107130143` (fuente `20261107053703_respect_credit_assignment_lifecycle.sql`). Preflight: cinco funciones coincidían con el snapshot revisado y las seis tablas conservaban RLS. Los cuatro workflows de `c8bc9e0f` aprobaron: quality #1004, E2E #275, MCP #450 y Lighthouse #2295. PR #144 permanece abierto, sin fusionar.
+
+Prueba posterior como authenticated QA Administrador en Supabase real: crear crédito temporal $10, abono $4, editar a $5 y liquidar con otros $5 aprobados. Crédito completed/saldo cero, vehículo sold y sin bloqueo, historial cerrado. Se comprobó además que intentar borrar el último pago sigue rechazado por historia cerrada y revierte la eliminación. Otro crédito temporal con abono $4 se canceló por la RPC: nota $6, motivo conservado, vehículo active/liberado. Resultado `PASS_COMPLETION_AND_PARTIAL_CANCELLATION_ROLLED_BACK`.
+
+Cada escenario se revirtió completo mediante subtransacción y rollback final. Verificación independiente posterior: cero créditos activos QA, cero movimientos QA144, vehículo original rented con su cliente, sin bloqueo ni crédito asociado y una asignación abierta, igual al estado previo. No hubo operaciones de dinero ni cambios financieros persistentes. Esta evidencia es BD/RPC real, **no prueba UI de liquidación**.
+
+Permisos posteriores: anon no ejecuta la RPC de pago y authenticated no ejecuta el recalculador interno. Advisors antes/después conserva los mismos 16 avisos SECURITY DEFINER, protección de contraseña filtrada deshabilitada y el INFO intencional de tabla privada con RLS sin políticas. Sin nuevos avisos. Referencias: [SECURITY DEFINER](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), [contraseñas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), [RLS privado](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+
+C3/C4 siguen parciales. La migración ya no está pendiente; faltan UI con recursos QA desechables, reversión de crédito completado, multas/proveedor en vivo, concurrencia y sesiones de otros roles. La preparación sin aplicar descrita debajo es historial anterior a esta autorización/aplicación.
+
+
 ## Continuación posterior a PR #143 — liquidación y cancelación de crédito
 
 PR #143 integrado como `07db9eac19e9f603aeb8300f5f6b0c56e11c3799`. Producción READY `dpl_CLCkmfWm4Sw6BFJVZcXLZLNQFdMj`. Los cuatro workflows del HEAD `3f881753` aprobaron, incluido Lighthouse #2292. La migración de pagos anterior sigue aplicada (`20261106224056`).
