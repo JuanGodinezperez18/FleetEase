@@ -1,5 +1,55 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## Actualización PR #143 — migración aplicada y validación en vivo
+
+Con autorización expresa de Juan se aplicó `scope_atomic_payment_edits` en Supabase, versión `20261106224056` (fuente `20261106214659_scope_atomic_payment_edits.sql`). La preparación descrita debajo es historial anterior a esta aplicación. Los cuatro workflows de `5b3c0a97` aprobaron; el fixture SQL también aprobó en PostgreSQL 17 aislado.
+
+En preview READY `dpl_8aUZLiDTDeVKtMTrJDcowVKXsYL2`, sesión QA Administrador: pago ordinario creado por UI por $4 y editado a $5; devolución expense creada por $1, visible en historial y editada a $2. BD confirmó importes y vínculos. El borrado especializado UI de devolución restauró garantía disponible a $3; el pago también se eliminó por UI. Raw UPDATE con GUC falsificado y sobrepago por RPC fueron rechazados en una transacción revertida. No quedaron autorizaciones técnicas.
+
+Limpieza: cargo `ae9b81f6-f326-42b8-a388-c668ccfe2aab`, garantía `e5cd6e7b-9600-45f2-9dd0-1799ba85ecba`, pago `62ad1b97-61d6-443e-9b34-48752328eebb` y devolución `035cceb3-424e-419b-8ae9-51c93befe030`: los cuatro con is_deleted=true, sin borrado físico. Recarga UI confirmó $0 y cero registros. Sólo movimientos QA nuevos; sin transferencias de dinero ni cambios persistentes a datos anteriores.
+
+Hallazgo adicional: a las 05:00 UTC del 7-nov todavía era 6-nov en Monterrey, pero el alta proponía 7-nov por toISOString. Alta y edición ahora usan el helper de fecha de negocio, validan fecha vacía/futura y limitan el calendario. Regresiones RED/GREEN: ocho suites, 23/23 pruebas aprobadas y TypeScript aprobado. Revisión independiente sin bloqueadores; ambas suites afectadas también pasaron con TZ=America/Mexico_City (6 pruebas). Este ajuste de fechas todavía requiere CI/preview del nuevo commit; no se presenta como probado en vivo.
+
+Advisors posteriores: persisten 16 WARN de funciones SECURITY DEFINER accesibles a authenticated y protección de contraseñas filtradas deshabilitada. INFO nuevo por RLS sin políticas en la tabla privada es intencional: denegar acceso directo; no crear política permisiva.
+
+C3 sigue parcial: edición y devolución ordinarias tienen evidencia UI. Crédito, multa, proveedor en vivo, concurrencia y sesiones de otros roles siguen pendientes. PR #143 aún no fusionado. No se alteraron fórmulas financieras ni se hizo backfill.
+
+
+## Continuación tras PR #142 — edición atómica y devoluciones
+
+Base integrada `384f7e89ab76439007853533c11077ca3d908c4e`; producción READY `dpl_9bRrFZyGRgrDTNbpAPpegKgD37GW`. Sesión real QA Administrador, empresa QA FleetEase Demo. Se utilizaron únicamente cinco movimientos nuevos desechables.
+
+**CI posterior a publicar:** para HEAD `8371c608616e2b54e21cc2c4f3e63eb6526e826e`, job `Atomic payment SQL regression` **128182617017** aprobado en PostgreSQL 17 real y aislado (quality gate #999, run 42302228582). Preview `dpl_J43v9XgX2eACeu8ryyLxNKWtzBtQ` READY. Esto amplía la prueba local PGlite y no aplica la migración al proyecto Supabase. El cambio posterior sólo registra esta evidencia documental.
+
+### Evidencia en vivo
+
+- PR #142 verificado: cargo del 6-nov aparece `06/11/2026`; pago de $2 conserva referencia en tabla, búsqueda y editor. Cambiar sólo la referencia a `QA-EDIT2-REF-OK` tuvo éxito por UI y persistió con importe/vínculo $2.
+- Aplicación de depósito: ingreso de garantía $3, aplicado por UI al cargo nuevo. BD confirmó dos vínculos del mismo pago: `security_deposit_application` a la garantía y `client_payment_to_financial_record` al cargo, ambos $3. La disponibilidad UI pasó 3 → 0. El botón eliminó ese pago; BD confirmó borrado lógico y la disponibilidad volvió a 3.
+- Devolución parcial de $1 por UI persistió como **expense**, categoría `Devolución de Depósito`, referencia `QA-EDIT2-REFUND`. El historial la excluyó y conservó sólo el pago ordinario de $2. La RPC de edición sobre ese id como authenticated reprodujo `PAYMENT_NOT_FOUND`, incluso sin cambiar el importe. No se presenta ese caso como aprobado.
+- Los botones de editar/eliminar del historial carecían de nombre accesible. Se añaden etiquetas y título en móvil/escritorio sin cambiar el flujo.
+
+### Corrección preparada, no aplicada a producción
+
+Migración generada por CLI: `20261106214659_scope_atomic_payment_edits.sql`. Mantiene firmas de edición y eliminación. El trigger sigue SECURITY INVOKER y conserva las guardas de identidad, empresa, categoría, relaciones y semántica. Una tabla en `fleetease_private`, con RLS sin políticas y sin permisos de escritura de clientes, almacena una autorización de un uso ligada a transacción/backend/pago/empresa/actor/importes exactos. Sólo la RPC privilegiada la crea después de validar el perfil activo admin/editor/super_admin y bloquear el pago. El trigger consume esa transición; raw UPDATE, flags GUC y otras modificaciones sensibles siguen rechazados. La limpieza de esta autorización técnica no elimina historial financiero. Se conserva la excepción previa de super_admin; su contrato requiere empresa en perfil, igual que antes.
+
+La RPC normaliza importe a los mismos dos decimales de `financial_records.amount` antes de autorizar/asignar/auditar, y rechaza cero resultante, NaN e infinitos. Además de pagos, admite exclusivamente gastos con categoría normalizada de devolución y vínculo propio `security_deposit_refund`; los gastos ordinarios y devoluciones huérfanas se rechazan. La rama de aplicación de garantía exige type=payment para no capturar devoluciones expense por su descripción. UI incluye esas devoluciones en el historial. No se altera la clasificación expense en BD ni fórmulas protegidas.
+
+Fuente de verdad: financial_records y sus vínculos/asignaciones. Escritores: RPC existentes de pagos, garantía y devolución. Consumidores afectados: historial/editor, saldos del cliente, CxP y compras. Se reutiliza el reconciliador existente de proveedor; no se crea otro cálculo de saldo. La selección/roles se validan en BD, no mediante metadatos editables ni ocultando controles.
+
+### Validación y límites
+
+- Fixture `supabase/tests/atomic_payment_edit.sql` en PGlite 0.5.15: baseline RED `FINANCIAL_SENSITIVE_FIELDS_IMMUTABLE`; con la migración, `ATOMIC_PAYMENT_EDIT_PASS`.
+- Prueba edición 4 → 5 (entrada 5.001 normalizada), disminución/reasignación, referencia sin cambio de importe, aplicación de garantía 3 → 2, devolución expense 1 → 2 y reversión. Cubre nombre de categoría con espacios y descripción que contiene «Depósito aplicado».
+- Rechaza raw UPDATE, GUC falsificado, escritura de autorizaciones, sobrepago, cero/redondeo a cero/NaN/infinito, pago/cargo de empresa ajena, otro cliente, ingreso/gasto ordinario, devolución sin vínculo, cliente/socio/perfil eliminado/ausente y falta de auth. Admin/editor y superadmin con empresa pasan. Anon no ejecuta las RPC.
+- Fallo deliberado de auditoría **después** del UPDATE comprueba rollback conjunto de importe, vínculos, auditoría y autorización. No quedan autorizaciones tras éxito, sin cambio de importe ni fallo.
+- El fixture incorpora una copia del reconciliador vivo de proveedor: edición parcial $5, total $12 y eliminación cambian CxP/compra de partially_paid a paid y pending. Es prueba SQL aislada, **no UI ni BD productiva de proveedor**. Crédito falla cerrado mediante stub y sigue sin validar sus recálculos completos.
+- Regresión de interfaz RED/GREEN para devolución omitida y acciones accesibles. Siete suites relevantes: **20/20 pruebas aprobadas**. TypeScript y build aprobados; advertencias Tailwind existentes. Job nuevo CI ejecuta el fixture con psql en PostgreSQL 17 aislado; aprobado posteriormente para `8371c608` como consta arriba. No se repitió la suite completa anterior ni se afirma lint aprobado.
+- Revisión independiente detectó precisión y normalización de categoría; ambos casos corregidos y añadidos al fixture. No se encontraron bypass de capacidad/tenant/roles. Advisors previo mantiene 16 funciones SECURITY DEFINER accesibles a authenticated y protección de contraseñas filtradas deshabilitada. Repetir después de aplicar el SQL; no se afirma una revisión posterior a una migración aún no aplicada.
+
+**Limpieza verificada:** cargo `ae9fec99-95e3-4d4a-bc35-d17600068c48` ($11), garantía `cf222d9d-bb67-4343-b558-b3a48553733f` ($3), pago directo `928e3d0f-102c-442b-a869-6bb0fa61fa2d` ($2), aplicación `9baf487f-3367-4ca5-b4ba-2ea71591c036` ($3), devolución `9e32c478-537e-4c04-9643-fbe7883a3de2` ($1): los cinco tienen is_deleted=true. Los dos pagos se retiraron por sus botones UI. Devolución/cargo/garantía se retiraron por la RPC ordinaria para limpiar únicamente estas filas nuevas; **no equivale a probar el nuevo borrado especializado de devolución**. No se modificaron datos históricos de forma persistente ni se transfirió dinero. Tras recarga, vista Pagos $0/cero filas y garantía disponible $0; aplicaciones activas sobre los dos cargos nuevos suman 0.
+
+**Estado:** C3 parcial hasta aplicar la migración tras revisión/autorización y probar por UI la edición de importes, edición/reversión de devoluciones y otros roles. Crédito, multa, proveedor en vivo, concurrencia y demás pendientes de C1–C5 siguen abiertos. La migración no hace backfill ni cambia datos existentes. No retirar la tabla privada mientras el trigger la referencie; una reversión posterior requiere migración coordinada de las funciones. El resto del documento conserva el historial anterior.
+
 ## Continuación tras PR #141 — pagos desde UI con administrador QA
 
 Base integrada: PR #141, merge `8b99fd1aa608522d1d8b5aadb3d82d437c34bcc2`. Sesión de producción: QA Administrador. Sólo se utilizó QA FleetEase Demo y registros nuevos desechables.

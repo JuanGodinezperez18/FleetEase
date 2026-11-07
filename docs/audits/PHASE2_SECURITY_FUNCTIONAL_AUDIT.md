@@ -1,5 +1,20 @@
 # Auditoría Fase 2 — seguimiento de hallazgos
 
+## Actualización PR #143 — migración aplicada y validación en vivo
+
+Con autorización expresa de Juan se aplicó `scope_atomic_payment_edits` en Supabase, versión `20261106224056` (fuente `20261106214659_scope_atomic_payment_edits.sql`). La preparación descrita debajo es historial anterior a esta aplicación. Los cuatro workflows de `5b3c0a97` aprobaron; el fixture SQL también aprobó en PostgreSQL 17 aislado.
+
+En preview READY `dpl_8aUZLiDTDeVKtMTrJDcowVKXsYL2`, sesión QA Administrador: pago ordinario creado por UI por $4 y editado a $5; devolución expense creada por $1, visible en historial y editada a $2. BD confirmó importes y vínculos. El borrado especializado UI de devolución restauró garantía disponible a $3; el pago también se eliminó por UI. Raw UPDATE con GUC falsificado y sobrepago por RPC fueron rechazados en una transacción revertida. No quedaron autorizaciones técnicas.
+
+Limpieza: cargo `ae9b81f6-f326-42b8-a388-c668ccfe2aab`, garantía `e5cd6e7b-9600-45f2-9dd0-1799ba85ecba`, pago `62ad1b97-61d6-443e-9b34-48752328eebb` y devolución `035cceb3-424e-419b-8ae9-51c93befe030`: los cuatro con is_deleted=true, sin borrado físico. Recarga UI confirmó $0 y cero registros. Sólo movimientos QA nuevos; sin transferencias de dinero ni cambios persistentes a datos anteriores.
+
+Hallazgo adicional: a las 05:00 UTC del 7-nov todavía era 6-nov en Monterrey, pero el alta proponía 7-nov por toISOString. Alta y edición ahora usan el helper de fecha de negocio, validan fecha vacía/futura y limitan el calendario. Regresiones RED/GREEN: ocho suites, 23/23 pruebas aprobadas y TypeScript aprobado. Revisión independiente sin bloqueadores; ambas suites afectadas también pasaron con TZ=America/Mexico_City (6 pruebas). Este ajuste de fechas todavía requiere CI/preview del nuevo commit; no se presenta como probado en vivo.
+
+Advisors posteriores: persisten 16 WARN de funciones SECURITY DEFINER accesibles a authenticated y protección de contraseñas filtradas deshabilitada. INFO nuevo por RLS sin políticas en la tabla privada es intencional: denegar acceso directo; no crear política permisiva.
+
+C3 sigue parcial: edición y devolución ordinarias tienen evidencia UI. Crédito, multa, proveedor en vivo, concurrencia y sesiones de otros roles siguen pendientes. PR #143 aún no fusionado. No se alteraron fórmulas financieras ni se hizo backfill.
+
+
 ## Objetivo
 Concentrar los hallazgos reproducibles y las correcciones de seguridad/funcionalidad en una rama y PR independientes. Cada cambio debe validarse antes de fusionarse a `master` y desplegarse a producción.
 
@@ -88,6 +103,8 @@ No hay configuración de Aikido en el repositorio, así que no existe un resulta
 ---
 
 # Estado vigente C1–C5 — actualización posterior al PR #124 (2026-11-04)
+
+> **Continuación tras PR #142:** producción READY, fecha/referencia y edición de referencia verificadas con admin QA. Garantía UI 3 → 0 → 3 al aplicar/eliminar. Devolución expense omitida de historial y PAYMENT_NOT_FOUND confirmados. Migración `20261106214659_scope_atomic_payment_edits.sql` preparada, **no aplicada**: capacidad privada por transacción para importe y soporte acotado de devoluciones con vínculo. Roles/tenant/rollback probados en SQL aislado; reconciliador de proveedor también. 20/20 regresiones, TypeScript/build aprobados. Cinco movimientos nuevos eliminados lógicamente y recarga en cero. PostgreSQL 17 CI aprobado para `8371c608` (job 128182617017). C3 parcial; faltan aplicación autorizada y UI del cambio. [Evidencia](./FUNCTIONAL_TESTS_2026-11-06.md).
 
 > **Continuación tras PR #141, 6-nov:** Pagos UI con admin QA: parcial $4 + liquidación $6, borrado lógico por botones e historial 10 → 6 → 0 tras recarga aprobados. Cargo y pagos nuevos eliminados lógicamente. **Edición de importe bloqueada** por `FINANCIAL_SENSITIVE_FIELDS_IMMUTABLE`, reproducida en BD. Referencia persistida omitida por consulta y DATE mostrado con un día menos: correcciones de lectura/presentación en rama, dos regresiones RED/GREEN y TypeScript aprobado; CI/preview pendientes. No se relaja el trigger financiero. C3 sigue parcial. [Evidencia](./FUNCTIONAL_TESTS_2026-11-06.md).
 

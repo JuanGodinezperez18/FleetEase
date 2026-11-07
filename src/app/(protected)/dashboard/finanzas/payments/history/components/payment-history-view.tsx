@@ -15,6 +15,8 @@ import { CreditCard, HandCoins, Users, Briefcase, Search, RotateCcw, Pencil, Tra
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/date-utils";
+import { getBusinessDateKey } from "@/lib/vehicle-assignment";
+import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
 import { toast } from "sonner";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 
@@ -146,7 +148,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
 
   const paymentRecords = useMemo(() => {
     return financialRecords
-      .filter(r => !r.isDeleted && (r.type === "payment" || r.creditPayment === true))
+      .filter(r => !r.isDeleted && (r.type === "payment" || r.creditPayment === true ||
+        (r.type === "expense" && String(r.category || "").trim().toLowerCase() === "devolución de depósito")))
       .filter(r => !companyId || !r.companyId || r.companyId === companyId)
       .map(r => {
         const ownLinks = links.filter(l => l.source_financial_record_id === r.id);
@@ -243,6 +246,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     if (!editing || !companyId) return;
     const numericAmount = Number(editAmount);
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
+    if (!editDate) return toast.error("Selecciona la fecha del pago.");
+    if (!isFinancialDateNotInFuture(editDate, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
     if ((editing.recordKind === "client" || editing.recordKind === "supplier") && !editTarget) {
       return toast.error("Selecciona el registro al que se aplicará el pago.");
     }
@@ -385,8 +390,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">{PAYMENT_LABELS[r.recordKind] || "Pago"}</span>
                         <div className="ml-auto flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} onClick={() => void deletePayment(r)}>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} aria-label="Eliminar pago" title="Eliminar pago" onClick={() => void deletePayment(r)}>
                             {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                           </Button>
                         </div>
@@ -412,8 +417,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                           <td className="p-3 text-right font-semibold tabular-nums text-white">{formatCurrency(Number(r.amount || 0))}</td>
                           <td className="p-3">
                             <div className="flex justify-end gap-1">
-                              <Button size="icon" variant="ghost" className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} onClick={() => void deletePayment(r)}>
+                              <Button size="icon" variant="ghost" className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} aria-label="Eliminar pago" title="Eliminar pago" onClick={() => void deletePayment(r)}>
                                 {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                               </Button>
                             </div>
@@ -468,7 +473,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                 </div>
               )}
               <div className="space-y-2"><Label className="text-white/50">Importe</Label><Input inputMode="decimal" value={editAmount} onChange={e => setEditAmount(e.target.value.replace(/[^0-9.]/g, ""))} className="border-white/10 bg-white/[0.03] text-white" /></div>
-              <div className="space-y-2"><Label className="text-white/50">Fecha</Label><Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-white/10 bg-white/[0.03] text-white" /></div>
+              <div className="space-y-2"><Label className="text-white/50">Fecha</Label><Input type="date" max={getBusinessDateKey(new Date())} value={editDate} onChange={e => setEditDate(e.target.value)} className="border-white/10 bg-white/[0.03] text-white" /></div>
               <div className="space-y-2">
                 <Label className="text-white/50">Método</Label>
                 <Select value={editMethod} onValueChange={setEditMethod}>
