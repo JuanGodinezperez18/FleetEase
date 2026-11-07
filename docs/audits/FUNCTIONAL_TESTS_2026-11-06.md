@@ -1,5 +1,32 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## 7-nov — continuación posterior a la fusión del PR #144
+
+PR #144 fusionado en `81f7fdf16a4f6d537d744fd9a6a37e62f40960d6`. Este bloque corrige dos defectos observados en sus pruebas de interfaz y conecta validaciones pendientes del formulario real de vehículos. No modifica producción ni requiere migraciones.
+
+- **C2, fechas de crédito:** el alta propone/limita el día de Monterrey; el esquema rechaza fechas imposibles y futuras. Editar conserva una fecha DATE sin convertirla a UTC. El detalle conserva el día civil en inicio, vencimiento, fecha pagada e historial. La RPC de pago usa el día de Monterrey cuando el consumidor omite fecha.
+- **Calendario de crédito:** la vista previa ahora refleja el contrato persistente de `create_credit_atomic`: primera cuota en startDate, siguientes cada siete días. Se elimina el desplazamiento local al lunes. No se cambia el calendario guardado, importes ni fórmulas de BD.
+- **M4, captura de vehículos:** el esquema real utiliza VIN de 17 caracteres sin I/O/Q, conservando S y normalizando mayúsculas/espacios. La placa acepta 3–10 letras/números, con guiones entre grupos; validación sintáctica, sin afirmar verificación registral. Duplicados canónicos se comparan dentro de los vehículos activos del tenant. Identificadores históricos sin modificar conservan la validación previa de duplicados exactos; los cambios deben cumplir las reglas nuevas. No se reescriben filas históricas.
+- **Pruebas:** cinco suites nuevas, 25 pruebas aprobadas en America/Mexico_City. El caso original de fecha de edición/previsualización/futuro falló antes de la corrección y pasa después. Hay pruebas del payload enviado, cuatro fechas del detalle, fecha por defecto de RPC, esquema real de vehículo, formatos, duplicados y conservación de datos históricos. TypeScript aprobado. CI incluye estas suites. La comprobación de interfaz en un nuevo preview queda pendiente; no se presenta Jest como prueba en producción.
+
+**Criterios pendientes para cierre global:**
+
+| Grupo | Evidencia todavía necesaria |
+| --- | --- |
+| C1, reportes | Conciliar casos representativos entre detalle, resumen, PDF/Excel y entidades borradas/sin entidad; conservar el motor existente. |
+| C2, fechas | Probar formularios/API y cambio de día en vivo, incluido este nuevo frontend. |
+| C3/C4, ciclos | Reversión de crédito liquidado, multas/proveedor en vivo, concurrencia y otros roles. |
+| C5/M1, BD | Reconciliar drift global contra migraciones; no volver a ejecutar las ya aplicadas de PR143/144. |
+| A1/A2/N5 | Evidencia de Redis y límites efectivos en ejecución, no sólo variables configuradas. |
+| M2 | Categorías semánticas al crear una empresa nueva. |
+| M3/M6/N2 | Subida binaria, lectura por segunda empresa y enlaces de un uso/vencimiento/regeneración. |
+| M5/M7/B5 | Flujos por rol, expiración/refresh, logout entre pestañas y reapertura de navegador. |
+| B4 | Inventario actualizado de dependencias y excepciones justificadas. |
+| N3/N9 | Atomicidad/reintentos del gasto de administración y confianza de IP limitada al despliegue admitido. |
+
+**Diseño de reversión pendiente, sin ejecutar:** no basta con volver a poner rented al vehículo sold. Antes de habilitar la reversión deben existir evidencia de la asignación/propiedad previa, bloqueo de crédito/vehículo/cliente, comprobación de que no hubo reasignación u otra entrega, y creación de un intervalo nuevo sin reabrir historia cerrada. Si falta evidencia o hay conflicto, rechazar sin efectos. Probar rollback integral, dos sesiones concurrentes, tenant/rol y ciclos repetidos. Los créditos históricos sin evidencia recuperable requieren revisión individual; no crear un backfill supuesto. C3/C4 siguen parciales y no se declara terminada la auditoría.
+
+
 ## 7-nov — pruebas por interfaz para revisión de fusión del PR #144
 
 **Resultado para este PR: listo para revisión de fusión, sin cerrar C3/C4 globales.** HEAD de código `ade5ec83`, sin conflictos con master; quality #1005, E2E #276, MCP #451 y Lighthouse #2296 aprobados. Preview exacto READY `dpl_23T72QfEnPizWHbgE7opQqiwJa1d`. La prueba interactiva se realizó en www.fleetease.com.mx con sesión QA Administrador y la migración aplicada, usando dos clientes/vehículos nuevos desechables. El frontend de este PR no cambia respecto de producción; su corrección está en las cinco funciones SQL ya aplicadas. No se presenta esta prueba como navegación del hostname del preview.
