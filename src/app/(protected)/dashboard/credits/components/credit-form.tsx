@@ -4,7 +4,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMemo, useEffect, useState } from "react";
-import { format, addWeeks, getDay, addDays } from "date-fns";
+import { format, addWeeks } from "date-fns";
 import { es } from "date-fns/locale";
 import { useData } from "@/hooks/use-data";
 import type { Credit, Client } from "@/types";
@@ -18,8 +18,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isClientCreatedOnOrBefore } from "@/lib/filter-clients-by-date";
 
+import { normalizeDate, parseDateForInput } from "@/lib/date-utils";
+import { getBusinessDateKey } from "@/lib/vehicle-assignment";
+import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
+
 export const creditSchema = z.object({
-  startDate: z.string().min(1, "La fecha es obligatoria."),
+  startDate: z.string().min(1, "La fecha es obligatoria.").refine(
+    value => isFinancialDateNotInFuture(value, getBusinessDateKey(new Date())),
+    "La fecha debe ser válida y no puede ser futura.",
+  ),
   clientId: z.string().min(1, "El cliente es obligatorio."),
   vehicleId: z.string().min(1, "El cliente debe tener un vehículo asignado para crear el crédito."),
   numberOfPayments: z.preprocess(
@@ -42,13 +49,6 @@ interface CreditFormProps {
   onClose: () => void;
 }
 
-const getNextMonday = (date: Date) => {
-  const day = getDay(date);
-  const daysUntilMonday = (8 - day) % 7;
-  const offset = daysUntilMonday === 0 ? 7 : daysUntilMonday;
-  return addDays(date, offset);
-};
-
 const inputClass = "border-white/10 bg-white/[0.03] text-white";
 const labelClass = "text-white/50";
 
@@ -59,8 +59,8 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
   const defaultValues = useMemo(
     () => ({
       startDate: initialData?.startDate
-        ? format(new Date(initialData.startDate), "yyyy-MM-dd")
-        : format(new Date(), "yyyy-MM-dd"),
+        ? parseDateForInput(initialData.startDate)
+        : getBusinessDateKey(new Date()),
       clientId: initialData?.clientId || "",
       vehicleId: initialData?.vehicleId || "",
       numberOfPayments: initialData?.numberOfPayments || undefined,
@@ -133,11 +133,11 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
 
   const paymentPlan = useMemo(() => {
     if (!startDateStr || !numberOfPayments || !weeklyPayment) return [];
-    const start = new Date(startDateStr);
-    const firstPaymentDate = getNextMonday(start);
+    const start = normalizeDate(startDateStr);
+    if (!start) return [];
     return Array.from({ length: numberOfPayments }, (_, index) => ({
       number: index + 1,
-      date: addWeeks(firstPaymentDate, index),
+      date: addWeeks(start, index),
       amount: weeklyPayment,
     }));
   }, [startDateStr, numberOfPayments, weeklyPayment]);
@@ -234,7 +234,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, initialData, i
               <FormItem>
                 <FormLabel className={labelClass}>Fecha de inicio</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} disabled={isSubmitting} className={inputClass} />
+                  <Input type="date" max={getBusinessDateKey(new Date())} {...field} disabled={isSubmitting} className={inputClass} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

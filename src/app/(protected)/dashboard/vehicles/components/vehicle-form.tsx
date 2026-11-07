@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { CirculationCardScanner } from '@/components/vehicles/circulation-card-scanner';
 
+import { createVehicleIdentifierSchemas } from "@/lib/schemas/vehicle-identifiers";
+
 const statusOptions = [
   { value: 'active', label: 'Activo' },
   { value: 'inactive', label: 'Inactivo' },
@@ -30,19 +32,12 @@ const statusOptions = [
 const NONE_SELECT_VALUE = "@none";
 const CREATE_NEW_PARTNER_VALUE = "@create_new_partner";
 
-const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) => z.object({
+export const createVehicleSchema = (allVehicles: Vehicle[], editingVehicleId?: string) => z.object({
   alias: z.string().min(1, "El alias es requerido.").max(120),
   make: z.string().min(2, "La marca es requerida."),
   model: z.string().min(2, "El modelo es requerido."),
   year: z.coerce.number().min(1980, "El año debe ser posterior a 1980.").max(new Date().getFullYear() + 1, "El año no puede ser futuro."),
-  plate: z.string().min(3, "La placa es requerida.").refine(value => {
-    if (!value) return true;
-    return !allVehicles.some(v => v.plate === value && v.id !== editingVehicleId);
-  }, { message: "Esta placa ya está registrada." }),
-  serialNumber: z.string().min(5, "El número de serie es requerido.").refine(value => {
-    if (!value) return true;
-    return !allVehicles.some(v => v.serialNumber === value && v.id !== editingVehicleId);
-  }, { message: "Este número de serie ya está registrado." }),
+  ...createVehicleIdentifierSchemas(allVehicles, editingVehicleId),
   status: z.enum(['active', 'inactive', 'maintenance', 'sold', 'rented']),
   createdAt: z.string().optional().refine(value => !value || (value >= "2000-01-01" && value <= getBusinessDateKey(new Date())), { message: "La fecha de creación debe estar entre el año 2000 y hoy." }),
   clientId: z.string().nullable(),
@@ -110,7 +105,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       plate: initialData?.plate || "",
       serialNumber: initialData?.serialNumber || "",
       status: initialData?.status || "active",
-      createdAt: parseDateForInput(initialData?.createdAt) || parseDateForInput(new Date().toISOString()),
+      createdAt: parseDateForInput(initialData?.createdAt) || getBusinessDateKey(new Date()),
       clientId: initialData?.clientId || null,
       partnerId: initialData?.partnerId || null,
       cost: initialData?.cost || undefined,

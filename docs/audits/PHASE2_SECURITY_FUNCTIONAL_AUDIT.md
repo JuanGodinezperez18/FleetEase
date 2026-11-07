@@ -1,5 +1,55 @@
 # Auditoría Fase 2 — seguimiento de hallazgos
 
+## 7-nov — pruebas por interfaz del PR #145 en preview
+
+Frontend probado: `39bca19e44b6dc75e188cee3788ea95d51efc7ca`, despliegue `dpl_7nvjs95TxtPB6NUBDzPkiv25rjLG` READY. Se restableció Vercel mediante GitHub y se inició sesión segura de FleetEase como **QA Administrador**. El bloqueo de acceso al preview descrito en actualizaciones anteriores queda superado.
+
+| Comprobación | Evidencia observada |
+| --- | --- |
+| Fecha inicial y límite | Formulario Agregar crédito: value y max `2026-11-07`, día de Monterrey durante la prueba. |
+| Vista previa de cuotas | Dos pagos de $5 muestran total $10 y fechas 7/14-nov, empezando en la fecha seleccionada, sin desplazamiento al lunes. No se creó crédito. |
+| Límite nativo de fecha | Introducir 8-nov en el campo con max 7-nov produce `validity.rangeOverflow=true`. Esta observación demuestra la restricción del campo, no una escritura rechazada por RPC ni un mensaje nuevo de esquema. |
+| Fechas civiles del detalle | Crédito QA Cliente 12 `6440dff1-436c-4abd-b9f5-3e6e63f068cb`: inicio 12/09/2026; cuotas 1/2/9 vencen 12/09, 19/09 y 07/11; sus fechas pagadas 13/09, 13/09 y 18/09. Consulta SELECT con filtros de empresa/id confirmó exactamente estos DATE de BD. No se alteró el crédito. |
+| VIN y placa inválidos | En alta: `CORTO` y VIN de 17 terminado en I muestran error VIN; placa `ABC/123` muestra error de formato. |
+| Placa duplicada | `qademo002` muestra «Esta placa ya está registrada», comparando contra QADEMO002. |
+| Formatos admitidos | Placa ` abc-123-a ` y VIN ` 1hgcm82633a00435s ` quedan sin error, ambos aria-invalid=false. Se confirma aceptación visible, no normalización persistida. |
+| Compatibilidad histórica | En edición de QADEMO002, VIN original `QA000000000000002`: sustituir temporalmente por CORTO muestra error; restaurar el original quita el error. Se canceló sin guardar. |
+| Recarga | La sesión QA continúa autenticada y Vehículos conserva «21 en esta vista». |
+
+**Alcance y límites:** todos los formularios se cancelaron. No se pulsó Guardar vehículo/Crear crédito, no se enviaron altas ni ediciones, no se subieron archivos, no se ejecutó SQL de escritura y no hubo transferencias. Esta prueba cubre las validaciones y presentaciones cambiadas en PR #145; no sustituye un ciclo persistente de alta/edición ni pruebas de otros roles, concurrencia o cambio de día real. No se exportan capturas financieras.
+
+**Regresión del código probado:** 14 suites/55 pruebas locales aprobadas (25 nuevas), TypeScript/build aprobados. Cuatro workflows del HEAD: quality #1008, E2E #278, MCP #453, Lighthouse #2299, todos aprobados, incluidos permisos/atomicidad y liquidación/historial en PostgreSQL 17. PR #145 sin fusionar y sin conflictos al verificar. Inventario CI: producción sin vulnerabilidades; tooling 26 avisos, 23 moderados/3 bajos, ninguno alto/crítico.
+
+**Conclusión del alcance:** no se encontraron bloqueadores nuevos en los comportamientos probados del PR #145. C2/M4 avanzan con evidencia UI; el cierre global de la reauditoría conserva pendientes de reportes/exports, reversión tras liquidación, multas/proveedor, concurrencia, roles, Storage/enlaces, sesiones completas/Redis, atomicidad de administración y drift. No marcar C1–C5 cerrados por este bloque.
+
+
+## 7-nov — continuación posterior a la fusión del PR #144
+
+PR #144 fusionado en `81f7fdf16a4f6d537d744fd9a6a37e62f40960d6`. Este bloque corrige dos defectos observados en sus pruebas de interfaz y conecta validaciones pendientes del formulario real de vehículos. No modifica producción ni requiere migraciones.
+
+- **C2, fechas de crédito:** el alta propone/limita el día de Monterrey; el esquema rechaza fechas imposibles y futuras. Editar conserva una fecha DATE sin convertirla a UTC. El detalle conserva el día civil en inicio, vencimiento, fecha pagada e historial. La RPC de pago usa el día de Monterrey cuando el consumidor omite fecha.
+- **Calendario de crédito:** la vista previa ahora refleja el contrato persistente de `create_credit_atomic`: primera cuota en startDate, siguientes cada siete días. Se elimina el desplazamiento local al lunes. No se cambia el calendario guardado, importes ni fórmulas de BD.
+- **M4, captura de vehículos:** el esquema real utiliza VIN de 17 caracteres sin I/O/Q, conservando S y normalizando mayúsculas/espacios. La placa acepta 3–10 letras/números, con guiones entre grupos; validación sintáctica, sin afirmar verificación registral. Duplicados canónicos se comparan dentro de los vehículos activos del tenant. Identificadores históricos sin modificar conservan la validación previa de duplicados exactos; los cambios deben cumplir las reglas nuevas. No se reescriben filas históricas.
+- **Pruebas:** cinco suites nuevas, 25 pruebas aprobadas en America/Mexico_City. El caso original de fecha de edición/previsualización/futuro falló antes de la corrección y pasa después. Hay pruebas del payload enviado, cuatro fechas del detalle, fecha por defecto de RPC, esquema real de vehículo, formatos, duplicados y conservación de datos históricos. TypeScript aprobado. CI incluye estas suites. La comprobación de interfaz en un nuevo preview queda pendiente; no se presenta Jest como prueba en producción.
+
+**Criterios pendientes para cierre global:**
+
+| Grupo | Evidencia todavía necesaria |
+| --- | --- |
+| C1, reportes | Conciliar casos representativos entre detalle, resumen, PDF/Excel y entidades borradas/sin entidad; conservar el motor existente. |
+| C2, fechas | Probar formularios/API y cambio de día en vivo, incluido este nuevo frontend. |
+| C3/C4, ciclos | Reversión de crédito liquidado, multas/proveedor en vivo, concurrencia y otros roles. |
+| C5/M1, BD | Reconciliar drift global contra migraciones; no volver a ejecutar las ya aplicadas de PR143/144. |
+| A1/A2/N5 | Evidencia de Redis y límites efectivos en ejecución, no sólo variables configuradas. |
+| M2 | Categorías semánticas al crear una empresa nueva. |
+| M3/M6/N2 | Subida binaria, lectura por segunda empresa y enlaces de un uso/vencimiento/regeneración. |
+| M5/M7/B5 | Flujos por rol, expiración/refresh, logout entre pestañas y reapertura de navegador. |
+| B4 | Inventario actualizado de dependencias y excepciones justificadas. |
+| N3/N9 | Atomicidad/reintentos del gasto de administración y confianza de IP limitada al despliegue admitido. |
+
+**Diseño de reversión pendiente, sin ejecutar:** no basta con volver a poner rented al vehículo sold. Antes de habilitar la reversión deben existir evidencia de la asignación/propiedad previa, bloqueo de crédito/vehículo/cliente, comprobación de que no hubo reasignación u otra entrega, y creación de un intervalo nuevo sin reabrir historia cerrada. Si falta evidencia o hay conflicto, rechazar sin efectos. Probar rollback integral, dos sesiones concurrentes, tenant/rol y ciclos repetidos. Los créditos históricos sin evidencia recuperable requieren revisión individual; no crear un backfill supuesto. C3/C4 siguen parciales y no se declara terminada la auditoría.
+
+
 ## 7-nov — pruebas por interfaz para revisión de fusión del PR #144
 
 **Resultado para este PR: listo para revisión de fusión, sin cerrar C3/C4 globales.** HEAD de código `ade5ec83`, sin conflictos con master; quality #1005, E2E #276, MCP #451 y Lighthouse #2296 aprobados. Preview exacto READY `dpl_23T72QfEnPizWHbgE7opQqiwJa1d`. La prueba interactiva se realizó en www.fleetease.com.mx con sesión QA Administrador y la migración aplicada, usando dos clientes/vehículos nuevos desechables. El frontend de este PR no cambia respecto de producción; su corrección está en las cinco funciones SQL ya aplicadas. No se presenta esta prueba como navegación del hostname del preview.
