@@ -35,6 +35,10 @@ jobs:
         run: psql -h localhost -U postgres -d payment_test -v ON_ERROR_STOP=1 -f supabase/tests/atomic_payment_edit.sql
         env:
           PGPASSWORD: isolated-ci-only
+      - name: Verify credit completion against assignment history
+        run: psql -h localhost -U postgres -d payment_test -v ON_ERROR_STOP=1 -f supabase/tests/credit_assignment_lifecycle.sql
+        env:
+          PGPASSWORD: isolated-ci-only
   dependency-audit:
     name: Dependency security gate
     runs-on: ubuntu-latest
