@@ -13,6 +13,8 @@ import { HandCoins, UserRound, Briefcase, Building2, CreditCard, Link2, Loader2,
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/date-utils";
+import { getBusinessDateKey } from "@/lib/vehicle-assignment";
+import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
 import { PaymentHistoryView } from "../history/components/payment-history-view";
 import { entityExistedOnDate, recordDateOnOrBefore } from "./payment-date-filters";
 
@@ -60,7 +62,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const [entityId, setEntityId] = useState("");
   const [targetId, setTargetId] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => getBusinessDateKey(new Date()));
   const [method, setMethod] = useState("Transferencia");
   const [reference, setReference] = useState("");
   const [paymentSource, setPaymentSource] = useState<PaymentSource>("direct");
@@ -212,6 +214,8 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const savePayment = async () => {
     const numericAmount = Number(amount);
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
+    if (!date) return toast.error("Selecciona la fecha del pago.");
+    if (!isFinancialDateNotInFuture(date, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
     if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
     if (kind === "credit_payment" && !selectedCredit) return toast.error("Selecciona un crédito activo.");
@@ -360,7 +364,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-white/50">Fecha del pago <span className="text-white/30">(filtra facturas y entidades)</span></Label>
                     <Input
-                      type="date" lang="es-MX" title="Formato día/mes/año"
+                      type="date" lang="es-MX" title="Formato día/mes/año" max={getBusinessDateKey(new Date())}
                       value={date}
                       onChange={e => setDate(e.target.value)}
                       className="border-white/10 bg-white/[0.03] text-white"

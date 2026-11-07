@@ -96,7 +96,7 @@ jobs:
       - name: Reauditoría 5 de noviembre
         run: npm run test:ci -- --runInBand src/lib/credit-administration.test.ts src/lib/soft-delete.test.ts src/lib/reports/analytics-reconciliation.test.ts src/app/api/auth/login/route.test.ts src/__tests__/lib/financial-reconciliation.test.ts src/__tests__/lib/roles.test.ts
       - name: Referencias y fechas civiles de pagos
-        run: npm run test:ci -- --runInBand src/__tests__/contexts/financial-record-projection.test.tsx src/__tests__/components/payment-history-date.test.tsx
+        run: npm run test:ci -- --runInBand src/__tests__/contexts/financial-record-projection.test.tsx src/__tests__/components/payment-history-date.test.tsx src/__tests__/components/payment-form-business-date.test.tsx
         env:
           TZ: America/Mexico_City
       - run: npm run type-check

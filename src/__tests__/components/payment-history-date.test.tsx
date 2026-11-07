@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { PaymentHistoryView } from '@/app/(protected)/dashboard/finanzas/payments/history/components/payment-history-view';
+import { toast } from 'sonner';
 
 jest.mock('@/contexts/data-provider', () => ({ useData: () => ({
   financialRecords: [
@@ -36,4 +37,19 @@ it('incluye devoluciones de garantía registradas como gasto y excluye otros gas
   expect(await screen.findByText('QA-REFUND')).toBeInTheDocument();
   expect(screen.getAllByText('Devolución de Depósito').length).toBeGreaterThan(0);
   expect(screen.queryByText('QA-OTHER-EXPENSE')).not.toBeInTheDocument();
+});
+
+it('rechaza mañana de Monterrey al editar, aunque ya sea ese día en UTC', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-11-07T05:00:00Z'));
+  const error = jest.spyOn(toast, 'error');
+  try {
+    render(<PaymentHistoryView embedded />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar pago' })[0]);
+    const date = screen.getByDisplayValue('2026-11-06');
+    fireEvent.change(date, { target: { value: '2026-11-07' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(error).toHaveBeenCalledWith('La fecha no puede ser futura.');
+    expect(date).toHaveAttribute('max', '2026-11-06');
+  } finally { error.mockRestore(); jest.useRealTimers(); }
 });

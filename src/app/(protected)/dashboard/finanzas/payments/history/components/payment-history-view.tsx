@@ -15,6 +15,8 @@ import { CreditCard, HandCoins, Users, Briefcase, Search, RotateCcw, Pencil, Tra
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/date-utils";
+import { getBusinessDateKey } from "@/lib/vehicle-assignment";
+import { isFinancialDateNotInFuture } from "@/lib/financial-date-validation";
 import { toast } from "sonner";
 import { MetricCard } from "@/components/dashboard/components/MetricCard";
 
@@ -244,6 +246,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     if (!editing || !companyId) return;
     const numericAmount = Number(editAmount);
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
+    if (!editDate) return toast.error("Selecciona la fecha del pago.");
+    if (!isFinancialDateNotInFuture(editDate, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
     if ((editing.recordKind === "client" || editing.recordKind === "supplier") && !editTarget) {
       return toast.error("Selecciona el registro al que se aplicará el pago.");
     }
@@ -469,7 +473,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                 </div>
               )}
               <div className="space-y-2"><Label className="text-white/50">Importe</Label><Input inputMode="decimal" value={editAmount} onChange={e => setEditAmount(e.target.value.replace(/[^0-9.]/g, ""))} className="border-white/10 bg-white/[0.03] text-white" /></div>
-              <div className="space-y-2"><Label className="text-white/50">Fecha</Label><Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-white/10 bg-white/[0.03] text-white" /></div>
+              <div className="space-y-2"><Label className="text-white/50">Fecha</Label><Input type="date" max={getBusinessDateKey(new Date())} value={editDate} onChange={e => setEditDate(e.target.value)} className="border-white/10 bg-white/[0.03] text-white" /></div>
               <div className="space-y-2">
                 <Label className="text-white/50">Método</Label>
                 <Select value={editMethod} onValueChange={setEditMethod}>
