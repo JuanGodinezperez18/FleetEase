@@ -183,7 +183,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
         creditPayment: false,
       }));
 
-      await Promise.all(recordsToCreate.map(record => addIncome(record as Omit<FinancialRecord, 'id'>')));
+      await Promise.all(recordsToCreate.map(record => addIncome(record as Omit<FinancialRecord, 'id'>)));
       sonnerToast.success(`${applicableVehicles.length} ingreso(s) registrado(s)`, { id: toastId });
       form.reset();
       setVehicleRentData([]);
