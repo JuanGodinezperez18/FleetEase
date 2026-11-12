@@ -27,8 +27,6 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
-import { createFinancialRecord } from '@/lib/financial-rpc';
-import { toSbFinancialRecord } from '@/lib/domain-mappers';
 import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const formSchema = z.object({
@@ -186,64 +184,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
       }));
 
       await Promise.all(recordsToCreate.map(record => addIncome(record as Omit<FinancialRecord, 'id'>)));
-
-      const adminCat =
-        financialCategories?.find(
-          c => c.type === 'expense' && c.name?.toLowerCase().trim() === 'administración de vehículo'
-        ) ||
-        financialCategories?.find(
-          c => c.type === 'expense' && /administraci[oó]n/.test((c.name || '').toLowerCase())
-        );
-
-      const adminFees = applicableVehicles.flatMap(rentData => {
-        const vehicle = allVehicles.find(v => v.id === rentData.vehicleId);
-        const adminFee = Number(vehicle?.adminCommission);
-        return vehicle && Number.isFinite(adminFee) && adminFee > 0
-          ? [{ rentData, vehicle, adminFee }]
-          : [];
-      });
-      let adminCreated = 0;
-      let adminFailed = adminCat?.id ? 0 : adminFees.length;
-      if (adminCat?.id) {
-        for (const { rentData, vehicle, adminFee } of adminFees) {
-          try {
-            await createFinancialRecord(
-              toSbFinancialRecord({
-                companyId: values.companyId || vehicle.companyId,
-                type: 'expense',
-                categoryId: adminCat.id,
-                category: adminCat.name || 'Administración de Vehículo',
-                amount: adminFee,
-                date: values.date,
-                description: `Administración del vehículo ${vehicle.alias || vehicle.plate || rentData.vehicleName} (renta semanal)`.trim(),
-                vehicleId: rentData.vehicleId,
-                partnerId: vehicle.partnerId || undefined,
-                clientId: rentData.clientId || undefined,
-                isDeleted: false,
-                createdAt: new Date().toISOString(),
-                createdBy: currentUser.uid,
-                sourceRecordType: 'vehicle_admin_fee_from_rent',
-              } as any) as any
-            );
-            adminCreated += 1;
-          } catch (adminErr) {
-            console.error('[MassIncomeForm] Error al crear gasto de administración:', adminErr);
-            adminFailed += 1;
-          }
-        }
-      }
-
-      const adminMsg = adminCreated > 0
-        ? ` y ${adminCreated} gasto(s) de administración`
-        : '';
-      if (adminFailed > 0) {
-        sonnerToast.error(
-          `${applicableVehicles.length} ingreso(s) creado(s), pero ${adminFailed} gasto(s) de administración no se guardaron. Regístralos manualmente; no repitas el ingreso masivo.`,
-          { id: toastId }
-        );
-      } else {
-        sonnerToast.success(`✓ ${applicableVehicles.length} registro(s) creado(s) exitosamente${adminMsg}`, { id: toastId });
-      }
+      sonnerToast.success(`${applicableVehicles.length} ingreso(s) registrado(s)`, { id: toastId });
       form.reset();
       setVehicleRentData([]);
       onSuccess?.();

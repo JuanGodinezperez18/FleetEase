@@ -219,5 +219,6 @@ select 'CREDIT_CANCELLATION_LIFECYCLE_PASS' as result;
 \if :{?concurrency_fixture}
 commit;
 \else
+\ir vehicle_administration.sql
 rollback;
 \endif

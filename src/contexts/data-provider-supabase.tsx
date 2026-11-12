@@ -13,7 +13,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './auth-provider-supabase';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { resolveCreditAdministrationCategory } from '@/lib/credit-administration';
 import { softDeleteTenantRecord } from "@/lib/soft-delete";
 import { logger } from '@/lib/logger';
 import { buildVehicleCreditUnlockPayload } from '@/lib/credit-creation';
@@ -385,7 +384,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     toast.success('Registro agregado');
   }, [queryClient]);
-  const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'income' as const, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
+  const addIncome = useCallback(async (data: Partial<DomainFinancialRecord>) => {
+    const category = allFinancialCategories.find(candidate => candidate.id === data.categoryId);
+    const sourceRecordType = category?.name.trim().toLowerCase() === 'renta semanal' && !data.creditGranted
+      ? 'weekly_rent_with_admin' : data.sourceRecordType;
+    await addFinancialRecordMutation.mutateAsync({ ...data, sourceRecordType, type: 'income', createdAt: new Date().toISOString() });
+  }, [addFinancialRecordMutation, allFinancialCategories]);
   const addPayment = useCallback(async (data: Partial<DomainFinancialRecord>) => { await addFinancialRecordMutation.mutateAsync({ ...data, type: 'payment' as const, category: CLIENT_PAYMENT_CATEGORY, createdAt: new Date().toISOString() } as any); }, [addFinancialRecordMutation]);
   const createCreditWithFinancialRecord = useCallback(async (creditData: Partial<DomainCredit>, companyId: string): Promise<string | null> => { if (!currentUser?.uid) throw new Error('Usuario no autenticado'); try { const result = await createCreditAtomic({ ...toSbCredit(creditData), companyId }); const creditId = typeof result.id === 'string' ? result.id : null; if (!creditId) throw new Error('La creación del crédito no devolvió un ID válido'); await refreshData(); return creditId; } catch (error) { logger.error('Error creating credit:', error); throw error; } }, [currentUser, refreshData]);
   const processCreditPayment = useCallback(async (creditId: string, clientId: string, amount: number, paymentMethod?: string, description?: string, companyId?: string, categoryId?: string) => {
@@ -394,13 +398,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const paymentCompanyId = companyId || currentUser.companyId;
       if (!paymentCompanyId) throw new Error('Empresa no disponible para procesar el pago');
       if (!Number.isFinite(amount) || amount <= 0) throw new Error('El monto del pago debe ser mayor que cero');
-      const paymentCredit = allCredits.find(c => c.id === creditId);
-      const paymentVehicle = allVehicles.find(v => v.id === paymentCredit?.vehicleId);
-      const administrationCategory = resolveCreditAdministrationCategory(allFinancialCategories, paymentCompanyId);
-      if (Number(paymentVehicle?.adminCommission) > 0 && !administrationCategory) {
-        throw new Error("Configura la categoría de gasto Administración de Vehículo antes de registrar el pago de crédito.");
-      }
-
       const { data, error } = await supabase.rpc('process_credit_payment_atomic', {
         p_company_id: paymentCompanyId,
         p_credit_id: creditId,
@@ -411,40 +408,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...(description ? { p_reference: description } : {}),
       });
       if (error) throw error;
-      try {
-        const credit = allCredits.find(c => c.id === creditId);
-        const vehicleId = credit?.vehicleId || null;
-        if (vehicleId) {
-          const vehicle = allVehicles.find(v => v.id === vehicleId);
-          const adminFee = Number(vehicle?.adminCommission);
-          if (vehicle && Number.isFinite(adminFee) && adminFee > 0) {
-            const adminCat = administrationCategory;
-            if (!adminCat) throw new Error('Categoría de administración no disponible.');
-            await createFinancialRecord(
-              toSbFinancialRecord({
-                companyId: paymentCompanyId || vehicle.companyId,
-                type: 'expense',
-                categoryId: adminCat.id,
-                category: adminCat.name,
-                amount: adminFee,
-                date: new Date().toISOString().slice(0, 10),
-                description: `Administración del vehículo ${vehicle.alias || vehicle.plate || ''} (pago de crédito)`.trim(),
-                vehicleId,
-                partnerId: vehicle.partnerId || undefined,
-                clientId: clientId || undefined,
-                isDeleted: false,
-                createdAt: new Date().toISOString(),
-                sourceRecordType: 'vehicle_admin_fee_from_credit',
-              } as any) as any
-            );
-          }
-        }
-      } catch (sideError) {
-        console.error('[processCreditPayment] Error al crear gasto de administración:', sideError);
-        toast.error('Pago de crédito registrado, pero falló el gasto de administración', {
-          description: sideError instanceof Error ? sideError.message : 'Revisa el costo de administración del vehículo.',
-        });
-      }
       await refreshData();
       const result = isJsonObject(data) ? data : {};
       const responseCreditId = [result.creditId, result.credit_id].find((value): value is string => typeof value === 'string') ?? creditId;
@@ -468,7 +431,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         paymentScheduleId: null,
       };
     }
-  }, [currentUser, refreshData, allCredits, allVehicles, allFinancialCategories]);
+  }, [currentUser, refreshData]);
   const cancelCreditWithAdjustment = useCallback(async (creditId: string, reason?: string) => {
     if (!currentUser?.uid) throw new Error('Usuario no autenticado');
     try {
