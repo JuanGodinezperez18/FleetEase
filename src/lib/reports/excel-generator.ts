@@ -1,5 +1,6 @@
 import type * as XLSX from 'xlsx';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/date-utils';
 import type { ReportData, ReportKpi, KpiFormat } from './pdf-generator';
 
 function toNumber(value: string | number): number | null {
@@ -208,7 +209,7 @@ export class ExcelReportGenerator {
 
       data.records.forEach(record => {
         recordsData.push([
-          format(new Date(record.date), 'dd/MM/yyyy'),
+          formatDate(record.date),
           record.type === 'income' ? 'Ingreso' : 'Gasto',
           record.category || 'N/A',
           record.description || '',
@@ -237,7 +238,7 @@ export class ExcelReportGenerator {
       ];
       data.excludedRecords.forEach(({ record, reason }) => {
         excludedData.push([
-          format(new Date(record.date), 'dd/MM/yyyy'),
+          formatDate(record.date),
           record.type === 'income' ? 'Ingreso' : record.type === 'expense' ? 'Gasto' : 'Pago',
           record.category || 'N/A',
           record.description || '',

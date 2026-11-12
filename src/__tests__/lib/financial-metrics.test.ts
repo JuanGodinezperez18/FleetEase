@@ -115,7 +115,7 @@ describe('financial-metrics', () => {
       makeRecord({ id: 'despues', date: '2026-02-01' }),
       makeRecord({ id: 'borrado-dentro', date: '2026-01-15', isDeleted: true }),
     ];
-    const range = { from: new Date('2026-01-01'), to: new Date('2026-01-31') };
+    const range = { from: new Date(2026, 0, 1), to: new Date(2026, 0, 31) };
 
     it('incluye los límites del rango (inclusivo)', () => {
       const result = filterRecordsByDateRange(records, range);
