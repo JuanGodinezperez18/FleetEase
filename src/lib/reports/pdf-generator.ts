@@ -1,5 +1,6 @@
 import type jsPDF from 'jspdf';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/date-utils';
 import type { Vehicle, Client, Partner, FinancialRecord } from '@/types';
 import type { ExcludedFinancialRecord } from '@/lib/financial-metrics';
 
@@ -671,7 +672,7 @@ export class PDFReportGenerator {
         startY: this.currentY,
         head: [['Fecha', 'Tipo', 'Descripcion', 'Monto']],
         body: data.records.slice(0, 25).map(r => [
-          fmtDate(new Date(r.date)),
+          formatDate(r.date),
           r.type === 'income' ? 'Ingreso' : r.type === 'expense' ? 'Gasto' : 'Pago',
           (r.description || r.category || '-').slice(0, 40),
           this.formatCurrency(r.amount),
@@ -694,7 +695,7 @@ export class PDFReportGenerator {
         startY: this.currentY,
         head: [['Fecha', 'Tipo', 'Concepto', 'Monto', 'Motivo de exclusión']],
         body: data.excludedRecords.slice(0, 25).map(({ record, reason }) => [
-          fmtDate(new Date(record.date)),
+          formatDate(record.date),
           record.type === 'income' ? 'Ingreso' : record.type === 'expense' ? 'Gasto' : 'Pago',
           (record.description || record.category || '-').slice(0, 30),
           this.formatCurrency(record.amount),
