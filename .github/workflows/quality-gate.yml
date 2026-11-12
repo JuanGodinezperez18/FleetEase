@@ -39,6 +39,13 @@ jobs:
         run: psql -h localhost -U postgres -d payment_test -v ON_ERROR_STOP=1 -f supabase/tests/credit_assignment_lifecycle.sql
         env:
           PGPASSWORD: isolated-ci-only
+      - name: Verify concurrent retries of the same credit payment
+        run: bash supabase/tests/credit_payment_concurrency.sh
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGDATABASE: payment_test
+          PGPASSWORD: isolated-ci-only
   dependency-audit:
     name: Dependency security gate
     runs-on: ubuntu-latest
@@ -100,7 +107,7 @@ jobs:
       - name: Reauditoría 5 de noviembre
         run: npm run test:ci -- --runInBand src/lib/credit-administration.test.ts src/lib/soft-delete.test.ts src/lib/reports/analytics-reconciliation.test.ts src/app/api/auth/login/route.test.ts src/__tests__/lib/financial-reconciliation.test.ts src/__tests__/lib/roles.test.ts
       - name: Referencias y fechas civiles de pagos
-        run: npm run test:ci -- --runInBand src/__tests__/contexts/financial-record-projection.test.tsx src/__tests__/components/payment-history-date.test.tsx src/__tests__/components/payment-form-business-date.test.tsx src/__tests__/components/credit-business-date.test.tsx src/lib/schemas/vehicle-identifiers.test.ts src/__tests__/components/vehicle-form-identifiers.test.ts src/lib/credit-rpc.test.ts src/__tests__/components/credit-detail-date.test.tsx
+        run: npm run test:ci -- --runInBand src/__tests__/contexts/financial-record-projection.test.tsx src/__tests__/components/payment-history-date.test.tsx src/__tests__/components/payment-form-business-date.test.tsx src/__tests__/components/credit-business-date.test.tsx src/lib/schemas/vehicle-identifiers.test.ts src/__tests__/components/vehicle-form-identifiers.test.ts src/lib/credit-rpc.test.ts src/lib/credit-payment-request.test.ts src/__tests__/components/credit-detail-date.test.tsx
         env:
           TZ: America/Mexico_City
       - run: npm run type-check

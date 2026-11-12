@@ -1,5 +1,9 @@
 # Auditoría Fase 2 — seguimiento de hallazgos
 
+## 11-nov — seguimiento de reintentos de crédito
+
+C3/C4 y N3 siguen parciales. El formulario de Pagos reutiliza la clave de solicitud mientras está abierto, y la nueva RPC protege el reintento con una restricción única por empresa y solicitud. El servicio financiero existente sigue siendo la fuente de verdad de los saldos y cuotas. La migración `20261107235137` está preparada. La validación en preview depende de su disponibilidad en la base conectada. [Evidencia](./FUNCTIONAL_TESTS_2026-11-06.md) y [alcance de N3](./REAUDIT_2026-11-05.md).
+
 ## 7-nov — pruebas por interfaz del PR #145 en preview
 
 Frontend probado: `39bca19e44b6dc75e188cee3788ea95d51efc7ca`, despliegue `dpl_7nvjs95TxtPB6NUBDzPkiv25rjLG` READY. Se restableció Vercel mediante GitHub y se inició sesión segura de FleetEase como **QA Administrador**. El bloqueo de acceso al preview descrito en actualizaciones anteriores queda superado.

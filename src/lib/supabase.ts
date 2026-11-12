@@ -2767,6 +2767,20 @@ export type Database = {
         }
         Returns: Json
       }
+      process_credit_payment_once: {
+        Args: {
+          p_amount: number
+          p_client_id: string | null
+          p_company_id: string
+          p_created_by?: string
+          p_credit_id: string
+          p_payment_date?: string
+          p_payment_method?: string
+          p_reference?: string | null
+          p_request_id: string
+        }
+        Returns: Json
+      }
       process_multa_payment_atomic: {
         Args: {
           p_amount: number
