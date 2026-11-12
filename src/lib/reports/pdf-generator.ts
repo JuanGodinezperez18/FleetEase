@@ -42,12 +42,9 @@ export interface ReportData {
   kpis?: ReportKpi[];
   alertDetails?: AlertDetails;
   income?: number;
-  operatingIncome?: number;
   vehicleSales?: number;
+  creditCollections?: number;
   expenses?: number;
-  operatingExpenses?: number;
-  vehicleSalesCost?: number;
-  vehicleSalesCostDetails?: Array<{ vehicleId: string; vehicleName: string; plate: string; acquisitionCost: number }>;
   netProfit?: number;
   profitMargin?: number;
   transactionsCount?: number;
@@ -628,12 +625,8 @@ export class PDFReportGenerator {
       this.ensureSpace(72);
       this.addSectionTitle('Conciliación de rentabilidad');
       const reconciliationRows: string[][] = [];
-      if (data.operatingIncome !== undefined) reconciliationRows.push(['Ingresos operativos', this.formatCurrency(data.operatingIncome)]);
-      if (data.vehicleSales !== undefined) reconciliationRows.push(['Ventas financiadas', this.formatCurrency(data.vehicleSales)]);
       reconciliationRows.push(['Ingresos totales', this.formatCurrency(data.income)]);
-      if (data.operatingExpenses !== undefined) reconciliationRows.push(['Gastos operativos', this.formatCurrency(data.operatingExpenses)]);
-      if (data.vehicleSalesCost !== undefined) reconciliationRows.push(['Costo de vehículos vendidos', this.formatCurrency(data.vehicleSalesCost)]);
-      reconciliationRows.push(['Gastos y costos totales', this.formatCurrency(data.expenses)]);
+      reconciliationRows.push(['Gastos operativos totales', this.formatCurrency(data.expenses)]);
       reconciliationRows.push(['Beneficio neto', this.formatCurrency(data.netProfit)]);
       this.autoTable(this.doc, {
         startY: this.currentY,
@@ -641,25 +634,18 @@ export class PDFReportGenerator {
         body: reconciliationRows,
         ...this.tableTheme(),
       });
-      this.currentY = (this.doc as any).lastAutoTable.finalY + 4;
-      this.doc.setFontSize(7);
-      this.doc.setTextColor(...BRAND.muted);
-      this.doc.text('El costo de vehículos vendidos es un ajuste de rentabilidad basado en el costo de adquisición; no es un movimiento de efectivo.', this.margin, this.currentY);
-      this.currentY += 8;
+      this.currentY = (this.doc as any).lastAutoTable.finalY + 8;
     }
 
-    if (data.vehicleSalesCost !== undefined) {
-      this.ensureSpace(45);
-      this.addSectionTitle('Detalle del costo de vehículos vendidos');
+    if (data.vehicleSales !== undefined || data.creditCollections !== undefined) {
+      this.ensureSpace(40);
+      this.addSectionTitle('Cartera de crédito');
       this.autoTable(this.doc, {
         startY: this.currentY,
-        head: [['Vehículo', 'Placa', 'Costo de adquisición']],
-        body: (data.vehicleSalesCostDetails || []).map(detail => [
-          detail.vehicleName,
-          detail.plate,
-          this.formatCurrency(detail.acquisitionCost),
-        ]),
-        foot: [['Total costo de ventas', '', this.formatCurrency(data.vehicleSalesCost)]],
+        body: [
+          ['Ventas financiadas', this.formatCurrency(data.vehicleSales ?? 0)],
+          ['Cobros de crédito', this.formatCurrency(data.creditCollections ?? 0)],
+        ],
         ...this.tableTheme(),
       });
       this.currentY = (this.doc as any).lastAutoTable.finalY + 8;

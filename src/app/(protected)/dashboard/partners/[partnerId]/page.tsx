@@ -36,7 +36,7 @@ export default function PartnerDetailsPage() {
     if (!partner) return { totalIncome: 0, totalExpenses: 0, netProfit: 0, partnerBalance: 0, profitMargin: 0, vehicleCount: 0 };
     
     const partnerRecords = getPartnerFinancialRecords(partner, partnerVehicles, financialRecords);
-    const profitability = calculatePartnerProfitability(partnerVehicles, partnerRecords);
+    const profitability = calculatePartnerProfitability(partnerRecords);
     const partnerBalanceData = partnerBalances.find(pb => pb.id === partnerId);
     const partnerBalance = partnerBalanceData?.balance ?? 0;
 
@@ -101,17 +101,17 @@ export default function PartnerDetailsPage() {
         />
 
         <MetricCard
-          title="Ingresos económicos (Flota)"
+          title="Ingresos operativos (Flota)"
           value={formatCurrency(metrics.totalIncome)}
-          description="Rentas + ventas a crédito"
+          description="Rentas y servicios"
           icon={<TrendingUp className="w-5 h-5 text-green-500" />}
           variant="success"
         />
 
         <MetricCard
-          title="Inversión y gastos (Flota)"
+          title="Gastos operativos (Flota)"
           value={formatCurrency(metrics.totalExpenses)}
-          description="Gastos + costo de adquisición"
+          description="Gastos de la operación"
           icon={<TrendingDown className="w-5 h-5 text-red-500" />}
           variant="danger"
         />
@@ -119,7 +119,7 @@ export default function PartnerDetailsPage() {
         <MetricCard
           title="RENTABILIDAD ACUMULADA"
           value={formatCurrency(metrics.netProfit)}
-          description="Después de recuperar inversión y gastos"
+          description="Ingresos operativos menos gastos"
           icon={<DollarSign className="w-5 h-5" />}
           variant={metrics.netProfit >= 0 ? "success" : "danger"}
         />

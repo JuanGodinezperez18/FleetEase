@@ -29,9 +29,7 @@ export interface VehicleProfitabilityRow {
   imageUrl?: string;
   totalIncome?: number;
   totalExpenses?: number;
-  grossProfit?: number;
   netProfit?: number;
-  vehicleCost?: number;
   weeklyRentalValue?: number;
   operationType?: 'rental' | 'credit';
 }
@@ -66,15 +64,15 @@ export function VehicleProfitabilityModal({
   } = useModalData({
     data: vehicles,
     searchFields: v => [v.alias || '', v.plate, v.make || '', v.model || ''],
-    sortFn: (a, b) => (b.grossProfit || 0) - (a.grossProfit || 0),
+    sortFn: (a, b) => (b.netProfit || 0) - (a.netProfit || 0),
     initialPageSize: 20,
   });
 
   const totals = useMemo(() => {
-    const gross = filteredData.reduce((s, v) => s + (v.grossProfit || 0), 0);
+    const profit = filteredData.reduce((s, v) => s + (v.netProfit || 0), 0);
     const income = filteredData.reduce((s, v) => s + (v.totalIncome || 0), 0);
     const expenses = filteredData.reduce((s, v) => s + (v.totalExpenses || 0), 0);
-    return { gross, income, expenses, margin: income > 0 ? (gross / income) * 100 : null };
+    return { profit, income, expenses, margin: income > 0 ? (profit / income) * 100 : null };
   }, [filteredData]);
 
   return (
@@ -109,7 +107,7 @@ export function VehicleProfitabilityModal({
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
               <p className="text-[10px] uppercase tracking-wider text-white/40">Resultado</p>
-              <p className={cn("mt-1 break-words text-xs font-semibold sm:text-sm", totals.gross >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(totals.gross)}</p>
+              <p className={cn("mt-1 break-words text-xs font-semibold sm:text-sm", totals.profit >= 0 ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(totals.profit)}</p>
             </div>
           </div>
         </DialogHeader>
@@ -129,17 +127,17 @@ export function VehicleProfitabilityModal({
             <EmptyState
               illustration={searchTerm ? 'search' : 'vehicles'}
               title={searchTerm ? 'Sin resultados' : 'Sin datos de rentabilidad'}
-              description="Cuando haya ingresos y gastos por vehículo, verás la rentabilidad bruta aquí."
+              description="Cuando haya ingresos y gastos por vehículo, verás la rentabilidad operativa aquí."
               className="min-h-[280px] border-0 bg-transparent"
             />
           ) : (
             <div className="space-y-3 pr-2">
               {paginatedData.map(v => {
                 const name = v.alias || `${v.make || ''} ${v.model || ''}`.trim() || v.plate;
-                const gross = v.grossProfit || 0;
-                const positive = gross >= 0;
+                const profit = v.netProfit || 0;
+                const positive = profit >= 0;
                 const income = Number(v.totalIncome) || 0;
-                const margin = income > 0 ? (gross / income) * 100 : null;
+                const margin = income > 0 ? (profit / income) * 100 : null;
                 return (
                   <button
                     key={v.id}
@@ -181,7 +179,7 @@ export function VehicleProfitabilityModal({
                         <span className="text-[9px] uppercase tracking-wide opacity-70">{margin === null ? 'Sin ingresos' : 'Margen'}</span>
                       </div>
                       <p className="text-right text-[11px] font-semibold tabular-nums text-white/60 sm:mt-1">
-                        Resultado: <span className={cn(positive ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(gross)}</span>
+                        Resultado: <span className={cn(positive ? "text-emerald-300" : "text-rose-300")}>{formatCurrency(profit)}</span>
                       </p>
                     </div>
                   </button>

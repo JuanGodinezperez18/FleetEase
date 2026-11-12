@@ -85,7 +85,7 @@ export const usePartnerAnalytics = (
         }
       }
 
-      const profitability = calculatePartnerProfitability(partnerVehicles, recordsForPartner);
+      const profitability = calculatePartnerProfitability(recordsForPartner);
       const totalIncome = profitability.totalIncome;
       const totalExpenses = profitability.totalExpenses;
       const netProfit = profitability.netProfit;

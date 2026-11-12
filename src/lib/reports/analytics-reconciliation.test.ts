@@ -25,20 +25,31 @@ const records = [
 
 describe('report breakdown reconciliation', () => {
   it('uses the same income, expense, sales-cost and profit definitions as the summary for vehicles', () => {
-    const expected = calculateFinancialReconciliation(records, vehicles);
+    const expected = calculateFinancialReconciliation(records);
     const [result] = ReportAnalyticsService.calculateVehicleMetrics(vehicles, records);
     expect(result.totalIncome).toBe(expected.totalIncome);
     expect(result.totalExpenses).toBe(expected.totalExpenses);
-    expect(result.netProfit).toBe(647100);
+    expect(result.netProfit).toBe(-24750);
     expect(result.transactionsCount).toBe(expected.includedRecords.length);
   });
 
-  it('reconciles the partner breakdown including the acquisition cost of financed sales', () => {
-    const expected = calculateFinancialReconciliation(records, vehicles);
+  it('reports the profit earned during administration without subtracting the historical purchase cost', () => {
+    const rentalVehicle = { ...vehicles[0], status: 'rented' } as Vehicle;
+    const movements = [
+      record('rent', { amount: 40000 }),
+      record('expense', { amount: 10000, type: 'expense', category: 'Mantenimiento' }),
+    ];
+
+    expect(ReportAnalyticsService.calculateVehicleMetrics([rentalVehicle], movements)[0].netProfit).toBe(30000);
+    expect(ReportAnalyticsService.calculatePartnerMetrics(partners, [rentalVehicle], movements)[0].netBalance).toBe(30000);
+  });
+
+  it('reconciles the partner breakdown without financed sales or acquisition costs', () => {
+    const expected = calculateFinancialReconciliation(records);
     const [result] = ReportAnalyticsService.calculatePartnerMetrics(partners, vehicles, records);
     expect(result.totalIncome).toBe(expected.totalIncome);
     expect(result.totalExpenses).toBe(expected.totalExpenses);
-    expect(result.netBalance).toBe(647100);
+    expect(result.netBalance).toBe(-24750);
     expect(result.transactionsCount).toBe(expected.includedRecords.length);
   });
 });
@@ -53,40 +64,38 @@ function readBlob(blob: Blob): Promise<ArrayBuffer> {
 }
 
 describe('financial report exports', () => {
-  const reconciliation = calculateFinancialReconciliation(records, vehicles);
+  const reconciliation = calculateFinancialReconciliation(records);
   const report: ReportData = {
     type: 'financial',
     title: 'Reporte financiero',
     dateRange: { from: new Date(2026, 10, 1), to: new Date(2026, 10, 30) },
     income: reconciliation.totalIncome,
     expenses: reconciliation.totalExpenses,
-    operatingExpenses: reconciliation.operatingExpenses,
     netProfit: reconciliation.netProfit,
-    vehicleSalesCost: reconciliation.vehicleSalesCost,
-    vehicleSalesCostDetails: reconciliation.vehicleSalesCostDetails,
+    vehicleSales: reconciliation.vehicleSales,
+    creditCollections: 30000,
     records: reconciliation.includedRecords,
     excludedRecords: reconciliation.excludedRecords,
   };
 
-  it('reconciles Excel totals with transaction rows and the separate sales cost', async () => {
+  it('reconciles Excel totals with transaction rows and shows credit separately', async () => {
     const workbook = read(await readBlob(await generateExcelReport(report)));
     const rows = (name: string) => utils.sheet_to_json<(string | number)[]>(workbook.Sheets[name], { header: 1 });
     const summary = rows('Resumen');
     const transactions = rows('Transacciones').slice(3);
     const excluded = rows('Movimientos excluidos').slice(3);
-    expect(transactions).toHaveLength(3);
-    expect(excluded).toHaveLength(3);
+    expect(transactions).toHaveLength(2);
+    expect(excluded).toHaveLength(4);
     expect([...transactions, ...excluded].map(row => row[0])).toEqual(Array(6).fill('02/11/2026'));
     const income = transactions.filter(row => row[1] === 'Ingreso').reduce((total, row) => total + Number(row[4]), 0);
     const expenses = transactions.filter(row => row[1] === 'Gasto').reduce((total, row) => total + Number(row[4]), 0);
-    const salesCost = rows('Costo de ventas')[3][3] as number;
-    expect(salesCost).toBe(495000);
+    expect(rows('Créditos')).toEqual(expect.arrayContaining([['Ventas financiadas', 1166850], ['Cobros de crédito', 30000]]));
     expect(summary).toEqual(expect.arrayContaining([
       ['Ingresos Totales', income],
-      ['Gastos y Costos Totales', expenses + salesCost],
-      ['Beneficio Neto', income - expenses - salesCost],
+      ['Gastos Totales', expenses],
+      ['Beneficio Neto', income - expenses],
     ]));
-    expect(income - expenses - salesCost).toBe(647100);
+    expect(income - expenses).toBe(-24750);
   });
 
   it('preserves the calendar date and reconciled totals in the generated PDF', async () => {
@@ -105,8 +114,8 @@ describe('financial report exports', () => {
     const bytes = new Uint8Array(await readBlob(blob));
     const pdf = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
     expect(pdf.match(/\(02\/11\/2026\) Tj/g)).toHaveLength(6);
-    for (const amount of [1266850, 619750, 495000, 647100]) {
-      expect(pdf).toContain(amount.toLocaleString('es-MX'));
+    for (const amount of [100000, 124750, 1166850, 30000, -24750]) {
+      expect(pdf).toContain(new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(amount));
     }
   });
 });
