@@ -1,5 +1,12 @@
 # Pruebas funcionales de reauditoría — 6 de noviembre de 2026
 
+## 11-nov — reintentos de pagos de crédito
+
+- 10 pruebas de aplicación aprobadas. El formulario reutiliza la clave tras simular una respuesta perdida y la actualización del crédito a liquidado.
+- SQL aislado aprobado para reintento parcial y de liquidación, importes inválidos, cambios de payload, alcance por empresa y usuario, y rollback del pago, saldo, vehículo, historial y clave ante un fallo de auditoría.
+- CI incorpora dos conexiones que envían la misma clave durante una liquidación. La prueba verifica que la segunda espera la transacción, recibe el mismo ID y deja un solo pago con saldo cero.
+- La aplicación de la migración y la validación por interfaz en un entorno conectado quedan pendientes. Los datos de pruebas locales son sintéticos.
+
 ## 7-nov — pruebas por interfaz del PR #145 en preview
 
 Frontend probado: `39bca19e44b6dc75e188cee3788ea95d51efc7ca`, despliegue `dpl_7nvjs95TxtPB6NUBDzPkiv25rjLG` READY. Se restableció Vercel mediante GitHub y se inició sesión segura de FleetEase como **QA Administrador**. El bloqueo de acceso al preview descrito en actualizaciones anteriores queda superado.

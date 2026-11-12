@@ -1,5 +1,6 @@
 -- Isolated PostgreSQL only. Includes real payment RPCs and assignment guards.
 begin;
+set local timezone to 'America/Mexico_City';
 create role anon;
 create role authenticated;
 create schema auth;
@@ -214,4 +215,9 @@ do $$ begin
  if not exists(select 1 from public.vehicles where status='active' and client_id is null and not locked_by_credit) then raise exception 'Inactivation resources'; end if;
 end $$;
 select 'CREDIT_CANCELLATION_LIFECYCLE_PASS' as result;
+\ir credit_payment_idempotency.sql
+\if :{?concurrency_fixture}
+commit;
+\else
 rollback;
+\endif

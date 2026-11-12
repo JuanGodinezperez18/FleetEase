@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createCreditPaymentRequest } from "@/lib/credit-payment-request";
 import { supabase } from "@/lib/supabase";
 import { useData, calculatePartnerBalance } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
@@ -67,6 +68,8 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const [reference, setReference] = useState("");
   const [paymentSource, setPaymentSource] = useState<PaymentSource>("direct");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [creditPaymentRequest] = useState(createCreditPaymentRequest);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [supplierPayables, setSupplierPayables] = useState<SupplierPayable[]>([]);
@@ -212,13 +215,22 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const reset = () => { setEntityId(""); setTargetId(""); setAmount(""); setReference(""); setPaymentSource("direct"); };
 
   const savePayment = async () => {
+    if (savingRef.current) return;
     const numericAmount = Number(amount);
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
     if (!date) return toast.error("Selecciona la fecha del pago.");
     if (!isFinancialDateNotInFuture(date, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
     if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
     if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
-    if (kind === "credit_payment" && !selectedCredit) return toast.error("Selecciona un crédito activo.");
+    const credit = kind === "credit_payment" ? credits.find(c => c.id === entityId && !c.isDeleted) : undefined;
+    const creditPayment = credit && {
+      companyId, actorId: currentUser?.uid, creditId: credit.id, clientId: credit.clientId,
+      amount: numericAmount, paymentDate: date, paymentMethod: method, reference,
+    };
+    const pendingCreditRequestId = creditPayment && creditPaymentRequest.pendingId(creditPayment);
+    if (kind === "credit_payment" && !selectedCredit && !pendingCreditRequestId) {
+      return toast.error("Selecciona un crédito activo.");
+    }
     if (kind === "security_deposit_refund") {
       if (!refundCategory) return toast.error("No existe la categoría Devolución de Depósito.");
       if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
@@ -226,7 +238,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
       if ((kind === "client_payment" || kind === "multa_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
       if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
-      if (kind !== "partner_payment" && kind !== "client_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
+      if (!pendingCreditRequestId && kind !== "partner_payment" && kind !== "client_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
       // client_payment: el exceso se aplica en cascada a las siguientes facturas vencidas (RPC).
       if (kind === "client_payment" && paymentSource === "security_deposit") {
         if (depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
@@ -235,6 +247,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       if (kind === "supplier_payment" && !selectedSupplierPayable) return toast.error("Selecciona una compra pendiente del proveedor.");
     }
 
+    savingRef.current = true;
     setSaving(true);
     try {
       if (kind === "security_deposit_refund") {
@@ -246,14 +259,16 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
         if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió la devolución creada.");
         toast.success("Depósito devuelto", { description: "La devolución quedó registrada como salida de empresa y con trazabilidad." });
-      } else if (kind === "credit_payment") {
-        const { data, error } = await supabase.rpc("process_credit_payment_atomic", {
-          p_company_id: companyId, p_credit_id: entityId, p_client_id: selectedCredit?.clientId || null,
+      } else if (creditPayment) {
+        const requestId = creditPaymentRequest.forPayment(creditPayment);
+        const { data, error } = await supabase.rpc("process_credit_payment_once", {
+          p_company_id: companyId, p_credit_id: creditPayment.creditId, p_client_id: creditPayment.clientId,
           p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
-          p_reference: reference || null, p_created_by: currentUser?.uid || null,
-        } as any);
+          p_reference: reference || null, p_created_by: currentUser?.uid, p_request_id: requestId,
+        });
         if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió el pago del crédito.");
+        creditPaymentRequest.confirmed(requestId);
         toast.success("Pago registrado");
       } else if (kind === "client_payment" && paymentSource === "security_deposit") {
         const { data, error } = await supabase.rpc("apply_security_deposit_payment", {
@@ -288,7 +303,10 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
       if (embedded) onClose?.();
     } catch (error) {
       toast.error("No se pudo registrar la operación", { description: getSupabaseErrorMessage(error) });
-    } finally { setSaving(false); }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const tabItems = [...PAYMENT_KINDS.map(item => ({ ...item, value: item.value as OperationKind })), { value: "security_deposit_refund" as const, label: "Devolver Depósito", short: "Devolución", icon: RotateCcw }];
