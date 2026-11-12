@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createCreditPaymentRequest } from "@/lib/credit-payment-request";
+import { createCreditPaymentRequest, type PendingCreditPayment } from "@/lib/credit-payment-request";
 import { supabase } from "@/lib/supabase";
 import { useData, calculatePartnerBalance } from "@/contexts/data-provider";
 import { useAuth } from "@/contexts/auth-provider";
@@ -69,11 +69,19 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
   const [paymentSource, setPaymentSource] = useState<PaymentSource>("direct");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const [creditPaymentRequest] = useState(createCreditPaymentRequest);
+  const [creditPaymentRequest] = useState(() => createCreditPaymentRequest(() => window.sessionStorage));
+  const [pendingCreditPayments, setPendingCreditPayments] = useState<PendingCreditPayment[]>([]);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [supplierPayables, setSupplierPayables] = useState<SupplierPayable[]>([]);
   const companyId = selectedCompanyId || currentUser?.companyId || null;
+  const actorId = currentUser?.uid;
+  const visiblePendingPayments = pendingCreditPayments.filter(({ payment }) =>
+    payment.companyId === companyId && payment.actorId === actorId);
+
+  useEffect(() => {
+    setPendingCreditPayments(companyId && actorId ? creditPaymentRequest.list(companyId, actorId) : []);
+  }, [companyId, actorId, creditPaymentRequest]);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,43 +222,54 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
 
   const reset = () => { setEntityId(""); setTargetId(""); setAmount(""); setReference(""); setPaymentSource("direct"); };
 
-  const savePayment = async () => {
+  const savePayment = async (retryId?: string) => {
     if (savingRef.current) return;
-    const numericAmount = Number(amount);
     if (!companyId) return toast.error("No hay una empresa seleccionada.");
-    if (!date) return toast.error("Selecciona la fecha del pago.");
-    if (!isFinancialDateNotInFuture(date, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
-    if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
-    if (!(numericAmount > 0)) return toast.error("El importe debe ser mayor que cero.");
-    const credit = kind === "credit_payment" ? credits.find(c => c.id === entityId && !c.isDeleted) : undefined;
-    const creditPayment = credit && {
-      companyId, actorId: currentUser?.uid, creditId: credit.id, clientId: credit.clientId,
-      amount: numericAmount, paymentDate: date, paymentMethod: method, reference,
-    };
-    const pendingCreditRequestId = creditPayment && creditPaymentRequest.pendingId(creditPayment);
-    if (kind === "credit_payment" && !selectedCredit && !pendingCreditRequestId) {
-      return toast.error("Selecciona un crédito activo.");
+
+    const requests = actorId ? creditPaymentRequest.list(companyId, actorId) : [];
+    const retry = retryId ? requests.find(request => request.id === retryId) : undefined;
+    if (retryId && !retry) {
+      setPendingCreditPayments(requests);
+      return;
     }
-    if (kind === "security_deposit_refund") {
-      if (!refundCategory) return toast.error("No existe la categoría Devolución de Depósito.");
-      if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
-    } else {
-      if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
-      if ((kind === "client_payment" || kind === "multa_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
-      if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
-      if (!pendingCreditRequestId && kind !== "partner_payment" && kind !== "client_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
-      // client_payment: el exceso se aplica en cascada a las siguientes facturas vencidas (RPC).
-      if (kind === "client_payment" && paymentSource === "security_deposit") {
-        if (depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
-        if (numericAmount > depositAvailable + 0.009) return toast.error(`El importe no puede exceder el depósito en garantía disponible de ${formatCurrency(depositAvailable)}.`);
+
+    const numericAmount = Number(amount);
+    const credit = kind === "credit_payment" ? credits.find(c => c.id === entityId && !c.isDeleted) : undefined;
+    const creditPayment = retry?.payment ?? (credit && {
+      companyId, actorId, creditId: credit.id, clientId: credit.clientId,
+      amount: numericAmount, paymentDate: date, paymentMethod: method, reference,
+    });
+
+    if (!retry) {
+      if (!date) return toast.error("Selecciona la fecha del pago.");
+      if (!isFinancialDateNotInFuture(date, getBusinessDateKey(new Date()))) return toast.error("La fecha no puede ser futura.");
+      if (!entityId) return toast.error("Selecciona a quién corresponde la operación.");
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) return toast.error("El importe debe ser mayor que cero.");
+      const pendingCreditRequestId = creditPayment && creditPaymentRequest.pendingId(creditPayment);
+      if (kind === "credit_payment" && !selectedCredit && !pendingCreditRequestId) {
+        return toast.error("Selecciona un crédito activo.");
       }
-      if (kind === "supplier_payment" && !selectedSupplierPayable) return toast.error("Selecciona una compra pendiente del proveedor.");
+      if (kind === "security_deposit_refund") {
+        if (!refundCategory) return toast.error("No existe la categoría Devolución de Depósito.");
+        if (numericAmount > (depositAvailableByClient.get(entityId) || 0) + 0.009) return toast.error(`La devolución no puede exceder el depósito disponible de ${formatCurrency(depositAvailableByClient.get(entityId) || 0)}.`);
+      } else {
+        if (!paymentCategory) return toast.error(`No existe una categoría configurada para ${PAYMENT_KINDS.find(k => k.value === kind)?.label}.`);
+        if ((kind === "client_payment" || kind === "multa_payment" || kind === "supplier_payment") && !targetId) return toast.error(kind === "supplier_payment" ? "Selecciona la compra o factura pendiente a la que se aplicará el pago." : "Selecciona el registro al que se aplicará el pago.");
+        if (kind === "partner_payment" && numericAmount > partnerBalance + 0.009) return toast.error(`El pago no puede exceder el balance disponible del socio de ${formatCurrency(Math.max(0, partnerBalance))}.`);
+        if (!pendingCreditRequestId && kind !== "partner_payment" && kind !== "client_payment" && maxAmount > 0 && numericAmount > maxAmount + 0.009) return toast.error(`El pago no puede exceder el máximo aplicable de ${formatCurrency(maxAmount)}.`);
+        // client_payment: el exceso se aplica en cascada a las siguientes facturas vencidas (RPC).
+        if (kind === "client_payment" && paymentSource === "security_deposit") {
+          if (depositAvailable <= 0) return toast.error("El cliente no tiene depósito en garantía disponible.");
+          if (numericAmount > depositAvailable + 0.009) return toast.error(`El importe no puede exceder el depósito en garantía disponible de ${formatCurrency(depositAvailable)}.`);
+        }
+        if (kind === "supplier_payment" && !selectedSupplierPayable) return toast.error("Selecciona una compra pendiente del proveedor.");
+      }
     }
 
     savingRef.current = true;
     setSaving(true);
     try {
-      if (kind === "security_deposit_refund") {
+      if (!creditPayment && kind === "security_deposit_refund") {
         const { data, error } = await supabase.rpc("refund_security_deposit", {
           p_company_id: companyId, p_client_id: entityId, p_amount: numericAmount,
           p_payment_date: date, p_payment_method: method, p_reference: reference || null,
@@ -260,11 +279,11 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
         if (!data) throw new Error("La base de datos no devolvió la devolución creada.");
         toast.success("Depósito devuelto", { description: "La devolución quedó registrada como salida de empresa y con trazabilidad." });
       } else if (creditPayment) {
-        const requestId = creditPaymentRequest.forPayment(creditPayment);
+        const requestId = retry?.id ?? creditPaymentRequest.forPayment(creditPayment);
         const { data, error } = await supabase.rpc("process_credit_payment_once", {
           p_company_id: companyId, p_credit_id: creditPayment.creditId, p_client_id: creditPayment.clientId,
-          p_amount: numericAmount, p_payment_date: date, p_payment_method: method,
-          p_reference: reference || null, p_created_by: currentUser?.uid, p_request_id: requestId,
+          p_amount: creditPayment.amount, p_payment_date: creditPayment.paymentDate, p_payment_method: creditPayment.paymentMethod,
+          p_reference: creditPayment.reference || null, p_created_by: actorId, p_request_id: requestId,
         });
         if (error) throw error;
         if (!data) throw new Error("La base de datos no devolvió el pago del crédito.");
@@ -304,6 +323,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
     } catch (error) {
       toast.error("No se pudo registrar la operación", { description: getSupabaseErrorMessage(error) });
     } finally {
+      if (creditPayment && actorId) setPendingCreditPayments(creditPaymentRequest.list(companyId, actorId));
       savingRef.current = false;
       setSaving(false);
     }
@@ -336,6 +356,29 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
             <HandCoins className="h-5 w-5" strokeWidth={1.75} />
           </div>
         </header>
+        )}
+
+        {visiblePendingPayments.length > 0 && (
+          <section aria-label="Pagos de crédito pendientes de confirmación" className="space-y-2">
+            <p className="text-sm font-medium">Pagos de crédito pendientes de confirmación</p>
+            <ul className="space-y-2">
+              {visiblePendingPayments.map(({ id, payment }) => {
+                const client = clientsById.get(payment.clientId);
+                return (
+                  <li key={id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 p-3">
+                    <div className="text-sm">
+                      <p>{client ? `${client.firstname} ${client.lastname}` : `Crédito ${payment.creditId.slice(0, 8)}`}</p>
+                      <p>{formatCurrency(payment.amount)} · {formatDate(payment.paymentDate)} · {payment.paymentMethod}</p>
+                      {payment.reference && <p className="break-all">{payment.reference}</p>}
+                    </div>
+                    <Button type="button" variant="outline" disabled={saving} onClick={() => void savePayment(id)}>
+                      Reintentar pago
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         <Tabs value={kind} onValueChange={v => { setKind(v as OperationKind); reset(); }}>
@@ -631,7 +674,7 @@ export function PaymentForm({ onClose, onSuccess, embedded = false }: PaymentFor
 
                   <div className="md:col-span-2 sticky bottom-0 z-10 -mx-1 flex justify-end border-t border-[var(--fe-border)] bg-[var(--fe-surface)] px-1 pt-3 pb-1">
                     <Button
-                      onClick={savePayment}
+                      onClick={() => void savePayment()}
                       disabled={saving}
                       className="h-11 rounded-xl bg-[#d7ff3f] px-5 text-xs font-semibold text-[#080a0f] hover:bg-[#d7ff3f]/90 disabled:opacity-60"
                     >
