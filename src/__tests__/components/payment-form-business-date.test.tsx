@@ -29,6 +29,7 @@ afterEach(() => {
   mockData.credits = [];
   mockData.financialCategories = [];
   mockRpc.mockReset();
+  sessionStorage.clear();
 });
 
 it('inicia y limita la fecha al día de Monterrey aunque UTC ya sea mañana', () => {
@@ -45,14 +46,14 @@ it('rechaza una fecha futura antes de intentar registrar el pago', () => {
   expect(toast.error).toHaveBeenCalledWith('La fecha no puede ser futura.');
 });
 
-it('reutiliza la clave después de perder la respuesta de un pago que liquida el crédito', async () => {
+it.each([false, true])('reutiliza la clave tras perder la respuesta de una liquidación (reabre: %s)', async (reopen) => {
   const credit = { id: 'credit', clientId: 'client', companyId: 'qa', status: 'active', startDate: '2026-11-05', remainingBalance: 4 };
   mockData.credits = [credit];
   mockData.financialCategories = [{ type: 'payment', name: 'Pago de Crédito' }];
   mockRpc.mockResolvedValueOnce({ error: { message: 'Sin respuesta' } })
     .mockResolvedValueOnce({ data: { success: true, paymentId: 'payment', idempotentReplay: true } });
 
-  const { rerender } = render(<PaymentForm embedded />);
+  const original = render(<PaymentForm embedded />);
   fireEvent.change(screen.getByRole('option', { name: 'Pago de Crédito' }).closest('select')!, { target: { value: 'credit_payment' } });
   fireEvent.change(screen.getByRole('option', { name: /Saldo/ }).closest('select')!, { target: { value: 'credit' } });
   fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '4' } });
@@ -60,11 +61,21 @@ it('reutiliza la clave después de perder la respuesta de un pago que liquida el
   await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
   mockData.credits = [{ ...credit, status: 'completed', remainingBalance: 0 }];
-  rerender(<PaymentForm embedded />);
-  fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }));
+  if (reopen) {
+    original.unmount();
+    jest.setSystemTime(new Date('2026-11-08T05:00:00Z'));
+  } else {
+    original.rerender(<PaymentForm embedded />);
+  }
+  const current = reopen ? render(<PaymentForm embedded />) : original;
+  expect(mockRpc).toHaveBeenCalledTimes(1);
+  fireEvent.click(await screen.findByRole('button', { name: reopen ? 'Reintentar pago' : 'Registrar pago' }));
   await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Pago registrado'));
   expect(mockRpc).toHaveBeenCalledTimes(2);
   expect(mockRpc.mock.calls[0][0]).toBe('process_credit_payment_once');
   expect(mockRpc.mock.calls[0][1]).toMatchObject({ p_request_id: expect.any(String), p_amount: 4 });
   expect(mockRpc.mock.calls[1]).toEqual(mockRpc.mock.calls[0]);
+  current.unmount();
+  render(<PaymentForm embedded />);
+  expect(screen.queryByRole('button', { name: 'Reintentar pago' })).not.toBeInTheDocument();
 });

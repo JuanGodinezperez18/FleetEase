@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
+import { verifyCreditPaymentReload } from './test-support/credit-payment-reload-smoke.mjs';
 
 const baseURL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3000';
 const executablePath = process.env.CHROME_PATH;
@@ -30,6 +31,7 @@ try {
   assert.equal(new URL(page.url()).pathname, '/login', 'Unauthenticated dashboard access must redirect to login.');
 
   console.log('E2E smoke checks passed: public landing page renders and protected dashboard redirects to login.');
+  await verifyCreditPaymentReload(browser, baseURL);
 } finally {
   await browser.close();
 }

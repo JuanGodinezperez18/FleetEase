@@ -33,3 +33,19 @@ it('sólo recupera el reintento para la empresa y el usuario originales', () => 
   request.confirmed(id);
   expect(request.pendingId(intent)).toBeUndefined();
 });
+
+it('recupera una solicitud de la misma pestaña después de crear otro formulario', () => {
+  const intent = { ...payment, actorId: 'admin' };
+  const first = createCreditPaymentRequest(() => sessionStorage);
+  const id = first.forPayment(intent);
+  const reopened = createCreditPaymentRequest(() => sessionStorage);
+  expect(reopened.list('qa', 'admin')).toEqual([{ id, payment: intent }]);
+  expect(reopened.list('qa', 'other-admin')).toEqual([]);
+  expect(reopened.list('other-company', 'admin')).toEqual([]);
+  expect(reopened.forPayment(intent)).toBe(id);
+  reopened.confirmed(id);
+  expect(first.list('qa', 'admin')).toEqual([]);
+  expect(first.forPayment(intent)).not.toBe(id);
+});
+
+afterEach(() => sessionStorage.clear());
