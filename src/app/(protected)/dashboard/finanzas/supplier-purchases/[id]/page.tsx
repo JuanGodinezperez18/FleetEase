@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from "@/lib/date-utils";
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -156,7 +158,7 @@ export default function SupplierPurchaseAllocationPage() {
     <div className="flex flex-col gap-4 border-b border-white/[0.07] pb-5 sm:flex-row sm:items-center sm:justify-between"><Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.07] hover:text-white" asChild><Link href="/dashboard/finanzas/accounts-payable"><ArrowLeft className="h-5 w-5" /></Link></Button><div><h1 className="text-2xl font-bold tracking-tight">Vincular compra con gastos</h1><p className="text-muted-foreground">Relaciona cada partida de proveedor con la línea exacta del gasto del vehículo.</p></div></div>
 
     <div className="grid gap-4 md:grid-cols-3">
-      <Card className="overflow-hidden rounded-[14px] border-white/[0.07] bg-[#0e1117]"><CardHeader className="pb-2"><CardDescription>Proveedor</CardDescription><CardTitle>{purchase.supplierName}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{new Date(purchase.purchase_date).toLocaleDateString("es-MX")}{purchase.reference ? ` · ${purchase.reference}` : ""}</p></CardContent></Card>
+      <Card className="overflow-hidden rounded-[14px] border-white/[0.07] bg-[#0e1117]"><CardHeader className="pb-2"><CardDescription>Proveedor</CardDescription><CardTitle>{purchase.supplierName}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{formatDate(purchase.purchase_date)}{purchase.reference ? ` · ${purchase.reference}` : ""}</p></CardContent></Card>
       <Card><CardHeader className="pb-2"><CardDescription>Total de compra</CardDescription><CardTitle>{formatCurrency(purchase.total)}</CardTitle></CardHeader><CardContent><Badge variant="outline">{purchase.payment_method === "credit" ? "Crédito" : "Contado"}</Badge></CardContent></Card>
       <Card><CardHeader className="pb-2"><CardDescription>Sin distribuir</CardDescription><CardTitle>{formatCurrency(pendingPurchase)}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Saldo de esta compra aún no vinculado</p></CardContent></Card>
     </div>

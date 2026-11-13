@@ -30,13 +30,16 @@ const NONE_SELECT_VALUE = "@none";
 
 const lineSchema = z.object({
   concept: z.string().trim().min(1, "El concepto es obligatorio."),
-  amount: z.coerce.number({ error: "El importe debe ser un número." }).positive("El importe debe ser mayor que cero."),
+  amount: z.coerce.number({ error: "El importe debe ser un número." }).nonnegative("El importe no puede ser negativo."),
   catalogItemId: z.string().nullable().optional(),
   quantity: z.coerce.number().positive().default(1),
   unitAmount: z.coerce.number().nonnegative().optional(),
   partNumber: z.string().nullable().optional(),
   warrantyDays: z.coerce.number().int().nonnegative().nullable().optional(),
   warrantyExpiresAt: z.string().nullable().optional(),
+}).refine(item => item.amount > 0 || (item.unitAmount ?? 0) > 0, {
+  path: ["amount"],
+  message: "Captura un importe o precio unitario mayor que cero.",
 });
 
 const expenseSchema = z.object({
@@ -199,7 +202,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const selectedDate = useWatch({ control, name: "date" });
 
   const handleInvalidSubmit = () => {
-    toast.error("No se puede guardar el gasto", { description: "Revisa que cada línea tenga concepto e importe mayor que cero, además de vehículo y categoría." });
+    toast.error("No se puede guardar el gasto", { description: "Revisa la fecha, la categoría y que cada línea tenga concepto e importe o precio unitario mayor que cero." });
   };
 
   const submitForm = (data: ExpensesFormValues) => {

@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Edit, Trash2, CreditCard, Loader2, MoreHorizontal, ShieldAlert } from "lucide-react";
 import { Search } from "@/components/ui/search";
 import { formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { formatDate } from "@/lib/date-utils";
 import type { MultaWithDetails } from "@/types";
 import {
   AlertDialog,
@@ -91,7 +90,7 @@ function MultaMobileCard({
               {formatCurrency(multa.outstandingAmount ?? multa.total)}
             </p>
             <p className="mt-1 text-[11px] text-white/35">
-              {format(new Date(multa.fechaInfraccion), "dd MMM yyyy", { locale: es })}
+              {formatDate(multa.fechaInfraccion)}
               {multa.folio ? ` · Folio ${multa.folio}` : ""}
             </p>
           </div>
@@ -312,7 +311,7 @@ export function MultasTable({ multas, onEdit }: MultasTableProps) {
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="text-white/80">
-                        {format(new Date(multa.fechaInfraccion), "dd/MM/yyyy", { locale: es })}
+                        {formatDate(multa.fechaInfraccion)}
                       </span>
                       <span className="text-[11px] text-white/35">{daysOverdue > 0 ? `Hace ${daysOverdue} días` : daysOverdue < 0 ? `En ${Math.abs(daysOverdue)} días` : "Hoy"}</span>
                     </div>

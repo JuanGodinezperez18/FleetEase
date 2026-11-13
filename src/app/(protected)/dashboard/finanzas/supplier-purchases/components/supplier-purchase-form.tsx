@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from "@/lib/date-utils";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -150,6 +152,11 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
     if (!selectedExpense) return toast.error("Selecciona un gasto de vehículo y carga sus partidas antes de registrar la compra.");
     if (!availableExpenseLines.length) return toast.error("El gasto seleccionado no tiene partidas pendientes de compra.");
     if (!items.length || items.some(i => !i.expense_item_id || !i.description.trim() || !(Number(i.quantity) > 0) || Number(i.unit_price) < 0)) return toast.error("Cada partida debe corresponder a una partida del gasto operativo.");
+    if (items.some(item => !item.catalog_item_id)) {
+      const message = "Para registrar la compra, usa un gasto cuyas partidas estén vinculadas a artículos del catálogo.";
+      setSaveError(message);
+      return toast.error(message);
+    }
     if (paymentMethod === "credit" && !dueDate) return toast.error("Una compra a crédito requiere fecha de vencimiento.");
     if (paymentMethod !== "credit" && dueDate) return toast.error("La fecha de vencimiento solo aplica a compras a crédito.");
     if (!(total > 0)) return toast.error("El total debe ser mayor que cero.");
@@ -252,7 +259,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                 <Wrench className="mt-0.5 h-5 w-5 shrink-0 text-[#d7ff3f]" strokeWidth={1.75} />
                 <div className="min-w-0">
                   <p className="font-medium text-white/90">Cargar partidas desde un gasto de vehículo</p>
-                  <p className="text-xs text-white/40 sm:text-sm">Las partidas se toman directamente del gasto operativo. Los conceptos del gasto son manuales y no dependen del catálogo.</p>
+                  <p className="text-xs text-white/40 sm:text-sm">Las partidas se toman del gasto operativo. Para registrarlas en una compra, deben estar vinculadas a artículos del catálogo.</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -260,7 +267,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                   <SelectTrigger className="min-w-0 flex-1 border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder="Seleccionar gasto del vehículo..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Seleccionar gasto...</SelectItem>
-                    {expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</SelectItem>)}
+                    {expenses.map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.vehicleName} · {expense.description} · {formatDate(expense.date)}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Button type="button" variant="outline" onClick={loadExpenseLines} disabled={!expenseId || !availableExpenseLines.length} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white">
@@ -354,7 +361,7 @@ export function SupplierPurchasesForm({ open, onOpenChange }: { open: boolean; o
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium text-white">{expense.vehicleName}</p>
-                      <p className="text-xs text-white/40">{expense.description} · {new Date(expense.date).toLocaleDateString("es-MX")}</p>
+                      <p className="text-xs text-white/40">{expense.description} · {formatDate(expense.date)}</p>
                     </div>
                     <span className="text-xs font-semibold text-amber-300">Pendiente de compra</span>
                   </div>

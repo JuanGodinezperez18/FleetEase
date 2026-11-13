@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDate } from "@/lib/date-utils";
+
 import { useClientPagination } from "@/hooks/use-client-pagination";
 import { ListPagination } from "@/components/common/list-pagination";
 
@@ -90,7 +92,7 @@ export default function SupplierPurchasesPage() {
           <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-heading text-lg font-semibold tracking-tight">Compras recientes</h2><p className="mt-1 text-xs text-white/40">Del más reciente al más antiguo.</p></div><ShoppingCart className="h-5 w-5 text-white/30" strokeWidth={1.75} /></div>
           {loading ? <div className="flex items-center justify-center py-10 text-white/40"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Cargando compras...</div> : purchases.length === 0 ? <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-white/35">Todavía no hay compras registradas.</div> :
           <div className="space-y-2">{paginatedPurchases.map(purchase => <div key={purchase.id} className="grid gap-3 rounded-[14px] border border-white/[0.06] bg-white/[0.02] p-4 sm:grid-cols-[1.5fr_.8fr_.8fr_auto] sm:items-center">
-            <div className="min-w-0"><p className="truncate font-medium text-white/90">{purchase.supplierName}</p><p className="mt-0.5 text-xs text-white/35">{new Date(purchase.purchase_date).toLocaleDateString("es-MX")}{purchase.reference ? ` · ${purchase.reference}` : ""}</p></div>
+            <div className="min-w-0"><p className="truncate font-medium text-white/90">{purchase.supplierName}</p><p className="mt-0.5 text-xs text-white/35">{formatDate(purchase.purchase_date)}{purchase.reference ? ` · ${purchase.reference}` : ""}</p></div>
             <div><p className="text-[10px] uppercase tracking-wide text-white/25">Forma de pago</p><p className="text-sm text-white/70">{paymentLabels[purchase.payment_method] || purchase.payment_method}</p></div>
             <div><p className="text-[10px] uppercase tracking-wide text-white/25">Total</p><p className="font-semibold tabular-nums text-white">{formatCurrency(purchase.total)}</p></div>
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
