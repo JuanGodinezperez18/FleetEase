@@ -153,11 +153,14 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
       .filter(r => !companyId || !r.companyId || r.companyId === companyId)
       .map(r => {
         const ownLinks = links.filter(l => l.source_financial_record_id === r.id);
-        const linkKind = ownLinks.some(l => l.relationship_type === "client_payment_to_financial_record") ? "client"
+        const isFinePayment = String(r.category || "").trim().toLowerCase() === "pago de multa" ||
+          ownLinks.some(l => l.relationship_type === "multa_payment_to_financial_record");
+        const linkKind = isFinePayment || ownLinks.some(l => l.relationship_type === "client_payment_to_financial_record") ? "client"
           : ownLinks.some(l => l.relationship_type === "supplier_payment_to_financial_record") ? "supplier"
           : null;
         const targetLink = ownLinks.find(l =>
           l.relationship_type === "client_payment_to_financial_record" ||
+          l.relationship_type === "multa_payment_to_financial_record" ||
           l.relationship_type === "supplier_payment_to_financial_record"
         );
         const recordKind: PaymentFilter | "refund" =
@@ -170,7 +173,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
           : r.creditId ? creditMap.get(r.creditId)
           : linkKind === "supplier" ? supplierByTarget.get(targetLink?.target_financial_record_id || "")
           : undefined;
-        return { ...r, recordKind, entityName: entityName || "Sin asignar", targetId: targetLink?.target_financial_record_id || "" };
+        return { ...r, recordKind, isFinePayment, entityName: entityName || "Sin asignar", targetId: targetLink?.target_financial_record_id || "" };
       })
       .filter(r => kind === "all" || r.recordKind === kind)
       .filter(r => isDateInRange(r.date, dateRange))
@@ -212,7 +215,8 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     if (!editing) return [];
     if (editing.recordKind === "client") {
       return financialRecords
-        .filter(r => !r.isDeleted && r.type === "income" && r.clientId === editing.clientId && r.category !== "Depósito en Garantía")
+        .filter(r => !r.isDeleted && r.type === "income" && r.clientId === editing.clientId &&
+          (editing.isFinePayment ? r.id === editing.targetId : r.sourceRecordType !== "multa" && r.category !== "Depósito en Garantía"))
         .map(r => ({ id: r.id, label: `${r.category} · ${formatCurrency(Number(r.amount || 0))} · ${formatDate(r.date)}` }));
     }
     if (editing.recordKind === "supplier") {
@@ -457,7 +461,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
           <div className="w-full max-w-2xl rounded-[14px] border border-white/[0.1] bg-[#0e1117] p-5 text-white shadow-2xl sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-heading text-lg font-semibold">Editar {PAYMENT_LABELS[editing.recordKind] || "Pago"}</h2>
+                <h2 className="font-heading text-lg font-semibold">Editar {editing.isFinePayment ? "Pago de Multa" : PAYMENT_LABELS[editing.recordKind] || "Pago"}</h2>
                 <p className="mt-1 text-xs text-white/40">Cambios atómicos con recalculo financiero.</p>
               </div>
               <Button variant="ghost" size="icon" onClick={closeEdit} className="text-white/40 hover:bg-white/[0.06] hover:text-white"><X className="h-4 w-4" strokeWidth={1.75} /></Button>
@@ -466,7 +470,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
               {(editing.recordKind === "client" || editing.recordKind === "supplier") && (
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-white/50">Aplicar a</Label>
-                  <Select value={editTarget} onValueChange={setEditTarget}>
+                  <Select value={editTarget} onValueChange={setEditTarget} disabled={editing.isFinePayment}>
                     <SelectTrigger className="border-white/10 bg-white/[0.03] text-white"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>{targetOptions.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>
