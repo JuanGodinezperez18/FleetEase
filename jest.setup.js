@@ -86,20 +86,6 @@ jest.mock('next/image', () => ({
   },
 }));
 
-// Mock de localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  length: 0,
-  key: jest.fn(),
-};
-
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
-
 // Mock de matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

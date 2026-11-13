@@ -22,6 +22,8 @@ describe('authenticated boot without a cached profile', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: { access_token: 'test-token', user: { id: 'user-1' } } }, error: null,
     });
