@@ -14,7 +14,10 @@ $$;
 create type public.financial_record_type as enum ('income','expense','payment');
 create type public.audit_action as enum ('create','update','delete');
 create table public.users(id uuid primary key,company_id uuid,role text,is_deleted boolean default false);
-create table public.financial_categories(id uuid primary key,company_id uuid);
+create table public.financial_categories(id uuid primary key default gen_random_uuid(),company_id uuid,
+ name text,type public.financial_record_type,affects text,description text,is_default boolean);
+create type public.multa_status as enum ('pendiente','pagada','cancelada');
+create table public.multas(id uuid primary key,status public.multa_status,fecha_pago date,is_deleted boolean default false,updated_at timestamptz);
 create table public.clients(id uuid primary key,company_id uuid);
 create table public.vehicles(id uuid primary key,company_id uuid);
 create table public.partners(id uuid primary key,company_id uuid);
@@ -23,7 +26,7 @@ create table public.financial_records(
  id uuid primary key,company_id uuid,client_id uuid,vehicle_id uuid,partner_id uuid,category_id uuid,
  type public.financial_record_type,category text,amount numeric(14,2),date date,payment_method text,reference_code text,
  description text,credit_id uuid,credit_payment boolean default false,credit_granted boolean default false,
- payment_kind text,created_by uuid,is_deleted boolean default false,created_at timestamptz default now(),updated_at timestamptz
+ payment_kind text,source_record_id uuid,source_record_type text,created_by uuid,is_deleted boolean default false,created_at timestamptz default now(),updated_at timestamptz
 );
 create table public.financial_record_links(
  id uuid primary key default gen_random_uuid(), company_id uuid,source_financial_record_id uuid,
@@ -57,7 +60,7 @@ insert into public.users values
  (public.test_id(5),public.test_id(102),'admin',false),
  (public.test_id(6),public.test_id(101),'partner',false),
  (public.test_id(7),public.test_id(101),'super_admin',false);
-insert into public.financial_categories values(public.test_id(201),null);
+insert into public.financial_categories(id,company_id) values(public.test_id(201),null);
 insert into public.clients values(public.test_id(301),public.test_id(101)),(public.test_id(302),public.test_id(101));
 insert into public.financial_records(id,company_id,client_id,category_id,type,category,amount,date,created_by) values
  (public.test_id(401),public.test_id(101),public.test_id(301),public.test_id(201),'income','Renta',10,'2026-11-06',public.test_id(1)),
@@ -88,6 +91,13 @@ insert into public.supplier_purchases(id,status) values(public.test_id(501),'par
 insert into public.accounts_payable values(public.test_id(502),public.test_id(101),'supplier',public.test_id(412),false,12,public.test_id(501),'partially_paid',now());
 insert into public.financial_record_links(company_id,source_financial_record_id,target_financial_record_id,relationship_type,amount_applied,created_by)
  values(public.test_id(101),public.test_id(413),public.test_id(412),'supplier_payment_to_financial_record',4,public.test_id(1));
+insert into public.multas(id,status) values(public.test_id(601),'pendiente');
+insert into public.financial_records(id,company_id,client_id,category_id,type,category,amount,date,created_by,source_record_id,source_record_type)
+values(public.test_id(602),public.test_id(101),public.test_id(301),public.test_id(201),'income','Multa',12,'2026-11-06',public.test_id(1),public.test_id(601),'multa'),
+      (public.test_id(603),public.test_id(101),public.test_id(301),public.test_id(201),'payment','Pago de Multa',4,'2026-11-06',public.test_id(1),null,null);
+insert into public.financial_record_links(company_id,source_financial_record_id,target_financial_record_id,relationship_type,amount_applied,created_by)
+values(public.test_id(101),public.test_id(603),public.test_id(602),'multa_payment_to_financial_record',4,public.test_id(1));
+
 alter table public.financial_records enable row level security;
 grant select,update on public.financial_records to authenticated;
 grant select on public.users,public.financial_categories,public.clients,public.vehicles,public.partners,public.credits to authenticated;
@@ -102,6 +112,8 @@ create trigger financial_integrity before insert or update on public.financial_r
 revoke execute on function public.enforce_financial_record_integrity() from public,anon,authenticated;
 
 \ir ../migrations/20261106214659_scope_atomic_payment_edits.sql
+
+\ir ../migrations/20260922090000_multa_client_balance_and_partial_payments.sql
 
 create function public.fail_test_audit() returns trigger language plpgsql as $$
  begin
@@ -236,6 +248,32 @@ reset role;
 do $$ begin
  if (select status from public.accounts_payable where id=public.test_id(502))<>'pending' or
     (select status from public.supplier_purchases where id=public.test_id(501))<>'pending' then raise exception 'Supplier reversal state wrong'; end if;
+end $$;
+-- Edit a partial fine payment to full, reduce it, then reverse it.
+set local role authenticated;
+select public.update_financial_payment_atomic(public.test_id(603),12,'2026-11-06','Transferencia','QA-FINE-FULL',public.test_id(602));
+reset role;
+do $$ begin
+ if not exists(select 1 from public.multas where id=public.test_id(601) and status='pagada' and fecha_pago is not null)
+    or not exists(select 1 from public.financial_record_links where source_financial_record_id=public.test_id(603) and amount_applied=12)
+ then raise exception 'Fine full state or applied amount wrong'; end if;
+end $$;
+set local role authenticated;
+select public.update_financial_payment_atomic(public.test_id(603),5,'2026-11-06','Transferencia','QA-FINE-PARTIAL',public.test_id(602));
+reset role;
+do $$ begin
+ if not exists(select 1 from public.multas where id=public.test_id(601) and status='pendiente' and fecha_pago is null)
+    or not exists(select 1 from public.financial_record_links where source_financial_record_id=public.test_id(603) and amount_applied=5)
+ then raise exception 'Fine partial state or applied amount wrong'; end if;
+end $$;
+set local role authenticated;
+select public.delete_financial_payment_atomic(public.test_id(603));
+reset role;
+do $$ begin
+ if not exists(select 1 from public.multas where id=public.test_id(601) and status='pendiente' and fecha_pago is null)
+    or exists(select 1 from public.financial_record_links l join public.financial_records f on f.id=l.source_financial_record_id
+      where l.target_financial_record_id=public.test_id(602) and f.is_deleted=false)
+ then raise exception 'Fine reversal did not restore the outstanding balance'; end if;
 end $$;
 do $$ begin
  if not (select is_deleted from public.financial_records where id=public.test_id(402)) then raise exception 'Delete failed'; end if;
