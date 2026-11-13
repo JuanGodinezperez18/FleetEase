@@ -40,18 +40,18 @@ describe('Validators', () => {
   describe('plate', () => {
     it('debería validar placas mexicanas válidas', () => {
       expect(validators.plate('ABC-1234')).toBeNull();
+      expect(validators.plate('ABC1234')).toBeNull();
+      expect(validators.plate('123-ABC')).toBeNull();
       expect(validators.plate('AB-12345')).toBeNull();
       expect(validators.plate('ABC-12-34')).toBeNull();
       expect(validators.plate('abc-1234')).toBeNull(); // Debería funcionar en minúsculas
     });
 
     it('debería rechazar placas inválidas', () => {
-      expect(validators.plate('')).toBe('Placa es requerida');
-      const message = 'Formato de placa inválido (ej: ABC-1234)';
-      expect(validators.plate('ABC1234')).toBe(message);
-      expect(validators.plate('AB-1234')).toBe(message);
-      expect(validators.plate('123-ABC')).toBe(message);
-      expect(validators.plate('ABC-123')).toBe(message);
+      const message = 'La placa debe contener de 3 a 10 letras o números, con guiones opcionales.';
+      for (const plate of ['', 'AB', 'ABCDEFGHIJK', 'ABC/123', 'ABC--123', '-ABC', 'ABC-']) {
+        expect(validators.plate(plate)).toBe(message);
+      }
     });
   });
 
