@@ -318,3 +318,10 @@ Se integra `master` `284e03ed` (incluye #137 y #138) en la rama de #136, cuyo HE
 - Chromium local no pudo iniciarse por restricciones del entorno (`socket() Operation not permitted`). La validación de hidratación y bloqueo de inyección se ejecuta en el workflow E2E de Chrome de GitHub. No afirmar validación local de navegador ni prueba con cuenta real.
 
 La actualización conserva los límites operativos de #138: migraciones, E2E con cuenta real y persistencia/refresh entre los dos clientes siguen sin cierre por esta resolución de conflictos.
+
+
+## C1 — Rentabilidad operativa autorizada (2026-11-12)
+
+La rentabilidad mide los ingresos de renta y servicios menos los gastos de la operación en el periodo. El costo de adquisición se conserva en la ficha del vehículo. Las ventas financiadas y los cobros se presentan como cartera y cobranza. El cargo de administración sigue siendo gasto del socio e ingreso de la empresa; los pagos al socio afectan su saldo a pagar.
+
+`calculateFinancialReconciliation` es la fuente compartida del cálculo. Los cambios se aplican al tablero, análisis financiero, fichas, portal del socio, reportes y exportaciones. La validación con movimientos autorizados sigue pendiente. El ejemplo histórico de $647,100 corresponde a la definición anterior.

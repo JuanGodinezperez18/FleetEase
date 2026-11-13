@@ -86,18 +86,14 @@ export default function ReportsPageImproved() {
     if (!dateRange?.from || !dateRange.to) return null;
     return {
       income: financialAnalytics.totalIncome,
-      operatingIncome: financialAnalytics.operationalIncome,
       vehicleSales: financialAnalytics.vehicleSales,
+      creditCollections: financialAnalytics.creditCollections,
       expenses: financialAnalytics.reconciledExpenses,
-      operatingExpenses: financialAnalytics.totalExpenses,
-      vehicleSalesCost: financialAnalytics.vehicleSalesCost,
-      vehicleSalesCostDetails: financialAnalytics.vehicleSalesCostDetails,
       netProfit: financialAnalytics.netProfit,
       profitMargin: financialAnalytics.profitMargin,
       transactionsCount: financialAnalytics.includedRecords.length,
       expensesByCategory: {
         ...Object.fromEntries(financialAnalytics.expenseCategories.map(item => [item.name, item.value])),
-        ...(financialAnalytics.vehicleSalesCost > 0 ? { 'Costo de vehículos vendidos': financialAnalytics.vehicleSalesCost } : {}),
       },
       incomeByCategory: Object.fromEntries(financialAnalytics.incomeCategories.map(item => [item.name, item.value])),
       incomeChange: financialAnalytics.monthlyGrowth.income,
@@ -159,7 +155,7 @@ export default function ReportsPageImproved() {
     if (!financialSummary) return [];
     return [
       { name: 'Ingresos', value: financialSummary.income, color: '#d7ff3f' },
-      { name: 'Gastos y costos', value: financialSummary.expenses, color: '#fb7185' },
+      { name: 'Gastos operativos', value: financialSummary.expenses, color: '#fb7185' },
     ];
   }, [financialSummary]);
 
@@ -185,11 +181,8 @@ export default function ReportsPageImproved() {
         ? {
             income: financialSummary.income,
             expenses: financialSummary.expenses,
-            operatingIncome: financialSummary.operatingIncome,
             vehicleSales: financialSummary.vehicleSales,
-            operatingExpenses: financialSummary.operatingExpenses,
-            vehicleSalesCost: financialSummary.vehicleSalesCost,
-            vehicleSalesCostDetails: financialSummary.vehicleSalesCostDetails,
+            creditCollections: financialSummary.creditCollections,
             netProfit: financialSummary.netProfit,
             profitMargin: financialSummary.profitMargin,
             transactionsCount: financialSummary.transactionsCount,
@@ -408,11 +401,11 @@ export default function ReportsPageImproved() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {reportType === 'financial' && <>
             <MetricCard title="Ingresos totales" value={formatCurrency(financialSummary.income)} description="vs periodo anterior" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" trend={financialSummary.incomeChange} />
-            <MetricCard title="Gastos y costos" value={formatCurrency(financialSummary.expenses)} description="vs periodo anterior" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" trend={financialSummary.expensesChange} />
+            <MetricCard title="Gastos operativos" value={formatCurrency(financialSummary.expenses)} description="vs periodo anterior" icon={<TrendingDown className="h-5 w-5" strokeWidth={1.75} />} variant="danger" trend={financialSummary.expensesChange} />
             <MetricCard title="Beneficio neto" value={formatCurrency(financialSummary.netProfit)} description="vs periodo anterior" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.75} />} variant={financialSummary.netProfit >= 0 ? 'success' : 'danger'} trend={financialSummary.profitChange} />
             <MetricCard title="Margen" value={`${financialSummary.profitMargin.toFixed(1)}%`} description={`${financialSummary.transactionsCount} transacciones`} icon={<PieChartIcon className="h-5 w-5" strokeWidth={1.75} />} />
           </>}
-          {reportType === 'financial' && <p className="text-xs text-white/55">Fórmula: beneficio neto = ingresos operativos + ventas financiadas − gastos operativos − costo de vehículos vendidos. El costo de venta es un ajuste de rentabilidad, no un movimiento de efectivo.</p>}
+          {reportType === 'financial' && <div className="text-sm text-white/65">Ventas financiadas {formatCurrency(financialSummary.vehicleSales)} · Cobros de crédito {formatCurrency(financialSummary.creditCollections)}</div>}
           {reportType === 'vehicle' && <>
             <MetricCard title="Vehículos analizados" value={vehicleMetrics.length} description="Flota en el periodo" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.75} />} />
             <MetricCard title="Ingresos de flota" value={formatCurrency(vehicleMetrics.reduce((sum, m) => sum + m.totalIncome, 0))} description="Ingresos asociados a vehículos" icon={<DollarSign className="h-5 w-5" strokeWidth={1.75} />} variant="success" />

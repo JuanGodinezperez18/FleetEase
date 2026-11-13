@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/hooks/use-data';
 import type { Vehicle, Client } from '@/types';
 import { infallibleNormalizeDate, formatDate } from '@/lib/date-utils';
-import { sumRentalIncome, sumExpense, calculateNetProfit } from '@/lib/financial-metrics';
+import { calculateFinancialReconciliation } from '@/lib/financial-metrics';
 import {
   Calendar,
   Palette,
@@ -155,19 +155,10 @@ export default function VehicleDetailPage() {
     return financialRecords.filter(record => record.vehicleId === vehicle.id && !record.isDeleted);
   }, [financialRecords, vehicle]);
 
-  const netProfit = useMemo(() => {
-    if (!vehicle) return 0;
-    const income = sumRentalIncome(vehicleFinancialRecords);
-    const expense = sumExpense(vehicleFinancialRecords);
-    const acquisitionCost = vehicle.cost || 0;
-    return income - expense - acquisitionCost;
-  }, [vehicleFinancialRecords, vehicle]);
-
-  const roi = useMemo(() => {
-    if (!vehicle || !vehicle.cost || vehicle.cost === 0) return null;
-    const operatingProfit = calculateNetProfit(vehicleFinancialRecords);
-    return ((operatingProfit / vehicle.cost) * 100).toFixed(2);
-  }, [vehicleFinancialRecords, vehicle]);
+  const { netProfit, profitMargin } = useMemo(
+    () => calculateFinancialReconciliation(vehicleFinancialRecords),
+    [vehicleFinancialRecords],
+  );
 
   const assignedDriver = useMemo(() => {
     const activeAssignment = vehicleAssignmentLogs.find(
@@ -439,14 +430,14 @@ export default function VehicleDetailPage() {
               />
               <InfoItem
                 icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} />}
-                label="ROI"
-                value={roi !== null ? `${roi}%` : 'N/A'}
+                label="Margen operativo"
+                value={`${profitMargin.toFixed(2)}%`}
                 valueClassName={
-                  roi !== null && parseFloat(roi) >= 0 ? 'text-emerald-300' : 'text-rose-300'
+                  profitMargin >= 0 ? 'text-emerald-300' : 'text-rose-300'
                 }
               />
             </div>
-            <p className="mt-2 text-[11px] text-white/35">(Ingresos − Gastos) / Costo</p>
+            <p className="mt-2 text-[11px] text-white/35">Margen sobre ingresos operativos</p>
           </div>
         </section>
 

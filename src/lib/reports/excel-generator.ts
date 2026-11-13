@@ -93,12 +93,8 @@ export class ExcelReportGenerator {
       summaryData.push(['RESUMEN FINANCIERO']);
       summaryData.push(['']);
 
-      if (data.operatingIncome !== undefined) summaryData.push(['Ingresos Operativos', data.operatingIncome]);
-      if (data.vehicleSales !== undefined) summaryData.push(['Ventas Financiadas', data.vehicleSales]);
       if (data.income !== undefined) summaryData.push(['Ingresos Totales', data.income]);
-      if (data.operatingExpenses !== undefined) summaryData.push(['Gastos Operativos', data.operatingExpenses]);
-      if (data.vehicleSalesCost !== undefined) summaryData.push(['Costo de Vehículos Vendidos', data.vehicleSalesCost]);
-      if (data.expenses !== undefined) summaryData.push(['Gastos y Costos Totales', data.expenses]);
+      if (data.expenses !== undefined) summaryData.push(['Gastos Totales', data.expenses]);
       if (data.netProfit !== undefined) {
         summaryData.push(['Beneficio Neto', data.netProfit]);
       }
@@ -150,6 +146,16 @@ export class ExcelReportGenerator {
   }
 
   private addFinancialSheets(data: ReportData) {
+    if (data.vehicleSales !== undefined || data.creditCollections !== undefined) {
+      const worksheet = this.xlsx.utils.aoa_to_sheet([
+        ['Cartera de crédito'],
+        ['Ventas financiadas', data.vehicleSales ?? 0],
+        ['Cobros de crédito', data.creditCollections ?? 0],
+      ]);
+      worksheet['!cols'] = [{ wch: 24 }, { wch: 16 }];
+      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Créditos');
+    }
+
     if (data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0) {
       const expensesData: (string | number)[][] = [
         ['Gastos por Categoria'],
@@ -249,22 +255,6 @@ export class ExcelReportGenerator {
       const worksheet = this.xlsx.utils.aoa_to_sheet(excludedData);
       worksheet['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 38 }, { wch: 15 }, { wch: 68 }];
       this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Movimientos excluidos');
-    }
-
-    if (data.vehicleSalesCost !== undefined) {
-      const costData: (string | number)[][] = [
-        ['Costo de vehículos vendidos (ajuste de rentabilidad)'],
-        ['Este costo se reconoce en el beneficio neto y no representa un movimiento de efectivo.'],
-        ['Vehículo', 'Placa', 'ID de vehículo', 'Costo de adquisición'],
-      ];
-      (data.vehicleSalesCostDetails || []).forEach(detail => {
-        costData.push([detail.vehicleName, detail.plate, detail.vehicleId, detail.acquisitionCost]);
-      });
-      costData.push(['']);
-      costData.push(['Total costo de vehículos vendidos', '', '', data.vehicleSalesCost]);
-      const worksheet = this.xlsx.utils.aoa_to_sheet(costData);
-      worksheet['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 38 }, { wch: 22 }];
-      this.xlsx.utils.book_append_sheet(this.workbook, worksheet, 'Costo de ventas');
     }
   }
 

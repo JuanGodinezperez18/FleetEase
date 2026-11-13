@@ -269,108 +269,19 @@ export const calculateClientBalance = (
 export const sumVehicleSales = (records: FinancialRecord[]): number =>
   sumAmount(records.filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true));
 
-/**
- * Costo canónico de ventas de vehículos financiadas.
- * Cada vehículo vendido se contabiliza una sola vez para evitar duplicar
- * el costo si existen varios registros relacionados con la operación.
- */
-export interface VehicleSalesCostDetail {
-  vehicleId: string;
-  vehicleName: string;
-  plate: string;
-  acquisitionCost: number;
-}
-
-/** Detail supporting the cost-of-sales adjustment; each financed vehicle is counted once. */
-export const getVehicleSalesCostBreakdown = (
-  records: FinancialRecord[],
-  vehicles: Vehicle[]
-): VehicleSalesCostDetail[] => {
-  const soldVehicleIds = new Set(
-    records
-      .filter(r => isActiveRecord(r) && isIncome(r) && r.creditGranted === true && r.vehicleId)
-      .map(r => r.vehicleId as string)
-  );
-  const vehicleById = new Map(vehicles.map(v => [v.id, v]));
-
-  return Array.from(soldVehicleIds).map(vehicleId => {
-    const vehicle = vehicleById.get(vehicleId);
-    const vehicleName = vehicle
-      ? vehicle.alias || `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || vehicleId
-      : 'Vehículo no encontrado';
-    return {
-      vehicleId,
-      vehicleName,
-      plate: vehicle?.plate || 'N/A',
-      acquisitionCost: Number(vehicle?.cost) || 0,
-    };
-  }).sort((a, b) => a.vehicleName.localeCompare(b.vehicleName, 'es'));
-};
-
-export const sumVehicleSalesCost = (records: FinancialRecord[], vehicles: Vehicle[]): number =>
-  getVehicleSalesCostBreakdown(records, vehicles).reduce((sum, detail) => sum + detail.acquisitionCost, 0);
-
-export interface PartnerProfitability {
-  rentalIncome: number;
-  vehicleSales: number;
-  vehicleSalesCost: number;
-  operatingExpenses: number;
-  rentalVehicleAcquisitionCost: number;
-  totalIncome: number;
-  totalExpenses: number;
-  netProfit: number;
-}
-
-/**
- * Rentabilidad acumulada de un socio.
- *
- * - Vehículos de renta: las rentas generan ingreso, los gastos reducen la
- *   rentabilidad y el costo de adquisición se considera inversión pendiente
- *   de recuperar. Por eso un vehículo nuevo puede mostrar rentabilidad negativa
- *   durante su etapa inicial de recuperación.
- * - Vehículos vendidos a crédito: se reconoce la venta una sola vez y se resta
- *   el costo de adquisición para obtener la utilidad de la venta. Los cobros
- *   posteriores del crédito NO vuelven a generar rentabilidad.
- * - Los pagos al socio no reducen la rentabilidad; reducen su saldo pendiente.
- */
+/** Rentabilidad operativa atribuible al socio. */
 export const calculatePartnerProfitability = (
-  partnerVehicles: Vehicle[],
-  records: FinancialRecord[]
-): PartnerProfitability => {
-  const activeRecords = records.filter(isActiveRecord);
-  const rentalIncome = sumRentalIncome(
-    activeRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')
-  );
-  const saleRecords = activeRecords.filter(r => isIncome(r) && r.creditGranted === true && r.vehicleId);
-  const vehicleSales = sumAmount(saleRecords);
-
-  const soldVehicleIds = new Set(saleRecords.map(r => r.vehicleId).filter(Boolean) as string[]);
-  // Reutiliza el helper canónico para evitar que esta regla vuelva a duplicarse.
-  const vehicleSalesCost = sumVehicleSalesCost(activeRecords, partnerVehicles);
-
-  // Para vehículos que siguen siendo de renta, el costo de adquisición es la
-  // inversión que todavía debe recuperarse con las rentas acumuladas.
-  const rentalVehicleAcquisitionCost = partnerVehicles
-    .filter(v => !soldVehicleIds.has(v.id))
-    .reduce((sum, v) => sum + (Number(v.cost) || 0), 0);
-
-  const operatingExpenses = sumExpense(
-    activeRecords.filter(r => r.category !== 'Pago a Socio')
-  );
-  const totalIncome = rentalIncome + vehicleSales;
-  const totalExpenses = operatingExpenses + vehicleSalesCost + rentalVehicleAcquisitionCost;
-
-  return {
-    rentalIncome,
-    vehicleSales,
-    vehicleSalesCost,
-    operatingExpenses,
-    rentalVehicleAcquisitionCost,
-    totalIncome,
-    totalExpenses,
-    netProfit: totalIncome - totalExpenses,
-  };
-};
+  records: FinancialRecord[],
+  depositCategoryIds?: Set<string>,
+  refundDepositCategoryIds?: Set<string>
+): FinancialReconciliation => calculateFinancialReconciliation(
+  records.filter(record =>
+    !(record.type === 'income' && record.sourceRecordType === 'vehicle_admin_fee') &&
+    !(record.type === 'expense' && record.category === 'Pago a Socio')
+  ),
+  depositCategoryIds,
+  refundDepositCategoryIds,
+);
 
 /**
  * Ingreso operativo por renta/servicios. Excluye ventas financiadas y depósitos.
@@ -414,11 +325,9 @@ export interface FinancialReconciliation {
   vehicleSales: number;
   totalIncome: number;
   operatingExpenses: number;
-  vehicleSalesCost: number;
   totalExpenses: number;
   netProfit: number;
   profitMargin: number;
-  vehicleSalesCostDetails: VehicleSalesCostDetail[];
   includedRecords: FinancialRecord[];
   excludedRecords: ExcludedFinancialRecord[];
 }
@@ -431,7 +340,7 @@ export const getFinancialRecordExclusionReason = (
 ): string | null => {
   if (!isActiveRecord(record)) return 'Registro eliminado o inactivo';
   if (record.type === 'income') {
-    if (record.creditGranted === true) return null;
+    if (record.creditGranted === true) return 'Venta financiada: se presenta por separado de la rentabilidad operativa.';
     if (record.category === SECURITY_DEPOSIT_CATEGORY || (!!record.categoryId && !!depositCategoryIds?.has(record.categoryId))) {
       return 'Depósito en garantía: se excluye de ingresos por ser un pasivo reembolsable.';
     }
@@ -439,6 +348,7 @@ export const getFinancialRecordExclusionReason = (
     return null;
   }
   if (record.type === 'expense') {
+    if (isCreditCancellationNote(record)) return 'Nota de cancelación: corresponde a la cartera de crédito.';
     if (isDepositRefundRecord(record, refundDepositCategoryIds)) {
       return 'Devolución de depósito: se excluye de gastos operativos.';
     }
@@ -447,14 +357,9 @@ export const getFinancialRecordExclusionReason = (
   return 'Cobro o pago: se presenta en flujo de efectivo y no vuelve a sumar ingreso/gasto de rentabilidad.';
 };
 
-/**
- * Canonical period reconciliation for reports: total income less operating
- * expenses and the acquisition cost of vehicles sold on financed contracts.
- * Vehicle sales cost is an adjustment, not a cash movement in financial_records.
- */
+/** Conciliación operativa del periodo con las ventas financiadas por separado. */
 export const calculateFinancialReconciliation = (
   records: FinancialRecord[],
-  vehicles: Vehicle[],
   depositCategoryIds?: Set<string>,
   refundDepositCategoryIds?: Set<string>
 ): FinancialReconciliation => {
@@ -468,23 +373,17 @@ export const calculateFinancialReconciliation = (
   );
   const operationalIncome = sumRentalIncome(activeRecords, depositCategoryIds);
   const vehicleSales = sumVehicleSales(activeRecords);
-  const vehicleSalesCostDetails = getVehicleSalesCostBreakdown(activeRecords, vehicles);
-  const vehicleSalesCost = vehicleSalesCostDetails.reduce((sum, detail) => sum + detail.acquisitionCost, 0);
-  const operatingExpenses = sumExpense(activeRecords.filter(record => !isDepositRefundRecord(record, refundDepositCategoryIds)));
-  const totalIncome = operationalIncome + vehicleSales;
-  const totalExpenses = operatingExpenses + vehicleSalesCost;
-  const netProfit = totalIncome - totalExpenses;
+  const operatingExpenses = sumExpense(includedRecords);
+  const netProfit = operationalIncome - operatingExpenses;
 
   return {
     operationalIncome,
     vehicleSales,
-    totalIncome,
+    totalIncome: operationalIncome,
     operatingExpenses,
-    vehicleSalesCost,
-    totalExpenses,
+    totalExpenses: operatingExpenses,
     netProfit,
-    profitMargin: calculateProfitMargin(totalIncome, totalExpenses),
-    vehicleSalesCostDetails,
+    profitMargin: calculateProfitMargin(operationalIncome, operatingExpenses),
     includedRecords,
     excludedRecords,
   };

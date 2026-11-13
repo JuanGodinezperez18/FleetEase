@@ -8,15 +8,11 @@ import { es } from 'date-fns/locale';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 import {
   filterRecordsByDateRange,
-  calculateProfitMargin,
   calculateFinancialReconciliation,
   isDepositRefundRecord,
-  type VehicleSalesCostDetail,
   type ExcludedFinancialRecord,
   calculateAvgTransactionValue,
   sumRentalIncome,
-  sumVehicleSales,
-  sumVehicleSalesCost,
   sumExpense,
   daysBetweenInclusive,
   categoryIdsByAffects,
@@ -48,8 +44,6 @@ export type FinancialAnalytics = {
   totalIncome: number;
   operationalIncome: number;
   vehicleSales: number;
-  vehicleSalesCost: number;
-  vehicleSalesGrossProfit: number;
   customerCollections: number;
   creditCollections: number;
   securityDeposits: number;
@@ -65,7 +59,6 @@ export type FinancialAnalytics = {
   totalExpenses: number;
   reconciledExpenses: number;
   todayExpenses: number;
-  vehicleSalesCostDetails: VehicleSalesCostDetail[];
   includedRecords: FinancialRecord[];
   excludedRecords: ExcludedFinancialRecord[];
   netProfit: number;
@@ -91,10 +84,10 @@ export const useFinancialAnalytics = (
   const analytics = useMemo(() => {
     const now = new Date();
     const defaultAnalytics: FinancialAnalytics = {
-      totalIncome: 0, operationalIncome: 0, vehicleSales: 0, vehicleSalesCost: 0, vehicleSalesGrossProfit: 0,
+      totalIncome: 0, operationalIncome: 0, vehicleSales: 0,
       customerCollections: 0, creditCollections: 0, securityDeposits: 0, partnerPayments: 0, supplierPayments: 0, otherPayments: 0,
       cashInflow: 0, cashOutflow: 0, netCashFlow: 0, creditGranted: 0, creditRecovered: 0,
-      todayIncome: 0, totalExpenses: 0, reconciledExpenses: 0, todayExpenses: 0, vehicleSalesCostDetails: [], includedRecords: [], excludedRecords: [], netProfit: 0, profitMargin: 0,
+      todayIncome: 0, totalExpenses: 0, reconciledExpenses: 0, todayExpenses: 0, includedRecords: [], excludedRecords: [], netProfit: 0, profitMargin: 0,
       avgTransactionValue: 0, avgRevenuePerClient: 0,
       monthlyGrowth: { income: 0, profit: 0, expenses: 0, reconciledExpenses: 0 }, cashFlowAnalysis: [],
       expenseCategories: [], incomeCategories: [], topClients: [], topVehicles: [], profitabilityAnalysis: [],
@@ -112,19 +105,14 @@ export const useFinancialAnalytics = (
 
     const reconciliation = calculateFinancialReconciliation(
       filteredRecords,
-      vehicles,
       depositCategoryIds,
       refundDepositCategoryIds,
     );
     const operationalIncome = reconciliation.operationalIncome;
     const todayOperationalIncome = sumRentalIncome(todayRecords, depositCategoryIds);
     const vehicleSales = reconciliation.vehicleSales;
-    const todayVehicleSales = sumVehicleSales(todayRecords);
-    const vehicleSalesCost = reconciliation.vehicleSalesCost;
-    const vehicleSalesCostDetails = reconciliation.vehicleSalesCostDetails;
     const includedRecords = reconciliation.includedRecords;
     const excludedRecords = reconciliation.excludedRecords;
-    const vehicleSalesGrossProfit = vehicleSales - vehicleSalesCost;
     const totalExpenses = reconciliation.operatingExpenses;
     const reconciledExpenses = reconciliation.totalExpenses;
     const todayExpenses = sumExpense(todayRecords.filter(r => !isDepositRefund(r)));
@@ -163,17 +151,8 @@ export const useFinancialAnalytics = (
     const vehicleValueMap: Record<string, number> = {};
     const clientsWithRevenueInPeriod = new Set<string>();
 
-    filteredRecords.forEach(record => {
-      if (record.type === 'income' && record.creditGranted === true) {
-        const amount = Number(record.amount || 0);
-        const categoryName = 'Venta de Vehículo Financiada';
-        incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + amount;
-        if (record.clientId) {
-          clientValueMap[record.clientId] = (clientValueMap[record.clientId] || 0) + amount;
-          clientsWithRevenueInPeriod.add(record.clientId);
-        }
-        if (record.vehicleId) vehicleValueMap[record.vehicleId] = (vehicleValueMap[record.vehicleId] || 0) + amount;
-      } else if (record.type === 'income' && !depositCategoryIds.has(record.categoryId || '') && record.category !== 'Depósito en Garantía' && record.category !== 'Multa') {
+    includedRecords.forEach(record => {
+      if (record.type === 'income') {
         const categoryName = normalizeFinancialCategory(record, categoryMap) || 'Sin Categoría';
         const amount = Number(record.amount || 0);
         incomeCategoriesMap[categoryName] = (incomeCategoriesMap[categoryName] || 0) + amount;
@@ -201,16 +180,8 @@ export const useFinancialAnalytics = (
 
     const profitabilityAnalysis: ClientProfitability[] = (clients || []).map(client => {
       const clientRecords = recordsByClient.get(client.id) || [];
-      const revenue = clientRecords
-        .filter(r => r.type === 'income' && !depositCategoryIds.has(r.categoryId || '') && r.category !== 'Depósito en Garantía' && r.category !== 'Multa')
-        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const operatingExpenses = clientRecords
-        .filter(r => r.type === 'expense')
-        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-      const financedSaleCosts = sumVehicleSalesCost(clientRecords, vehicles);
-      const expenses = operatingExpenses + financedSaleCosts;
-      const netProfit = revenue - expenses;
-      const profitMargin = calculateProfitMargin(revenue, expenses);
+      const { totalIncome: revenue, totalExpenses: expenses, netProfit, profitMargin } =
+        calculateFinancialReconciliation(clientRecords, depositCategoryIds, refundDepositCategoryIds);
       const level: ProfitabilityLevel = netProfit <= 0 ? 'negative' : profitMargin > 25 ? 'high' : profitMargin > 10 ? 'medium' : 'low';
       return { clientId: client.id, clientName: `${client.firstname} ${client.lastname}`, revenue, expenses, netProfit, profitMargin, level };
     }).sort((a, b) => b.netProfit - a.netProfit);
@@ -230,9 +201,7 @@ export const useFinancialAnalytics = (
     const cashFlowAnalysis: MonthlyCashFlow[] = Array.from({ length: 12 }, (_, i) => {
       const date = subMonths(now, 11 - i);
       const monthRecords = monthlyRecords.get(monthKey(date)) || [];
-      const monthOperationalIncome = sumRentalIncome(monthRecords, depositCategoryIds);
-      const monthVehicleSales = sumVehicleSales(monthRecords);
-      const monthIncome = monthOperationalIncome + monthVehicleSales;
+      const monthIncome = sumRentalIncome(monthRecords, depositCategoryIds);
       const monthExpenses = sumExpense(monthRecords.filter(r => !isDepositRefund(r)));
       const monthCashFlow = calculateCashFlowBreakdown(
         monthRecords,
@@ -252,14 +221,11 @@ export const useFinancialAnalytics = (
     const prevPeriodStart = subDays(dateRange.from, daysInPeriod);
     const prevPeriodEnd = subDays(dateRange.from, 1);
     const prevMonthRecords = filterRecordsByDateRange(financialRecords, { from: prevPeriodStart, to: prevPeriodEnd });
-    const prevMonthOperationalIncome = sumRentalIncome(prevMonthRecords, depositCategoryIds);
-    const prevMonthVehicleSales = sumVehicleSales(prevMonthRecords);
-    const prevMonthIncome = prevMonthOperationalIncome + prevMonthVehicleSales;
     const prevMonthExpenses = sumExpense(prevMonthRecords.filter(r => !isDepositRefund(r)));
-    const prevMonthReconciliation = calculateFinancialReconciliation(prevMonthRecords, vehicles, depositCategoryIds, refundDepositCategoryIds);
+    const prevMonthReconciliation = calculateFinancialReconciliation(prevMonthRecords, depositCategoryIds, refundDepositCategoryIds);
     const prevMonthProfit = prevMonthReconciliation.netProfit;
     const monthlyGrowth = {
-      income: calculateChange(totalIncome, prevMonthIncome),
+      income: calculateChange(totalIncome, prevMonthReconciliation.totalIncome),
       expenses: calculateChange(totalExpenses, prevMonthExpenses),
       reconciledExpenses: calculateChange(reconciledExpenses, prevMonthReconciliation.totalExpenses),
       profit: calculateChange(netProfit, prevMonthProfit),
@@ -275,10 +241,10 @@ export const useFinancialAnalytics = (
     const topVehicles = Object.entries(vehicleValueMap).map(([id, netValue]) => ({ id, name: vehicleMap.get(id) || 'Vehículo Desconocido', netValue })).sort((a,b) => b.netValue - a.netValue).slice(0, 10);
 
     return {
-      totalIncome, operationalIncome, vehicleSales, vehicleSalesCost, vehicleSalesCostDetails, includedRecords, excludedRecords, vehicleSalesGrossProfit,
+      totalIncome, operationalIncome, vehicleSales, includedRecords, excludedRecords,
       customerCollections, creditCollections, securityDeposits, partnerPayments, supplierPayments, otherPayments,
       cashInflow, cashOutflow, netCashFlow, creditGranted, creditRecovered,
-      todayIncome: todayOperationalIncome + todayVehicleSales, totalExpenses, reconciledExpenses, todayExpenses,
+      todayIncome: todayOperationalIncome, totalExpenses, reconciledExpenses, todayExpenses,
       netProfit, profitMargin, avgTransactionValue, avgRevenuePerClient, monthlyGrowth,
       cashFlowAnalysis, expenseCategories, incomeCategories, topClients, topVehicles, profitabilityAnalysis,
     };

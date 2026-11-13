@@ -32,7 +32,7 @@ import type { DateRange } from 'react-day-picker';
 import { DashboardDateFilter } from '@/components/dashboard/components/DashboardDateFilter';
 import { isWithinInterval } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
-import { sumRentalIncome, sumExpense, calculateNetProfit } from '@/lib/financial-metrics';
+import { calculatePartnerProfitability } from '@/lib/financial-metrics';
 
 type WidgetType = 'balance' | 'income-expense' | 'multas';
 
@@ -175,15 +175,10 @@ export default function PartnerDashboard() {
     });
   }, [financialRecords, partnerVehicleIds, customDateRange]);
 
-  // Calcular ingresos totales de sus vehículos usando la definición contable canónica.
-  const totalIncome = useMemo(
-    () => sumRentalIncome(filteredRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')),
-    [filteredRecords]
+  const { totalIncome, totalExpenses, netProfit } = useMemo(
+    () => calculatePartnerProfitability(filteredRecords),
+    [filteredRecords],
   );
-
-  // Calcular gastos totales de sus vehículos usando la definición contable canónica.
-  const totalExpenses = useMemo(() => sumExpense(filteredRecords), [filteredRecords]);
-  const netProfit = useMemo(() => calculateNetProfit(filteredRecords.filter(r => r.sourceRecordType !== 'vehicle_admin_fee')), [filteredRecords]);
 
   // Multas de los vehículos del socio
   const partnerMultas = useMemo(() => {

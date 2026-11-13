@@ -1,5 +1,5 @@
 import type { Vehicle, Client, Partner, FinancialRecord, VehicleAssignmentLog, FinancialCategory } from '@/types';
-import { sumPayment, calculateFinancialReconciliation, categoryIdsByAffects, filterRecordsByDateRange } from '@/lib/financial-metrics';
+import { sumPayment, calculateFinancialReconciliation, calculatePartnerProfitability, categoryIdsByAffects, filterRecordsByDateRange } from '@/lib/financial-metrics';
 import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns';
 import { infallibleNormalizeDate } from '@/lib/date-utils';
 
@@ -62,7 +62,7 @@ export class ReportAnalyticsService {
     return vehicles.filter(vehicle => !vehicle.isDeleted).map(vehicle => {
       const vehicleRecords = recordsByVehicle.get(vehicle.id) ?? [];
       const reconciliation = calculateFinancialReconciliation(
-        vehicleRecords, [vehicle], categoryIdsByAffects(financialCategories, 'security_deposit'),
+        vehicleRecords, categoryIdsByAffects(financialCategories, 'security_deposit'),
         new Set(financialCategories.filter(c => c.type === 'expense' && c.name.trim().toLowerCase() === 'devolución de depósito').map(c => c.id)),
       );
       const utilizationRate = this.calculateUtilizationRate(vehicle, assignmentLogs, dateRange);
@@ -175,8 +175,8 @@ export class ReportAnalyticsService {
         ? filterRecordsByDateRange(relatedRecords, dateRange)
         : relatedRecords;
 
-      const profitability = calculateFinancialReconciliation(
-        partnerRecordsInRange, vehicles, categoryIdsByAffects(financialCategories, 'security_deposit'),
+      const profitability = calculatePartnerProfitability(
+        partnerRecordsInRange, categoryIdsByAffects(financialCategories, 'security_deposit'),
         new Set(financialCategories.filter(c => c.type === 'expense' && c.name.trim().toLowerCase() === 'devolución de depósito').map(c => c.id)),
       );
       const totalIncome = profitability.totalIncome;

@@ -15,8 +15,7 @@ import { infallibleNormalizeDate } from '@/lib/date-utils';
 import {
   categoryIdsByAffects,
   filterRecordsByVehicle,
-  sumExpense,
-  sumRentalIncome,
+  calculateFinancialReconciliation,
 } from '@/lib/financial-metrics';
 
 /**
@@ -188,52 +187,11 @@ export function useDashboardKPIs(dateRange?: DateRange) {
       }
     }
 
-    // Renta: ingresos renta − gastos. Crédito: total crédito − admin; neta − costo vehículo
-    const vehicleGrossProfitabilityData = operationalVehicles
+    const vehicleProfitabilityData = operationalVehicles
       .map(v => {
         const vehicleRecords = filterRecordsByVehicle(filteredFinancialRecords, v.id);
-        const vehicleCost = Number(v.cost) || 0;
-        const credit = creditByVehicleId.get(v.id);
-        const isCreditVehicle = Boolean(
-          credit ||
-            (v as { lockedByCredit?: boolean }).lockedByCredit ||
-            (v as { associatedCreditId?: string | null }).associatedCreditId
-        );
-
-        if (isCreditVehicle && credit) {
-          const totalIncome = Number(credit.totalAmount) || 0;
-          const adminExpenses = sumExpense(
-            vehicleRecords.filter(
-              r =>
-                (r.sourceRecordType && String(r.sourceRecordType).includes('vehicle_admin')) ||
-                /administraci[oó]n/i.test(r.category || '')
-            )
-          );
-          const totalExpenses = adminExpenses;
-          const grossProfit = totalIncome - totalExpenses;
-          const netProfit = grossProfit - vehicleCost;
-          return {
-            id: v.id,
-            alias: v.alias,
-            plate: v.plate,
-            make: v.make,
-            model: v.model,
-            status: v.status,
-            imageUrl: typeof v.imageUrl === 'string' ? v.imageUrl : undefined,
-            weeklyRentalValue: v.weeklyRentalValue,
-            operationType: 'credit' as const,
-            totalIncome,
-            totalExpenses,
-            grossProfit,
-            netProfit,
-            vehicleCost,
-          };
-        }
-
-        const totalIncome = sumRentalIncome(vehicleRecords, depositCategoryIds);
-        const totalExpenses = sumExpense(vehicleRecords);
-        const grossProfit = totalIncome - totalExpenses;
-        const netProfit = grossProfit - vehicleCost;
+        const { totalIncome, totalExpenses, netProfit } = calculateFinancialReconciliation(vehicleRecords, depositCategoryIds);
+        const isCreditVehicle = creditByVehicleId.has(v.id) || v.lockedByCredit || v.associatedCreditId;
         return {
           id: v.id,
           alias: v.alias,
@@ -243,20 +201,18 @@ export function useDashboardKPIs(dateRange?: DateRange) {
           status: v.status,
           imageUrl: typeof v.imageUrl === 'string' ? v.imageUrl : undefined,
           weeklyRentalValue: v.weeklyRentalValue,
-          operationType: 'rental' as const,
+          operationType: isCreditVehicle ? 'credit' as const : 'rental' as const,
           totalIncome,
           totalExpenses,
-          grossProfit,
           netProfit,
-          vehicleCost,
         };
       })
-      .sort((a, b) => b.grossProfit - a.grossProfit);
-    const totalGrossProfit = vehicleGrossProfitabilityData.reduce((s, v) => s + v.grossProfit, 0);
-    const totalProfitabilityIncome = vehicleGrossProfitabilityData.reduce((s, v) => s + v.totalIncome, 0);
+      .sort((a, b) => b.netProfit - a.netProfit);
+    const totalOperatingProfit = vehicleProfitabilityData.reduce((s, v) => s + v.netProfit, 0);
+    const totalProfitabilityIncome = vehicleProfitabilityData.reduce((s, v) => s + v.totalIncome, 0);
     // Margen ponderado del portafolio; no promediar porcentajes individuales.
     const averageVehicleProfitability = totalProfitabilityIncome > 0
-      ? (totalGrossProfit / totalProfitabilityIncome) * 100
+      ? (totalOperatingProfit / totalProfitabilityIncome) * 100
       : null;
     const maintenanceSummary = getMaintenanceKpiSummary(vehicles, mileageMetrics);
     const maintenanceDue = maintenanceSummary.overdueCount;
@@ -372,9 +328,9 @@ export function useDashboardKPIs(dateRange?: DateRange) {
         value: averageVehicleProfitability ?? '—',
         subtitle: averageVehicleProfitability === null
           ? 'Sin ingresos en el período'
-          : `${vehicleGrossProfitabilityData.length} vehículos · Margen sobre ingresos`,
+          : `${vehicleProfitabilityData.length} vehículos · Margen sobre ingresos`,
         trend: (averageVehicleProfitability ?? 0) >= 0,
-        details: vehicleGrossProfitabilityData,
+        details: vehicleProfitabilityData,
         loading: false
       },
       'vehicles-maintenance': { value: maintenanceVehiclesCount, loading: false },

@@ -447,8 +447,6 @@ const Reconciliation = ({ analytics }: { analytics: FinancialAnalytics }) => {
   const rows: [string, number, string][] = [
     ["Ingresos operativos", analytics.operationalIncome, "Rentas/servicios"],
     ["Ventas financiadas", analytics.vehicleSales, "Cartera, no efectivo"],
-    ["Costo de ventas", -analytics.vehicleSalesCost, "Costo de adquisición"],
-    ["Utilidad bruta ventas", analytics.vehicleSalesGrossProfit, "Venta − costo"],
     ["Cobros de clientes", analytics.customerCollections, "Cobranza"],
     ["Recuperación de créditos", analytics.creditCollections, "Cartera"],
     ["Depósitos en garantía", analytics.securityDeposits, "Efectivo, no utilidad"],
@@ -481,8 +479,7 @@ const Reconciliation = ({ analytics }: { analytics: FinancialAnalytics }) => {
             {formatCurrency(analytics.netProfit)}
           </p>
           <p className="mt-1 text-[11px] text-white/35">
-            Ingresos {formatCurrency(analytics.totalIncome)} − costo{" "}
-            {formatCurrency(analytics.vehicleSalesCost)} − gastos {formatCurrency(analytics.totalExpenses)}
+            Ingresos operativos {formatCurrency(analytics.totalIncome)} − gastos {formatCurrency(analytics.totalExpenses)}
           </p>
         </div>
         <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.03] p-4">
