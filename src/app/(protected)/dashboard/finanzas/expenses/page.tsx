@@ -195,7 +195,9 @@ export default function ExpensesPage() {
     } catch (error) {
       toast.error('Error al guardar', {
         id: toastId,
-        description: error instanceof Error ? error.message : 'Error desconocido',
+        description: error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+          ? error.message
+          : 'Error desconocido',
       });
     } finally {
       setIsSubmitting(false);
