@@ -181,9 +181,9 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
       mileageAtExpense: initialData?.mileageAtExpense ?? undefined,
       evidenceUrls: initialData?.evidenceUrls ?? [],
       companyId: companyCtx,
-      paymentMethod: (initialData?.paymentMethod as ExpensesFormValues["paymentMethod"]) || "company_pays_for_partner",
+      paymentMethod: (initialData?.paymentMethod as ExpensesFormValues["paymentMethod"]) || "company_absorbs",
     };
-  }, [initialData, currentUser, globalCompanyId, existingItems]);
+  }, [initialData, currentUser?.role, currentUser?.companyId, globalCompanyId, existingItems]);
 
   const form = useForm<ExpensesFormValues>({ resolver: zodResolver(expenseSchema) as Resolver<ExpensesFormValues, any, ExpensesFormValues>, defaultValues });
   const { control, handleSubmit, setValue, reset, formState: { isDirty } } = form;
@@ -206,6 +206,10 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   };
 
   const submitForm = (data: ExpensesFormValues) => {
+    if (!isEditing && !hasPartner && data.paymentMethod !== "company_absorbs") {
+      toast.error("Selecciona Empresa absorbe para un gasto sin socio asociado.");
+      return;
+    }
     const items = data.items.map(item => {
       const quantity = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
       const enteredUnitAmount = Number(item.unitAmount);
@@ -305,6 +309,19 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   }, [expenseCategories, formCompanyId, currentUser?.companyId]);
 
   const selectedVehicle = useMemo(() => selectedVehicleId ? vehicles.find(v => v.id === selectedVehicleId) : null, [selectedVehicleId, vehicles]);
+  const expenseVehicle = selectedVehicle ?? vehicles.find(vehicle =>
+    vehicle.id === selectedClient?.assignedVehicleId && vehicle.companyId === (formCompanyId || currentUser?.companyId) && !vehicle.isDeleted
+  );
+  const hasPartner = Boolean(expenseVehicle?.partnerId);
+
+  useEffect(() => {
+    if (isEditing) return;
+    if (!hasPartner || !form.getFieldState("paymentMethod").isDirty) {
+      setValue("paymentMethod", hasPartner ? "company_pays_for_partner" : "company_absorbs");
+    }
+    if (!expenseVehicle) setValue("mileageAtExpense", undefined);
+  }, [expenseVehicle, form, hasPartner, isEditing, setValue, defaultValues]);
+
   const isCompanyExpense = !selectedClientId || selectedClientId === NONE_SELECT_VALUE;
 
   const selectedCategory = useMemo(
@@ -383,7 +400,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
             <FormField control={control} name="categoryId" render={({ field }) => <FormItem><FormLabel>Categoría</FormLabel><Select onValueChange={v => { if (v === newCategoryValue) { setIsNewCategoryModalOpen(true); return; } field.onChange(v); }} value={field.value || ""} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar categoría..." /></SelectTrigger></FormControl><SelectContent><SelectItem value={newCategoryValue} className="text-primary"><div className="flex items-center gap-2"><PlusCircle className="h-4 w-4" /> Crear nueva categoría</div></SelectItem>{selectableCategories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
           </div>
 
-          <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>} />
+          <FormField control={control} name="mileageAtExpense" render={({ field }) => <FormItem><FormLabel>Kilometraje al momento del gasto</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} disabled={isSubmitting || (!isEditing && !expenseVehicle)} /></FormControl><FormMessage /></FormItem>} />
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -461,7 +478,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
 
           <FormField control={control} name="description" render={({ field }) => <FormItem><FormLabel>Descripción / Notas</FormLabel><FormControl><Textarea {...field} disabled={isSubmitting} rows={2} /></FormControl><FormMessage /></FormItem>} />
 
-          <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Método de pago / Quién asume</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isEditing}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa paga por socio</SelectItem><SelectItem value="partner_pays">Socio paga</SelectItem><SelectItem value="company_absorbs">Empresa absorbe</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
+          <FormField control={control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Método de pago / Quién asume</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting || isEditing || !hasPartner}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="company_pays_for_partner">Empresa paga por socio</SelectItem><SelectItem value="partner_pays">Socio paga</SelectItem><SelectItem value="company_absorbs">Empresa absorbe</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
 
           <FormField control={control} name="evidenceUrls" render={({ field }) => <FormItem><FormLabel>Evidencia (fotos / PDFs)</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value || []} disabled={isSubmitting} accept="image/*,application/pdf" folder="financial_receipts" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
 
