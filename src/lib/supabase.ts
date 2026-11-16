@@ -2731,6 +2731,7 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: Json
       }
+      reopen_settled_credit: { Args: { p_payment_id: string }; Returns: Json }
       delete_supplier_purchase: {
         Args: { p_company_id: string; p_purchase_id: string }
         Returns: Json

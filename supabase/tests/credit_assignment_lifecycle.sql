@@ -44,6 +44,10 @@ create table public.vehicle_assignment_logs(id uuid primary key default gen_rand
  assigned_at timestamptz,unassigned_at timestamptz,end_date timestamptz,reason text,odometer_reading int,assigned_by uuid);
 create table public.mileage_logs(vehicle_id uuid,mileage int,date date,notes text,source text,kind text,company_id uuid,
  created_by uuid,uid uuid,is_deleted boolean default false);
+alter table public.mileage_logs add column created_at timestamptz, add column updated_at timestamptz;
+create table public.multas(company_id uuid,vehicle_id uuid,created_at timestamptz,updated_at timestamptz);
+create table public.vehicle_inspections(company_id uuid,vehicle_id uuid,created_at timestamptz,updated_at timestamptz);
+create table public.seguimientos(company_id uuid,vehicle_id uuid,timestamp timestamptz);
 create function public.auth_user_company_id() returns uuid language sql stable security definer set search_path='' as $$
  select company_id from public.users where id=auth.uid()
 $$;
@@ -96,6 +100,8 @@ end $$;
 reset role;
 -- MIGRATION_UNDER_TEST
 \ir ../migrations/20261107053703_respect_credit_assignment_lifecycle.sql
+\ir ../migrations/20261116150847_reopen_erroneously_settled_credit.sql
+insert into public.users values(public.test_id(12),public.test_id(101),'editor',false);
 set local role authenticated;
 do $$ declare r jsonb; p uuid; p2 uuid; begin
  r:=public.process_credit_payment_atomic(public.test_id(101),public.test_id(601),public.test_id(301),4,current_date,'Efectivo','QA-PARTIAL',null);
@@ -120,6 +126,46 @@ do $$ declare r jsonb; p uuid; p2 uuid; begin
  if (select is_deleted from public.financial_records where id=p2) then raise exception 'Failed reversal left deleted payment'; end if;
  if (select remaining_balance from public.credits where id=public.test_id(601))<>0 then raise exception 'Failed reversal changed credit'; end if;
  if exists(select 1 from fleetease_private.payment_edit_authorizations) then raise exception 'Capability leaked'; end if;
+ if has_function_privilege('anon','public.reopen_settled_credit(uuid)','EXECUTE') then raise exception 'Anon can reopen credit'; end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',public.test_id(12))::text,true);
+ begin
+  perform public.reopen_settled_credit(p2);
+  raise exception 'Editor reopened a settled credit';
+ exception when insufficient_privilege then null;
+ end;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',public.test_id(1))::text,true);
+ begin
+  reset role;
+  insert into public.multas(company_id,vehicle_id,created_at) values(public.test_id(101),public.test_id(401),now()+interval '1 second');
+  set local role authenticated;
+  begin
+   perform public.reopen_settled_credit(p2);
+   raise exception 'Reopened with later activity';
+  exception when raise_exception then
+   if sqlerrm not like 'El vehículo o el cliente tienen cambios posteriores%' then raise; end if;
+  end;
+  if (select is_deleted from public.financial_records where id=p2) then raise exception 'Rejected reopening deleted payment'; end if;
+  raise sqlstate 'QA001';
+ exception when sqlstate 'QA001' then null;
+ end;
+ begin
+  perform public.reopen_settled_credit(p2);
+  if not exists(select 1 from public.credits where id=public.test_id(601) and status='active' and remaining_balance=10) then
+   raise exception 'Credit was not reopened';
+  end if;
+  if not exists(select 1 from public.vehicles where status='rented' and locked_by_credit and partner_id=public.test_id(501)) then
+   raise exception 'Vehicle or partner not restored';
+  end if;
+  if (select count(*) from public.vehicle_assignment_logs where vehicle_id=public.test_id(401))<>2
+    or not exists(select 1 from public.vehicle_assignment_logs where vehicle_id=public.test_id(401) and unassigned_at is null) then
+   raise exception 'Original history not preserved';
+  end if;
+  if not (select is_deleted from public.financial_records where id=p2) then
+   raise exception 'Closing payment not reversed';
+  end if;
+  raise sqlstate 'QA001';
+ exception when sqlstate 'QA001' then null;
+ end;
 end $$;
 reset role;
 -- The cancellation trigger must close history before clearing either pointer.
