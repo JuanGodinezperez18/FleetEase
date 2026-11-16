@@ -49,7 +49,7 @@ export const usePartnerAnalytics = (
         if (list) list.push(record);
         else recordsByPartner.set(record.partnerId, [record]);
       }
-      if (record.vehicleId) {
+      else if (record.vehicleId) {
         const list = recordsByVehicle.get(record.vehicleId);
         if (list) list.push(record);
         else recordsByVehicle.set(record.vehicleId, [record]);

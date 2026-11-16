@@ -264,7 +264,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (record.isDeleted) continue;
       const partnerIds = new Set<string>();
       if (record.partnerId) partnerIds.add(record.partnerId);
-      if (record.vehicleId) {
+      else if (record.vehicleId) {
         for (const partnerId of vehiclePartnerIds.get(record.vehicleId) || []) partnerIds.add(partnerId);
       }
       for (const partnerId of partnerIds) appendRecord(partnerId, record);

@@ -181,7 +181,7 @@ export const getPartnerFinancialRecords = (
 
   return financialRecords.filter(r => {
     if (r.isDeleted) return false;
-    if (r.partnerId === partner.id) return true;
+    if (r.partnerId) return r.partnerId === partner.id;
     return !!r.vehicleId && partnerVehicleIds.has(r.vehicleId);
   });
 };
