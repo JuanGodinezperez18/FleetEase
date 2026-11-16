@@ -4,18 +4,26 @@ import { PaymentHistoryView } from '@/app/(protected)/dashboard/finanzas/payment
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
+let mockRole = 'admin';
+let mockShowSettledCredit = false;
+const mockRefreshData = jest.fn();
+
 jest.mock('@/contexts/data-provider', () => ({ useData: () => ({
   financialRecords: [
+    ...(mockShowSettledCredit ? [{
+      id: 'qa-settlement', companyId: 'qa', type: 'payment', amount: 10,
+      date: '2026-11-06', creditId: 'qa-credit', creditPayment: true, referenceCode: 'QA-SETTLEMENT',
+    }] : []),
     { id: 'qa-payment', companyId: 'qa', type: 'payment', amount: 4, date: '2026-11-06', clientId: 'qa-client', referenceCode: 'QA-REF' },
     { id: 'qa-fine-payment', companyId: 'qa', type: 'payment', category: 'Pago de Multa', amount: 3, date: '2026-11-05', clientId: 'qa-client', referenceCode: 'QA-FINE' },
     { id: 'qa-fine', companyId: 'qa', type: 'income', category: 'Multa', amount: 12, date: '2026-11-04', clientId: 'qa-client', sourceRecordType: 'multa' },
     { id: 'qa-refund', companyId: 'qa', type: 'expense', category: 'Devolución de Depósito', amount: 1, date: '2026-11-06', clientId: 'qa-client', referenceCode: 'QA-REFUND' },
     { id: 'qa-expense', companyId: 'qa', type: 'expense', category: 'Mantenimiento', amount: 1, date: '2026-11-06', referenceCode: 'QA-OTHER-EXPENSE' },
   ],
-  clients: [{ id: 'qa-client', firstname: 'QA', lastname: 'Cliente' }], partners: [], credits: [],
-  loadingData: false, selectedCompanyId: 'qa', refreshData: jest.fn(),
+  clients: [{ id: 'qa-client', firstname: 'QA', lastname: 'Cliente' }], partners: [], credits: mockShowSettledCredit ? [{ id: 'qa-credit', status: 'completed', referenceCode: 'QA-CREDIT' }] : [],
+  loadingData: false, selectedCompanyId: 'qa', refreshData: mockRefreshData,
 }) }));
-jest.mock('@/contexts/auth-provider', () => ({ useAuth: () => ({ currentUser: { companyId: 'qa', role: 'admin' } }) }));
+jest.mock('@/contexts/auth-provider', () => ({ useAuth: () => ({ currentUser: { companyId: 'qa', role: mockRole } }) }));
 jest.mock('@/contexts/dashboard-date-context', () => ({ useDashboardDate: () => ({ dateRange: undefined }) }));
 jest.mock('@/components/common/module-date-filter-bar', () => ({ ModuleDateFilterBar: () => null }));
 jest.mock('@/lib/supabase', () => ({
@@ -97,4 +105,34 @@ it('revierte un pago de multa desde el historial tras confirmar', async () => {
   } finally {
     confirm.mockRestore();
   }
+});
+
+
+describe('reactivación de créditos desde Pagos', () => {
+  beforeEach(() => {
+    mockShowSettledCredit = true;
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    mockRole = 'admin';
+    mockShowSettledCredit = false;
+    jest.restoreAllMocks();
+  });
+
+  it('envía el pago seleccionado a la operación de reactivación y actualiza el historial', async () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<PaymentHistoryView embedded />);
+    const row = await screen.findByRole('row', { name: /QA-SETTLEMENT/ });
+    fireEvent.click(within(row).getByRole('button', { name: 'Reactivar crédito' }));
+    await waitFor(() => expect(mockRefreshData).toHaveBeenCalledTimes(1));
+    expect(supabase.rpc).toHaveBeenCalledWith('reopen_settled_credit', { p_payment_id: 'qa-settlement' });
+  });
+
+  it('deshabilita la reactivación para un editor', async () => {
+    mockRole = 'editor';
+    render(<PaymentHistoryView embedded />);
+    const row = await screen.findByRole('row', { name: /QA-SETTLEMENT/ });
+    expect(within(row).getByRole('button', { name: 'Reactivar crédito' })).toBeDisabled();
+  });
 });
