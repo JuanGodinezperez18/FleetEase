@@ -3,7 +3,7 @@ import { read, utils } from 'xlsx';
 import { generateExcelReport } from './excel-generator';
 import { generatePDFReport, type ReportData } from './pdf-generator';
 import { ReportAnalyticsService } from './analytics-service';
-import { calculateFinancialReconciliation } from '@/lib/financial-metrics';
+import { calculateFinancialReconciliation, getPartnerFinancialRecords } from '@/lib/financial-metrics';
 import type { FinancialRecord, Vehicle, Partner } from '@/types';
 
 const vehicles = [{ id: 'v', partnerId: 'p', cost: 495000, status: 'sold', alias: 'Unidad' }] as Vehicle[];
@@ -42,6 +42,20 @@ describe('report breakdown reconciliation', () => {
 
     expect(ReportAnalyticsService.calculateVehicleMetrics([rentalVehicle], movements)[0].netProfit).toBe(30000);
     expect(ReportAnalyticsService.calculatePartnerMetrics(partners, [rentalVehicle], movements)[0].netBalance).toBe(30000);
+  });
+
+  it('counts a movement only for its recorded partner after a vehicle changes partners', () => {
+    const original = partners[0];
+    const newPartner = { ...original, id: 'new' };
+    const transferred = { ...vehicles[0], partnerId: newPartner.id };
+    const oldRent = record('old-rent', { amount: 700 });
+    const newRent = record('new-rent', { partnerId: newPartner.id, amount: 900 });
+    const movements = [oldRent, newRent];
+
+    expect(getPartnerFinancialRecords(original, [], movements)).toEqual([oldRent]);
+    expect(getPartnerFinancialRecords(newPartner, [transferred], movements)).toEqual([newRent]);
+    const result = ReportAnalyticsService.calculatePartnerMetrics([original, newPartner], [transferred], movements);
+    expect(result.map(row => [row.partner.id, row.totalIncome])).toEqual([['new', 900], ['p', 700]]);
   });
 
   it('reconciles the partner breakdown without financed sales or acquisition costs', () => {
