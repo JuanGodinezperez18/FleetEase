@@ -70,6 +70,8 @@ it('guarda la edición de un pago de multa contra su cargo original', async () =
   render(<PaymentHistoryView embedded />);
   const row = (await screen.findAllByText('QA-FINE')).map(label => label.closest('tr')).find(Boolean);
   expect(row).toBeTruthy();
+  expect(within(row!).getByText('Pago de Multa')).toBeInTheDocument();
+  expect(within(row!).queryByText('Pago de Cliente')).not.toBeInTheDocument();
   fireEvent.click(within(row!).getByRole('button', { name: 'Editar pago' }));
   expect(screen.getByText('Editar Pago de Multa')).toBeInTheDocument();
   fireEvent.change(screen.getByDisplayValue('3'), { target: { value: '12' } });
