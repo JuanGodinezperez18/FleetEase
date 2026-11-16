@@ -277,15 +277,23 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     }
   };
 
+  const isSettledCreditPayment = (record: { creditId?: string | null }) =>
+    Boolean(record.creditId && credits.some(c => c.id === record.creditId && c.status === "completed"));
+  const canReopenCredit = currentUser?.role === "admin" || currentUser?.role === "superAdmin";
+
   const deletePayment = async (record: any) => {
     if (!companyId || deletingId) return;
-    const ok = window.confirm(`¿Eliminar el pago de ${formatCurrency(Number(record.amount || 0))}? Se conservará el registro de auditoría y se revertirá su efecto financiero.`);
+    const reopening = isSettledCreditPayment(record);
+    if (reopening && !canReopenCredit) return;
+    const ok = reopening
+      ? window.confirm("¿Revertir este pago y reactivar el crédito? El saldo volverá a quedar pendiente y el vehículo se asignará al cliente.")
+      : window.confirm(`¿Eliminar el pago de ${formatCurrency(Number(record.amount || 0))}? Se conservará el registro de auditoría y se revertirá su efecto financiero.`);
     if (!ok) return;
     setDeletingId(record.id);
     try {
-      const { error } = await supabase.rpc("delete_financial_payment_atomic", { p_payment_id: record.id } as any);
+      const { error } = await supabase.rpc(reopening ? "reopen_settled_credit" : "delete_financial_payment_atomic", { p_payment_id: record.id });
       if (error) throw error;
-      toast.success("Pago eliminado", { description: record.recordKind === "credit" ? "Se revirtieron las cuotas, saldo y estado del crédito." : "Se revirtió su aplicación financiera sin borrar físicamente el registro." });
+      toast.success(reopening ? "Crédito reactivado" : "Pago eliminado", { description: record.recordKind === "credit" ? "Se revirtieron las cuotas, saldo y estado del crédito." : "Se revirtió su aplicación financiera sin borrar físicamente el registro." });
       await refreshData();
       await loadLinks();
     } catch (error) {
@@ -395,7 +403,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                         <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">{r.isFinePayment ? "Pago de Multa" : PAYMENT_LABELS[r.recordKind] || "Pago"}</span>
                         <div className="ml-auto flex gap-1">
                           <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} aria-label="Eliminar pago" title="Eliminar pago" onClick={() => void deletePayment(r)}>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && !canReopenCredit)} aria-label={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} title={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} onClick={() => void deletePayment(r)}>
                             {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                           </Button>
                         </div>
@@ -422,7 +430,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                           <td className="p-3">
                             <div className="flex justify-end gap-1">
                               <Button size="icon" variant="ghost" className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id} aria-label="Eliminar pago" title="Eliminar pago" onClick={() => void deletePayment(r)}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && !canReopenCredit)} aria-label={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} title={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} onClick={() => void deletePayment(r)}>
                                 {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                               </Button>
                             </div>
