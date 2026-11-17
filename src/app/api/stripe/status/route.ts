@@ -66,7 +66,7 @@ export async function GET() {
       maxUsers,
       vehicleCount: currentVehicleCount,
       trialEndsAt: plan === 'free' ? null : companyRecord.trial_ends_at,
-      showsAds: plans[plan]?.showsAds === true,
+      showsAds: false,
       subscription: subscriptionDetails,
     });
   } catch (error) {

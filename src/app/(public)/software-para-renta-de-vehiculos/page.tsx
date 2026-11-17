@@ -114,7 +114,7 @@ export default function Page() {
           <h2 className="text-3xl font-semibold">Empieza sin tarjeta.</h2>
           <p className="mx-auto mt-4 max-w-xl text-white/45">
             Plan Free permanente con 1 vehículo y 1 usuario. Todas las funciones
-            Pro, con anuncios.
+            Pro.
           </p>
           <Link
             href="/registro"

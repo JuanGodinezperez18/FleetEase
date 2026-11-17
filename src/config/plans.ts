@@ -9,8 +9,6 @@ export interface PlanConfig {
   maxVehicles: number; maxUsers: number; trialDays?: number;
   requiresPaymentMethod?: boolean; description: string; features: string[];
   comingSoon?: string[]; popular?: boolean;
-  /** Si true, se muestran anuncios en el producto (monetización del plan Free). */
-  showsAds?: boolean;
 }
 
 const starterFeatures = [
@@ -41,15 +39,13 @@ export const plans: Record<PlanType, PlanConfig> = {
     maxVehicles: 1,
     maxUsers: 1,
     requiresPaymentMethod: false,
-    showsAds: true,
-    description: 'Gratis para siempre. Todas las funciones Pro, con anuncios. Hasta 1 vehículo y 1 usuario.',
+    description: 'Gratis para siempre. Todas las funciones Pro. Hasta 1 vehículo y 1 usuario.',
     features: [
       'Gratis para siempre',
       'Todas las funciones Pro (rentabilidad, analytics, reportes Excel, etc.)',
       'Hasta 1 vehículo',
       '1 usuario (empresa)',
       'Sin tarjeta de crédito',
-      'Con anuncios (así se mantiene el plan gratis)',
       ...starterFeatures,
       'Dashboard avanzado y configurable',
       'Rentabilidad por vehículo',
@@ -68,8 +64,7 @@ export const plans: Record<PlanType, PlanConfig> = {
     maxVehicles: 5,
     maxUsers: 1,
     requiresPaymentMethod: true,
-    showsAds: false,
-    description: 'Control operativo y financiero para flotillas pequeñas, sin anuncios',
+    description: 'Control operativo y financiero para flotillas pequeñas',
     features: starterFeatures,
     comingSoon: ['WhatsApp Intelligence', 'Fleet Intelligence vía WhatsApp'],
   },
@@ -82,7 +77,6 @@ export const plans: Record<PlanType, PlanConfig> = {
     maxVehicles: 15,
     maxUsers: 3,
     requiresPaymentMethod: true,
-    showsAds: false,
     description: 'Rentabilidad, análisis y control avanzado para operaciones en crecimiento',
     features: proFeatures,
     comingSoon: [
@@ -101,7 +95,6 @@ export const plans: Record<PlanType, PlanConfig> = {
     maxVehicles: -1,
     maxUsers: -1,
     requiresPaymentMethod: true,
-    showsAds: false,
     description: 'Para empresas con flotillas medianas y grandes que requieren mayor capacidad y acompañamiento empresarial',
     features: [
       'Todo lo incluido en Pro',
@@ -161,9 +154,4 @@ export function getUserLimitMessage(planId: PlanType, currentCount: number): str
   const plan = plans[planId];
   if (plan.maxUsers === -1) return '';
   return `Has alcanzado el límite de ${plan.maxUsers} usuarios de tu plan ${plan.name}. Contacta para upgrade.`;
-}
-
-/** True si el plan muestra anuncios (monetización del Free). */
-export function planShowsAds(planId: PlanType): boolean {
-  return plans[planId]?.showsAds === true;
 }

@@ -75,7 +75,7 @@ export default function SoftwareParaFlotillasPage() {
           </h2>
           <p className="mt-4 max-w-2xl text-white/45">
             Empieza gratis con 1 vehículo y 1 usuario. Escala a un plan
-            de pago cuando necesites más capacidad y sin anuncios.
+            de pago cuando necesites más capacidad.
           </p>
           <Link
             href="/registro"

@@ -83,30 +83,6 @@ export default function PrivacidadPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">Publicidad y cookies de terceros</h2>
-            <p>
-              En el plan Free de FleetEase podemos mostrar anuncios de Google AdSense dentro de la
-              aplicación (dashboard), no en páginas de marketing públicas. Google y sus socios pueden
-              utilizar cookies u identificadores similares para personalizar anuncios y medir su
-              rendimiento, conforme a las{' '}
-              <a
-                href="https://policies.google.com/technologies/ads"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#d7ff3f] hover:underline"
-              >
-                políticas de publicidad de Google
-              </a>
-              .
-            </p>
-            <p className="mt-2">
-              Puede gestionar preferencias de cookies en su navegador o, cuando esté disponible, a
-              través de las opciones de privacidad de Google. Los planes de pago de FleetEase no
-              muestran anuncios de AdSense.
-            </p>
-          </section>
-
-          <section>
             <h2 className="text-lg font-semibold text-white">Derechos ARCO y revocación del consentimiento</h2>
             <p>
               Usted puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición, así como
