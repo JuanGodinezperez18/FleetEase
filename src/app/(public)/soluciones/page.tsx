@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 const audiences = [
-  { title: 'Tu primer vehículo', text: 'Si llevas tus cuentas por separado, reúne ingresos, gastos y servicios para conocer el resultado de tu unidad.', details: 'Empieza con el plan Free: 1 vehículo y 1 usuario, sin tarjeta y con anuncios.', href: '/registro', action: 'Crear mi cuenta Free' },
+  { title: 'Tu primer vehículo', text: 'Si llevas tus cuentas por separado, reúne ingresos, gastos y servicios para conocer el resultado de tu unidad.', details: 'Empieza con el plan Free: 1 vehículo y 1 usuario, sin tarjeta.', href: '/registro', action: 'Crear mi cuenta Free' },
   { title: 'Vehículos de renta para conductores', text: 'Da seguimiento a asignaciones, rentas, cobranza y créditos. Conserva el historial de cada cliente y los compromisos de cada unidad.', details: 'Revisa también multas, vencimientos y mantenimiento desde la misma operación.', href: '/funciones#vehicles', action: 'Ver el control de rentas' },
   { title: 'Flotillas y vehículos de socios', text: 'Concentra los gastos de las unidades, sus mantenimientos y el resultado por vehículo para revisar cómo se comporta la flotilla.', details: 'Consulta balances de socios y reportes para dar seguimiento a ingresos y costos.', href: '/funciones#rentabilidad', action: 'Ver rentabilidad por unidad' },
 ];

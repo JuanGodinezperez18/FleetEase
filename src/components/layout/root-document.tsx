@@ -24,9 +24,6 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
 });
 
-/** Publisher ID de AdSense (verificación del sitio + unidades de anuncio). */
-const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
-
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.fleetease.com.mx"),
   title: {
@@ -193,16 +190,6 @@ export default function RootDocument({ children, nonce }: Readonly<{ children: R
             });
           `}
         </Script>
-        {adsenseClientId ? (
-          <Script
-            nonce={nonce}
-            id="adsense-init"
-            async
-            strategy="afterInteractive"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-          />
-        ) : null}
       </head>
       <body className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans fe-shell-bg antialiased`}>
         {/* Splash de carga: NO usar h1 — el H1 temático vive en cada página de marketing */}

@@ -14,10 +14,8 @@ const HIGHLIGHTS: Partial<Record<PlanType, string[]>> = {
     "Todas las funciones Pro",
     "1 vehículo · 1 usuario",
     "Sin tarjeta de crédito",
-    "Con anuncios",
   ],
   starter: [
-    "Sin anuncios",
     "Hasta 5 vehículos · 1 usuario",
     "Operación y cobranza completa",
     "Mantenimiento y alertas",

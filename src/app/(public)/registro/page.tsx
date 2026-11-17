@@ -114,7 +114,7 @@ export default function RegisterPage() {
 
       if (result.requiresPaymentMethod === false || data.selectedPlan === 'free') {
         toast.success('¡Tu plan Free está activo!');
-        toast.info('Sin tarjeta. 1 vehículo y 1 usuario, con todas las funciones Pro. Incluye anuncios.');
+        toast.info('Sin tarjeta. 1 vehículo y 1 usuario, con todas las funciones Pro.');
       } else {
         toast.success('¡Cuenta creada exitosamente!');
       }

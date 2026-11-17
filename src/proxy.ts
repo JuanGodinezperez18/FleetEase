@@ -33,9 +33,9 @@ function buildCsp(request: NextRequest) {
 
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com` + (isDev ? " 'unsafe-eval'" : ""),
+    `script-src 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://www.googletagmanager.com` + (isDev ? " 'unsafe-eval'" : ""),
     "script-src-attr 'none'",
-    `script-src-elem 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://fundingchoicesmessages.google.com`,
+    `script-src-elem 'self' ${inlineScripts} https://*.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://va.vercel-scripts.com https://vercel.live https://static.cloudflareinsights.com https://www.googletagmanager.com`,
     "style-src 'self' 'unsafe-inline'",
     "style-src-attr 'unsafe-inline'",
     "style-src-elem 'self' 'unsafe-inline'",
@@ -43,8 +43,8 @@ function buildCsp(request: NextRequest) {
     "media-src 'self' blob:",
     "manifest-src 'self'",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://ws-us3.pusher.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://fundingchoicesmessages.google.com",
-    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com https://vercel.live https://fundingchoicesmessages.google.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://www.google.com/recaptcha/ https://api.stripe.com https://*.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://va.vercel-scripts.com https://vercel.live wss://ws-us3.pusher.com https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com",
+    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://js.stripe.com https://hooks.stripe.com https://vercel.live",
     "child-src 'self'",
     "worker-src 'self' blob:",
     "object-src 'none'",
