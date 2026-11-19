@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, healthLimiter } from '@/lib/rate-limit';
+import { supabaseAdmin } from '@/lib/admin-api-auth';
 
 /**
  * API Health Check para FleetEase Manager (Supabase)
@@ -74,13 +75,11 @@ export async function GET(request: Request) {
   // CHECK 1: Supabase Database
   // ======================
   try {
-    const supabase = await createClient();
-
     const dbStart = Date.now();
     // Hacer una consulta simple a la tabla companies
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('companies')
-      .select('id')
+      .select('id', { head: true })
       .limit(1);
 
     const dbLatency = Date.now() - dbStart;

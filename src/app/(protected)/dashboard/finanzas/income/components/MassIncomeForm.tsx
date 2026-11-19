@@ -26,7 +26,7 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
+import { findAssignmentAtDate, getBusinessDateKey } from '@/lib/vehicle-assignment';
 import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const formSchema = z.object({
@@ -71,7 +71,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
       companyId: currentUser?.companyId || '',
       categoryId: '',
       description: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: getBusinessDateKey(new Date()),
       paymentMethod: 'cash',
     },
   });
@@ -95,7 +95,7 @@ const MassIncomeForm = forwardRef<MassIncomeFormRef, MassIncomeFormProps>(({ onS
   useEffect(() => {
     if (isVehicleRentCategory && selectedCompanyId && allVehicles && allClients) {
       const selectedDateKey = selectedDate;
-      const todayKey = format(new Date(), 'yyyy-MM-dd');
+      const todayKey = getBusinessDateKey(new Date());
       const companyVehicles = allVehicles.filter(v =>
         v.companyId === selectedCompanyId &&
         !v.isDeleted

@@ -1,5 +1,6 @@
 "use client";
 
+import { getBusinessDateKey } from '@/lib/vehicle-assignment';
 import { useForm, type Resolver, Controller, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -172,7 +173,7 @@ const ExpensesForm = forwardRef<ExpensesFormHandles, ExpensesFormProps>(({ onSub
   const defaultValues = useMemo(() => {
     const companyCtx = initialData?.companyId || (currentUser?.role !== "superAdmin" ? currentUser?.companyId : globalCompanyId) || null;
     return {
-      date: initialData?.date ? format(infallibleNormalizeDate(initialData.date)!, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      date: initialData?.date ? format(infallibleNormalizeDate(initialData.date)!, "yyyy-MM-dd") : getBusinessDateKey(new Date()),
       clientId: initialData?.clientId || NONE_SELECT_VALUE,
       vehicleId: initialData?.vehicleId || "",
       items: existingItems,

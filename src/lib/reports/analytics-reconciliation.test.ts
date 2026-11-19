@@ -92,6 +92,36 @@ describe('financial report exports', () => {
     excludedRecords: reconciliation.excludedRecords,
   };
 
+  it.each([
+    ['unassigned', undefined],
+    ['missing', 'missing-vehicle'],
+    ['archived', 'archived-vehicle'],
+  ])('preserves %s entity movements in the financial summary and Excel detail', async (_name, vehicleId) => {
+    const movements = [
+      record('income', { amount: 120, vehicleId, partnerId: undefined, clientId: undefined }),
+      record('expense', { type: 'expense', amount: 20, vehicleId, partnerId: undefined, clientId: undefined }),
+      record('deleted', { amount: 999, vehicleId, isDeleted: true }),
+    ];
+    const result = calculateFinancialReconciliation(movements);
+    const workbook = read(await readBlob(await generateExcelReport({
+      ...report,
+      vehicles: [{ ...vehicles[0], id: 'archived-vehicle', isDeleted: true }],
+      partners: [{ ...partners[0], isDeleted: true }],
+      income: result.totalIncome,
+      expenses: result.totalExpenses,
+      netProfit: result.netProfit,
+      records: result.includedRecords,
+      excludedRecords: result.excludedRecords,
+    })));
+    const detail = utils.sheet_to_json<(string | number)[]>(workbook.Sheets.Transacciones, { header: 1 }).slice(3);
+    const summary = utils.sheet_to_json<(string | number)[]>(workbook.Sheets.Resumen, { header: 1 });
+    expect(detail.map(row => row[4])).toEqual([120, 20]);
+    expect(detail.map(row => row[5])).toEqual([vehicleId || 'N/A', vehicleId || 'N/A']);
+    expect(summary).toEqual(expect.arrayContaining([
+      ['Ingresos Totales', 120], ['Gastos Totales', 20], ['Beneficio Neto', 100],
+    ]));
+  });
+
   it('reconciles Excel totals with transaction rows and shows credit separately', async () => {
     const workbook = read(await readBlob(await generateExcelReport(report)));
     const rows = (name: string) => utils.sheet_to_json<(string | number)[]>(workbook.Sheets[name], { header: 1 });

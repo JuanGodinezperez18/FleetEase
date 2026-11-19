@@ -1,3 +1,5 @@
+import { getBusinessDateKey } from '@/lib/vehicle-assignment';
+
 /** Returns true only for a valid YYYY-MM-DD date that is not after today. */
 export function isFinancialDateNotInFuture(date: string, today?: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
@@ -12,12 +14,7 @@ export function isFinancialDateNotInFuture(date: string, today?: string): boolea
     return false;
   }
 
-  const now = new Date();
-  const todayKey = today ?? [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-');
+  const todayKey = today ?? getBusinessDateKey(new Date());
 
   return /^\d{4}-\d{2}-\d{2}$/.test(todayKey) && date <= todayKey;
 }
