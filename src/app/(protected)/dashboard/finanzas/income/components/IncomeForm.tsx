@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatCurrency, cn } from "@/lib/utils";
 import { DialogFooter } from "@/components/ui/dialog";
-import { findAssignmentAtDate } from '@/lib/vehicle-assignment';
+import { findAssignmentAtDate, getBusinessDateKey } from '@/lib/vehicle-assignment';
 import { isFinancialDateNotInFuture } from '@/lib/financial-date-validation';
 
 const newCategoryValue = "createNewCategory";
@@ -78,7 +78,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
     const companyId = data?.companyId || currentUser?.companyId || companies[0]?.id || undefined;
     const categoryInfo = data?.categoryId ? incomeAndPaymentCategories.find(c => c.id === data.categoryId) : undefined;
     const defaults: IncomeFormValues = {
-      date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: undefined as unknown as number,
+      date: getBusinessDateKey(new Date()), description: '', amount: undefined as unknown as number,
       clientId: null, partnerId: null, vehicleId: null, categoryId: '', companyId: companyId ?? null,
       paymentMethod: 'Efectivo', type: 'income'
     };
@@ -136,7 +136,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const historicalAssignedClientIds = useMemo(() => {
     if (!isWeeklyRent || !selectedDate) return new Set<string>();
 
-    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const todayKey = getBusinessDateKey(new Date());
     const companyId = selectedCompanyId || currentUser?.companyId;
     const assignedIds = new Set<string>();
 
@@ -198,7 +198,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({ onSubmit, initialData, companie
   const assignedVehicle = useMemo(() => {
     if (!selectedClientId) return null;
     const companyId = selectedCompanyId || currentUser?.companyId;
-    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const todayKey = getBusinessDateKey(new Date());
 
     if (isWeeklyRent && selectedDate) {
       const assignment = (vehicleAssignmentLogs || [])
