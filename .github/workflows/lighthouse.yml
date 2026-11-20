@@ -57,14 +57,6 @@ jobs:
           temporaryPublicStorage: true
           configPath: ./.lighthouserc.json
 
-      - name: Upload Lighthouse reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouse-reports
-          path: ./lighthouse-reports
-          retention-days: 30
-
   performance-budget:
     runs-on: ubuntu-latest
 

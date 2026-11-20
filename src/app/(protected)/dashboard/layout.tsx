@@ -12,6 +12,7 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { GlobalLoader } from '@/components/common/GlobalLoader';
 import { DashboardDateProvider } from '@/contexts/dashboard-date-context';
 import { PlanAccessGuard } from '@/components/subscription/plan-access-guard';
+import { PortalRoleGuard } from '@/components/common/portal-role-guard';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!currentUser) return null;
 
   return (
+    <PortalRoleGuard portal="dashboard">
     <DashboardDateProvider>
       <VehiclesProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
         <ClientsProvider companyId={selectedCompanyId} isSuperAdmin={isSuperAdmin}>
@@ -41,5 +43,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </ClientsProvider>
       </VehiclesProvider>
     </DashboardDateProvider>
+    </PortalRoleGuard>
   );
 }
