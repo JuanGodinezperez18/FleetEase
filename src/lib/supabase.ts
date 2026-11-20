@@ -878,6 +878,7 @@ export type Database = {
           description: string | null
           id: string
           is_default: boolean | null
+          is_deleted: boolean
           name: string
           type: Database["public"]["Enums"]["financial_record_type"]
         }
@@ -888,6 +889,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_default?: boolean | null
+          is_deleted?: boolean
           name: string
           type: Database["public"]["Enums"]["financial_record_type"]
         }
@@ -898,6 +900,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_default?: boolean | null
+          is_deleted?: boolean
           name?: string
           type?: Database["public"]["Enums"]["financial_record_type"]
         }
@@ -2558,6 +2561,10 @@ export type Database = {
           credit_id: string
           payment_id: string
         }[]
+      }
+      archive_financial_category: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: number
       }
       allocate_supplier_purchase: {
         Args: {
