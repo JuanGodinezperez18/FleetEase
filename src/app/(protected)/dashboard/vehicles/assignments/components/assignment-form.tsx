@@ -8,7 +8,7 @@ import { useData } from '@/hooks/use-data';
 import { useAuth } from '@/contexts/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { compressImageIfNeeded } from '@/lib/image-compression';
-import { checkAssignmentDateAgainstEntityCreation, isDateOnOrAfter } from '@/lib/vehicle-assignment';
+import { checkAssignmentDateAgainstEntityCreation, getBusinessDateKey, isDateOnOrAfter } from '@/lib/vehicle-assignment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,7 +63,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
       odometerReading: '',
       fuelLevel: '',
       conditionNotes: '',
-      assignedAt: new Date().toISOString().slice(0, 10),
+      assignedAt: getBusinessDateKey(new Date()),
     },
   });
 
@@ -297,7 +297,7 @@ export function AssignmentForm({ onSuccess, onCancel, preselectedVehicleId }: As
             <FormControl>
               <Input
                 type="date"
-                max={new Date().toISOString().slice(0, 10)}
+                max={getBusinessDateKey(new Date())}
                 min={minAssignableDateHint ?? undefined}
                 {...field}
               />
