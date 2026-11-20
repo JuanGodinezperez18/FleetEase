@@ -2,15 +2,15 @@
 // app/(partner)/layout.tsx
 import { PartnerSidebar } from '@/components/layout/partner-sidebar';
 import { Header } from '@/components/layout/header';
+import { PortalRoleGuard } from '@/components/common/portal-role-guard';
 
 export default function PartnerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // La validación de rol ahora es manejada exclusivamente por el middleware.
-  // El layout asume que si el usuario llegó aquí, tiene el rol correcto.
   return (
+    <PortalRoleGuard portal="partner">
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <PartnerSidebar />
@@ -23,5 +23,6 @@ export default function PartnerLayout({
         </main>
       </div>
     </div>
+    </PortalRoleGuard>
   );
 }
