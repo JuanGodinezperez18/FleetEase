@@ -2552,6 +2552,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_credit_settlement_payments: {
+        Args: { p_company_id: string }
+        Returns: {
+          credit_id: string
+          payment_id: string
+        }[]
+      }
       allocate_supplier_purchase: {
         Args: {
           p_allocations: Json

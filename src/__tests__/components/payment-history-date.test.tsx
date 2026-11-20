@@ -13,6 +13,9 @@ jest.mock('@/contexts/data-provider', () => ({ useData: () => ({
     ...(mockShowSettledCredit ? [{
       id: 'qa-settlement', companyId: 'qa', type: 'payment', amount: 10,
       date: '2026-11-06', creditId: 'qa-credit', creditPayment: true, referenceCode: 'QA-SETTLEMENT',
+    }, {
+      id: 'qa-earlier', companyId: 'qa', type: 'payment', amount: 10,
+      date: '2026-11-07', creditId: 'qa-credit', creditPayment: true, referenceCode: 'QA-EARLIER',
     }] : []),
     { id: 'qa-payment', companyId: 'qa', type: 'payment', amount: 4, date: '2026-11-06', clientId: 'qa-client', referenceCode: 'QA-REF' },
     { id: 'qa-fine-payment', companyId: 'qa', type: 'payment', category: 'Pago de Multa', amount: 3, date: '2026-11-05', clientId: 'qa-client', referenceCode: 'QA-FINE' },
@@ -32,7 +35,9 @@ jest.mock('@/lib/supabase', () => ({
       data: [{ source_financial_record_id: 'qa-fine-payment', target_financial_record_id: 'qa-fine', relationship_type: 'multa_payment_to_financial_record', amount_applied: 3 }],
       error: null,
     }) }) }),
-    rpc: jest.fn().mockResolvedValue({ error: null }),
+    rpc: jest.fn().mockImplementation((name: string) => Promise.resolve(name === 'get_credit_settlement_payments'
+      ? { data: [{ credit_id: 'qa-credit', payment_id: 'qa-settlement' }], error: null }
+      : { error: null })),
   },
 }));
 
@@ -124,15 +129,45 @@ describe('reactivación de créditos desde Pagos', () => {
     jest.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PaymentHistoryView embedded />);
     const row = await screen.findByRole('row', { name: /QA-SETTLEMENT/ });
-    fireEvent.click(within(row).getByRole('button', { name: 'Reactivar crédito' }));
+    fireEvent.click(await within(row).findByRole('button', { name: 'Reactivar crédito' }));
     await waitFor(() => expect(mockRefreshData).toHaveBeenCalledTimes(1));
     expect(supabase.rpc).toHaveBeenCalledWith('reopen_settled_credit', { p_payment_id: 'qa-settlement' });
+  });
+
+  it('sólo ofrece reactivación en el pago registrado por BD, aunque otro abono tenga fecha posterior', async () => {
+    render(<PaymentHistoryView embedded />);
+    const settlement = await screen.findByRole('row', { name: /QA-SETTLEMENT/ });
+    expect(await within(settlement).findByRole('button', { name: 'Reactivar crédito' })).toBeEnabled();
+    const earlier = screen.getByRole('row', { name: /QA-EARLIER/ });
+    expect(within(earlier).queryByRole('button', { name: 'Reactivar crédito' })).not.toBeInTheDocument();
+    const protectedButton = within(earlier).getByRole('button', { name: 'Pago de crédito liquidado protegido' });
+    expect(protectedButton).toBeDisabled();
+    fireEvent.click(protectedButton);
+    expect(supabase.rpc).not.toHaveBeenCalledWith('reopen_settled_credit', expect.anything());
+    expect(supabase.rpc).toHaveBeenCalledWith('get_credit_settlement_payments', { p_company_id: 'qa' });
+  });
+
+  it('no habilita reactivaciones si falla la lectura de liquidaciones', async () => {
+    const error = jest.spyOn(toast, 'error');
+    (supabase.rpc as jest.Mock).mockResolvedValueOnce({ data: null, error: { message: 'Unavailable' } });
+    render(<PaymentHistoryView embedded />);
+    await waitFor(() => expect(error).toHaveBeenCalledWith('No se pudo verificar el pago de liquidación', expect.anything()));
+    expect(screen.queryByRole('button', { name: 'Reactivar crédito' })).not.toBeInTheDocument();
+    for (const button of screen.getAllByRole('button', { name: 'Pago de crédito liquidado protegido' })) expect(button).toBeDisabled();
+  });
+
+  it('conserva protegidos los créditos históricos sin contexto de liquidación', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValueOnce({ data: [], error: null });
+    render(<PaymentHistoryView embedded />);
+    await waitFor(() => expect(supabase.rpc).toHaveBeenCalledWith('get_credit_settlement_payments', { p_company_id: 'qa' }));
+    expect(screen.queryByRole('button', { name: 'Reactivar crédito' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /QA-SETTLEMENT/ })).getByRole('button', { name: 'Pago de crédito liquidado protegido' })).toBeDisabled();
   });
 
   it('deshabilita la reactivación para un editor', async () => {
     mockRole = 'editor';
     render(<PaymentHistoryView embedded />);
     const row = await screen.findByRole('row', { name: /QA-SETTLEMENT/ });
-    expect(within(row).getByRole('button', { name: 'Reactivar crédito' })).toBeDisabled();
+    expect(await within(row).findByRole('button', { name: 'Reactivar crédito' })).toBeDisabled();
   });
 });

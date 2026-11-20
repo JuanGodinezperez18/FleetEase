@@ -60,10 +60,31 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
   const [editTarget, setEditTarget] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [settlements, setSettlements] = useState<{ companyId: string; version: string; payments: Record<string, string> } | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
   const companyId = selectedCompanyId || currentUser?.companyId || null;
+
+  const settlementVersion = credits.filter(c => c.status === "completed").map(c => c.id).sort().join(",");
+  const settlementPaymentVersion = financialRecords.filter(r => r.creditId && r.creditPayment).map(r => `${r.id}:${Boolean(r.isDeleted)}`).sort().join(",");
+  const settlementLookupVersion = `${settlementVersion}|${settlementPaymentVersion}`;
+  useEffect(() => {
+    let cancelled = false;
+    setSettlements(null);
+    if (!companyId || !settlementVersion) return;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_credit_settlement_payments", { p_company_id: companyId });
+        if (cancelled) return;
+        if (error) throw error;
+        setSettlements({ companyId, version: settlementLookupVersion, payments: Object.fromEntries((data || []).map(row => [row.credit_id, row.payment_id])) });
+      } catch {
+        if (!cancelled) toast.error("No se pudo verificar el pago de liquidación", { description: "Actualiza el historial antes de reactivar el crédito." });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [companyId, settlementVersion, settlementLookupVersion]);
 
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, `${c.firstname} ${c.lastname}`.trim()])), [clients]);
   const partnerMap = useMemo(() => new Map(partners.map(p => [p.id, p.name || `${p.firstname} ${p.lastname}`.trim()])), [partners]);
@@ -281,10 +302,15 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
     Boolean(record.creditId && credits.some(c => c.id === record.creditId && c.status === "completed"));
   const canReopenCredit = currentUser?.role === "admin" || currentUser?.role === "superAdmin";
 
+  const isSettlementPayment = (record: { id: string; creditId?: string | null }) =>
+    Boolean(record.creditId && settlements?.companyId === companyId && settlements.version === settlementLookupVersion && settlements.payments[record.creditId] === record.id);
+  const deletionLabel = (record: { id: string; creditId?: string | null }) =>
+    !isSettledCreditPayment(record) ? "Eliminar pago" : isSettlementPayment(record) ? "Reactivar crédito" : "Pago de crédito liquidado protegido";
+
   const deletePayment = async (record: any) => {
     if (!companyId || deletingId) return;
     const reopening = isSettledCreditPayment(record);
-    if (reopening && !canReopenCredit) return;
+    if (reopening && (!canReopenCredit || !isSettlementPayment(record))) return;
     const ok = reopening
       ? window.confirm("¿Revertir este pago y reactivar el crédito? El saldo volverá a quedar pendiente y el vehículo se asignará al cliente.")
       : window.confirm(`¿Eliminar el pago de ${formatCurrency(Number(record.amount || 0))}? Se conservará el registro de auditoría y se revertirá su efecto financiero.`);
@@ -403,7 +429,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                         <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/50">{r.isFinePayment ? "Pago de Multa" : PAYMENT_LABELS[r.recordKind] || "Pago"}</span>
                         <div className="ml-auto flex gap-1">
                           <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && !canReopenCredit)} aria-label={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} title={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} onClick={() => void deletePayment(r)}>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && (!canReopenCredit || !isSettlementPayment(r)))} aria-label={deletionLabel(r)} title={deletionLabel(r)} onClick={() => void deletePayment(r)}>
                             {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                           </Button>
                         </div>
@@ -430,7 +456,7 @@ export function PaymentHistoryView({ embedded = false }: { embedded?: boolean } 
                           <td className="p-3">
                             <div className="flex justify-end gap-1">
                               <Button size="icon" variant="ghost" className="h-11 w-11 text-white/40 hover:bg-white/[0.06] hover:text-white" aria-label="Editar pago" title="Editar pago" onClick={() => startEdit(r)}><Pencil className="h-4 w-4" strokeWidth={1.75} /></Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && !canReopenCredit)} aria-label={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} title={isSettledCreditPayment(r) ? "Reactivar crédito" : "Eliminar pago"} onClick={() => void deletePayment(r)}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/40 hover:bg-white/[0.06] hover:text-rose-300" disabled={deletingId === r.id || (isSettledCreditPayment(r) && (!canReopenCredit || !isSettlementPayment(r)))} aria-label={deletionLabel(r)} title={deletionLabel(r)} onClick={() => void deletePayment(r)}>
                                 {deletingId === r.id ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.75} /> : <Trash2 className="h-4 w-4" strokeWidth={1.75} />}
                               </Button>
                             </div>

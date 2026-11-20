@@ -43,6 +43,10 @@ jobs:
         run: psql -h localhost -U postgres -d payment_test -v ON_ERROR_STOP=1 -f supabase/tests/supplier_payment_permissions.sql
         env:
           PGPASSWORD: isolated-ci-only
+      - name: Verify settlement payment lookup identity and tenant permissions
+        run: psql -h localhost -U postgres -d payment_test -v ON_ERROR_STOP=1 -f supabase/tests/credit_settlement_payment_lookup.sql
+        env:
+          PGPASSWORD: isolated-ci-only
       - name: Verify concurrent retries of the same credit payment
         run: bash supabase/tests/credit_payment_concurrency.sh
         env:
