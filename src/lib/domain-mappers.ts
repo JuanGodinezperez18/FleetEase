@@ -124,6 +124,11 @@ export const toDomainMulta = (row: SbMulta): Multa => mapKeys<Multa>(row as unkn
 export const toSbClient = (data: Partial<Client>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
 export const toSbVehicle = (data: Partial<Vehicle>): Record<string, unknown> => stableStorageRecord(mapKeys(data as unknown as Record<string, unknown>, camelToSnakeKey));
 
+export const toSbVehicleUpdate = (data: Partial<Vehicle>): Record<string, unknown> => {
+  const { createdAt: _createdAt, ...mutable } = data;
+  return toSbVehicle(mutable);
+};
+
 /**
  * partners.name es NOT NULL en PostgreSQL, pero el formulario trabaja con
  * firstname/lastname. Garantizamos aquí el campo canónico para que cualquier

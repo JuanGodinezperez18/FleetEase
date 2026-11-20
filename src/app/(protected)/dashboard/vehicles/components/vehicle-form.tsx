@@ -105,7 +105,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
       plate: initialData?.plate || "",
       serialNumber: initialData?.serialNumber || "",
       status: initialData?.status || "active",
-      createdAt: parseDateForInput(initialData?.createdAt) || getBusinessDateKey(new Date()),
+      createdAt: initialData?.createdAt?.slice(0, 10) || getBusinessDateKey(new Date()),
       clientId: initialData?.clientId || null,
       partnerId: initialData?.partnerId || null,
       cost: initialData?.cost || undefined,
@@ -218,7 +218,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
                 <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Registro</p><h3 className="text-base font-semibold fe-text">Fecha de creación</h3></div></div>
-                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={parseDateForInput(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-[var(--fe-hover)] cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs fe-text-muted">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
+                <FormField name="createdAt" control={form.control} render={({field}) => <FormItem className="max-w-sm"><FormLabel className="flex items-center gap-2"><CalendarPlus className="h-4 w-4" />Fecha de Creación</FormLabel><FormControl><Input type="date" min="2000-01-01" max={getBusinessDateKey(new Date())} {...field} onFocus={e => e.currentTarget.select()} disabled={!!initialData || isSubmitting} className={!!initialData ? "bg-[var(--fe-hover)] cursor-not-allowed" : ""} /></FormControl>{!!initialData && <p className="text-xs fe-text-muted">Esta fecha no se puede modificar después de crear el vehículo</p>}<FormMessage /></FormItem>} />
               </section>
 
               <section className="rounded-2xl border border-[var(--fe-border)] bg-[var(--fe-surface)] p-4 sm:p-5 shadow-[var(--fe-shadow-sm)]">
@@ -267,8 +267,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess, onSubmit, i
                 <div className="mb-4 flex items-center gap-3"><div className="h-5 w-1 rounded-full bg-[var(--fe-border-strong)]" /><div><p className="text-[11px] font-medium uppercase tracking-[0.18em] fe-text-muted">Archivos</p><h3 className="text-base font-semibold fe-text">Documentos y fotografía</h3></div></div>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
                   <FormField name="imageUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Imagen Vehículo</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*" multiple={false} folder="vehicle_images" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
-                  <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="driver_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="circulationCardUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Tarjeta Circulación</FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="vehicle_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
+                  <FormField name="insurancePolicyDocumentUrl" control={form.control} render={({field}) => <FormItem><FormLabel>Póliza Seguro <span className="text-rose-400" aria-hidden="true">*</span></FormLabel><FormControl><MultipleFileInput onFilesSelected={field.onChange} initialValue={field.value} accept="image/*,application/pdf" multiple={false} folder="vehicle_documents" entityId={initialData?.id} /></FormControl><FormMessage /></FormItem>} />
                 </div>
               </section>
             </div>

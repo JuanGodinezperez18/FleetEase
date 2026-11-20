@@ -21,7 +21,7 @@ import { createCreditAtomic } from '@/lib/credit-rpc';
 import { isJsonObject } from '@/lib/json-guards';
 import { buildAssignmentLogPayload, checkVehicleAssignmentAvailability, isAssignmentDateInFuture, isHistoricalAssignmentDate, type NewAssignmentInput } from '@/lib/vehicle-assignment';
 import type { Client, Vehicle, Partner, Credit, FinancialRecord, MileageLog, Notification, VehicleAssignmentLog, Company, FinancialCategory, MessageTemplate, MessageLog, CreditPaymentSchedule, Multa } from '@/types/supabase';
-import { toDomainClient, toDomainVehicle, toDomainPartner, toDomainCredit, toDomainFinancialRecord, toDomainMileageLog, toDomainNotification, toDomainVehicleAssignmentLog, toDomainCompany, toDomainFinancialCategory, toDomainMessageTemplate, toDomainMessageLog, toDomainCreditPaymentSchedule, toDomainMulta, toSbClient, toSbVehicle, toSbPartner, toSbCredit, toSbFinancialRecord, toSbMileageLog, toSbNotification, toSbVehicleAssignmentLog, toSbCompany, toSbFinancialCategory, toSbMessageTemplate, toSbMessageLog, toSbCreditPaymentSchedule, toSbMulta } from '@/lib/domain-mappers';
+import { toDomainClient, toDomainVehicle, toDomainPartner, toDomainCredit, toDomainFinancialRecord, toDomainMileageLog, toDomainNotification, toDomainVehicleAssignmentLog, toDomainCompany, toDomainFinancialCategory, toDomainMessageTemplate, toDomainMessageLog, toDomainCreditPaymentSchedule, toDomainMulta, toSbClient, toSbVehicle, toSbVehicleUpdate, toSbPartner, toSbCredit, toSbFinancialRecord, toSbMileageLog, toSbNotification, toSbVehicleAssignmentLog, toSbCompany, toSbFinancialCategory, toSbMessageTemplate, toSbMessageLog, toSbCreditPaymentSchedule, toSbMulta } from '@/lib/domain-mappers';
 import { resolvePrivateStorageUrls } from '@/lib/storage/resolve-private-storage-url';
 import { formatCurrency } from '@/lib/utils';
 import { calculatePartnerBalance, calculateClientBalance } from '@/lib/financial-metrics';
@@ -341,7 +341,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           Number(existing.current_mileage ?? 0),
           requiresInsuranceValidation,
         );
-        const { error } = await supabase.from('vehicles').update(toSbVehicle(data) as any).eq('id', id);
+        const { error } = await supabase.from('vehicles').update(toSbVehicleUpdate(data) as any).eq('id', id);
         if (error) throw error;
       } catch (error) {
         throw getSafeVehicleError(error);
