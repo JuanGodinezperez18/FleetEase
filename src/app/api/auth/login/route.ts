@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { z } from 'zod';
 import { authLimiter, checkRateLimit } from '@/lib/rate-limit';
-import { hardenAuthCookieOptions } from '@/lib/security/cookies';
+import { AUTH_PERSISTENCE_COOKIE, hardenAuthCookieOptions } from '@/lib/security/cookies';
 
 const credentialsSchema = z.object({
   email: z.string().email().max(254),
@@ -28,12 +28,15 @@ export async function POST(request: NextRequest) {
   const pendingCookies = new Map<string, { name: string; value: string; options?: CookieOptions }>();
   const respond = (body: unknown, status: number) => {
     const response = NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
+    if (status === 200) {
+      response.cookies.set({
+        name: AUTH_PERSISTENCE_COOKIE,
+        value: input.rememberMe ? 'persistent' : 'session',
+        ...hardenAuthCookieOptions({ maxAge: 31536000 }, input.rememberMe ? 'persistent' : 'session'),
+      });
+    }
     for (const { name, value, options } of pendingCookies.values()) {
-      const hardened = hardenAuthCookieOptions(options);
-      if (!input.rememberMe && hardened.maxAge !== 0) {
-        delete hardened.maxAge;
-        delete hardened.expires;
-      }
+      const hardened = hardenAuthCookieOptions(options, input.rememberMe ? 'persistent' : 'session');
       response.cookies.set({ name, value, ...hardened });
     }
     return response;

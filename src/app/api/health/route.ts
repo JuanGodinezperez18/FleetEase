@@ -1,5 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { hardenAuthCookieOptions } from '@/lib/security/cookies';
+import { AUTH_PERSISTENCE_COOKIE, hardenAuthCookieOptions } from '@/lib/security/cookies';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
@@ -61,10 +61,10 @@ export async function GET(request: Request) {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...hardenAuthCookieOptions(options) });
+            cookieStore.set({ name, value, ...hardenAuthCookieOptions(options, cookieStore.get(AUTH_PERSISTENCE_COOKIE)?.value) });
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...hardenAuthCookieOptions(options) });
+            cookieStore.set({ name, value: '', ...hardenAuthCookieOptions(options, cookieStore.get(AUTH_PERSISTENCE_COOKIE)?.value) });
           },
         },
       }
