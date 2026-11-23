@@ -51,7 +51,7 @@ const store = new Map<string, RateLimitEntry>();
 
 // Limpieza periódica de entradas expiradas
 const CLEANUP_INTERVAL = 60 * 1000; // cada 1 minuto
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store.entries()) {
     if (entry.resetAt <= now) {
@@ -59,6 +59,7 @@ setInterval(() => {
     }
   }
 }, CLEANUP_INTERVAL);
+cleanupTimer.unref?.();
 
 class RateLimiter {
   private config: RateLimitConfig;
@@ -82,7 +83,7 @@ class RateLimiter {
       if (!redisUrl || !redisToken) throw new Error('Configura UPSTASH_REDIS_REST_URL y UPSTASH_REDIS_REST_TOKEN juntos.');
 
       const redisKey = `fleetease:rate-limit:${key}`;
-      const script = "local count = redis.call('INCR', KEYS[1]); if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return { count, redis.call('PTTL', KEYS[1]) }";
+      const script = "local count = redis.call('INCR', KEYS[1]); local ttl = redis.call('PTTL', KEYS[1]); if count == 1 or ttl < 0 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); ttl = tonumber(ARGV[1]); end; return { count, ttl }";
       const response = await fetch(redisUrl.replace(/\/+$/, ''), {
         method: 'POST',
         headers: {
@@ -99,6 +100,9 @@ class RateLimiter {
         throw new Error('Upstash returned an invalid rate-limit response.');
       }
       const [count, ttl] = payload.result;
+      if (!Number.isSafeInteger(count) || count < 1 || !Number.isSafeInteger(ttl) || ttl < 0) {
+        throw new Error('Upstash returned an invalid rate-limit response.');
+      }
       const resetAt = now + Math.max(0, ttl);
       const limited = count > max;
       return {
@@ -307,7 +311,8 @@ export async function checkRateLimit(
       {
         status: 429,
         headers: {
-          'Retry-After': Math.ceil((result.resetAt - Date.now()) / 1000).toString(),
+          'Cache-Control': 'no-store',
+          'Retry-After': Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000)).toString(),
           'X-RateLimit-Limit': result.total.toString(),
           'X-RateLimit-Remaining': '0',
           'X-RateLimit-Reset': new Date(result.resetAt).toISOString(),
