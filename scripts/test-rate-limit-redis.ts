@@ -94,7 +94,12 @@ async function main() {
     assert.equal(results.filter(result => !result.limited).length, 3);
     assert.equal(results.filter(result => result.limited).length, 17);
     assert.equal((await instances[0].check('other-client')).limited, false);
-    assert.ok(Number(await redis(['PTTL', keys[0]])) > 0);
+    const initialTtl = Number(await redis(['PTTL', keys[0]]));
+    assert.ok(initialTtl > 0);
+    await delay(250);
+    assert.equal((await instances[0].check('same-client')).limited, true);
+    const remainingTtl = Number(await redis(['PTTL', keys[0]]));
+    assert.ok(remainingTtl > 0 && remainingTtl < initialTtl - 150, 'Normal requests must not extend the fixed window');
     await delay(1600);
     assert.equal((await instances[1].check('same-client')).limited, false);
     assert.equal(await redis(['GET', keys[0]]), '1');
