@@ -96,6 +96,16 @@ jobs:
 
   quality:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -116,6 +126,10 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Pruebas de regresión
         run: npm run test:ci -- --runInBand src/lib/__tests__/zod-resolver-compatibility.test.ts src/__tests__/middleware.test.ts src/__tests__/contexts/auth-boot.test.tsx src/lib/shared-links.test.ts src/lib/security/notification-scope.test.ts src/lib/security/admin-target-scope.test.ts src/app/api/notifications/tenant-isolation.test.ts src/app/api/admin/users/email-delivery.test.ts src/lib/rate-limit-production.test.ts
+      - name: Verify distributed quotas and recovery against isolated Redis
+        run: npx tsx scripts/test-rate-limit-redis.ts
+        env:
+          REDIS_TEST_PORT: 6379
       - name: Reauditoría 5 de noviembre
         run: npm run test:ci -- --runInBand src/lib/credit-administration.test.ts src/lib/soft-delete.test.ts src/lib/financial-category-archive.test.ts src/lib/reports/analytics-reconciliation.test.ts src/app/api/auth/login/route.test.ts src/__tests__/lib/auth-browser-cookies.test.ts src/__tests__/lib/auth-persistence.test.ts src/__tests__/lib/financial-reconciliation.test.ts src/__tests__/lib/roles.test.ts src/__tests__/components/portal-role-guard.test.tsx
       - name: Referencias y fechas civiles de pagos
