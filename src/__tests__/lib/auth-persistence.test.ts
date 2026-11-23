@@ -35,6 +35,7 @@ describe('Supabase auth storage adapter', () => {
   });
 
   it('clears SDK tokens from both browser storage scopes on sign-out', () => {
+    document.cookie = 'fleetease-auth-persistence=session; Path=/';
     window.localStorage.setItem('sb-test-auth-token', 'persistent-session');
     window.sessionStorage.setItem('sb-test-auth-token', 'tab-session');
 
@@ -42,5 +43,6 @@ describe('Supabase auth storage adapter', () => {
 
     expect(window.localStorage.getItem('sb-test-auth-token')).toBeNull();
     expect(window.sessionStorage.getItem('sb-test-auth-token')).toBeNull();
+    expect(document.cookie).not.toContain('fleetease-auth-persistence');
   });
 });

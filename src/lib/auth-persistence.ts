@@ -1,3 +1,5 @@
+import { AUTH_PERSISTENCE_COOKIE } from '@/lib/security/cookies';
+
 const AUTH_PERSISTENCE_KEY = 'fleetease.auth.persistence.v1';
 const LEGACY_SESSION_KEY = 'fleetease.auth.session.v1';
 const SUPABASE_AUTH_KEY_PATTERN = /^sb-.+-auth-token$/;
@@ -55,4 +57,5 @@ export function clearSupabaseAuthStorage(): void {
     }
   }
   window.localStorage.removeItem(AUTH_PERSISTENCE_KEY);
+  document.cookie = `${AUTH_PERSISTENCE_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
 }

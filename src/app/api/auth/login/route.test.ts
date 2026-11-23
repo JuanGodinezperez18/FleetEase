@@ -57,7 +57,7 @@ describe('password login gateway', () => {
     expect(createServerClient).not.toHaveBeenCalled();
   });
 
-  it('sets hardened SSR session cookies and returns session only with an active profile', async () => {
+  it.each([false, true])('sets SSR cookies and refresh preference for rememberMe=%s', async rememberMe => {
     const query = { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: { id: 'u', is_deleted: false }, error: null }) };
     createServerClient.mockImplementation((_url: string, _key: string, options: any) => ({
       auth: {
@@ -67,12 +67,20 @@ describe('password login gateway', () => {
         }),
       }, from: () => query,
     }));
-    const result = await POST(request(credentials));
+    const result = await POST(request({ ...credentials, rememberMe }));
     expect(result.status).toBe(200);
     expect(result.headers.get('cache-control')).toContain('no-store');
     const cookie = (result as NextResponse).cookies.get('sb-test-auth-token');
     expect(cookie).toMatchObject({ value: 'session', sameSite: 'lax', path: '/', httpOnly: false });
-    expect(cookie).not.toHaveProperty('maxAge');
+    const preference = (result as NextResponse).cookies.get('fleetease-auth-persistence');
+    expect(preference?.value).toBe(rememberMe ? 'persistent' : 'session');
+    if (rememberMe) {
+      expect(cookie?.maxAge).toBe(1234);
+      expect(preference?.maxAge).toBeGreaterThan(0);
+    } else {
+      expect(cookie).not.toHaveProperty('maxAge');
+      expect(preference).not.toHaveProperty('maxAge');
+    }
     expect(await result.json()).toMatchObject({ session: { access_token: 'access' }, profile: { id: 'u' } });
   });
 
@@ -82,5 +90,6 @@ describe('password login gateway', () => {
     const result = await POST(request(credentials));
     expect(result.status).toBe(403);
     expect(await result.json()).not.toHaveProperty('session');
+    expect((result as NextResponse).cookies.get('fleetease-auth-persistence')).toBeUndefined();
   });
 });

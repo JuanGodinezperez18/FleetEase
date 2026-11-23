@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { hardenAuthCookieOptions } from '@/lib/security/cookies';
+import { AUTH_PERSISTENCE_COOKIE, hardenAuthCookieOptions } from '@/lib/security/cookies';
 import { NextRequest, NextResponse } from 'next/server';
 import { apiLimiter, checkRateLimit } from '@/lib/rate-limit';
 
@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
   if (limited) return limited;
   const cookieStore = await cookies();
   let response = NextResponse.json({ status: 'success', message: 'Sesión cerrada exitosamente' });
+  response.cookies.set({ name: AUTH_PERSISTENCE_COOKIE, value: '', ...hardenAuthCookieOptions({ maxAge: 0 }) });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -18,20 +18,27 @@
 import type { CookieOptions } from '@supabase/ssr';
 
 const isProduction = process.env.NODE_ENV === 'production';
+export const AUTH_PERSISTENCE_COOKIE = 'fleetease-auth-persistence';
 
 /** Cookies de sesión Supabase: endurecidas pero legibles por el cliente SSR. */
 export function hardenAuthCookieOptions(
   options?: CookieOptions,
+  persistence?: string,
 ): Required<Pick<CookieOptions, 'path' | 'sameSite' | 'secure' | 'httpOnly'>> &
   CookieOptions {
-  return {
+  const hardened = {
     ...options,
     path: options?.path ?? '/',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     secure: isProduction,
     // Requerido por createBrowserClient (@supabase/ssr): ver docstring.
     httpOnly: false,
   };
+  if (persistence === 'session' && hardened.maxAge !== 0) {
+    delete hardened.maxAge;
+    delete hardened.expires;
+  }
+  return hardened;
 }
 
 /** Cookies propias de solo servidor: httpOnly real. */

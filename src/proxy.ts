@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { hardenAuthCookieOptions } from '@/lib/security/cookies';
+import { AUTH_PERSISTENCE_COOKIE, hardenAuthCookieOptions } from '@/lib/security/cookies';
 
 const SECURITY_HEADERS = [
   ['Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload'],
@@ -133,7 +133,8 @@ export async function proxy(req: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
           response = createResponse();
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, hardenAuthCookieOptions(options));
+            const persistence = req.cookies.getAll().find(cookie => cookie.name === AUTH_PERSISTENCE_COOKIE)?.value;
+            response.cookies.set(name, value, hardenAuthCookieOptions(options, persistence));
           });
         },
       },

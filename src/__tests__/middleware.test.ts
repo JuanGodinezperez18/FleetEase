@@ -25,10 +25,6 @@ jest.mock('@supabase/ssr', () => ({
   createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
 }));
 
-jest.mock('@/lib/security/cookies', () => ({
-  hardenAuthCookieOptions: (options: unknown) => options,
-}));
-
 function buildRequest(pathname: string) {
   const url = new URL(pathname, 'https://fleetease.test');
   const cookieValues: Array<{ name: string; value: string }> = [];
@@ -70,6 +66,32 @@ describe('middleware authentication and role authorization', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
   });
+
+  it.each(['session', 'persistent'])(
+    'preserves %s persistence when SSR refreshes a session', async persistence => {
+      const request = buildRequest('/dashboard');
+      request.cookies.set('fleetease-auth-persistence', persistence);
+      mockGetUser.mockImplementation(async () => {
+        const options = mockCreateServerClient.mock.calls[0][2];
+        options.cookies.setAll([
+          { name: 'sb-test-auth-token.0', value: 'refreshed', options: { maxAge: 3600, expires: new Date('2030-01-01') } },
+          { name: 'sb-test-auth-token.1', value: '', options: { maxAge: 0 } },
+        ]);
+        return { data: { user: { id: 'user-1' } }, error: null };
+      });
+      const response = await proxy(request as any);
+      const cookieWrites = (response as unknown as { cookies: { set: jest.Mock } }).cookies.set;
+      const refreshed = cookieWrites.mock.calls.find(([name]: [string]) => name === 'sb-test-auth-token.0')[2];
+      if (persistence === 'session') {
+        expect(refreshed).not.toHaveProperty('maxAge');
+        expect(refreshed).not.toHaveProperty('expires');
+      } else {
+        expect(refreshed.maxAge).toBe(3600);
+      }
+      expect(cookieWrites).toHaveBeenCalledWith('sb-test-auth-token.1', '', expect.objectContaining({ maxAge: 0 }));
+      expect(refreshed).toMatchObject({ sameSite: 'lax', path: '/', httpOnly: false });
+    },
+  );
 
   it.each(['/','/login','/register','/forgot-password','/reset-password','/registro','/privacidad','/cookies','/terminos','/cancelaciones','/s/example', '/funciones', '/soluciones', '/software-para-flotillas', '/software-para-renta-de-vehiculos', '/control-de-mantenimiento-de-flotillas', '/administracion-de-vehiculos-monterrey'])(
     'does not make an auth network call for public path %s',

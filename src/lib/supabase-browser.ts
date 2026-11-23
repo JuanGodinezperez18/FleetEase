@@ -13,6 +13,7 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './supabase';
+import { authBrowserCookies } from './auth-browser-cookies';
 
 export type { Database } from './supabase';
 export type { Json } from './supabase';
@@ -30,6 +31,7 @@ const browserClient = createBrowserClient<Database>(
   supabaseUrl!,
   supabaseAnonKey!,
   {
+    cookies: authBrowserCookies,
     auth: {
       autoRefreshToken: true,
       persistSession: true,
